@@ -2,12 +2,13 @@ class_name PlayerController
 extends CharacterBody3D
 
 signal shot_fired
+signal weapon_changed(display_name: String)
 signal health_changed(current: float, maximum: float)
 signal damage_received(amount: float, current: float, maximum: float)
 signal defeated
 
 const ThirdPersonCameraRigScript = preload("res://scripts/camera/camera_rig.gd")
-const PulseRifleScript = preload("res://scripts/weapons/pulse_rifle.gd")
+const WeaponControllerScript = preload("res://scripts/weapons/weapon_controller.gd")
 
 @export_range(1.0, 15.0, 0.1) var move_speed: float = 6.0
 @export_range(1.0, 60.0, 0.5) var move_acceleration: float = 24.0
@@ -23,11 +24,12 @@ var _touch_fire_pressed: bool = false
 @onready var aim_camera: Camera3D = $CameraRig/YawPivot/PitchPivot/SpringArm3D/Camera3D
 @onready var visual_root: Node3D = $VisualRoot
 @onready var muzzle: Marker3D = $VisualRoot/WeaponSocket/Muzzle
-@onready var pulse_rifle: PulseRifleScript = $PulseRifle
+@onready var weapon_controller: WeaponControllerScript = $WeaponController
 
 
 func _ready() -> void:
 	current_health = max_health
+	weapon_controller.weapon_changed.connect(_on_weapon_changed)
 	health_changed.emit(current_health, max_health)
 
 
@@ -36,10 +38,12 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector3.ZERO
 		return
 	_update_movement(delta)
+	if Input.is_action_just_pressed("weapon_next"):
+		select_next_weapon()
 	var aim_point := _get_aim_point()
 	_face_aim_point(aim_point)
 	if Input.is_action_pressed("fire") or _touch_fire_pressed:
-		if pulse_rifle.try_fire(self, muzzle, aim_point):
+		if weapon_controller.try_fire(self, muzzle, aim_point):
 			shot_fired.emit()
 
 
@@ -66,6 +70,26 @@ func apply_touch_look(delta: Vector2) -> void:
 
 func set_touch_fire_pressed(pressed: bool) -> void:
 	_touch_fire_pressed = pressed
+
+
+func select_weapon(index: int) -> bool:
+	return weapon_controller.select_weapon(index)
+
+
+func select_next_weapon() -> bool:
+	return weapon_controller.select_next_weapon()
+
+
+func select_previous_weapon() -> bool:
+	return weapon_controller.select_previous_weapon()
+
+
+func get_current_weapon_name() -> String:
+	return weapon_controller.get_current_weapon_name()
+
+
+func _on_weapon_changed(display_name: String) -> void:
+	weapon_changed.emit(display_name)
 
 
 func can_take_damage() -> bool:

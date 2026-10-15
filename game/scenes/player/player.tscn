@@ -1,9 +1,10 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/player_controller.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/camera/camera_rig.gd" id="2_camera"]
-[ext_resource type="Script" path="res://scripts/weapons/pulse_rifle.gd" id="3_weapon"]
-[ext_resource type="PackedScene" path="res://scenes/weapons/pulse_projectile.tscn" id="4_projectile"]
+[ext_resource type="Script" path="res://scripts/weapons/weapon_controller.gd" id="3_weapon_controller"]
+[ext_resource type="Resource" path="res://resources/weapons/pulse_rifle.tres" id="4_pulse_rifle"]
+[ext_resource type="Resource" path="res://resources/weapons/nova_launcher.tres" id="5_nova_launcher"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape_player"]
 radius = 0.42
@@ -53,9 +54,9 @@ material_override = SubResource("Material_weapon")
 [node name="Muzzle" type="Marker3D" parent="VisualRoot/WeaponSocket"]
 position = Vector3(0, 0, -0.72)
 
-[node name="PulseRifle" type="Node" parent="."]
-script = ExtResource("3_weapon")
-projectile_scene = ExtResource("4_projectile")
+[node name="WeaponController" type="Node" parent="."]
+script = ExtResource("3_weapon_controller")
+weapon_definitions = Array[WeaponDefinition]([ExtResource("4_pulse_rifle"), ExtResource("5_nova_launcher")])
 
 [node name="CameraRig" type="Node3D" parent="."]
 position = Vector3(0, 1.48, 0)

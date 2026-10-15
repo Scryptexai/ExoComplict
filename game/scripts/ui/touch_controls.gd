@@ -4,6 +4,7 @@ extends Control
 signal movement_changed(value: Vector2)
 signal look_delta(value: Vector2)
 signal fire_changed(pressed: bool)
+signal weapon_switch_requested
 signal pause_requested
 signal retry_requested
 
@@ -18,6 +19,7 @@ var _move_position: Vector2 = Vector2.ZERO
 var _status_label: Label
 var _help_label: Label
 var _fire_button: Button
+var _weapon_button: Button
 var _pause_button: Button
 var _pause_label: Label
 var _results_panel: PanelContainer
@@ -74,6 +76,11 @@ func set_status(text: String) -> void:
 		_status_label.text = text
 
 
+func set_weapon_label(display_name: String) -> void:
+	if is_instance_valid(_weapon_button):
+		_weapon_button.text = display_name.to_upper()
+
+
 func set_paused(paused: bool) -> void:
 	if is_instance_valid(_pause_button):
 		_pause_button.text = "RETRY" if _player_down else ("RESUME" if paused else "PAUSE")
@@ -85,6 +92,8 @@ func set_paused(paused: bool) -> void:
 		if paused or _player_down:
 			# Do not rely on a matching touch-up event after pausing or defeat.
 			fire_changed.emit(false)
+	if is_instance_valid(_weapon_button):
+		_weapon_button.disabled = paused or _player_down
 
 
 func set_player_down(down: bool) -> void:
@@ -95,6 +104,8 @@ func set_player_down(down: bool) -> void:
 		_fire_button.disabled = down or get_tree().paused
 		if down:
 			fire_changed.emit(false)
+	if is_instance_valid(_weapon_button):
+		_weapon_button.disabled = down or get_tree().paused
 
 
 func show_results(
@@ -114,6 +125,7 @@ func show_results(
 	_status_label.visible = false
 	_help_label.visible = false
 	_fire_button.visible = false
+	_weapon_button.visible = false
 	_pause_button.visible = false
 	_pause_label.visible = false
 	fire_changed.emit(false)
@@ -126,6 +138,7 @@ func hide_results() -> void:
 	_status_label.visible = true
 	_help_label.visible = true
 	_fire_button.visible = true
+	_weapon_button.visible = true
 	_pause_button.visible = true
 	_pause_label.visible = get_tree().paused
 
@@ -150,16 +163,20 @@ func _build_ui() -> void:
 	_help_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_help_label.text = (
 		"Move: WASD / left drag · Aim: right mouse / right drag · "
-		+ "Fire: click / FIRE · Reset: R / RETRY"
+		+ "Fire: click / FIRE · Switch: E / weapon button · Reset: R / RETRY"
 	)
 	_help_label.add_theme_font_size_override("font_size", 14)
 	_help_label.add_theme_color_override("font_color", Color(0.72, 0.82, 0.9, 0.9))
 	add_child(_help_label)
 
-	_fire_button = _make_button("FIRE", -166.0, -166.0, -26.0, -26.0)
+	_fire_button = _make_button("FIRE", -166.0, -166.0, -26.0, -26.0, true)
 	_fire_button.add_theme_font_size_override("font_size", 22)
 	_fire_button.button_down.connect(_on_fire_down)
 	_fire_button.button_up.connect(_on_fire_up)
+
+	_weapon_button = _make_button("PULSE RIFLE", -166.0, -248.0, -26.0, -176.0, true)
+	_weapon_button.add_theme_font_size_override("font_size", 14)
+	_weapon_button.pressed.connect(_on_weapon_switch_pressed)
 
 	_pause_button = _make_button("PAUSE", -126.0, 18.0, -24.0, 72.0)
 	_pause_button.add_theme_font_size_override("font_size", 16)
@@ -229,14 +246,23 @@ func _build_results_panel() -> void:
 
 
 func _make_button(
-	label: String, left_offset: float, top_offset: float, right_offset: float, bottom_offset: float
+	label: String,
+	left_offset: float,
+	top_offset: float,
+	right_offset: float,
+	bottom_offset: float,
+	bottom_anchored: bool = false
 ) -> Button:
 	var button := Button.new()
-	button.name = "FireButton" if label == "FIRE" else "PauseButton"
+	button.name = "WeaponSwitchButton"
+	if label == "FIRE":
+		button.name = "FireButton"
+	elif label == "PAUSE":
+		button.name = "PauseButton"
 	button.text = label
 	button.anchor_left = 1.0
 	button.anchor_right = 1.0
-	button.anchor_top = 1.0 if label == "FIRE" else 0.0
+	button.anchor_top = 1.0 if bottom_anchored else 0.0
 	button.anchor_bottom = button.anchor_top
 	button.offset_left = left_offset
 	button.offset_top = top_offset
@@ -286,6 +312,8 @@ func _is_over_button(position: Vector2) -> bool:
 			return true
 	if is_instance_valid(_fire_button) and _fire_button.get_global_rect().has_point(position):
 		return true
+	if is_instance_valid(_weapon_button) and _weapon_button.get_global_rect().has_point(position):
+		return true
 	if is_instance_valid(_pause_button) and _pause_button.get_global_rect().has_point(position):
 		return true
 	return false
@@ -332,6 +360,10 @@ func _on_fire_down() -> void:
 
 func _on_fire_up() -> void:
 	fire_changed.emit(false)
+
+
+func _on_weapon_switch_pressed() -> void:
+	weapon_switch_requested.emit()
 
 
 func _on_pause_pressed() -> void:

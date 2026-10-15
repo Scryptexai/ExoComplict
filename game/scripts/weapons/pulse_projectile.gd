@@ -16,8 +16,12 @@ func launch(
 	shooter: CollisionObject3D,
 	damage: float,
 	speed: float,
-	max_range: float
+	max_range: float,
+	projectile_mask: int = 3,
+	_splash_damage: float = 0.0,
+	_splash_radius: float = 0.0
 ) -> void:
+	collision_mask = projectile_mask
 	global_position = start_position
 	_direction = aim_point - start_position
 	if _direction.length_squared() < 0.0001:
