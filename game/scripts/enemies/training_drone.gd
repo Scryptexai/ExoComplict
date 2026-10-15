@@ -1,0 +1,53 @@
+class_name TrainingDrone
+extends StaticBody3D
+
+signal health_changed(current: float, maximum: float)
+signal damage_received(amount: float, current: float, maximum: float)
+signal eliminated
+
+@export_range(1.0, 500.0, 1.0) var max_health: float = 54.0
+@export_range(0.5, 10.0, 0.5) var respawn_delay: float = 2.0
+
+var current_health: float = 0.0
+var _is_downed: bool = false
+
+@onready var collision_shape: CollisionShape3D = $CollisionShape3D
+@onready var visuals: Node3D = $Visuals
+
+
+func _ready() -> void:
+	add_to_group("enemies")
+	current_health = max_health
+	health_changed.emit(current_health, max_health)
+
+
+func apply_damage(amount: float, _source: Node = null) -> void:
+	if _is_downed or amount <= 0.0:
+		return
+
+	var applied_damage := minf(amount, current_health)
+	current_health = maxf(current_health - applied_damage, 0.0)
+	damage_received.emit(applied_damage, current_health, max_health)
+	health_changed.emit(current_health, max_health)
+	if current_health <= 0.0:
+		_is_downed = true
+		eliminated.emit()
+		visuals.visible = false
+		collision_shape.set_deferred("disabled", true)
+		set_deferred("collision_layer", 0)
+		_respawn_after_delay()
+
+
+func reset() -> void:
+	_is_downed = false
+	current_health = max_health
+	visuals.visible = true
+	collision_shape.set_deferred("disabled", false)
+	set_deferred("collision_layer", 2)
+	health_changed.emit(current_health, max_health)
+
+
+func _respawn_after_delay() -> void:
+	await get_tree().create_timer(respawn_delay).timeout
+	if is_inside_tree() and _is_downed:
+		reset()

@@ -1,0 +1,49 @@
+# Local tools, Python lint environment/cache (do not commit)
+.cache/
+.venv/
+venv/
+
+# Godot generated/imported cache (do not commit)
+.godot/
+**/.godot/
+.import/
+export.cfg
+export_presets.cfg
+**/export.cfg
+**/export_presets.cfg
+
+# Android/Gradle local and generated files
+.gradle/
+**/.gradle/
+local.properties
+**/local.properties
+build/
+**/build/
+
+# Local exports and packages
+exports/
+export/
+*.apk
+*.aab
+*.keystore
+*.jks
+*.p12
+
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+
+# Blender backup/recovery files (keep .blend source files)
+*.blend1
+*.blend2
+*.blend@*
+*.autosave.blend
+
+# Operating-system/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+*.log
