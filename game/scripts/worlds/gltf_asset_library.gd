@@ -52,7 +52,7 @@ static func add_bounds_collider(
 		if not is_instance_valid(mesh_instance) or mesh_instance.mesh == null:
 			continue
 		var relative_transform := inverse_root * mesh_instance.global_transform
-		var mesh_bounds := mesh_instance.get_aabb().transformed(relative_transform)
+		var mesh_bounds := _transform_aabb(mesh_instance.get_aabb(), relative_transform)
 		model_bounds = mesh_bounds if not has_bounds else model_bounds.merge(mesh_bounds)
 		has_bounds = true
 	if not has_bounds or model_bounds.size.is_zero_approx():
@@ -71,3 +71,32 @@ static func add_bounds_collider(
 	body.add_child(collision)
 	model_root.add_child(body)
 	return body
+
+
+static func _transform_aabb(bounds: AABB, transform: Transform3D) -> AABB:
+	var min_corner := Vector3.ZERO
+	var max_corner := Vector3.ZERO
+	var has_corner := false
+	for corner_index in range(8):
+		var local_corner := bounds.position
+		if (corner_index & 1) != 0:
+			local_corner.x += bounds.size.x
+		if (corner_index & 2) != 0:
+			local_corner.y += bounds.size.y
+		if (corner_index & 4) != 0:
+			local_corner.z += bounds.size.z
+
+		var transformed_corner := transform * local_corner
+		if not has_corner:
+			min_corner = transformed_corner
+			max_corner = transformed_corner
+			has_corner = true
+		else:
+			min_corner.x = minf(min_corner.x, transformed_corner.x)
+			min_corner.y = minf(min_corner.y, transformed_corner.y)
+			min_corner.z = minf(min_corner.z, transformed_corner.z)
+			max_corner.x = maxf(max_corner.x, transformed_corner.x)
+			max_corner.y = maxf(max_corner.y, transformed_corner.y)
+			max_corner.z = maxf(max_corner.z, transformed_corner.z)
+
+	return AABB(min_corner, max_corner - min_corner)
