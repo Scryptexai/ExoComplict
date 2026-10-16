@@ -138,17 +138,29 @@ else
   fi
 fi
 
+# export_presets.cfg is machine-local and may hold Android presets, Web presets,
+# or both. Validate the presets that are actually present instead of assuming
+# Android only, otherwise a local web export makes this check fail falsely.
 PRESET_FILE="$GAME_DIR/export_presets.cfg"
 if [[ ! -f "$PRESET_FILE" ]]; then
-  step_skipped 'no local Android preset (game/export_presets.cfg); create one with tools/android_preset.py when you start Android work'
+  step_skipped 'no local preset file (game/export_presets.cfg); create one with tools/android_preset.py or tools/web_preset.py'
 elif [[ -z "$PYTHON_BIN" ]]; then
-  step_skipped 'no python3 interpreter available for tools/android_preset.py'
+  step_skipped 'no python3 interpreter available for the preset tools'
 else
-  if preset_output="$("$PYTHON_BIN" "$TOOLS_DIR/android_preset.py" check --preset-file "$PRESET_FILE" 2>&1)"; then
-    step_passed 'local Android preset passes android_preset.py check'
-  else
-    step_failed 'local Android preset failed validation'
-    printf '%s\n' "$preset_output" | sed 's/^/         /'
+  preset_platforms=0
+  for platform in Android Web; do
+    grep -q "platform=\"$platform\"" "$PRESET_FILE" || continue
+    preset_platforms=$((preset_platforms + 1))
+    tool="$TOOLS_DIR/$(printf '%s' "$platform" | tr '[:upper:]' '[:lower:]')_preset.py"
+    if preset_output="$("$PYTHON_BIN" "$tool" check --preset-file "$PRESET_FILE" 2>&1)"; then
+      step_passed "local $platform preset passes $(basename "$tool") check"
+    else
+      step_failed "local $platform preset failed validation"
+      printf '%s\n' "$preset_output" | sed 's/^/         /'
+    fi
+  done
+  if (( preset_platforms == 0 )); then
+    step_passed 'local preset file has no Android/Web preset yet (nothing to validate)'
   fi
 fi
 printf '\n'
