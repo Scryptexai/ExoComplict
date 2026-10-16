@@ -152,7 +152,7 @@ func _update_status() -> void:
 	var down_text := " · DOWN — tap RETRY or press R" if player.is_defeated() else ""
 	var status := (
 		(
-			"PROJECT OVERDRIVE · SURVIVAL\n"
+			"NEON FRONTIER · FRONTIER DEFENSE\n"
 			+ "Player: %d / %d%s\n"
 			+ "%s\n"
 			+ "Score: %d · BP earned: %d · KOs: %d · Time: %s\n"

@@ -1,0 +1,3 @@
+# Procedural world and component builders are intentionally organized by district/asset.
+# Keep a hard limit while allowing those two detailed geometry scripts to remain cohesive.
+max-file-lines: 1600

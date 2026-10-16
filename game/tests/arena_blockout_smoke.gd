@@ -15,10 +15,10 @@ func _run_smoke_test() -> void:
 	await process_frame
 	await physics_frame
 
-	var arena: Node3D = main_scene.get_node("ArenaGreybox")
+	var arena: Node3D = main_scene.get_node("NeonFrontier")
 	var player: Node3D = main_scene.get_node("Player")
 	var test_passed := true
-	for required_node in ["RelayCore", "ServiceDeck", "ServiceRamp", "ArenaEnvironment"]:
+	for required_node in ["CentralReactor", "ServiceDeck", "ServiceRamp", "ArenaEnvironment"]:
 		test_passed = (
 			_expect(
 				arena.get_node_or_null(required_node) != null,
