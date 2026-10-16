@@ -116,6 +116,7 @@ if (( DO_IMPORT == 1 )); then
   printf 'Importing project and asset dependencies (headless editor)...\n'
   import_log="$LOG_DIR/import.log"
   if "$GODOT" --headless --editor --path "$GAME_DIR" --quit >"$import_log" 2>&1; then
+    IMPORT_STATE="ok"
     printf '  import: ok (%s)\n\n' "${import_log#"$ROOT_DIR"/}"
   else
     printf '  import: FAILED — see %s\n' "${import_log#"$ROOT_DIR"/}"
@@ -128,6 +129,10 @@ fi
 PASSED=0
 FAILED=0
 FAILED_NAMES=()
+IMPORT_STATE="skipped"
+if (( DO_IMPORT == 1 )); then
+  IMPORT_STATE="ok"
+fi
 for test_path in "${TESTS[@]}"; do
   test_name="${test_path##*/}"
   test_log="$LOG_DIR/${test_name%.gd}.log"
@@ -145,7 +150,30 @@ for test_path in "${TESTS[@]}"; do
   fi
 done
 
+SUMMARY_FILE="$LOG_DIR/summary.txt"
+{
+  printf 'engine=%s\n' "$GODOT_VERSION"
+  printf 'engine_path=%s\n' "$GODOT"
+  printf 'import=%s\n' "$IMPORT_STATE"
+  printf 'passed=%d\n' "$PASSED"
+  printf 'failed=%d\n' "$FAILED"
+  printf 'total=%d\n' "${#TESTS[@]}"
+  printf 'failed_tests=%s\n' "${FAILED_NAMES[*]:-none}"
+} > "$SUMMARY_FILE"
+
 printf '\nSummary: %d passed, %d failed (of %d)\n' "$PASSED" "$FAILED" "${#TESTS[@]}"
+printf 'Machine-readable summary: %s\n' "${SUMMARY_FILE#"$ROOT_DIR"/}"
+
+# Surface the evidence in GitHub Actions annotations, which stay readable from
+# the API even when the full job log is not downloadable.
+if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+  printf '::notice title=Godot engine::%s\n' "$GODOT_VERSION"
+  printf '::notice title=Smoke tests::%d passed, %d failed (of %d, import %s)\n' \
+    "$PASSED" "$FAILED" "${#TESTS[@]}" "$IMPORT_STATE"
+  if (( FAILED > 0 )); then
+    printf '::error title=Failed smoke tests::%s\n' "${FAILED_NAMES[*]}"
+  fi
+fi
 if (( FAILED > 0 )); then
   printf 'Failed tests:\n'
   for name in "${FAILED_NAMES[@]}"; do

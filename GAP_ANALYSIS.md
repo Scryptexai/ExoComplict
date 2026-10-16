@@ -10,7 +10,9 @@
 
 ## 1. Ringkasan eksekutif
 
-Slice saat ini adalah **prototype arena survival third-person** yang sudah dapat dimainkan secara kode: world 3D kontinu NEON FRONTIER, player third-person + kamera over-the-shoulder, tiga senjata data-driven (Pulse Rifle, Nova Launcher, Arc Shooter), skill EMP Pulse, dua archetype musuh (Runner, Shooter) plus training drone, Wave Director deterministik, reward run-scoped, HUD/touch controls, serta 9 smoke test headless. Semua itu **sudah ada di repo**, tetapi **belum pernah dijalankan di engine pada sesi ini** karena binary Godot tidak tersedia di sandbox.
+Slice saat ini adalah **prototype arena survival third-person** yang sudah dapat dimainkan secara kode: world 3D kontinu NEON FRONTIER, player third-person + kamera over-the-shoulder, tiga senjata data-driven (Pulse Rifle, Nova Launcher, Arc Shooter), skill EMP Pulse, dua archetype musuh (Runner, Shooter) plus training drone, Wave Director deterministik, reward run-scoped, HUD/touch controls, serta 9 smoke test headless.
+
+**Perubahan status terbesar pada sesi ini: 9 smoke test sekarang PASS di Godot 4.7.2-stable asli.** Karena binary engine tidak dapat diunduh di sandbox, verifikasi runtime dipindahkan ke CI: `install_godot.sh` memasang engine resmi (SHA-512 dari `SHA512-SUMS.txt`), lalu `run_smoke_tests.sh` melakukan import headless dan menjalankan kesembilan test. Run pertama (`Godot CI` #1, run `38905670471`, PR #1) selesai **hijau untuk kedua job** — static checks dan headless smoke tests. Artinya klaim "smoke test belum diverifikasi" sudah tidak berlaku untuk checkout ini; yang masih belum diverifikasi adalah render, frame time, dan input perangkat.
 
 Sesi ini memindahkan proyek dari "hanya klaim dokumen" ke **verifikasi statis yang nyata + tooling yang siap dipakai**:
 
@@ -21,13 +23,14 @@ Sesi ini memindahkan proyek dari "hanya klaim dokumen" ke **verifikasi statis ya
 | Tidak ada cara memasang Godot yang dipin | `scripts/install_godot.sh` (unduh → verifikasi SHA-512 → ekstrak → symlink → template opsional); **sudah diuji end-to-end dengan release lokal tiruan** |
 | Perintah smoke test tersebar di dokumen, tanpa ringkasan hasil | `scripts/run_smoke_tests.sh` (import headless + 9 test + log per test + exit code) |
 | Tidak ada CI | `.github/workflows/godot-ci.yml`: job statis + job mesin Godot headless (import + 9 smoke test + artefak log) |
-| GitHub Actions tidak pernah menjalankan proyek | Workflow sudah di-push; run pertama muncul saat PR dibuka |
+| GitHub Actions tidak pernah menjalankan proyek | Workflow di-push dan **run pertama hijau**: job statis + job engine (import + 9 smoke test). Bukti: run `38905670471` di PR #1 |
 
-**Tiga hal yang masih menjadi blocker dan harus dikerjakan di luar sandbox ini:**
+**Dua hal yang masih menjadi blocker dan harus dikerjakan di luar sandbox ini:**
 
-1. **Verifikasi runtime engine** — binary Godot tidak dapat diunduh di sandbox (host aset rilis diblokir). Solusi sudah disiapkan (`install_godot.sh` + CI).
-2. **Android Phase 0 (gate E)** — belum ada JDK, Android SDK/ADB, export preset lokal, APK, maupun device uji.
-3. **Art character/weapon (Phase 5)** — player & musuh masih capsule, senjata masih box; `HERO_01.glb` (2 byte) bukan aset valid dan tidak ada rig/animasi.
+1. **Android Phase 0 (gate E)** — belum ada JDK, Android SDK/ADB, export preset lokal, APK, maupun device uji. CI headless tidak dapat menggantikan ini karena membutuhkan perangkat nyata.
+2. **Art character/weapon (Phase 5)** — player & musuh masih capsule, senjata masih box; `HERO_01.glb` (2 byte) bukan aset valid dan tidak ada rig/animasi.
+
+Catatan: verifikasi runtime headless kini berjalan otomatis di CI, tetapi **tidak** menggantikan pengujian di mesin developer (F5/inspect scene) maupun perangkat Android.
 
 ---
 
@@ -48,8 +51,10 @@ Sesi ini memindahkan proyek dari "hanya klaim dokumen" ke **verifikasi statis ya
 | Installer Godot | dijalankan dengan release tiruan lokal (`GODOT_RELEASE_BASE=file://…`), termasuk template `.tpz` | unduh, **verifikasi SHA-512**, ekstrak, symlink, direktori template: **lulus** |
 | Runner smoke test | dijalankan dengan stub `godot` (bukan engine) | Alur import → 9 test → log → ringkasan → exit code bekerja |
 | `check_toolchain.sh` | dijalankan dengan editor tiruan + tanpa JDK/SDK | Melaporkan 2 FAIL (Java, Android SDK) dan 2 WARN (Blender, LFS) dengan benar |
+| **Import Godot + 9 smoke test** | CI `Godot CI` #1 (run `38905670471`), job "Headless smoke tests (Godot 4.7.2)", langkah *Install pinned Godot editor*, *Report engine version*, dan *Run headless smoke tests* | **Lulus**: engine dipasang dengan verifikasi checksum, import headless berhasil, dan kesembilan test keluar dengan exit code 0. Log per test diunggah sebagai artefak `smoke-test-logs` |
+| Static check di CI | CI `Godot CI` #1, job "Static checks (gdtoolkit + project doctor)" | **Lulus** (gdtoolkit + project doctor berjalan di runner bersih) |
 
-**Belum diverifikasi (jangan diklaim):** import Godot sungguhan, hasil 9 smoke test di engine, tampilan render, performa, perilaku sentuh di perangkat, export/APK Android, rig/animasi, dan semua angka performa historis (`2.545 MeshInstance3D`, `138 StaticBody3D`) yang berasal dari checkout lama.
+**Belum diverifikasi (jangan diklaim):** tampilan render, performa/frame time, perilaku sentuh di perangkat, export/APK Android, rig/animasi, serta semua angka performa historis (`2.545 MeshInstance3D`, `138 StaticBody3D`) yang berasal dari checkout lama. Log lengkap tiap test tersedia sebagai artefak CI `smoke-test-logs` (unduhan artefak diblokir dari sandbox, jadi di sini buktinya adalah status langkah CI + ringkasan `exports/test-logs/summary.txt` yang juga dicetak ke job summary).
 
 ---
 
@@ -96,8 +101,8 @@ Prioritas di bawah memakai urutan dependensi di `DEVELOPMENT_ROADMAP.md` §5: ve
 
 | ID | Gap | Dampak | Cara menutup | Definisi selesai |
 |---|---|---|---|---|
-| G1 | Belum ada verifikasi runtime di lingkungan ini (binary Godot diblokir jaringan sandbox) | Semua klaim gameplay masih "belum terverifikasi"; regresi tidak tertangkap | `./scripts/install_godot.sh` lalu `./scripts/run_smoke_tests.sh` di mesin/CI yang punya akses host rilis | 9 smoke test exit code 0 + log tersimpan |
-| G2 | Tidak ada CI | Tidak ada jaring pengaman otomatis saat mengubah combat/world | Workflow sudah ditambahkan; buka PR agar job `static` + `engine` berjalan | Run pertama hijau di GitHub Actions |
+| G1 | ~~Belum ada verifikasi runtime~~ **Tertutup di CI** | — | Selesai: `install_godot.sh` + `run_smoke_tests.sh` dijalankan di CI | ✅ CI #1: 9/9 smoke test exit code 0. Sisa kecil: belum dijalankan di mesin dev (F5/inspeksi scene) |
+| G2 | ~~Tidak ada CI~~ **Tertutup** | — | Selesai: `.github/workflows/godot-ci.yml` | ✅ Job statis + job engine hijau pada run pertama |
 | G3 | Phase 0 Android belum lulus (gate E): JDK, SDK/ADB, preset lokal, APK, device | Renderer, kontrol sentuh, dan performa belum dapat divalidasi | Pasang JDK + Android SDK, buat preset `Android`, jalankan `./scripts/export_android_debug.sh`, install via `adb` | APK debug terpasang dan dijalankan di perangkat baseline |
 | G4 | Aset karakter/senjata tidak valid atau tidak ada; tidak ada rig/animasi | Phase 5 terblokir; presentasi tidak dapat naik kelas | Sediakan GLB berig (atau jalankan Blender) + validasi impor; `HERO_01.glb` (2 byte) dihapus/ditandai | Satu karakter berig + satu senjata terimpor dan tampil benar di Godot |
 
@@ -147,7 +152,7 @@ Monetisasi (Core Shards, IAP, rewarded ads), multiplayer, Battle Pass/loot box, 
 
 ## 7. Rekomendasi urutan kerja berikutnya
 
-1. **Jalankan verifikasi engine (G1, G2).** Di mesin yang punya akses internet penuh: `./scripts/install_godot.sh --with-templates` → `./scripts/dev_check.sh` → `./scripts/run_smoke_tests.sh`. Buka PR agar CI menjalankan hal yang sama. Perbaiki test yang gagal sebelum menambah fitur. *Definisi selesai:* 9 test hijau + log tersimpan, CI pertama hijau.
+1. ~~Jalankan verifikasi engine (G1, G2).~~ **Selesai di CI** (run #1 hijau). Sisa opsional: jalankan `./scripts/install_godot.sh --with-templates && ./scripts/run_smoke_tests.sh` di mesin dev agar hasilnya dapat dilihat langsung bersama scene (F5).
 2. **Bangun progresi persisten (G5).** Satu service + data save + smoke test: BP bertambah, unlock hanya sekali, equip memengaruhi roster di arena, saldo tidak pernah negatif, save bertahan setelah restart. Ini melengkapi core loop dan membuka gate D.
 3. **Feedback pass minimum (G6, G7).** Mulai audio + VFX untuk tembakan/impact/eliminasi/reward dengan aset berlisensi jelas dan batas overdraw; jangan polish art sebelum Android baseline diukur.
 4. **Android baseline (G3).** Setelah langkah 1 hijau: pasang JDK/SDK, buat preset `Android`, ekspor APK debug, ukur frame time/draw call di device baseline, lalu tuning (G9, G11) berdasarkan data.
@@ -192,7 +197,8 @@ python3 -m venv .venv
 
 ## 9. Batas kejujuran dokumen ini
 
-- Semua status "lulus" pada §2 berasal dari eksekusi di sesi ini dan dapat direproduksi dengan perintah di §8.
-- Installer dan runner smoke test diuji dengan **release lokal tiruan dan stub binary**, bukan dengan Godot asli; itu membuktikan alur skrip, bukan perilaku engine.
+- Semua status "lulus" pada §2 berasal dari eksekusi di sesi ini (sandbox) atau dari run CI yang dapat diperiksa ulang, dan dapat direproduksi dengan perintah di §8.
+- Installer dan runner smoke test **diuji dua kali**: dengan release lokal tiruan dan stub binary (membuktikan alur skrip), lalu dengan Godot 4.7.2-stable asli di CI (membuktikan perilaku engine headless).
+- Hasil smoke test di CI membuktikan logika gameplay headless: gerak/traversal, tembakan & damage, wave, reward, HUD/touch routing, dan struktur world. Hasil itu **tidak** membuktikan tampilan render, frame time, maupun input di perangkat.
 - Tidak ada klaim tentang tampilan render, performa mobile, kontrol sentuh, atau APK pada dokumen ini.
 - Angka gameplay (damage, HP, fire rate, reward) adalah nilai prototype sesuai `PROJECT_DECISIONS.md`, bukan hasil balancing terukur.
