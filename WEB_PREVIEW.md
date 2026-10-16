@@ -4,7 +4,19 @@
 >
 > **Ini bukan perubahan target platform.** Android tetap target rilis; pipeline produksi tetap Godot + Blender di mesin dev. Web hanya dipakai sebagai jendela review UI/UX + gameplay supaya iterasi tidak menunggu instalasi toolchain.
 >
-> **Status verifikasi:** seluruh wiring statis sudah diperiksa (`tools/web_preset.py check`, `tools/project_doctor.py` → 0 FAIL, 22 unit test). Ekspor Web nyata sudah dijalankan oleh job CI `web-preview` (run `38918903764`: job hijau, artefak `web-preview` ≈ 10 MB, pengiriman `index.wasm`/`index.pck` lewat `python -m http.server` terverifikasi). Artefaknya diunduh lalu diekstrak ke root repo; selama `web/` belum ada, landing page menampilkan instruksi, bukan game.
+> **Status verifikasi:** seluruh wiring statis sudah diperiksa (`tools/web_preset.py check`, `tools/project_doctor.py` → 0 FAIL, 22 unit test). Ekspor Web nyata sudah berhasil di CI (run `38919299364`, job `web-preview` hijau). Hasil terukur:
+
+| Bagian | Ukuran | Content-Type dari `python -m http.server` |
+|---|---|---|
+| `index.html` | 12,9 KB | `text/html` |
+| `index.js` | 273 KB | `text/javascript` |
+| `index.wasm` | 37,7 MB | `application/wasm` |
+| `index.pck` | 588 KB | `application/octet-stream` |
+| total `web/` | 39 MB | — |
+
+Artefak CI `web-preview` (zip, isi `web/` + `README.txt`) ≈ **10 MB** karena wasm terkompresi baik. Artefaknya diekstrak ke root repo; selama `web/` belum ada, landing page menampilkan instruksi, bukan game.
+
+> **Catatan bandwith:** kalau menyajikan dari `python -m http.server` di mesin sendiri, 38 MB wasm dimuat dari disk (instan). Kalau lewat GitHub Pages, Pages mengirim terkompresi (~10 MB saat muat pertama, lalu masuk cache browser). Hindari server statis lokal yang dipakai lewat jaringan Wi-Fi/HP — wasm besar tidak dikompresi oleh `http.server`.
 
 ---
 
@@ -28,7 +40,7 @@ Tidak perlu header COOP/COEP, tidak perlu `--directory`, tidak perlu konfigurasi
 
 ### Alternatif tanpa unduh sama sekali (GitHub Pages)
 
-Artefak `web-preview` berukuran ~10 MB. Kalau kuota internet sedang mahal, pakai Pages:
+Artefak `web-preview` ~10 MB. Kalau kuota internet sedang mahal, pakai Pages (CDN GitHub, terkompresi, tanpa unduh manual):
 
 1. Buka **Settings → Pages** di repo, pilih **Source: GitHub Actions** (sekali saja).
 2. Jalankan workflow **Godot CI** lewat **Actions → Godot CI → Run workflow** (atau biarkan terpicu setelah perubahan masuk `main`).
