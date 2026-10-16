@@ -1,26 +1,38 @@
 @tool
 extends RefCounted
 
-const ASSET_DIRECTORY := "res://assets/world/kaykit_space_base_bits/gltf/"
-
-static var _scene_templates: Dictionary = {}
-static var _failed_asset_paths: Dictionary = {}
+# Preloading imported scenes makes the GLTFs and their BIN/texture dependencies visible to
+# Godot's export dependency scanner. Keep these paths static so Android PCK exports include them.
+const MODEL_SCENES: Dictionary = {
+	"cargo_A_stacked":
+	preload("res://assets/world/kaykit_space_base_bits/gltf/cargo_A_stacked.gltf"),
+	"cargo_B_stacked":
+	preload("res://assets/world/kaykit_space_base_bits/gltf/cargo_B_stacked.gltf"),
+	"cargodepot_A": preload("res://assets/world/kaykit_space_base_bits/gltf/cargodepot_A.gltf"),
+	"drill_structure":
+	preload("res://assets/world/kaykit_space_base_bits/gltf/drill_structure.gltf"),
+	"landingpad_large":
+	preload("res://assets/world/kaykit_space_base_bits/gltf/landingpad_large.gltf"),
+	"rocks_B": preload("res://assets/world/kaykit_space_base_bits/gltf/rocks_B.gltf"),
+	"spacetruck_large":
+	preload("res://assets/world/kaykit_space_base_bits/gltf/spacetruck_large.gltf"),
+}
 
 
 static func instantiate_model(model_name: String) -> Node3D:
-	if model_name.is_empty() or model_name.contains("..") or model_name.contains("/"):
-		push_warning("Rejected invalid external world asset name: " + model_name)
+	if not MODEL_SCENES.has(model_name):
+		push_warning("Unknown external world asset: " + model_name)
 		return null
-	var asset_path := ASSET_DIRECTORY + model_name + ".gltf"
-	if not _scene_templates.has(asset_path):
-		var loaded_template := _load_model_template(asset_path)
-		if loaded_template == null:
-			return null
-		_scene_templates[asset_path] = loaded_template
-	var template := _scene_templates[asset_path] as Node3D
-	if not is_instance_valid(template):
+
+	var packed_scene := MODEL_SCENES[model_name] as PackedScene
+	if packed_scene == null:
+		push_warning("External world asset was not imported as a PackedScene: " + model_name)
 		return null
-	return template.duplicate() as Node3D
+
+	var instance := packed_scene.instantiate() as Node3D
+	if instance == null:
+		push_warning("External world asset did not instantiate as Node3D: " + model_name)
+	return instance
 
 
 static func add_bounds_collider(
@@ -59,30 +71,3 @@ static func add_bounds_collider(
 	body.add_child(collision)
 	model_root.add_child(body)
 	return body
-
-
-static func _load_model_template(asset_path: String) -> Node3D:
-	if not FileAccess.file_exists(asset_path):
-		if not _failed_asset_paths.has(asset_path):
-			push_warning("External world asset not found: " + asset_path)
-			_failed_asset_paths[asset_path] = true
-		return null
-
-	var document := GLTFDocument.new()
-	var state := GLTFState.new()
-	var parse_error := document.append_from_file(asset_path, state)
-	if parse_error != OK:
-		if not _failed_asset_paths.has(asset_path):
-			push_warning(
-				"Could not load external world asset %s (error %d)." % [asset_path, parse_error]
-			)
-			_failed_asset_paths[asset_path] = true
-		return null
-
-	var generated_scene := document.generate_scene(state)
-	if not generated_scene is Node3D:
-		if not _failed_asset_paths.has(asset_path):
-			push_warning("External world asset did not create a 3D scene: " + asset_path)
-			_failed_asset_paths[asset_path] = true
-		return null
-	return generated_scene as Node3D

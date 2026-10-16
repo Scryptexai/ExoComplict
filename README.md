@@ -40,6 +40,19 @@ godot --headless --path game --script res://tests/playability_hud_smoke.gd
 
 PC fallback controls: WASD to move, hold right mouse and drag to aim, hold left mouse or FIRE to shoot, tap the weapon button or press E to cycle weapons, click the EMP skill when ready, Escape to pause, and R to reset the current run. Mobile input uses the 360° left-side joystick to move, right-side drag to aim, hold FIRE, tap the weapon button or EMP skill, and PAUSE/RESUME; after defeat the Results overlay presents a touch-operated RETRY button.
 
+## Android import/export workflow
+
+The project structure is prepared for Android packaging: runtime KayKit GLTFs are explicitly preloaded as imported `PackedScene` resources so Godot can trace their BIN/texture dependencies. A local Godot Android export preset is still required. Create it in the Editor (`Project > Export > Add... > Android`), set the team's package ID and debug options, and configure matching SDK/JDK/export templates. `game/export_presets.cfg` is intentionally git-ignored because it may contain machine-local paths and signing settings.
+
+After installing the pinned toolchain and creating a local preset named `Android`, run:
+
+```bash
+./scripts/check_toolchain.sh
+./scripts/export_android_debug.sh
+```
+
+The export script imports in headless Editor mode, runs all `game/tests/*_smoke.gd` scripts, exports `exports/project-overdrive-debug.apk`, and checks the APK archive when `unzip` is installed. Override the preset/output with `ANDROID_EXPORT_PRESET` and `ANDROID_APK_PATH`; set `GODOT_BIN` if the executable is not named `godot` or `godot4`. It does not install SDK packages, create release signing keys, or deploy to a device. **This workflow is prepared, not executed here:** Godot, JDK, Android SDK/ADB and Gradle are unavailable in the current environment, so no APK or Android runtime result is claimed. Use [`TOOLCHAIN_SETUP.md`](TOOLCHAIN_SETUP.md) for setup details.
+
 ## Toolchain check
 
 Run this read-only preflight after installing local tools:
@@ -48,4 +61,4 @@ Run this read-only preflight after installing local tools:
 ./scripts/check_toolchain.sh
 ```
 
-It reports missing tools but does not install software or modify project settings. Optional static lint: create `.venv`, install `requirements-dev.txt`, then run `./scripts/lint_gdscript.sh`. A full headless Editor CLI build, Android export, interactive touch validation, and physical-device testing are still required before release. No GUI is required for the CLI workflow; see the toolchain notes.
+It reports missing tools but does not install software or modify project settings. Optional static lint: create `.venv`, install `requirements-dev.txt`, then run `./scripts/lint_gdscript.sh`. Headless Editor import, Android export, interactive touch validation, and physical-device testing remain required; no GUI is needed for the CLI workflow.

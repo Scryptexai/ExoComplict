@@ -1,8 +1,8 @@
 # Project Overdrive — Development Roadmap
 
-> **Status:** NEON FRONTIER 3D world, Runner/Shooter combat, deterministic mixed waves, run-only Score/BP rewards, Results/retry, dan roster Pulse/Nova/Arc telah lulus delapan smoke test headless; permanent progression, Android export/perangkat, visual rendering, dan balancing interaktif belum diverifikasi
+> **Status:** Prototype NEON FRONTIER 3D kini mencakup world modular, KayKit GLTF, Runner/Shooter waves, Pulse/Nova/Arc, EMP, dan UI touch/HUD. Android import/export workflow sudah disiapkan, tetapi Godot/JDK/Android SDK tidak tersedia di sesi ini; smoke test terbaru, import, APK, render, dan perangkat belum diverifikasi. Permanent progression dan balancing interaktif juga belum selesai.
 >
-> **Tanggal pembaruan:** 15 Oktober 2026
+> **Tanggal pembaruan:** 16 Oktober 2026
 >
 > **Sumber keputusan:** `GAME_CONCEPT.md`, `GAME_OVERVIEW.md`, dan `IAP_CONCEPT.md` di `main` (commit awal repository: `03ffb078`).
 >
@@ -12,7 +12,7 @@ Roadmap ini menerjemahkan dokumen konsep menjadi urutan kerja yang dapat diuji. 
 
 ## Status implementasi saat ini
 
-Project Godot di `game/` membangun dunia NEON FRONTIER sebagai satu level 3D kontinu sekitar 192 × 180 unit. Arena reactor, command center, lab, depot, generator, landing pad, gate/turret perimeter, sektor rusak, batu/kristal/tanaman alien, dan boss platform tersusun dari PackedScene komponen 3D dengan mesh, material, serta collider yang relevan; jalan dan gate menghubungkan distrik. **VERIFIED (Godot 4.7.2 headless):** main scene berjalan 120 iterasi tanpa warning/error; world smoke menemukan 2.545 `MeshInstance3D` dan 138 `StaticBody3D`, lalu memverifikasi rute central-to-boss, boss platform, dan landing-pad ramp. Ketujuh regression smoke test weapon, combat, Shooter, Wave Director, arena, dan reward juga lulus secara berurutan; satu warning spawn pada skenario negatif Wave Director memang diharapkan. Third-person player/camera, input desktop/touch, target latihan, health/damage feedback/retry, dan Wave Director deterministik Runner/Shooter tetap terintegrasi. Combat memakai `WeaponDefinition` `.tres` dan shared `WeaponController`: Pulse Rifle 18 damage/5 shots per second, Nova Launcher direct+splash, dan Arc Shooter hitscan dengan dua chain hop, radius 5, dan multiplier 0.7. Geometri adalah blockout prosedural, bukan art final; material visual, navigasi menyeluruh, optimisasi/performa mobile, serta balance belum final. BP wallet permanen, unlock/equip, save, Android export, rendering visual, dan uji perangkat nyata belum diverifikasi.
+Project Godot di `game/` menyusun dunia NEON FRONTIER sebagai satu level 3D kontinu sekitar 192 × 180 unit. Arena reactor, command center, lab, depot, generator, landing pad, gate/turret perimeter, sektor rusak, batu/kristal/tanaman alien, dan boss platform dibuat dari PackedScene komponen 3D dengan mesh, material, serta collider; beberapa prop memakai GLTF KayKit CC0. Kode saat ini juga mencakup third-person player/camera, input desktop/touch, target latihan, health/damage/retry, Wave Director Runner/Shooter, Pulse/Nova/Arc, EMP, HUD/Results, dan 360° joystick. **Verifikasi terkini:** tidak ada Godot/JDK/Android SDK di sesi ini; import engine dan smoke test setelah integrasi GLTF/EMP/joystick belum dijalankan. Sebuah environment/headless build pada checkout lebih lama pernah mengukur 2.545 `MeshInstance3D` dan 138 `StaticBody3D`, memeriksa traversal, dan menjalankan regression smoke; angka/hasil historis tersebut bukan verifikasi terhadap kode terbaru. Android export scaffold kini mencakup preload statis aset GLTF dan `scripts/export_android_debug.sh`, tetapi belum ada export preset lokal, APK, deployment, atau hasil perangkat. Blockout bukan art final; visual renderer, navigasi menyeluruh, performa mobile, dan balance belum final. BP wallet permanen, unlock/equip, dan save juga belum diimplementasikan.
 
 ## 1. Ringkasan produk yang dibangun
 
@@ -108,7 +108,7 @@ Durasi menggunakan **sprint relatif** (satu sprint kira-kira 1–2 minggu). Ini 
 
 **Estimasi:** 1–2 sprint. **Tujuan:** menambah kedalaman tanpa menggandakan kode senjata.
 
-**Status saat ini:** in progress — `WeaponDefinition`/`WeaponController` data-driven kini menggerakkan Pulse Rifle, Nova Launcher, dan Arc Shooter. Switching desktop/touch, cooldown, Pulse hit/blocking, Nova area damage, serta Arc chain dengan target selection, line-of-sight, batas jumlah, radius, dan falloff diuji headless. Shooter telegraph/cover/dodge, reward idempotent, dan komposisi wave deterministik tetap lulus regression smoke test. Validasi death/reward-once dari combat senjata dan playtest balancing masih tertunda.
+**Status implementasi:** in progress — `WeaponDefinition`/`WeaponController` data-driven menggerakkan Pulse Rifle, Nova Launcher, dan Arc Shooter. Smoke test mencakup switching desktop/touch, cooldown, Pulse hit/blocking, Nova area damage, Arc chain/line-of-sight/cap/radius/falloff, Shooter telegraph/cover/dodge, reward idempotent, dan mixed waves. Eksekusi smoke terakhir bersifat historis pada checkout lebih lama; perubahan terbaru belum dapat diuji karena Godot tidak tersedia di sesi ini. Validasi death/reward-once dari combat senjata dan playtest balancing masih tertunda.
 
 **Pekerjaan**
 - Implementasikan `WeaponDefinition` berbasis `.tres`, `WeaponController`, dan pipeline umum: validasi input/fire rate → resolusi aim → hitscan/projectile → hit → damage → impact/audio/feedback.
@@ -123,7 +123,7 @@ Durasi menggunakan **sprint relatif** (satu sprint kira-kira 1–2 minggu). Ini 
 
 **Estimasi:** 1 sprint. **Tujuan:** membentuk satu sesi yang lengkap dan bisa diulang.
 
-**Status saat ini:** in progress — Wave Director Runner/Shooter, run-scoped Score/BP reward, survival timer, dan Results/retry overlay sudah berjalan serta diuji headless. Results masih menyimpan data hanya selama run; progression permanen dan session flow lengkap belum ada.
+**Status implementasi:** in progress — Wave Director Runner/Shooter, run-scoped Score/BP reward, survival timer, serta Results/retry overlay tersedia. Smoke test untuk loop tersebut ada, tetapi eksekusi pada versi project terbaru belum diverifikasi di sesi ini karena Godot tidak tersedia. Results masih menyimpan data hanya selama run; progression permanen dan session flow lengkap belum ada.
 
 **Pekerjaan**
 - `WaveDirector`: mulai/selesai wave, komposisi musuh, spawn point valid, jeda, batas musuh aktif, progres, dan kondisi game over.
@@ -244,13 +244,13 @@ Jangan mendahulukan final art, monetisasi, atau networking atas loop gerak-temba
 
 ## 8. Langkah kerja berikutnya
 
-1. **Headless baseline VERIFIED:** main-scene startup and all eight smoke tests pass on the source-built Godot 4.7.2 runtime. The editorless binary/cache are local ignored artifacts, not commits; full Editor import, Android export templates, and device deployment still require a configured development machine.
-2. **Stage 1 — Blockout (current):** obtain interactive review/sign-off for arena size, combat lanes, route/navigation, collisions, and object/spawn placement. Headless traversal checks pass, but they do not establish final feel or touch navigation; keep procedural placeholders until this gate is approved.
+1. **Stage 0 — Android import/export (current):** on a configured machine, install Godot 4.7.2 Standard plus matching export templates, JDK and Android SDK; create the local Android preset; run `scripts/export_android_debug.sh`; then install/launch the APK via ADB on a baseline device. The script and GLTF dependency wiring are prepared, but no current import/export run has passed in this environment.
+2. **Stage 1 — Blockout:** the initial world layout is approved as a prototype direction. Keep that layout in component-based 3D; use interactive/device playtests to tune traversal, collision, controls and feel. Initial layout approval does not mean final visuals, playability, performance, or release acceptance; headless historical checks do not establish those.
 3. **Stage 2 — Asset production:** after Stage 1 approval, replace only high-impact primitives with modular 3D assets made in Blender or Tripo AI. Preserve source files, actual 3D geometry, scale/origin/collision integration, and asset provenance/licensing.
 4. **Stage 3 and 4 — Materials/textures, then lighting/VFX:** apply the approved PBR palette and surface detail first; then tune lighting, energy effects, particles, and environmental VFX without harming mobile readability.
 5. **Stage 5 — Optimization:** after selecting an Android baseline, profile real device builds (frame time, draw calls, memory, overdraw, physics, load, heat/stability), optimize measured bottlenecks, and rerun gameplay tests. Export success alone is not a device-performance pass.
 6. Continue permanent BP wallet, unlock/equip, and local save only after combat/traversal are stable; monetization remains deferred. Commit and push every job’s verified deliverable before beginning the next stage.
 
-Catatan: release ZIP Godot diarahkan ke host yang tidak diizinkan di sandbox, jadi runtime template headless dibangun dari source. Workflow game tidak memerlukan GUI; Android SDK/JDK, export templates, dan perangkat uji tetap dibutuhkan untuk export/performance validation.
+Catatan: toolchain Godot, JDK, Android SDK, export templates, dan perangkat uji tidak tersedia pada sandbox saat pembaruan ini. Workflow dapat berjalan tanpa GUI, tetapi import/export harus dijalankan ulang pada mesin dengan SDK/JDK/templates yang cocok; APK sukses sekalipun belum membuktikan performa atau kontrol perangkat.
 
 **Prinsip penutup:** ukur dan validasi dulu. Game ini menang lewat respons kontrol, variasi senjata, feedback combat, dan keinginan bermain ulang—bukan banyaknya sistem atau cepatnya memasukkan IAP.
