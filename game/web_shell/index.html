@@ -8,15 +8,17 @@
 			Project Overdrive custom Godot 4 Web shell.
 
 			This file is exported by Godot through the "html/custom_html_shell"
-			export option (see tools/web_preset.py). Godot replaces the
-			$GODOT_* placeholders below at export time; keep them intact:
+			export option (see tools/web_preset.py). Godot substitutes the
+			dollar-prefixed GODOT_* placeholders at export time; the marker names
+			are documented here without their prefix so that this comment is never
+			mistaken for an unsubstituted placeholder:
 
-			  $GODOT_PROJECT_NAME   project name from project.godot
-			  $GODOT_URL            path of the exported JS library (index.js)
-			  $GODOT_CONFIG         engine configuration object
-			  $GODOT_THREADS_ENABLED  "true"/"false" for the chosen variant
-			  $GODOT_HEAD_INCLUDE   extra markup from the export preset
-			  $GODOT_SPLASH*        boot splash image, classes and colour
+			  GODOT_PROJECT_NAME      project name from project.godot
+			  GODOT_URL               path of the exported JS library (index.js)
+			  GODOT_CONFIG            engine configuration object
+			  GODOT_THREADS_ENABLED   "true"/"false" for the chosen variant
+			  GODOT_HEAD_INCLUDE      extra markup from the export preset
+			  GODOT_SPLASH / GODOT_SPLASH_CLASSES   boot splash image and classes
 
 			The shell adds a HUD layer (build label, controls legend, fullscreen)
 			on top of the engine canvas. Web exports run on the Compatibility
