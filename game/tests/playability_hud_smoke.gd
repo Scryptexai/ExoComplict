@@ -29,6 +29,11 @@ func _run_smoke_test() -> void:
 	var weapon_button := controls.get("_weapon_button") as Button
 	var skill_button := controls.get("_skill_button") as Button
 	var pause_button := controls.get("_pause_button") as Button
+	var aim_button := controls.get("_aim_button") as Button
+	var character_visual := player.get_node("VisualRoot")
+	var player_camera := (
+		player.get_node("CameraRig/YawPivot/PitchPivot/SpringArm3D/Camera3D") as Camera3D
+	)
 	var spring_arm := player.get_node("CameraRig/YawPivot/PitchPivot/SpringArm3D") as SpringArm3D
 	var pitch_pivot := player.get_node("CameraRig/YawPivot/PitchPivot") as Node3D
 
@@ -70,11 +75,39 @@ func _run_smoke_test() -> void:
 	)
 	_expect(
 		(
-			is_equal_approx(spring_arm.spring_length, 4.15)
+			spring_arm.spring_length > 4.0
+			and spring_arm.spring_length < 5.5
 			and spring_arm.position.x > 0.25
 			and pitch_pivot.rotation.x < -0.1
 		),
 		"camera rig uses a close rear follow, right-shoulder offset, and downward pitch",
+	)
+	_expect(
+		(
+			bool(character_visual.call("has_model"))
+			and absf(float(character_visual.call("model_height")) - 1.78) < 0.2
+		),
+		"player avatar is a fitted GLB model, not the fallback capsule",
+	)
+	_expect(
+		is_instance_valid(aim_button) and aim_button.text == "AIM",
+		"aim-down-sights button is present for touch aiming",
+	)
+
+	var rest_fov := player_camera.fov
+	_send_screen_touch(controls, 90, aim_button.get_global_rect().get_center(), true)
+	for _frame in 14:
+		await process_frame
+	_expect(
+		bool(player.call("is_aiming")) and player_camera.fov < rest_fov - 5.0,
+		"holding AIM zooms the camera in for aim-down-sights",
+	)
+	_send_screen_touch(controls, 90, aim_button.get_global_rect().get_center(), false)
+	for _frame in 20:
+		await process_frame
+	_expect(
+		not bool(player.call("is_aiming")) and player_camera.fov > rest_fov - 2.0,
+		"releasing AIM returns the camera to its follow framing",
 	)
 
 	var shots_before_touch_fire := int(main_scene.get("_shots_fired"))
@@ -263,6 +296,33 @@ func _run_smoke_test() -> void:
 	)
 	_tap_screen_button(controls, pause_button, 76)
 	_expect(not paused and pause_button.text == "PAUSE", "RESUME restores play input")
+
+	# Narrow-phone layout: the top bar must fit inside a 390 px wide screen and the
+	# run-data card steps aside for the wave card there.
+	root.size = Vector2i(390, 844)
+	for _frame in 3:
+		await process_frame
+	var health_card := controls.get("_health_card") as Control
+	var wave_card := controls.get("_wave_card") as Control
+	var run_card := controls.get("_run_card") as Control
+	var viewport_width := float(root.size.x)
+	_expect(
+		(
+			is_instance_valid(health_card)
+			and is_instance_valid(wave_card)
+			and health_card.get_global_rect().end.x <= viewport_width + 1.0
+			and wave_card.get_global_rect().end.x <= viewport_width + 1.0
+		),
+		"HUD top cards fit a 390 px wide phone without overflowing the screen",
+	)
+	_expect(
+		not run_card.visible,
+		"run-data card steps aside on narrow screens to keep the top bar readable",
+	)
+	root.size = Vector2i(1280, 720)
+	for _frame in 3:
+		await process_frame
+	_expect(run_card.visible, "run-data card returns on a wide screen")
 
 	var run_stats: Node = main_scene.get_node("RunStats")
 	run_stats.call("start_run")

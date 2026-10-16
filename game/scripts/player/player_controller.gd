@@ -8,8 +8,10 @@ signal damage_received(amount: float, current: float, maximum: float)
 signal skill_used(targets_hit: int, cooldown_seconds: float)
 signal skill_cooldown_changed(remaining_seconds: float, total_seconds: float)
 signal defeated
+signal aim_changed(aiming: bool)
 
 const ThirdPersonCameraRigScript = preload("res://scripts/camera/camera_rig.gd")
+const CharacterVisualScript = preload("res://scripts/player/character_visual.gd")
 const WeaponControllerScript = preload("res://scripts/weapons/weapon_controller.gd")
 
 @export_range(1.0, 15.0, 0.1) var move_speed: float = 6.0
@@ -25,10 +27,13 @@ var _skill_cooldown_remaining: float = 0.0
 var _is_defeated: bool = false
 var _touch_movement: Vector2 = Vector2.ZERO
 var _touch_fire_pressed: bool = false
+var _aiming: bool = false
+var _touch_aim_hold: bool = false
+var _walk_time: float = 0.0
 
 @onready var camera_rig: ThirdPersonCameraRigScript = $CameraRig
 @onready var aim_camera: Camera3D = $CameraRig/YawPivot/PitchPivot/SpringArm3D/Camera3D
-@onready var visual_root: Node3D = $VisualRoot
+@onready var visual_root: CharacterVisualScript = $VisualRoot
 @onready var muzzle: Marker3D = $VisualRoot/WeaponSocket/Muzzle
 @onready var weapon_controller: WeaponControllerScript = $WeaponController
 
@@ -42,6 +47,7 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _is_defeated:
 		velocity = Vector3.ZERO
+		visual_root.update_pose(Vector3.ZERO, true, delta)
 		return
 	_update_movement(delta)
 	if _skill_cooldown_remaining > 0.0:
@@ -51,21 +57,31 @@ func _physics_process(delta: float) -> void:
 			skill_cooldown_changed.emit(_skill_cooldown_remaining, emp_pulse_cooldown)
 	if Input.is_action_just_pressed("weapon_next"):
 		select_next_weapon()
+	_update_aiming()
 	var aim_point := _get_aim_point()
-	_face_aim_point(aim_point)
+	camera_rig.set_aiming(_aiming)
+	visual_root.set_aiming(_aiming)
+	visual_root.update_facing(aim_point, velocity, _aiming, delta)
+	_walk_time += delta
+	visual_root.update_pose(velocity, is_on_floor(), delta)
+	camera_rig.apply_walk_bob(visual_root.walk_intensity(), _walk_time)
 	var desktop_fire := Input.is_action_pressed("fire") and not _is_pointer_over_ui()
 	if desktop_fire or _touch_fire_pressed:
 		if weapon_controller.try_fire(self, muzzle, aim_point):
 			shot_fired.emit()
+			visual_root.play_recoil(_current_recoil_strength())
+			camera_rig.add_recoil_kick(_current_recoil_strength())
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+			set_aiming(true)
 			get_viewport().set_input_as_handled()
 		elif event.button_index == MOUSE_BUTTON_RIGHT and not event.pressed:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+			set_aiming(false)
 	elif event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		camera_rig.apply_look_delta(event.relative)
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
@@ -82,6 +98,30 @@ func apply_touch_look(delta: Vector2) -> void:
 
 func set_touch_fire_pressed(pressed: bool) -> void:
 	_touch_fire_pressed = pressed
+
+
+## Aim-down-sights, driven by the desktop right mouse button or the HUD AIM
+## toggle. Zooming the camera and stilling the avatar is what makes aiming read
+## on a small screen.
+func set_aiming(value: bool) -> void:
+	_aiming = value
+
+
+func is_aiming() -> bool:
+	return _aiming
+
+
+## The HUD AIM button holds aiming for as long as it is held; desktop right
+## mouse aims through MOUSE_MODE_CAPTURED.
+func set_touch_aim_held(pressed: bool) -> void:
+	_touch_aim_hold = pressed
+
+
+func _update_aiming() -> void:
+	var previous := _aiming
+	_aiming = _touch_aim_hold or Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	if _aiming != previous:
+		aim_changed.emit(_aiming)
 
 
 func activate_skill() -> bool:
@@ -154,6 +194,8 @@ func is_defeated() -> bool:
 
 func reset_player() -> void:
 	_is_defeated = false
+	_aiming = false
+	_touch_aim_hold = false
 	current_health = max_health
 	_skill_cooldown_remaining = 0.0
 	velocity = Vector3.ZERO
@@ -241,12 +283,3 @@ func _get_aim_point() -> Vector3:
 		var hit_position: Vector3 = hit.get("position", ray_end)
 		return hit_position
 	return ray_end
-
-
-func _face_aim_point(aim_point: Vector3) -> void:
-	var flat_direction := aim_point - global_position
-	flat_direction.y = 0.0
-	if flat_direction.length_squared() <= 0.0001:
-		return
-	flat_direction = flat_direction.normalized()
-	visual_root.rotation.y = atan2(-flat_direction.x, -flat_direction.z)

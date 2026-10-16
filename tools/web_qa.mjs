@@ -6,6 +6,7 @@
  *   node tools/web_qa.mjs --json               # machine-readable report
  *   node tools/web_qa.mjs --url http://host/   # check an already-running server
  *   node tools/web_qa.mjs --page /web/index.html --page /
+ *   node tools/web_qa.mjs --viewport 390x844 --viewport 1280x720
  *
  * Why: an export that passes every static check can still boot to a black
  * screen — a missing index.wasm (wrong base path), no WebGL 2, a shell whose
@@ -37,6 +38,11 @@ const flag = (name, def) => {
 const has = (name) => argv.includes(name);
 const pages = argv.reduce((list, arg, i) => (arg === '--page' ? [...list, argv[i + 1]] : list), []);
 const targets = pages.length ? pages : ['/', '/web/index.html'];
+const viewportArgs = argv.reduce((list, arg, i) => (arg === '--viewport' ? [...list, argv[i + 1]] : list), []);
+const viewports = (viewportArgs.length ? viewportArgs : ['1280x720', '390x844']).map((spec) => {
+  const [w, h] = spec.split('x').map(Number);
+  return { spec, width: w || 1280, height: h || 720 };
+});
 const outDir = path.resolve(ROOT, flag('--out', path.join('exports', 'web-qa')));
 const bootTimeoutMs = Number(flag('--timeout', '45')) * 1000;
 const asJson = has('--json');
@@ -92,10 +98,10 @@ const browser = await puppeteer.launch({
 const ENGINE_BANNER = /Godot Engine v/i;
 const report = { base: baseUrl, pages: [] };
 
-async function checkPage(target) {
+async function checkPage(target, viewport) {
   const url = `${baseUrl}${target}`;
   const page = await browser.newPage();
-  await page.setViewport({ width: 1280, height: 720 });
+  await page.setViewport({ width: viewport.width, height: viewport.height });
   const consoleLines = [];
   const pageErrors = [];
   const badResponses = [];
@@ -143,7 +149,8 @@ async function checkPage(target) {
     };
   });
 
-  const shot = path.join(outDir, `${target.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'root'}.png`);
+  const slug = target.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'root';
+  const shot = path.join(outDir, `${slug}-${viewport.spec}.png`);
   await page.screenshot({ path: shot });
   await page.close();
 
@@ -160,6 +167,7 @@ async function checkPage(target) {
 
   const result = {
     target,
+    viewport: viewport.spec,
     url,
     ms: Date.now() - started,
     booted,
@@ -179,9 +187,10 @@ async function checkPage(target) {
 
 try {
   for (const target of targets) {
-    const result = await checkPage(target);
+    for (const viewport of viewports) {
+    const result = await checkPage(target, viewport);
     if (!asJson) {
-      console.log(`\n${target} → ${result.failed.length ? 'FAIL' : 'PASS'} (${(result.ms / 1000).toFixed(1)}s)`);
+      console.log(`\n${target} @ ${viewport.spec} → ${result.failed.length ? 'FAIL' : 'PASS'} (${(result.ms / 1000).toFixed(1)}s)`);
       if (result.engine) console.log(`  engine: ${result.engine}`);
       console.log(`  canvas: ${result.state.canvasSize} | WebGL: ${result.state.glContext ? 'yes' : 'no'} | chip: ${result.state.chip ?? '-'}`);
       for (const c of result.checks) console.log(`  ${c.ok ? 'ok  ' : 'FAIL'} ${c.name}`);
@@ -190,6 +199,7 @@ try {
       if (result.failedRequests.length) console.log(`  failed requests: ${result.failedRequests.join(' | ')}`);
       if (result.state.failureText) console.log(`  failure card: ${result.state.failureText}`);
       console.log(`  screenshot: ${result.screenshot}`);
+    }
     }
   }
 } finally {
@@ -203,9 +213,11 @@ report.ok = failed.length === 0;
 if (asJson) {
   console.log(JSON.stringify(report, null, 2));
 } else {
-  console.log(`\nSummary: ${report.pages.length - failed.length}/${report.pages.length} page(s) booted into the engine.`);
+  console.log(
+    `\nSummary: ${report.pages.length - failed.length}/${report.pages.length} page/viewport combination(s) booted into the engine.`,
+  );
   if (failed.length) {
-    console.log(`FAILED: ${failed.map((p) => p.target).join(', ')}`);
+    console.log(`FAILED: ${failed.map((p) => `${p.target}@${p.viewport}`).join(', ')}`);
   }
 }
 process.exit(report.ok ? 0 : 1);

@@ -4,12 +4,18 @@ extends Control
 signal movement_changed(value: Vector2)
 signal look_delta(value: Vector2)
 signal fire_changed(pressed: bool)
+signal aim_changed(pressed: bool)
 signal weapon_switch_requested
 signal skill_requested
 signal pause_requested
 signal retry_requested
 
 const HIT_CONFIRM_DURATION: float = 0.16
+const HELP_VISIBLE_SECONDS: float = 12.0
+const HELP_FADE_SECONDS: float = 1.5
+# The browser shell (game/web_shell/index.html) draws its chips along the top of
+# the page; the HUD keeps clear of them instead of overlapping.
+const WEB_TOP_INSET: float = 46.0
 const DAMAGE_FLASH_DURATION: float = 0.28
 const DEFAULT_HEALTH_COLOR := Color(0.18, 0.88, 0.65, 1.0)
 const WARNING_HEALTH_COLOR := Color(1.0, 0.68, 0.2, 1.0)
@@ -37,6 +43,7 @@ var _fire_button: Button
 var _weapon_button: Button
 var _skill_button: Button
 var _pause_button: Button
+var _aim_button: Button
 var _pause_label: Label
 var _results_panel: PanelContainer
 var _results_summary: Label
@@ -47,6 +54,10 @@ var _damage_flash_remaining: float = 0.0
 var _skill_cooldown_remaining: float = 0.0
 var _skill_cooldown_total: float = 12.0
 var _skill_feedback_remaining: float = 0.0
+var _aiming: bool = false
+var _fire_flash_remaining: float = 0.0
+var _help_remaining: float = HELP_VISIBLE_SECONDS
+var _top_inset: float = 0.0
 
 
 func _ready() -> void:
@@ -74,6 +85,15 @@ func _process(delta: float) -> void:
 		_skill_feedback_remaining = maxf(_skill_feedback_remaining - delta, 0.0)
 		if _skill_feedback_remaining <= 0.0:
 			_refresh_skill_button()
+	if _fire_flash_remaining > 0.0:
+		_fire_flash_remaining = maxf(_fire_flash_remaining - delta, 0.0)
+		needs_redraw = true
+	if is_instance_valid(_help_label) and _help_label.visible and _help_remaining > 0.0:
+		_help_remaining = maxf(_help_remaining - delta, 0.0)
+		if _help_remaining <= HELP_FADE_SECONDS:
+			_help_label.modulate.a = clampf(_help_remaining / HELP_FADE_SECONDS, 0.0, 1.0)
+		if _help_remaining <= 0.0:
+			_help_label.visible = false
 	if needs_redraw:
 		queue_redraw()
 
@@ -175,6 +195,32 @@ func _refresh_skill_button() -> void:
 	_skill_button.disabled = (_player_down or get_tree().paused or _skill_cooldown_remaining > 0.0)
 
 
+## External aim state (desktop right mouse), so the reticle tightens even when
+## the AIM button is not the thing being held.
+func set_aim_state(aiming: bool) -> void:
+	if _aiming == aiming:
+		return
+	_aiming = aiming
+	queue_redraw()
+
+
+## Bring the control hint back (called on retry and when the run starts).
+func show_help() -> void:
+	if not is_instance_valid(_help_label):
+		return
+	_help_remaining = HELP_VISIBLE_SECONDS
+	_help_label.modulate.a = 1.0
+	_help_label.visible = true
+
+
+func _apply_help_readability() -> void:
+	var shadow := Color(0.0, 0.02, 0.05, 0.85)
+	_help_label.add_theme_color_override("font_shadow_color", shadow)
+	_help_label.add_theme_constant_override("shadow_offset_x", 1)
+	_help_label.add_theme_constant_override("shadow_offset_y", 1)
+	_help_label.add_theme_constant_override("shadow_outline_size", 4)
+
+
 func set_paused(paused: bool) -> void:
 	if paused:
 		_clear_touch_state()
@@ -187,6 +233,10 @@ func set_paused(paused: bool) -> void:
 		_fire_button.disabled = paused or _player_down
 	if is_instance_valid(_weapon_button):
 		_weapon_button.disabled = paused or _player_down
+	if is_instance_valid(_aim_button):
+		_aim_button.disabled = paused or _player_down
+	if paused and _aiming:
+		_on_aim_up()
 	_refresh_skill_button()
 
 
@@ -200,6 +250,10 @@ func set_player_down(down: bool) -> void:
 		_fire_button.disabled = down or get_tree().paused
 	if is_instance_valid(_weapon_button):
 		_weapon_button.disabled = down or get_tree().paused
+	if is_instance_valid(_aim_button):
+		_aim_button.disabled = down or get_tree().paused
+	if down and _aiming:
+		_on_aim_up()
 	_refresh_skill_button()
 
 
@@ -223,8 +277,11 @@ func show_results(
 	_fire_button.visible = false
 	_weapon_button.visible = false
 	_skill_button.visible = false
+	_aim_button.visible = false
 	_pause_button.visible = false
 	_pause_label.visible = false
+	_aiming = false
+	queue_redraw()
 
 
 func hide_results() -> void:
@@ -236,9 +293,11 @@ func hide_results() -> void:
 	_fire_button.visible = true
 	_weapon_button.visible = true
 	_skill_button.visible = true
+	_aim_button.visible = true
 	_pause_button.visible = true
 	_pause_label.visible = get_tree().paused
 	_refresh_skill_button()
+	show_help()
 
 
 func _build_ui() -> void:
@@ -275,6 +334,13 @@ func _build_ui() -> void:
 	_weapon_button.tooltip_text = "Tap to cycle weapons"
 	_weapon_button.pressed.connect(_on_weapon_switch_pressed)
 
+	_aim_button = _make_button("AIM", "AimButton")
+	_aim_button.add_theme_font_size_override("font_size", 15)
+	_aim_button.tooltip_text = "Hold to aim down sights: narrows the camera and steadies the shot"
+	_apply_button_theme(_aim_button, Color(0.05, 0.2, 0.3, 0.96), Color(0.35, 0.88, 1.0, 0.9))
+	_aim_button.button_down.connect(_on_aim_down)
+	_aim_button.button_up.connect(_on_aim_up)
+
 	_skill_button = _make_button("EMP\nREADY", "SkillButton")
 	_skill_button.add_theme_font_size_override("font_size", 15)
 	_skill_button.tooltip_text = "EMP Pulse: damage nearby enemies. Recharges over time."
@@ -283,22 +349,23 @@ func _build_ui() -> void:
 
 	_help_label = Label.new()
 	_help_label.name = "ControlsHelp"
-	_help_label.anchor_left = 0.2
-	_help_label.anchor_right = 0.8
-	_help_label.anchor_top = 1.0
-	_help_label.anchor_bottom = 1.0
-	_help_label.offset_top = -61.0
-	_help_label.offset_bottom = -10.0
+	_help_label.anchor_left = 0.16
+	_help_label.anchor_right = 0.84
+	_help_label.anchor_top = 0.0
+	_help_label.anchor_bottom = 0.0
+	_help_label.offset_top = 116.0
+	_help_label.offset_bottom = 154.0
 	_help_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_help_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_help_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_help_label.text = (
-		"TOUCH: 360° left joystick to move · drag right to aim · hold FIRE · tap weapon or EMP\n"
-		+ "DESKTOP: WASD · right mouse to aim · hold left mouse/FIRE · E to cycle · R to retry"
+		"TOUCH: 360° joystick moves · drag right to aim · hold FIRE / AIM · EMP is the skill\n"
+		+ "DESKTOP: WASD moves · right mouse aims · hold left mouse to fire · E cycles · R retries"
 	)
 	_help_label.add_theme_font_size_override("font_size", 12)
 	_help_label.add_theme_color_override("font_color", Color(0.76, 0.88, 0.96, 0.92))
 	_help_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_apply_help_readability()
 	add_child(_help_label)
 
 	_pause_label = Label.new()
@@ -537,48 +604,90 @@ func _make_button_style(background: Color, border: Color) -> StyleBoxFlat:
 func _layout_controls() -> void:
 	if not is_instance_valid(_top_bar):
 		return
-	var viewport_width := maxf(size.x, 640.0)
-	var viewport_height := maxf(size.y, 360.0)
-	_ui_scale = clampf(minf(viewport_width / 1280.0, viewport_height / 720.0), 0.68, 1.0)
-	var margin := 16.0 * _ui_scale
+	var viewport_width := maxf(size.x, 320.0)
+	var viewport_height := maxf(size.y, 320.0)
+	_ui_scale = clampf(minf(viewport_width / 1280.0, viewport_height / 720.0), 0.58, 1.0)
+	var margin := 14.0 * _ui_scale
+	_top_inset = _resolve_top_inset()
+	var card_height := 96.0 * _ui_scale
+	# The three cards share the available width instead of fighting over a fixed
+	# minimum, so a 390 px phone keeps the whole top bar on screen.
+	var narrow := viewport_width < 760.0
+	_health_card.custom_minimum_size = Vector2(0.0, card_height)
+	_health_card.size_flags_stretch_ratio = 0.95 if narrow else 1.0
+	_wave_card.custom_minimum_size = Vector2(0.0, card_height)
+	_wave_card.size_flags_stretch_ratio = 1.15 if narrow else 1.15
+	_run_card.custom_minimum_size = Vector2(0.0, card_height)
+	_run_card.size_flags_stretch_ratio = 1.0
+	_run_card.visible = not narrow
+	_pause_button.custom_minimum_size = Vector2(84.0 * _ui_scale, 52.0 * _ui_scale)
+	_pause_button.add_theme_font_size_override("font_size", roundi(14.0 * _ui_scale))
 	_top_bar.offset_left = margin
-	_top_bar.offset_top = 14.0 * _ui_scale
+	_top_bar.offset_top = _top_inset
 	_top_bar.offset_right = -margin
-	_top_bar.offset_bottom = 104.0 * _ui_scale
-	_health_card.custom_minimum_size = Vector2(250.0 * _ui_scale, 88.0 * _ui_scale)
-	_wave_card.custom_minimum_size = Vector2(280.0 * _ui_scale, 88.0 * _ui_scale)
-	_run_card.custom_minimum_size = Vector2(320.0 * _ui_scale, 88.0 * _ui_scale)
-	_pause_button.custom_minimum_size = Vector2(108.0 * _ui_scale, 58.0 * _ui_scale)
-	var fire_size := 148.0 * _ui_scale
-	_fire_button.offset_left = -fire_size - 24.0 * _ui_scale
-	_fire_button.offset_top = -fire_size - 24.0 * _ui_scale
-	_fire_button.offset_right = -24.0 * _ui_scale
-	_fire_button.offset_bottom = -24.0 * _ui_scale
+	_top_bar.offset_bottom = _top_inset + card_height
+
+	var fire_size := minf(142.0 * _ui_scale, minf(viewport_width, viewport_height) * 0.34)
+	var base_margin := 20.0 * _ui_scale
+	_fire_button.offset_left = -fire_size - base_margin
+	_fire_button.offset_top = -fire_size - base_margin
+	_fire_button.offset_right = -base_margin
+	_fire_button.offset_bottom = -base_margin
 	_fire_button.custom_minimum_size = Vector2(fire_size, fire_size)
-	var weapon_width := 172.0 * _ui_scale
-	var weapon_height := 66.0 * _ui_scale
-	_weapon_button.offset_left = -weapon_width - 24.0 * _ui_scale
-	_weapon_button.offset_top = -250.0 * _ui_scale
-	_weapon_button.offset_right = -24.0 * _ui_scale
-	_weapon_button.offset_bottom = -184.0 * _ui_scale
+	_fire_button.add_theme_font_size_override("font_size", roundi(21.0 * _ui_scale))
+
+	var weapon_width := minf(164.0 * _ui_scale, viewport_width * 0.42)
+	var weapon_height := 58.0 * _ui_scale
+	_weapon_button.offset_left = -weapon_width - base_margin
+	_weapon_button.offset_top = -fire_size - base_margin - weapon_height - 12.0 * _ui_scale
+	_weapon_button.offset_right = -base_margin
+	_weapon_button.offset_bottom = -fire_size - base_margin - 12.0 * _ui_scale
 	_weapon_button.custom_minimum_size = Vector2(weapon_width, weapon_height)
-	var skill_size := 96.0 * _ui_scale
-	var skill_gap := 14.0 * _ui_scale
-	var skill_right_offset := fire_size + 24.0 * _ui_scale + skill_gap
-	var skill_center_bottom_offset := 24.0 * _ui_scale + fire_size * 0.5
-	_skill_button.offset_left = -skill_right_offset - skill_size
-	_skill_button.offset_right = -skill_right_offset
-	_skill_button.offset_top = -skill_center_bottom_offset - skill_size * 0.5
-	_skill_button.offset_bottom = -skill_center_bottom_offset + skill_size * 0.5
-	_skill_button.custom_minimum_size = Vector2(skill_size, skill_size)
+
+	var side_size := minf(94.0 * _ui_scale, minf(viewport_width, viewport_height) * 0.22)
+	var side_gap := 12.0 * _ui_scale
+	var skill_right := fire_size + base_margin + side_gap
+	var side_center_bottom := base_margin + fire_size * 0.5
+	_skill_button.offset_left = -skill_right - side_size
+	_skill_button.offset_right = -skill_right
+	_skill_button.offset_top = -side_center_bottom - side_size * 0.5
+	_skill_button.offset_bottom = -side_center_bottom + side_size * 0.5
+	_skill_button.custom_minimum_size = Vector2(side_size, side_size)
 	_skill_button.add_theme_font_size_override("font_size", roundi(15.0 * _ui_scale))
-	_help_label.offset_top = -61.0 * _ui_scale
-	_help_label.offset_bottom = -10.0 * _ui_scale
+	var aim_right := skill_right + side_size + side_gap
+	_aim_button.offset_left = -aim_right - side_size
+	_aim_button.offset_right = -aim_right
+	_aim_button.offset_top = -side_center_bottom - side_size * 0.5
+	_aim_button.offset_bottom = -side_center_bottom + side_size * 0.5
+	_aim_button.custom_minimum_size = Vector2(side_size, side_size)
+	_aim_button.add_theme_font_size_override("font_size", roundi(15.0 * _ui_scale))
+
+	var help_top := _top_inset + card_height + 8.0 * _ui_scale
+	_help_label.offset_top = help_top
+	_help_label.offset_bottom = help_top + 40.0 * _ui_scale
+	_help_label.add_theme_font_size_override("font_size", roundi(12.0 * _ui_scale))
+
 	_results_panel.custom_minimum_size = Vector2(440.0 * _ui_scale, 356.0 * _ui_scale)
-	_results_panel.offset_left = -220.0 * _ui_scale
-	_results_panel.offset_right = 220.0 * _ui_scale
-	_results_panel.offset_top = -178.0 * _ui_scale
-	_results_panel.offset_bottom = 178.0 * _ui_scale
+	var panel_half_width := minf(220.0 * _ui_scale, viewport_width * 0.46)
+	_results_panel.offset_left = -panel_half_width
+	_results_panel.offset_right = panel_half_width
+	var panel_half_height := minf(178.0 * _ui_scale, viewport_height * 0.42)
+	_results_panel.offset_top = -panel_half_height
+	_results_panel.offset_bottom = panel_half_height
+	if is_instance_valid(_pause_label):
+		_pause_label.add_theme_font_size_override("font_size", roundi(26.0 * _ui_scale))
+
+
+## Keep the HUD clear of notches and of the browser shell chrome.
+func _resolve_top_inset() -> float:
+	var inset := 0.0
+	if OS.has_feature("web"):
+		inset = WEB_TOP_INSET
+	var window_size := DisplayServer.window_get_size()
+	if window_size.y > 0:
+		var safe_area := DisplayServer.get_display_safe_area()
+		inset = maxf(inset, float(safe_area.position.y))
+	return inset * _ui_scale + 10.0 * _ui_scale
 
 
 func _begin_touch(touch_id: int, position: Vector2) -> void:
@@ -721,25 +830,48 @@ func _draw() -> void:
 		var flash_color := Color(1.0, 0.08, 0.04, 0.2 * flash_strength)
 		draw_rect(Rect2(Vector2.ZERO, size), flash_color, true)
 
-	var center := size * 0.5
-	var crosshair_extent := 9.0 * _ui_scale
-	var crosshair_color := Color(0.38, 0.92, 1.0, 0.9)
-	if _hit_confirm_remaining > 0.0:
-		crosshair_extent = 13.0 * _ui_scale
-		crosshair_color = Color(1.0, 0.68, 0.22, 1.0)
-	draw_line(
-		center - Vector2(crosshair_extent, 0.0),
-		center + Vector2(crosshair_extent, 0.0),
-		crosshair_color,
-		2.0 * _ui_scale
-	)
-	draw_line(
-		center - Vector2(0.0, crosshair_extent),
-		center + Vector2(0.0, crosshair_extent),
-		crosshair_color,
-		2.0 * _ui_scale
-	)
+	_draw_crosshair()
+	_draw_joystick()
 
+
+## Reticle: a dot with four ticks, drawn for contrast against a bright world.
+## Ticks spread with walking and firing, and pull in while aiming, so the player
+## can read accuracy state without opening anything.
+func _draw_crosshair() -> void:
+	if _player_down or get_tree().paused or _results_panel.visible:
+		return
+	var center := size * 0.5
+	var spread := 5.0 + _fire_flash_remaining * 46.0
+	if _move_touch_id != -1:
+		spread += 4.0
+	if _aiming:
+		spread *= 0.45
+	var tick := 7.0 * _ui_scale
+	var gap := (10.0 + spread) * _ui_scale
+	var thickness := 2.0 * _ui_scale
+	var color := Color(0.52, 0.96, 1.0, 0.95)
+	if _hit_confirm_remaining > 0.0:
+		color = Color(1.0, 0.72, 0.24, 1.0)
+		gap *= 1.25
+	# dark outline first so the reticle survives a white floor
+	var outline := Color(0.0, 0.03, 0.06, 0.6)
+	for offset in [Vector2(1.0, 0.0), Vector2(-1.0, 0.0), Vector2(0.0, 1.0), Vector2(0.0, -1.0)]:
+		_draw_crosshair_ticks(center + offset * _ui_scale, gap, tick, thickness, outline)
+	_draw_crosshair_ticks(center, gap, tick, thickness, color)
+	draw_circle(center, maxf(1.4 * _ui_scale, 1.0), color)
+	draw_arc(center, 2.6 * _ui_scale, 0.0, TAU, 16, outline, 1.0)
+
+
+func _draw_crosshair_ticks(
+	center: Vector2, gap: float, tick: float, thickness: float, color: Color
+) -> void:
+	draw_line(center + Vector2(gap, 0.0), center + Vector2(gap + tick, 0.0), color, thickness)
+	draw_line(center - Vector2(gap, 0.0), center - Vector2(gap + tick, 0.0), color, thickness)
+	draw_line(center + Vector2(0.0, gap), center + Vector2(0.0, gap + tick), color, thickness)
+	draw_line(center - Vector2(0.0, gap), center - Vector2(0.0, gap + tick), color, thickness)
+
+
+func _draw_joystick() -> void:
 	var joystick_center := Vector2(
 		minf(106.0 * _ui_scale, size.x * 0.18), size.y - 112.0 * _ui_scale
 	)
@@ -763,11 +895,27 @@ func _draw() -> void:
 
 func _on_fire_down() -> void:
 	if not _player_down and not get_tree().paused:
+		_fire_flash_remaining = 1.0
+		queue_redraw()
 		fire_changed.emit(true)
 
 
 func _on_fire_up() -> void:
 	fire_changed.emit(false)
+
+
+func _on_aim_down() -> void:
+	if _player_down or get_tree().paused:
+		return
+	_aiming = true
+	queue_redraw()
+	aim_changed.emit(true)
+
+
+func _on_aim_up() -> void:
+	_aiming = false
+	queue_redraw()
+	aim_changed.emit(false)
 
 
 func _on_weapon_switch_pressed() -> void:

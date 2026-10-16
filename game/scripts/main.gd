@@ -24,6 +24,7 @@ func _ready() -> void:
 	touch_controls.movement_changed.connect(player.set_touch_movement)
 	touch_controls.look_delta.connect(player.apply_touch_look)
 	touch_controls.fire_changed.connect(player.set_touch_fire_pressed)
+	touch_controls.aim_changed.connect(player.set_touch_aim_held)
 	touch_controls.weapon_switch_requested.connect(player.select_next_weapon)
 	touch_controls.skill_requested.connect(player.activate_skill)
 	touch_controls.pause_requested.connect(_toggle_pause)
@@ -33,6 +34,7 @@ func _ready() -> void:
 	touch_controls.set_weapon_label(player.get_current_weapon_name())
 	touch_controls.set_skill_cooldown(0.0, player.emp_pulse_cooldown)
 	touch_controls.retry_requested.connect(_reset_session)
+	player.aim_changed.connect(touch_controls.set_aim_state)
 	player.shot_fired.connect(_on_shot_fired)
 	player.health_changed.connect(_on_combatant_health_changed)
 	player.damage_received.connect(_on_player_damage_received)
@@ -54,6 +56,7 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	touch_controls.set_aim_state(player.is_aiming())
 	if Input.is_action_just_pressed("reset_session"):
 		_reset_session()
 
@@ -89,6 +92,7 @@ func _reset_session() -> void:
 	run_stats.reset_run()
 	reward_service.reset_run()
 	wave_director.reset_session()
+	touch_controls.show_help()
 	if start_wave_session_on_ready:
 		wave_director.start_session()
 	_update_status()
