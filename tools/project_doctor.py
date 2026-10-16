@@ -79,7 +79,6 @@ class Issue:
 @dataclass
 class Report:
     issues: list[Issue] = field(default_factory=list)
-    checks_run: int = 0
 
     def add(self, level: str, check: str, message: str, location: str = "") -> None:
         self.issues.append(Issue(level, check, message, location))
@@ -266,16 +265,6 @@ def parse_scene(path: Path, res_path: str) -> SceneInfo:
     return SceneInfo(path=path, res_path=res_path, sections=sections)
 
 
-def node_full_path(attrs: dict[str, str], parents: dict[str, str]) -> str:
-    name = attrs.get("name", "")
-    parent = attrs.get("parent", "")
-    if parent in ("", "."):
-        base = ""
-    else:
-        base = parent
-    return f"{base}/{name}" if base else name
-
-
 def node_path_of(attrs: dict[str, str]) -> str:
     """Path of a node relative to its scene root (the root itself is '')."""
     parent = attrs.get("parent")
@@ -433,7 +422,7 @@ def check_scene_structure(report: Report, scenes: dict[str, SceneInfo], game_roo
                     )
                     broken += 1
                     continue
-            full = node_full_path(attrs, paths)
+            full = node_path_of(attrs)
             if full in paths:
                 report.fail(check, f"duplicate node path '{full}'", res_path)
                 broken += 1
