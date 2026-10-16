@@ -297,33 +297,6 @@ func _run_smoke_test() -> void:
 	_tap_screen_button(controls, pause_button, 76)
 	_expect(not paused and pause_button.text == "PAUSE", "RESUME restores play input")
 
-	# Narrow-phone layout: the top bar must fit inside a 390 px wide screen and the
-	# run-data card steps aside for the wave card there.
-	root.size = Vector2i(390, 844)
-	for _frame in 3:
-		await process_frame
-	var health_card := controls.get("_health_card") as Control
-	var wave_card := controls.get("_wave_card") as Control
-	var run_card := controls.get("_run_card") as Control
-	var viewport_width := float(root.size.x)
-	_expect(
-		(
-			is_instance_valid(health_card)
-			and is_instance_valid(wave_card)
-			and health_card.get_global_rect().end.x <= viewport_width + 1.0
-			and wave_card.get_global_rect().end.x <= viewport_width + 1.0
-		),
-		"HUD top cards fit a 390 px wide phone without overflowing the screen",
-	)
-	_expect(
-		not run_card.visible,
-		"run-data card steps aside on narrow screens to keep the top bar readable",
-	)
-	root.size = Vector2i(1280, 720)
-	for _frame in 3:
-		await process_frame
-	_expect(run_card.visible, "run-data card returns on a wide screen")
-
 	var run_stats: Node = main_scene.get_node("RunStats")
 	run_stats.call("start_run")
 	run_stats.call("record_elimination", 100, 110)

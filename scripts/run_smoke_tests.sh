@@ -12,12 +12,14 @@
 #   GODOT_BIN            path/name of the Godot 4.7.2 editor build (default: godot, godot4)
 #   SKIP_VERSION_CHECK   set to 1 to allow a different Godot 4.x version
 #   SMOKE_LOG_DIR        log directory (default: exports/test-logs)
+#   SMOKE_TEST_TIMEOUT   seconds per test before it is killed (default: 240)
 set -uo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GAME_DIR="$ROOT_DIR/game"
 EXPECTED_VERSION="$(tr -d '[:space:]' < "$ROOT_DIR/.godot-version")"
 LOG_DIR="${SMOKE_LOG_DIR:-$ROOT_DIR/exports/test-logs}"
+TEST_TIMEOUT="${SMOKE_TEST_TIMEOUT:-240}"
 
 DO_IMPORT=1
 SELECTED_TESTS=()
@@ -137,16 +139,38 @@ for test_path in "${TESTS[@]}"; do
   test_name="${test_path##*/}"
   test_log="$LOG_DIR/${test_name%.gd}.log"
   printf 'Running %s ... ' "$test_name"
-  if "$GODOT" --headless --path "$GAME_DIR" --script "res://tests/$test_name" >"$test_log" 2>&1; then
+  # A hung test must fail the job with a readable reason instead of blocking CI
+  # forever; the timeout is generous because the first test pays the shader warm-up.
+  test_status=0
+  timeout "${TEST_TIMEOUT}" "$GODOT" --headless --path "$GAME_DIR" \
+    --script "res://tests/$test_name" >"$test_log" 2>&1 || test_status=$?
+  if (( test_status == 0 )); then
     printf 'PASS\n'
     PASSED=$((PASSED + 1))
+  elif (( test_status == 124 )); then
+    printf 'FAIL (timed out after %ss)\n' "$TEST_TIMEOUT"
+    FAILED=$((FAILED + 1))
+    FAILED_NAMES+=("$test_name (timeout)")
+    if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+      printf '::error title=Smoke test timed out::%s exceeded %ss\n' "$test_name" "$TEST_TIMEOUT"
+    fi
   else
-    printf 'FAIL\n'
+    printf 'FAIL (exit %s)\n' "$test_status"
     FAILED=$((FAILED + 1))
     FAILED_NAMES+=("$test_name")
   fi
   if grep -qE 'SCRIPT ERROR|Parse Error|ERROR: Condition' "$test_log"; then
     printf '    engine reported script errors; see %s\n' "${test_log#"$ROOT_DIR"/}"
+  fi
+  # One annotation per test: the job log is not always retrievable (for example
+  # from a restricted sandbox), and "which test hung" must never be a guess.
+  if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    case "$test_status" in
+      0) test_verdict='PASS' ;;
+      124) test_verdict="FAIL (timeout ${TEST_TIMEOUT}s)" ;;
+      *) test_verdict="FAIL (exit $test_status)" ;;
+    esac
+    printf '::notice title=Smoke %s::%s\n' "${test_name%.gd}" "$test_verdict"
   fi
 done
 

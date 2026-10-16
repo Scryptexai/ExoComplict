@@ -35,6 +35,8 @@ jobs:
   engine:
     name: Headless smoke tests (Godot 4.7.2)
     runs-on: ubuntu-latest
+    # Backstop: the runner already times out each test, this bounds the whole job.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -91,6 +93,7 @@ jobs:
   web-preview:
     name: Web preview build (WebAssembly)
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     # contents: write is only used by the "commit the payload" step below, and
     # that step runs on push events to this repository only.
     permissions:
