@@ -20,7 +20,8 @@ Checks performed
 7.  Signals: static ``connect("name", ...)`` targets are declared somewhere.
 8.  Groups: ``is_in_group`` / ``get_nodes_in_group`` names are declared by code or scene.
 9.  class_name uniqueness across scripts.
-10. Weapon resources: mirror of ``WeaponDefinition.is_valid_definition()`` plus
+10. Web preview wiring: custom HTML shell placeholders, web renderer setting, landing page.
+11. Weapon resources: mirror of ``WeaponDefinition.is_valid_definition()`` plus
     projectile scene/``launch()`` verification.
 11. glTF/GLB assets: GLB header integrity, glTF external buffer/image files exist.
 12. Documentation consistency: pinned engine version, smoke test inventory,
@@ -889,6 +890,61 @@ def check_gltf_assets(report: Report, game_root: Path) -> None:
             )
 
 
+def check_web_preview(report: Report, root: Path, game_root: Path) -> None:
+    """Verify the wiring of the WebAssembly preview path (shell, preset, landing page)."""
+    check = "web preview"
+    problems = 0
+
+    shell = game_root / "web_shell" / "index.html"
+    placeholders = (
+        "$GODOT_PROJECT_NAME",
+        "$GODOT_URL",
+        "$GODOT_CONFIG",
+        "$GODOT_THREADS_ENABLED",
+        "$GODOT_HEAD_INCLUDE",
+        "$GODOT_SPLASH",
+    )
+    if not shell.exists():
+        report.fail(check, "game/web_shell/index.html (custom Godot web shell) is missing", str(shell.relative_to(root)))
+        problems += 1
+    else:
+        text = shell.read_text(encoding="utf-8", errors="replace")
+        missing = [placeholder for placeholder in placeholders if placeholder not in text]
+        if missing:
+            report.fail(check, "web shell is missing placeholder(s): " + ", ".join(missing), str(shell.relative_to(root)))
+            problems += 1
+        if "<canvas" not in text:
+            report.fail(check, "web shell has no <canvas> element", str(shell.relative_to(root)))
+            problems += 1
+        if "new Engine(" not in text:
+            report.fail(check, "web shell does not construct the Godot Engine object", str(shell.relative_to(root)))
+            problems += 1
+
+    project_file = game_root / "project.godot"
+    if project_file.exists() and 'rendering_method.web="gl_compatibility"' not in project_file.read_text(encoding="utf-8"):
+        report.fail(
+            check,
+            'game/project.godot is missing renderer/rendering_method.web="gl_compatibility" '
+            "(the web platform only supports the Compatibility renderer)",
+            "game/project.godot",
+        )
+        problems += 1
+
+    landing = root / "index.html"
+    if not landing.exists():
+        report.warn(check, "repository root has no index.html landing page for the web preview")
+    elif "web/index.html" not in landing.read_text(encoding="utf-8"):
+        report.fail(check, "index.html does not reference the web build at web/index.html", "index.html")
+        problems += 1
+
+    gitignore = root / ".gitignore"
+    if gitignore.exists() and "web/" not in gitignore.read_text(encoding="utf-8"):
+        report.warn(check, "'.gitignore' does not ignore the generated web/ build directory")
+
+    if problems == 0:
+        report.ok(check, "custom HTML shell, web renderer setting, and landing page are wired consistently")
+
+
 def check_docs(report: Report, root: Path, game_root: Path, scenes: dict[str, SceneInfo], scripts: dict[str, ScriptInfo]) -> None:
     check = "docs consistency"
     version_file = root / ".godot-version"
@@ -986,6 +1042,7 @@ def main(argv: list[str] | None = None) -> int:
     check_class_names(report, scripts)
     check_weapon_resources(report, game_root, scenes)
     check_gltf_assets(report, game_root)
+    check_web_preview(report, root, game_root)
     check_docs(report, root, game_root, scenes, scripts)
 
     print(report.render(quiet=args.quiet))

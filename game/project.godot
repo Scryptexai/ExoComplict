@@ -55,4 +55,6 @@ pointing/emulate_mouse_from_touch=false
 [rendering]
 renderer/rendering_method="mobile"
 renderer/rendering_method.mobile="mobile"
+; Web (WASM) preview build: Godot only supports the Compatibility renderer on the web platform.
+renderer/rendering_method.web="gl_compatibility"
 environment/defaults/default_clear_color=Color(0.48,0.76,0.89,1)

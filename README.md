@@ -10,6 +10,7 @@
 - [`WORLD_BLOCKOUT.md`](WORLD_BLOCKOUT.md) — world zones, route layout, modular asset inventory, and implementation notes.
 - [`DEVELOPMENT_ROADMAP.md`](DEVELOPMENT_ROADMAP.md) — project phases, scope gates, risks, and next steps.
 - [`ANDROID_BASELINE.md`](ANDROID_BASELINE.md) — gate-E runbook: JDK/SDK setup, local Android preset, APK build, device test and profiling checklist.
+- [`WEB_PREVIEW.md`](WEB_PREVIEW.md) — no-install WebAssembly preview: `python -m http.server 800 --bind 0.0.0.0` from the repository root, controls, limits, troubleshooting.
 - [`GAP_ANALYSIS.md`](GAP_ANALYSIS.md) — verified-vs-claimed status, per-system gaps, prioritized backlog, and how to run the new tooling.
 - [`PROJECT_DECISIONS.md`](PROJECT_DECISIONS.md) — provisional gameplay and technical decisions.
 - [`GAME_CONCEPT.md`](GAME_CONCEPT.md) — source game and technical design concept.
@@ -52,6 +53,30 @@ godot --headless --path game --script res://tests/weapon_system_smoke.gd
 `.github/workflows/godot-ci.yml` runs the static job plus a headless Godot job (install → import → all smoke tests → uploaded logs) on every pull request.
 
 PC fallback controls: WASD to move, hold right mouse and drag to aim, hold left mouse or FIRE to shoot, tap the weapon button or press E to cycle weapons, click the EMP skill when ready, Escape to pause, and R to reset the current run. Mobile input uses the 360° left-side joystick to move, right-side drag to aim, hold FIRE, tap the weapon button or EMP skill, and PAUSE/RESUME; after defeat the Results overlay presents a touch-operated RETRY button.
+
+## No-install browser preview (WebAssembly)
+
+The fastest way to review UI/UX and gameplay without installing Godot, the Android SDK, or JDK is the exported
+web build. Serve the repository root and open the landing page:
+
+```bash
+python -m http.server 800 --bind 0.0.0.0
+# http://localhost:800/        landing page with status + embedded game
+# http://localhost:800/web/    raw Godot build
+```
+
+The Godot payload lives in the git-ignored `web/` directory. Get it either from CI (Actions → *Godot CI* → latest
+run → artifact `web-preview`, extracted into the repository root) or build it locally with Godot 4.7.2:
+
+```bash
+./scripts/install_godot.sh --with-templates
+./scripts/export_web_preview.sh      # preset + import + export + build verification
+```
+
+The web export is single-threaded (`variant/thread_support=false`) so it runs on a plain static server without
+COOP/COEP headers, and it uses a custom shell at `game/web_shell/index.html`. The web platform always uses the
+Compatibility (WebGL 2) renderer, while Android keeps the `mobile` renderer — see [`WEB_PREVIEW.md`](WEB_PREVIEW.md)
+for the differences that must not be mistaken for Android behaviour.
 
 ## Android import/export workflow
 

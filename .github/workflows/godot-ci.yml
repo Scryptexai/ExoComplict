@@ -86,3 +86,92 @@ jobs:
           name: smoke-test-logs
           path: exports/test-logs
           if-no-files-found: ignore
+
+  web-preview:
+    name: Web preview build (WebAssembly)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install runtime libraries for Godot
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1 libxi6 libxcursor1 libxinerama1 libxrandr2 libxkbcommon0 || \
+            echo "Some optional libraries were unavailable; continuing."
+
+      - name: Cache Godot export templates
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/godot/export_templates
+          key: godot-export-templates-${{ hashFiles('.godot-version') }}
+
+      - name: Install pinned Godot editor with export templates
+        run: |
+          ./scripts/install_godot.sh --with-templates
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Report engine version
+        run: godot --version
+
+      - name: Export the Web preview build
+        run: ./scripts/export_web_preview.sh --output web
+
+      - name: Verify static-server delivery
+        run: |
+          python3 -m http.server 8123 --bind 127.0.0.1 --directory web >/dev/null 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          sleep 2
+          echo "index.html -> $(curl -s -o /dev/null -w '%{http_code} %{content_type}' http://127.0.0.1:8123/index.html)"
+          echo "index.js   -> $(curl -s -o /dev/null -w '%{http_code} %{content_type}' http://127.0.0.1:8123/index.js)"
+          echo "index.wasm -> $(curl -s -o /dev/null -w '%{http_code} %{content_type}' http://127.0.0.1:8123/index.wasm)"
+          echo "index.pck  -> $(curl -s -o /dev/null -w '%{http_code} %{content_type}' http://127.0.0.1:8123/index.pck)"
+          wasm_status="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8123/index.wasm)"
+          pck_status="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8123/index.pck)"
+          if [[ "$wasm_status" != "200" || "$pck_status" != "200" ]]; then
+            echo "Static server did not deliver the engine payload (wasm=$wasm_status pck=$pck_status)" >&2
+            exit 1
+          fi
+
+      - name: Package the preview artifact
+        run: |
+          mkdir -p exports/web-preview
+          cp -R web exports/web-preview/web
+          python3 -c 'import pathlib; pathlib.Path("exports/web-preview/README.txt").write_text(
+            "Project Overdrive — WebAssembly preview build\n"
+            "=============================================\n\n"
+            "How to run:\n"
+            "  1. Extract this archive into the repository root so that the folder 'web/' appears.\n"
+            "  2. From the repository root run:  python -m http.server 800 --bind 0.0.0.0\n"
+            "  3. Open http://localhost:800/  (landing page) or http://localhost:800/web/ (raw build).\n\n"
+            "Details, controls, and limitations: WEB_PREVIEW.md\n")'
+          du -sh exports/web-preview/web
+          find exports/web-preview -maxdepth 2 -type f | sort
+
+      - name: Upload the web preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-preview
+          path: exports/web-preview
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish web preview summary
+        if: always()
+        run: |
+          {
+            echo '## Web preview (WebAssembly)'
+            echo 'Download the `web-preview` artifact, extract it into the repository root, then run:'
+            echo '```bash'
+            echo 'python -m http.server 800 --bind 0.0.0.0'
+            echo '```'
+            echo 'Open `http://localhost:800/`. See `WEB_PREVIEW.md` for details and limitations.'
+            if [[ -f exports/web-preview/web/index.pck ]]; then
+              echo
+              echo 'Build payload:'
+              echo '```'
+              ls -lh exports/web-preview/web | sed 's/^/  /'
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

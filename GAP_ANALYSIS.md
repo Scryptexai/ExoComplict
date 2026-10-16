@@ -114,6 +114,7 @@ Prioritas di bawah memakai urutan dependensi di `DEVELOPMENT_ROADMAP.md` §5: ve
 | G6 | Audio 0% | "Sensasi menembak" (pillar 3) tidak bisa dinilai; feedback kombat tidak lengkap | Tambahkan bus + `AudioStreamPlayer` untuk muzzle, impact, hit, eliminasi, reward, UI, ambience; aset CC0 berlisensi; batasi jumlah suara bersamaan untuk mobile |
 | G7 | VFX minimal (tanpa partikel/trail/impact) | Readability ancaman & kepuasan menembak lemah | Muzzle flash, impact, explosion Nova, chain Arc, death burst; batasi overdraw berdasarkan pengukuran device |
 | G8 | Musuh tanpa navigasi/obstacle avoidance | Musuh dapat tersangkut di cover/ramp → wave tidak selesai → sesi `BLOCKED` | Minimal steering menghindari tembok (raycast kiri/kanan) atau `NavigationRegion3D` + `NavigationAgent3D` bila profiling mengizinkan; tambahkan test navigasi di smoke |
+| G9b | Review visual/gameplay membutuhkan instalasi Godot + Android SDK (mahal untuk iterasi cepat) | Iterasi UI/UX tertahan toolchain | **Jalur preview WebAssembly ditambahkan:** `scripts/export_web_preview.sh` + `game/web_shell/index.html` + landing `index.html` + job CI `web-preview`; cukup `python -m http.server 800 --bind 0.0.0.0` di root repo | Artefak `web-preview` tersedia di CI dan game terbuka di browser; temuan UI dicatat lalu diverifikasi ulang di Android |
 | G9 | Tidak ada telemetry internal (FPS/frame time, jumlah musuh aktif, draw call) | Profiling Phase 6 akan menebak-nebak; sementara ini hanya bisa lewat remote debug Editor (`Debugger > Monitors`) | Tambahkan overlay debug opsional (`Performance.get_monitor`) yang dapat dimatikan di build rilis |
 | G10 | Tidak ada menu pengaturan & safe-area awareness | Tidak siap untuk perangkat nyata (layar berponi, sensitivitas berbeda) | `DisplayServer.get_display_safe_area()` untuk HUD; slider sensitivitas/volume; simpan ke file save yang sama |
 
@@ -189,6 +190,10 @@ python3 tools/android_preset.py check
 
 # 6. Build APK debug, lalu ikuti runbook perangkat + profiling
 ./scripts/export_android_debug.sh        # lihat ANDROID_BASELINE.md untuk langkah adb
+
+# 7. Preview WebAssembly tanpa instalasi (review UI/UX cepat)
+./scripts/export_web_preview.sh          # butuh Godot; atau unduh artefak CI "web-preview"
+python -m http.server 800 --bind 0.0.0.0 # buka http://localhost:800/
 ```
 
 Lint GDScript memakai `.venv`:
