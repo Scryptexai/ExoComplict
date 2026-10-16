@@ -1,6 +1,7 @@
 @tool
 extends Node3D
 
+const GltfAssetLibrary = preload("res://scripts/worlds/gltf_asset_library.gd")
 const REACTOR_SCENE: PackedScene = preload("res://scenes/worlds/components/reactor_core.tscn")
 const COMMAND_SCENE: PackedScene = preload("res://scenes/worlds/components/command_center.tscn")
 const LAB_SCENE: PackedScene = preload("res://scenes/worlds/components/research_lab.tscn")
@@ -692,21 +693,39 @@ func _build_outpost() -> void:
 		Vector3(0.18, 0.04, 40.0),
 		_materials["yellow"]
 	)
+	_place_world_gltf(
+		"spacetruck_large",
+		"KayKitOutpostServiceTruck",
+		Vector3(-67.0, 0.81, -8.0),
+		Vector3.ZERO,
+		Vector3.ONE * 6.0,
+		true,
+		0.78
+	)
 	for crate_index in range(6):
 		var x := -37.0 + float(crate_index % 3) * 2.2
 		var z := 14.0 + float(crate_index / 3) * 2.0
-		_add_box(
-			"OutpostSupplyCrate_%02d" % crate_index,
-			Vector3(x, 0.75, z),
-			Vector3(1.7, 1.5, 1.7),
-			_materials["copper"]
+		var cargo_name := "cargo_A_stacked" if crate_index % 2 == 0 else "cargo_B_stacked"
+		var cargo := _place_world_gltf(
+			cargo_name,
+			"KayKitOutpostSupply_%02d" % crate_index,
+			Vector3(x, 0.02, z),
+			Vector3(0.0, float(crate_index % 4) * 90.0, 0.0),
+			Vector3.ONE * 1.5
 		)
-		_add_box(
-			"OutpostCrateLabel_%02d" % crate_index,
-			Vector3(x, 1.2, z + 0.88),
-			Vector3(0.9, 0.25, 0.05),
-			_materials["yellow"]
-		)
+		if cargo == null:
+			_add_box(
+				"OutpostSupplyCrate_%02d" % crate_index,
+				Vector3(x, 0.75, z),
+				Vector3(1.7, 1.5, 1.7),
+				_materials["copper"]
+			)
+			_add_box(
+				"OutpostCrateLabel_%02d" % crate_index,
+				Vector3(x, 1.2, z + 0.88),
+				Vector3(0.9, 0.25, 0.05),
+				_materials["yellow"]
+			)
 
 	for side in [-1.0, 1.0]:
 		_add_box(
@@ -744,6 +763,15 @@ func _build_extraction_zone() -> void:
 		"FrontierEnergyExtractionBank",
 		Vector3(43.0, 0.0, -35.0),
 		Vector3(0.0, 180.0, 0.0)
+	)
+	_place_world_gltf(
+		"drill_structure",
+		"KayKitFrontierDrillStructure",
+		Vector3(61.0, 0.0, -31.5),
+		Vector3(0.0, 18.0, 0.0),
+		Vector3.ONE * 3.2,
+		true,
+		0.82
 	)
 	_place_component(
 		SENSOR_SCENE,
@@ -1226,15 +1254,28 @@ func _build_alien_landscape() -> void:
 		Vector3(-91.0, 0.0, -22.0),
 	]
 	for rock_index in range(rock_positions.size()):
+		var rock_name := "FrontierCliffRock_%02d" % rock_index
+		var rock_position: Vector3 = rock_positions[rock_index]
+		var rock_rotation := Vector3(0.0, rock_index * 29.0, 0.0)
 		var rock_scale := Vector3(1.5, 2.7 if rock_index % 3 == 0 else 1.8, 1.45)
-		_place_component(
-			ROCK_SCENE,
-			"FrontierCliffRock_%02d" % rock_index,
-			rock_positions[rock_index],
-			Vector3(0.0, rock_index * 29.0, 0.0),
-			rock_scale,
-			rock_index
+		var use_kaykit_rock := (
+			rock_index == 0 or rock_index == 6 or rock_index == 12 or rock_index == 18
 		)
+		var external_rock: Node3D = null
+		if use_kaykit_rock:
+			external_rock = _place_world_gltf(
+				"rocks_B",
+				"KayKit" + rock_name,
+				rock_position,
+				rock_rotation,
+				Vector3.ONE * 2.8,
+				true,
+				0.68
+			)
+		if external_rock == null:
+			_place_component(
+				ROCK_SCENE, rock_name, rock_position, rock_rotation, rock_scale, rock_index
+			)
 
 	var crystal_positions: Array[Vector3] = [
 		Vector3(-80.0, 0.0, -58.0),
@@ -1424,6 +1465,28 @@ func _build_spawn_beacons() -> void:
 			Vector3(0.25, 0.24, 0.25),
 			_materials["cyan"]
 		)
+
+
+func _place_world_gltf(
+	asset_name: String,
+	node_name: String,
+	at: Vector3,
+	rotation: Vector3 = Vector3.ZERO,
+	model_scale: Vector3 = Vector3.ONE,
+	collidable: bool = false,
+	collider_fill_ratio: float = 0.88
+) -> Node3D:
+	var model := GltfAssetLibrary.instantiate_model(asset_name)
+	if model == null:
+		return null
+	model.name = node_name
+	model.position = at
+	model.rotation_degrees = rotation
+	model.scale = model_scale
+	_get_geometry_parent().add_child(model)
+	if collidable:
+		GltfAssetLibrary.add_bounds_collider(model, "%s_Collision" % node_name, collider_fill_ratio)
+	return model
 
 
 func _place_component(

@@ -45,6 +45,37 @@ func _run_smoke_test() -> void:
 			and test_passed
 		)
 
+	var kaykit_model_names: Array[String] = [
+		"KayKitCargoDepot",
+		"KayKitDepotCargo_00",
+		"KayKitLandingPadSurface",
+		"KayKitOutpostServiceTruck",
+		"KayKitOutpostSupply_00",
+		"KayKitFrontierDrillStructure",
+		"KayKitFrontierCliffRock_00",
+	]
+	for model_name in kaykit_model_names:
+		var model := world.find_child(model_name, true, false) as Node3D
+		test_passed = (
+			_expect(
+				(
+					model != null
+					and not model.find_children("*", "MeshInstance3D", true, false).is_empty()
+				),
+				"world instantiates the licensed KayKit 3D model " + model_name,
+			)
+			and test_passed
+		)
+	var depot_model := world.find_child("KayKitCargoDepot", true, false) as Node3D
+	if depot_model != null:
+		test_passed = (
+			_expect(
+				depot_model.find_child("KayKitCargoDepotCollision", true, false) != null,
+				"imported depot model receives a physical bounds collider",
+			)
+			and test_passed
+		)
+
 	var mesh_instances := world.find_children("*", "MeshInstance3D", true, false)
 	var static_bodies := world.find_children("*", "StaticBody3D", true, false)
 	print(

@@ -25,9 +25,13 @@ func _ready() -> void:
 	touch_controls.look_delta.connect(player.apply_touch_look)
 	touch_controls.fire_changed.connect(player.set_touch_fire_pressed)
 	touch_controls.weapon_switch_requested.connect(player.select_next_weapon)
+	touch_controls.skill_requested.connect(player.activate_skill)
 	touch_controls.pause_requested.connect(_toggle_pause)
 	player.weapon_changed.connect(touch_controls.set_weapon_label)
+	player.skill_cooldown_changed.connect(touch_controls.set_skill_cooldown)
+	player.skill_used.connect(_on_skill_used)
 	touch_controls.set_weapon_label(player.get_current_weapon_name())
+	touch_controls.set_skill_cooldown(0.0, player.emp_pulse_cooldown)
 	touch_controls.retry_requested.connect(_reset_session)
 	player.shot_fired.connect(_on_shot_fired)
 	player.health_changed.connect(_on_combatant_health_changed)
@@ -109,6 +113,10 @@ func _on_player_defeated() -> void:
 
 func _on_target_damage_received(_amount: float, _current: float, _maximum: float) -> void:
 	touch_controls.show_hit_confirmed()
+
+
+func _on_skill_used(targets_hit: int, _cooldown_seconds: float) -> void:
+	touch_controls.show_skill_feedback(targets_hit)
 
 
 func _on_combatant_health_changed(_current: float, _maximum: float) -> void:

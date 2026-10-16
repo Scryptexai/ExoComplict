@@ -5,6 +5,8 @@ signal shot_fired
 signal weapon_changed(display_name: String)
 signal health_changed(current: float, maximum: float)
 signal damage_received(amount: float, current: float, maximum: float)
+signal skill_used(targets_hit: int, cooldown_seconds: float)
+signal skill_cooldown_changed(remaining_seconds: float, total_seconds: float)
 signal defeated
 
 const ThirdPersonCameraRigScript = preload("res://scripts/camera/camera_rig.gd")
@@ -14,8 +16,12 @@ const WeaponControllerScript = preload("res://scripts/weapons/weapon_controller.
 @export_range(1.0, 60.0, 0.5) var move_acceleration: float = 24.0
 @export_range(10.0, 100.0, 1.0) var aim_range: float = 55.0
 @export_range(1.0, 500.0, 1.0) var max_health: float = 100.0
+@export_range(6.0, 30.0, 0.5) var emp_pulse_cooldown: float = 12.0
+@export_range(4.0, 20.0, 0.5) var emp_pulse_radius: float = 9.0
+@export_range(1.0, 100.0, 1.0) var emp_pulse_damage: float = 18.0
 
 var current_health: float = 0.0
+var _skill_cooldown_remaining: float = 0.0
 var _is_defeated: bool = false
 var _touch_movement: Vector2 = Vector2.ZERO
 var _touch_fire_pressed: bool = false
@@ -38,6 +44,11 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector3.ZERO
 		return
 	_update_movement(delta)
+	if _skill_cooldown_remaining > 0.0:
+		var previous_cooldown_bucket := ceili(_skill_cooldown_remaining)
+		_skill_cooldown_remaining = maxf(_skill_cooldown_remaining - delta, 0.0)
+		if ceili(_skill_cooldown_remaining) != previous_cooldown_bucket:
+			skill_cooldown_changed.emit(_skill_cooldown_remaining, emp_pulse_cooldown)
 	if Input.is_action_just_pressed("weapon_next"):
 		select_next_weapon()
 	var aim_point := _get_aim_point()
@@ -71,6 +82,31 @@ func apply_touch_look(delta: Vector2) -> void:
 
 func set_touch_fire_pressed(pressed: bool) -> void:
 	_touch_fire_pressed = pressed
+
+
+func activate_skill() -> bool:
+	if _is_defeated or _skill_cooldown_remaining > 0.0:
+		return false
+
+	var targets_hit := 0
+	var radius_squared := emp_pulse_radius * emp_pulse_radius
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if not enemy is Node3D or not is_instance_valid(enemy):
+			continue
+		if enemy.has_method("is_defeated") and bool(enemy.call("is_defeated")):
+			continue
+		var offset: Vector3 = (enemy as Node3D).global_position - global_position
+		offset.y = 0.0
+		if offset.length_squared() > radius_squared or not enemy.has_method("apply_damage"):
+			continue
+		enemy.call("apply_damage", emp_pulse_damage, self)
+		targets_hit += 1
+
+	_skill_cooldown_remaining = emp_pulse_cooldown
+	_spawn_emp_pulse_effect()
+	skill_cooldown_changed.emit(_skill_cooldown_remaining, emp_pulse_cooldown)
+	skill_used.emit(targets_hit, emp_pulse_cooldown)
+	return true
 
 
 func select_weapon(index: int) -> bool:
@@ -119,10 +155,45 @@ func is_defeated() -> bool:
 func reset_player() -> void:
 	_is_defeated = false
 	current_health = max_health
+	_skill_cooldown_remaining = 0.0
 	velocity = Vector3.ZERO
 	_touch_movement = Vector2.ZERO
 	_touch_fire_pressed = false
 	health_changed.emit(current_health, max_health)
+	skill_cooldown_changed.emit(0.0, emp_pulse_cooldown)
+
+
+func _spawn_emp_pulse_effect() -> void:
+	var pulse_mesh := TorusMesh.new()
+	pulse_mesh.inner_radius = 0.91
+	pulse_mesh.outer_radius = 1.0
+	pulse_mesh.rings = 32
+	pulse_mesh.ring_segments = 8
+
+	var pulse_material := StandardMaterial3D.new()
+	pulse_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	pulse_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	pulse_material.albedo_color = Color(0.2, 0.84, 1.0, 0.86)
+	pulse_material.emission_enabled = true
+	pulse_material.emission = Color(0.08, 0.45, 0.9)
+	pulse_material.emission_energy_multiplier = 1.4
+
+	var pulse := MeshInstance3D.new()
+	pulse.name = "EmpPulseEffect"
+	pulse.mesh = pulse_mesh
+	pulse.material_override = pulse_material
+	pulse.position = Vector3(0.0, 0.08, 0.0)
+	pulse.scale = Vector3.ONE * 0.12
+	pulse.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(pulse)
+
+	var pulse_tween := create_tween()
+	var pulse_tweener := pulse_tween.tween_property(
+		pulse, "scale", Vector3.ONE * emp_pulse_radius, 0.45
+	)
+	pulse_tweener.set_trans(Tween.TRANS_QUAD)
+	pulse_tweener.set_ease(Tween.EASE_OUT)
+	pulse_tween.tween_callback(pulse.queue_free)
 
 
 func _update_movement(delta: float) -> void:

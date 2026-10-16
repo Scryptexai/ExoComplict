@@ -1,6 +1,7 @@
 extends SceneTree
 
 const MainScene = preload("res://scenes/main.tscn")
+const RunnerScene = preload("res://scenes/enemies/runner.tscn")
 
 var _failures: int = 0
 
@@ -26,6 +27,7 @@ func _run_smoke_test() -> void:
 	var help_label := controls.get("_help_label") as Label
 	var fire_button := controls.get("_fire_button") as Button
 	var weapon_button := controls.get("_weapon_button") as Button
+	var skill_button := controls.get("_skill_button") as Button
 	var pause_button := controls.get("_pause_button") as Button
 	var spring_arm := player.get_node("CameraRig/YawPivot/PitchPivot/SpringArm3D") as SpringArm3D
 	var pitch_pivot := player.get_node("CameraRig/YawPivot/PitchPivot") as Node3D
@@ -50,6 +52,8 @@ func _run_smoke_test() -> void:
 		(
 			help_label.autowrap_mode != TextServer.AUTOWRAP_OFF
 			and help_label.text.contains("TOUCH")
+			and help_label.text.contains("360°")
+			and help_label.text.contains("EMP")
 			and help_label.text.contains("WASD")
 		),
 		"wrapped help explains mobile and desktop controls",
@@ -58,9 +62,11 @@ func _run_smoke_test() -> void:
 		(
 			fire_button.text == "FIRE"
 			and weapon_button.text == "PULSE RIFLE"
+			and skill_button.text.contains("READY")
+			and not skill_button.disabled
 			and pause_button.text == "PAUSE"
 		),
-		"fire, weapon-cycle, and pause buttons are visible and labeled",
+		"fire, weapon-cycle, EMP skill, and pause buttons are visible and labeled",
 	)
 	_expect(
 		(
@@ -109,6 +115,35 @@ func _run_smoke_test() -> void:
 		"touching the weapon button cycles the active weapon and HUD label",
 	)
 
+	var skill_enemy := RunnerScene.instantiate() as Node3D
+	skill_enemy.set("target_path", NodePath("../../Player"))
+	skill_enemy.position = player.global_position + Vector3(0.0, 0.0, -2.0)
+	main_scene.get_node("WaveEnemies").add_child(skill_enemy)
+	await process_frame
+	var health_before_skill := float(skill_enemy.get("current_health"))
+	_tap_screen_button(controls, skill_button, 78)
+	_expect(
+		is_equal_approx(
+			float(skill_enemy.get("current_health")),
+			health_before_skill - float(player.get("emp_pulse_damage"))
+		),
+		"EMP skill damages nearby wave enemies",
+	)
+	_expect(
+		(
+			float(player.get("_skill_cooldown_remaining")) > 0.0
+			and skill_button.disabled
+			and skill_button.text.contains("HIT")
+		),
+		"skill activation starts its cooldown and shows target-hit feedback",
+	)
+	_expect(
+		not bool(player.call("activate_skill")),
+		"skill cooldown rejects a duplicate activation",
+	)
+	skill_enemy.queue_free()
+	await process_frame
+
 	var initial_position: Vector3 = player.global_position
 	var joystick_touch := InputEventScreenTouch.new()
 	joystick_touch.index = 71
@@ -138,6 +173,55 @@ func _run_smoke_test() -> void:
 	_expect(
 		Vector2(player.get("_touch_movement")).is_zero_approx(),
 		"releasing the movement touch clears the virtual joystick",
+	)
+	var joystick_origin := Vector2(controls.size.x * 0.12, controls.size.y * 0.62)
+	await _test_joystick_vector(
+		controls, player, 80, joystick_origin, Vector2(0.0, -90.0), Vector2(0.0, -1.0), "up"
+	)
+	await _test_joystick_vector(
+		controls, player, 81, joystick_origin, Vector2(0.0, 90.0), Vector2(0.0, 1.0), "down"
+	)
+	await _test_joystick_vector(
+		controls, player, 82, joystick_origin, Vector2(-90.0, 0.0), Vector2(-1.0, 0.0), "left"
+	)
+	await _test_joystick_vector(
+		controls, player, 83, joystick_origin, Vector2(90.0, 0.0), Vector2(1.0, 0.0), "right"
+	)
+	await _test_joystick_vector(
+		controls,
+		player,
+		84,
+		joystick_origin,
+		Vector2(-90.0, -90.0),
+		Vector2(-1.0, -1.0).normalized(),
+		"up-left diagonal"
+	)
+	await _test_joystick_vector(
+		controls,
+		player,
+		85,
+		joystick_origin,
+		Vector2(90.0, -90.0),
+		Vector2(1.0, -1.0).normalized(),
+		"up-right diagonal"
+	)
+	await _test_joystick_vector(
+		controls,
+		player,
+		86,
+		joystick_origin,
+		Vector2(-90.0, 90.0),
+		Vector2(-1.0, 1.0).normalized(),
+		"down-left diagonal"
+	)
+	await _test_joystick_vector(
+		controls,
+		player,
+		87,
+		joystick_origin,
+		Vector2(90.0, 90.0),
+		Vector2(1.0, 1.0).normalized(),
+		"down-right diagonal"
 	)
 
 	var yaw_pivot: Node3D = player.get_node("CameraRig/YawPivot")
@@ -173,7 +257,10 @@ func _run_smoke_test() -> void:
 		),
 		"pausing clears held touch fire and movement input",
 	)
-	_expect(fire_button.disabled, "fire is disabled while the run is paused")
+	_expect(
+		fire_button.disabled and skill_button.disabled,
+		"fire and skill are disabled while the run is paused",
+	)
 	_tap_screen_button(controls, pause_button, 76)
 	_expect(not paused and pause_button.text == "PAUSE", "RESUME restores play input")
 
@@ -188,8 +275,12 @@ func _run_smoke_test() -> void:
 	var results_panel := controls.get("_results_panel") as PanelContainer
 	var results_retry_button := controls.get("_results_retry_button") as Button
 	_expect(
-		results_panel.visible and results_retry_button.is_visible_in_tree(),
-		"defeat presents a touch-reachable retry button",
+		(
+			results_panel.visible
+			and results_retry_button.is_visible_in_tree()
+			and not skill_button.visible
+		),
+		"defeat presents retry and hides combat controls behind results",
 	)
 	_tap_screen_button(controls, results_retry_button, 77)
 	_expect(
@@ -197,6 +288,8 @@ func _run_smoke_test() -> void:
 			not bool(player.call("is_defeated"))
 			and is_equal_approx(health_bar.value, 100.0)
 			and not results_panel.visible
+			and skill_button.text.contains("READY")
+			and not skill_button.disabled
 		),
 		"touching results RETRY restores the player and returns to the HUD",
 	)
@@ -204,6 +297,41 @@ func _run_smoke_test() -> void:
 	main_scene.queue_free()
 	await process_frame
 	quit(1 if _failures > 0 else 0)
+
+
+func _test_joystick_vector(
+	controls: Control,
+	player: Node3D,
+	touch_id: int,
+	origin: Vector2,
+	drag_delta: Vector2,
+	expected: Vector2,
+	direction_label: String
+) -> void:
+	player.set("velocity", Vector3.ZERO)
+	var start_position := player.global_position
+	_send_screen_touch(controls, touch_id, origin, true)
+	var drag := InputEventScreenDrag.new()
+	drag.index = touch_id
+	drag.position = origin + drag_delta
+	drag.relative = drag_delta
+	controls.call("_input", drag)
+	var actual: Vector2 = player.get("_touch_movement")
+	_expect(
+		actual.distance_to(expected) < 0.02,
+		"360° joystick maps %s input correctly" % direction_label,
+	)
+	for _frame in 8:
+		await physics_frame
+	var world_delta := Vector2(
+		player.global_position.x - start_position.x, player.global_position.z - start_position.z
+	)
+	_expect(
+		world_delta.dot(expected.normalized()) > 0.1,
+		"360° joystick moves the player toward %s" % direction_label,
+	)
+	_send_screen_touch(controls, touch_id, origin + drag_delta, false)
+	player.set("velocity", Vector3.ZERO)
 
 
 func _send_screen_touch(controls: Control, touch_id: int, position: Vector2, pressed: bool) -> void:

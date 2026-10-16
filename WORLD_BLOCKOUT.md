@@ -11,7 +11,7 @@
 - Packed 3D component scenes: `game/scenes/worlds/components/*.tscn`.
 - Automated environment checks: `game/tests/neon_frontier_world_smoke.gd` and `game/tests/arena_blockout_smoke.gd`.
 
-Each packed component scene has a `Node3D` root and creates named `MeshInstance3D` parts, material instances, and gameplay-relevant `StaticBody3D`/`CollisionShape3D` components. The world script instances those packed scenes into a single level. Primitive meshes are used deliberately for this buildable blockout; they are actual 3D geometry, not planes baked into an image. The player, enemies, world, lights, and collision all share the same Godot scene.
+Each packed component scene has a `Node3D` root and creates named `MeshInstance3D` parts, material instances, and gameplay-relevant `StaticBody3D`/`CollisionShape3D` components. The world script instances those packed scenes into one connected level. Most of the current level is still procedural blockout geometry, but selected high-visibility props now use actual licensed KayKit GLTF models instantiated at runtime: depot, cargo stacks, truck, drill, landing pad, and boundary rocks. No static image or plane stands in for the explorable world; the player, enemies, world, lights, meshes, and collision remain in the same Godot scene.
 
 ## Scale and spatial plan
 
@@ -43,19 +43,23 @@ This diagram is a location guide only; the delivered level itself is a fully spa
 | `reactor_core.tscn` | Separated structural footings, four load-bearing pylons, transparent containment cylinder, emerald/turquoise core, segmented energy halos, overhead service arms, orange conduits; the lower center stays open to preserve the combat lane. |
 | `command_center.tscn` | Armored foundation and hull, raised command bridge, visor windows, door, roof vents, antenna mast and dish, corner armor, and fasteners. |
 | `research_lab.tscn` | Ceramic laboratory shell, glass sampling vessel, colored sample core, service wings, roof vents, equipment pods, and a maintenance arm. |
-| `equipment_depot.tscn` | Two storage modules, ribbed shutter, yellow hoist canopy, lifting rail, repair arm, and equipment crates. |
+| `equipment_depot.tscn` | Licensed KayKit `cargodepot_A` module with a generated bounds collider, plus stacked cargo models; procedural depot details remain as a load-failure fallback. |
 | `generator_bank.tscn` | Three contained generator towers, glass sleeves, luminous energy columns, repeated pressure bands, feed/return pipes, and service walk. |
 | `boss_gate.tscn` | Tall reinforced docking frame, supports, shutter leaves and slats, cyan seam lights, power conduits, bolts, and warning hardware. |
 | `defense_turret.tscn` | Mount plate, yaw bearing, armored housing, twin barrels, optical sensor, and base collision. |
 | `sensor_tower.tscn` | Structural shaft, observation deck/cabin, radar plates, masts, dishes, and collision shaft. |
-| `landing_pad.tscn` | Raised plate foundation, metallic deck panels, high-contrast landing symbol, safety edges, and beacon lights. |
+| `landing_pad.tscn` | Raised collidable foundation, procedural safety edges and beacon lights, with the licensed KayKit landing-pad model integrated as the central deck surface. |
 | `wrecked_transport.tscn` | Damaged hull, glazed cockpit, separated/broken wings, engines, hot impact damage, and scattered wreck plates. |
 | `alien_drone_wreck.tscn` | Chassis, luminous sensor core, articulated broken arms, joints, claw plates, and a damaged cable. |
 | `crystal_cluster.tscn` | Individually tapered, differently colored cyan/emerald/turquoise mineral shards on geological roots. |
 | `alien_flora.tscn` | Stems, luminous buds, varied leaves, and arching fronds. |
-| `rock_cluster.tscn` | Irregularly scaled rock masses with warm sandstone/rose variation and selected collision. |
+| `rock_cluster.tscn` | Procedural warm sandstone/rose boundary rocks remain the fallback; four perimeter positions use KayKit `rocks_B` models with bounds colliders. |
 | `enemy_spawn_gate.tscn` | Open arch frame, visible warning panels, cyan guide strips, beacons, and clear passage through the middle. |
 | `cover_module.tscn` | Segmented waist-high armored cover with yellow top marking, edge guards, signal panels, bolts, and collision. |
+
+### Licensed modular world assets
+
+A selective subset of **KayKit Space Base Bits** is stored at `game/assets/world/kaykit_space_base_bits/`. The copied files retain their GLTF geometry, companion BIN data, shared texture atlas, and upstream `LICENSE.txt` (CC0 1.0). Runtime placements use `cargodepot_A` in the equipment-depot component, `cargo_A_stacked`/`cargo_B_stacked` in depot and outpost supply areas, `spacetruck_large` on the western vehicle apron, `drill_structure` at the extraction plant, `landingpad_large` on the east pad, and four `rocks_B` models around the outer terrain. `gltf_asset_library.gd` loads/caches templates, makes per-placement instances, and can add bounds-based colliders where needed. The art source is a GitHub `main` archive (not pinned to an immutable upstream commit); the pack is a selective visual upgrade, not a final art/palette approval. Other blockout geometry remains editable procedural 3D.
 
 ## Districts and traversal
 
@@ -65,11 +69,11 @@ The central 42-unit platform has layered metal trim, alternating panel plates, s
 
 ### Military outpost
 
-The western district contains the command center, laboratory, equipment depot, observation/signal towers, supplies, and damaged perimeter sections. The access apron connects to the central arena; its buildings have volume and selected collision, while service details remain visual-only. A damaged security checkpoint marks the ruined edge.
+The western district contains the command center, laboratory, equipment depot, observation/signal towers, supply stacks, and damaged perimeter sections. The depot and supplies now include actual KayKit GLTF models; a scaled service truck sits on the collidable-free vehicle apron. The access apron connects to the central arena; buildings have volume and selected collision, while service details remain visual-only. A damaged security checkpoint marks the ruined edge.
 
 ### Extraction plant and landing zone
 
-The east/northeast route reaches a full vehicle landing pad and the generator bank. Five large pipe runs, supports, maintenance walkways, and colored cores visually lead back toward the reactor. Energy conduits are placed above the terrain with supports rather than floating without attachment.
+The east/northeast route reaches a full vehicle landing pad, the generator bank, and a KayKit extraction drill structure. The raised pad keeps its procedural safety frame and beacons around an integrated KayKit deck model. Five large pipe runs, supports, maintenance walkways, and colored cores visually lead back toward the reactor. Energy conduits are placed above the terrain with supports rather than floating without attachment.
 
 ### Destroyed frontier sector
 
@@ -91,16 +95,18 @@ Combat readability takes priority over prop density: cover is waist-high and asy
 
 ## Validation and known limits
 
-**VERIFIED (Godot 4.7.2 headless):** the main scene starts cleanly for 120 iterations, and the NEON FRONTIER smoke test loads the world with 2,545 individual `MeshInstance3D`s and 138 `StaticBody3D`s. It checks named 3D districts/components, the continuous floor collider, route pieces, central-to-boss traversal (z=-49.08), the raised boss platform via its ramp (z=-64.08, y=0.29), and the landing-pad ramp (x=39.10, y=0.17). The seven weapon/combat/Shooter/Wave Director/arena/reward regression tests pass sequentially as well; the Wave Director's expected invalid-spawn warning is the only warning. `gdformat`, GDScript lint, and `git diff --check` pass. This verifies headless scene composition and selected traversal/collision behavior, not visual quality or device performance.
+**Previously verified, before the current KayKit/HUD changes (Godot 4.7.2 headless):** an earlier checkout reported clean main-scene startup and a world smoke run with 2,545 procedural `MeshInstance3D`s and 138 `StaticBody3D`s. The earlier traversal checks reached the boss platform and raised landing pad, and the earlier combat/world regression suite passed. Those counts and results are historical baselines, not a validation of the new GLTF loader, asset colliders, EMP skill, or expanded joystick checks.
 
-This is still a generated-geometry blockout: primitive geometry and procedural materials are not equivalent to final hand-authored high-resolution production assets. Lighting/material response, mobile draw-call cost, the player’s long-range movement feel, enemy navigation through all routes, collectible behavior, boss AI, touch controls, and Android/device performance require editor playtesting. No release-art, Android-export, or physical-device claim is made by a headless scene test.
+**Current change validation:** GDScript parsing/lint passes with `gdtoolkit` on the modified scripts. A Godot executable is not present in this checkout, so the new runtime asset integration and expanded smoke tests have **not** been run here. Run the headless import and smoke-test commands below with Godot 4.7.2 before treating scene integration or collider behavior as verified.
+
+The scene remains a blockout with selected licensed 3D models, not a final art lock. Visual material response, mobile draw-call cost, movement feel, enemy navigation through every route, Android rendering/performance, and physical-device behavior still need playtesting. No release-art, Android-export, or device-performance claim is made.
 
 ## Environment production stages and approval gates
 
-Follow these stages in order. Do not start final asset production until Stage 1 has been interactively reviewed and approved.
+Follow these five stages in order; approval of one gate does not approve the next gate or final visuals/performance.
 
-1. **Blockout — current stage; headless checks pass, interactive approval pending.** Confirm the arena footprint, combat lanes, route widths, collision, spawn/object placement, and continuous traversal. The current 192 × 180-unit blockout passes the headless world/combat regression suite, including central-to-boss, boss-platform, and landing-pad traversal. This does not verify sightlines, feel, or touch navigation on a device; keep primitives until those are reviewed.
-2. **Asset production — after Stage 1 approval.** Replace only high-visibility or gameplay-critical primitives that need greater quality with actual modular 3D assets made in Blender or Tripo AI. Preserve each asset’s real 3D geometry, scale/origin, relevant collider, and component-scene integration; retain editable/source files and record provenance/licensing. A flat photo or image plane is not a world asset.
+1. **Blockout — initial layout approved; interaction/visual feel still pending.** The user approved the initial connected layout. Preserve the arena footprint, combat lanes, route widths, collision, spawn/object placement, and continuous traversal. Historical headless checks cover central-to-boss, boss-platform, and landing-pad traversal, but do not verify sightlines, feel, or touch navigation on a device.
+2. **Asset production — selective integration in progress by request.** Integrate actual modular 3D assets only where appropriate; the initial KayKit subset listed above is now placed in the depot, supply areas, apron, extraction plant, landing pad, and outer rocks. Preserve real geometry, scale/origin, relevant colliders, component-scene integration, provenance, and license. Keep fallbacks editable and do not turn this selective import into final-art approval. A flat photo or image plane is not a world asset.
 3. **Materials and textures — after asset silhouettes and scale are accepted.** Apply PBR material properties, texture maps, surface detail, and the bright NEON FRONTIER palette. Check UVs, transparency, texture memory, and readability on the intended mobile renderer; existing procedural colors/emission are placeholders, not a completed texture pass.
 4. **Lighting and VFX — after material readability.** Tune key/fill/environment lighting and add restrained energy, particle, impact, and environmental effects. Protect combat visibility and establish per-effect limits for lights, particles, transparency, and overdraw.
 5. **Optimization — on a selected Android baseline.** Profile a real Android build for frame time, draw calls, shader/material cost, texture and mesh memory, physics load, particles/overdraw, load time, heat, and stability. Optimize measured bottlenecks, then repeat gameplay/traversal checks. A headless scene test or successful export alone is not a device-performance pass.

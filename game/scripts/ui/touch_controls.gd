@@ -5,6 +5,7 @@ signal movement_changed(value: Vector2)
 signal look_delta(value: Vector2)
 signal fire_changed(pressed: bool)
 signal weapon_switch_requested
+signal skill_requested
 signal pause_requested
 signal retry_requested
 
@@ -34,6 +35,7 @@ var _status_label: Label
 var _help_label: Label
 var _fire_button: Button
 var _weapon_button: Button
+var _skill_button: Button
 var _pause_button: Button
 var _pause_label: Label
 var _results_panel: PanelContainer
@@ -42,6 +44,9 @@ var _results_retry_button: Button
 var _player_down: bool = false
 var _hit_confirm_remaining: float = 0.0
 var _damage_flash_remaining: float = 0.0
+var _skill_cooldown_remaining: float = 0.0
+var _skill_cooldown_total: float = 12.0
+var _skill_feedback_remaining: float = 0.0
 
 
 func _ready() -> void:
@@ -65,6 +70,10 @@ func _process(delta: float) -> void:
 	if _damage_flash_remaining > 0.0:
 		_damage_flash_remaining = maxf(_damage_flash_remaining - delta, 0.0)
 		needs_redraw = true
+	if _skill_feedback_remaining > 0.0:
+		_skill_feedback_remaining = maxf(_skill_feedback_remaining - delta, 0.0)
+		if _skill_feedback_remaining <= 0.0:
+			_refresh_skill_button()
 	if needs_redraw:
 		queue_redraw()
 
@@ -139,6 +148,33 @@ func set_weapon_label(display_name: String) -> void:
 		_weapon_button.text = display_name.to_upper()
 
 
+func set_skill_cooldown(remaining_seconds: float, total_seconds: float) -> void:
+	_skill_cooldown_total = maxf(total_seconds, 0.0)
+	_skill_cooldown_remaining = clampf(remaining_seconds, 0.0, _skill_cooldown_total)
+	if _skill_cooldown_remaining <= 0.0:
+		_skill_feedback_remaining = 0.0
+	_refresh_skill_button()
+
+
+func show_skill_feedback(targets_hit: int) -> void:
+	if not is_instance_valid(_skill_button):
+		return
+	_skill_feedback_remaining = 1.1
+	_skill_button.text = "EMP\n%d HIT" % targets_hit if targets_hit > 0 else "EMP\nNO HIT"
+	_skill_button.disabled = (_player_down or get_tree().paused or _skill_cooldown_remaining > 0.0)
+
+
+func _refresh_skill_button() -> void:
+	if not is_instance_valid(_skill_button):
+		return
+	if _skill_feedback_remaining <= 0.0:
+		if _skill_cooldown_remaining > 0.0:
+			_skill_button.text = "EMP\n%d s" % ceili(_skill_cooldown_remaining)
+		else:
+			_skill_button.text = "EMP\nREADY"
+	_skill_button.disabled = (_player_down or get_tree().paused or _skill_cooldown_remaining > 0.0)
+
+
 func set_paused(paused: bool) -> void:
 	if paused:
 		_clear_touch_state()
@@ -151,6 +187,7 @@ func set_paused(paused: bool) -> void:
 		_fire_button.disabled = paused or _player_down
 	if is_instance_valid(_weapon_button):
 		_weapon_button.disabled = paused or _player_down
+	_refresh_skill_button()
 
 
 func set_player_down(down: bool) -> void:
@@ -163,6 +200,7 @@ func set_player_down(down: bool) -> void:
 		_fire_button.disabled = down or get_tree().paused
 	if is_instance_valid(_weapon_button):
 		_weapon_button.disabled = down or get_tree().paused
+	_refresh_skill_button()
 
 
 func show_results(
@@ -184,6 +222,7 @@ func show_results(
 	_help_label.visible = false
 	_fire_button.visible = false
 	_weapon_button.visible = false
+	_skill_button.visible = false
 	_pause_button.visible = false
 	_pause_label.visible = false
 
@@ -196,8 +235,10 @@ func hide_results() -> void:
 	_help_label.visible = true
 	_fire_button.visible = true
 	_weapon_button.visible = true
+	_skill_button.visible = true
 	_pause_button.visible = true
 	_pause_label.visible = get_tree().paused
+	_refresh_skill_button()
 
 
 func _build_ui() -> void:
@@ -234,6 +275,12 @@ func _build_ui() -> void:
 	_weapon_button.tooltip_text = "Tap to cycle weapons"
 	_weapon_button.pressed.connect(_on_weapon_switch_pressed)
 
+	_skill_button = _make_button("EMP\nREADY", "SkillButton")
+	_skill_button.add_theme_font_size_override("font_size", 15)
+	_skill_button.tooltip_text = "EMP Pulse: damage nearby enemies. Recharges over time."
+	_apply_button_theme(_skill_button, Color(0.04, 0.28, 0.36, 0.98), Color(0.22, 0.86, 1.0, 0.96))
+	_skill_button.pressed.connect(_on_skill_pressed)
+
 	_help_label = Label.new()
 	_help_label.name = "ControlsHelp"
 	_help_label.anchor_left = 0.2
@@ -246,8 +293,8 @@ func _build_ui() -> void:
 	_help_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_help_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_help_label.text = (
-		"TOUCH: drag left side to move · drag right side to aim · hold FIRE · tap weapon to cycle\n"
-		+ "DESKTOP: WASD · right mouse to aim · hold left mouse or FIRE · E to cycle · R to retry"
+		"TOUCH: 360° left joystick to move · drag right to aim · hold FIRE · tap weapon or EMP\n"
+		+ "DESKTOP: WASD · right mouse to aim · hold left mouse/FIRE · E to cycle · R to retry"
 	)
 	_help_label.add_theme_font_size_override("font_size", 12)
 	_help_label.add_theme_color_override("font_color", Color(0.76, 0.88, 0.96, 0.92))
@@ -515,6 +562,16 @@ func _layout_controls() -> void:
 	_weapon_button.offset_right = -24.0 * _ui_scale
 	_weapon_button.offset_bottom = -184.0 * _ui_scale
 	_weapon_button.custom_minimum_size = Vector2(weapon_width, weapon_height)
+	var skill_size := 96.0 * _ui_scale
+	var skill_gap := 14.0 * _ui_scale
+	var skill_right_offset := fire_size + 24.0 * _ui_scale + skill_gap
+	var skill_center_bottom_offset := 24.0 * _ui_scale + fire_size * 0.5
+	_skill_button.offset_left = -skill_right_offset - skill_size
+	_skill_button.offset_right = -skill_right_offset
+	_skill_button.offset_top = -skill_center_bottom_offset - skill_size * 0.5
+	_skill_button.offset_bottom = -skill_center_bottom_offset + skill_size * 0.5
+	_skill_button.custom_minimum_size = Vector2(skill_size, skill_size)
+	_skill_button.add_theme_font_size_override("font_size", roundi(15.0 * _ui_scale))
 	_help_label.offset_top = -61.0 * _ui_scale
 	_help_label.offset_bottom = -10.0 * _ui_scale
 	_results_panel.custom_minimum_size = Vector2(440.0 * _ui_scale, 356.0 * _ui_scale)
@@ -613,6 +670,7 @@ func _find_touch_button(position: Vector2) -> Button:
 		_results_retry_button,
 		_pause_button,
 		_weapon_button,
+		_skill_button,
 		_fire_button,
 	]
 	for button in buttons:
@@ -628,6 +686,8 @@ func _find_touch_button(position: Vector2) -> Button:
 func _activate_touch_button(button: Button) -> void:
 	if button == _weapon_button:
 		_on_weapon_switch_pressed()
+	elif button == _skill_button:
+		_on_skill_pressed()
 	elif button == _pause_button:
 		_on_pause_pressed()
 	elif button == _results_retry_button:
@@ -641,6 +701,7 @@ func _is_over_hud(position: Vector2) -> bool:
 		_help_label,
 		_fire_button,
 		_weapon_button,
+		_skill_button,
 		_pause_label,
 		_results_panel,
 	]
@@ -712,6 +773,11 @@ func _on_fire_up() -> void:
 func _on_weapon_switch_pressed() -> void:
 	if not _player_down and not get_tree().paused:
 		weapon_switch_requested.emit()
+
+
+func _on_skill_pressed() -> void:
+	if not _player_down and not get_tree().paused and _skill_cooldown_remaining <= 0.0:
+		skill_requested.emit()
 
 
 func _on_pause_pressed() -> void:

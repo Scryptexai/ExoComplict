@@ -1,6 +1,8 @@
 @tool
 extends Node3D
 
+const GltfAssetLibrary = preload("res://scripts/worlds/gltf_asset_library.gd")
+
 @export_enum(
 	"reactor_core",
 	"command_center",
@@ -592,62 +594,87 @@ func _build_equipment_depot() -> void:
 		Vector3.ZERO,
 		true
 	)
-	_box(
-		"DepotMainContainer",
-		Vector3(-3.6, 2.2, 0.0),
-		Vector3(9.4, 3.6, 9.0),
-		_materials["blue"],
-		Vector3.ZERO,
-		true
-	)
-	_box(
-		"DepotSideContainer",
-		Vector3(4.5, 1.8, -1.4),
-		Vector3(7.2, 2.8, 7.4),
-		_materials["pearl"],
-		Vector3.ZERO,
-		true
-	)
-	_box("DepotCanopy", Vector3(0.0, 4.35, 2.0), Vector3(14.0, 0.35, 6.4), _materials["yellow"])
-	_box(
-		"DepotCanopyBeamFront",
-		Vector3(0.0, 4.05, 5.15),
-		Vector3(14.0, 0.26, 0.28),
-		_materials["copper"]
-	)
-	_box("DepotDoor", Vector3(-3.6, 1.5, 4.57), Vector3(3.2, 2.7, 0.18), _materials["dark_trim"])
-	_box("DepotDoorPanel", Vector3(-3.6, 1.6, 4.7), Vector3(2.55, 2.0, 0.1), _materials["cyan"])
-	for rib in range(7):
+
+	var depot_model := GltfAssetLibrary.instantiate_model("cargodepot_A")
+	if depot_model != null:
+		depot_model.name = "KayKitCargoDepot"
+		depot_model.position = Vector3(-3.6, 0.4, 0.0)
+		depot_model.scale = Vector3.ONE * 4.2
+		add_child(depot_model)
+		GltfAssetLibrary.add_bounds_collider(depot_model, "KayKitCargoDepotCollision", 0.9)
+	else:
 		_box(
-			"DepotContainerRib_%02d" % rib,
-			Vector3(-7.7 + rib * 1.35, 2.2, 4.58),
-			Vector3(0.12, 3.2, 0.16),
-			_materials["silver"]
+			"DepotMainContainer",
+			Vector3(-3.6, 2.2, 0.0),
+			Vector3(9.4, 3.6, 9.0),
+			_materials["blue"],
+			Vector3.ZERO,
+			true
 		)
-	for crate_index in range(4):
-		var x := 7.0 + float(crate_index % 2) * 1.7
-		var z := 3.1 + float(crate_index / 2) * 1.6
 		_box(
-			"DepotFieldCrate_%02d" % crate_index,
-			Vector3(x, 0.72, z),
-			Vector3(1.35, 1.4, 1.35),
+			"DepotSideContainer",
+			Vector3(4.5, 1.8, -1.4),
+			Vector3(7.2, 2.8, 7.4),
+			_materials["pearl"],
+			Vector3.ZERO,
+			true
+		)
+		_box("DepotCanopy", Vector3(0.0, 4.35, 2.0), Vector3(14.0, 0.35, 6.4), _materials["yellow"])
+		_box(
+			"DepotCanopyBeamFront",
+			Vector3(0.0, 4.05, 5.15),
+			Vector3(14.0, 0.26, 0.28),
 			_materials["copper"]
 		)
 		_box(
-			"DepotCrateBand_%02d" % crate_index,
-			Vector3(x, 0.72, z + 0.72),
-			Vector3(1.1, 0.16, 0.06),
-			_materials["yellow"]
+			"DepotDoor", Vector3(-3.6, 1.5, 4.57), Vector3(3.2, 2.7, 0.18), _materials["dark_trim"]
 		)
-	_box("DepotOverheadRail", Vector3(2.0, 6.3, 0.0), Vector3(0.3, 0.3, 10.0), _materials["silver"])
-	_link_cylinder(
-		"DepotLiftCable",
-		Vector3(2.0, 6.1, 1.2),
-		Vector3(2.0, 4.3, 1.2),
-		0.08,
-		_materials["dark_trim"]
-	)
-	_box("DepotRepairArm", Vector3(2.0, 3.9, 1.2), Vector3(2.1, 0.3, 0.3), _materials["cyan"])
+		_box("DepotDoorPanel", Vector3(-3.6, 1.6, 4.7), Vector3(2.55, 2.0, 0.1), _materials["cyan"])
+		for rib in range(7):
+			_box(
+				"DepotContainerRib_%02d" % rib,
+				Vector3(-7.7 + rib * 1.35, 2.2, 4.58),
+				Vector3(0.12, 3.2, 0.16),
+				_materials["silver"]
+			)
+		_box(
+			"DepotOverheadRail",
+			Vector3(2.0, 6.3, 0.0),
+			Vector3(0.3, 0.3, 10.0),
+			_materials["silver"]
+		)
+		_link_cylinder(
+			"DepotLiftCable",
+			Vector3(2.0, 6.1, 1.2),
+			Vector3(2.0, 4.3, 1.2),
+			0.08,
+			_materials["dark_trim"]
+		)
+		_box("DepotRepairArm", Vector3(2.0, 3.9, 1.2), Vector3(2.1, 0.3, 0.3), _materials["cyan"])
+
+	for crate_index in range(4):
+		var crate_x := 7.0 + float(crate_index % 2) * 1.7
+		var crate_z := 3.1 + float(crate_index / 2) * 1.6
+		var cargo_name := "cargo_A_stacked" if crate_index % 2 == 0 else "cargo_B_stacked"
+		var cargo_model := GltfAssetLibrary.instantiate_model(cargo_name)
+		if cargo_model != null:
+			cargo_model.name = "KayKitDepotCargo_%02d" % crate_index
+			cargo_model.position = Vector3(crate_x, 0.04, crate_z)
+			cargo_model.scale = Vector3.ONE * 1.42
+			add_child(cargo_model)
+		else:
+			_box(
+				"DepotFieldCrate_%02d" % crate_index,
+				Vector3(crate_x, 0.72, crate_z),
+				Vector3(1.35, 1.4, 1.35),
+				_materials["copper"]
+			)
+			_box(
+				"DepotCrateBand_%02d" % crate_index,
+				Vector3(crate_x, 0.72, crate_z + 0.72),
+				Vector3(1.1, 0.16, 0.06),
+				_materials["yellow"]
+			)
 	_add_bolts("DepotFoundation", Vector3.ZERO, Vector2(8.8, 5.8), 0.42, _materials["dark_trim"])
 
 
@@ -1123,6 +1150,13 @@ func _build_landing_pad() -> void:
 			Vector3(2.0, 0.12, 0.18),
 			_materials["cyan"]
 		)
+	var kaykit_landing_pad := GltfAssetLibrary.instantiate_model("landingpad_large")
+	if kaykit_landing_pad != null:
+		kaykit_landing_pad.name = "KayKitLandingPadSurface"
+		kaykit_landing_pad.position = Vector3(0.0, 0.72, 0.0)
+		kaykit_landing_pad.scale = Vector3(8.4, 0.55, 8.4)
+		add_child(kaykit_landing_pad)
+
 	_add_bolts("LandingPadDeck", Vector3.ZERO, Vector2(14.0, 10.0), 0.73, _materials["dark_trim"])
 
 
