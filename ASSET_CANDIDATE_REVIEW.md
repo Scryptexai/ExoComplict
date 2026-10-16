@@ -33,10 +33,34 @@ The [OpenGameArt page](https://opengameart.org/content/sci-fi-environment-pack) 
 - **Polygonal Mind “aero-system”**: a real CC0 GitHub GLB collection with a station, airship, doors, paths, and pads. Preview inspection shows a chunky, strongly stylized/neon look; it does not meet the requested more-realistic direction, so it is not proposed for integration.
 - **Khronos “DamagedHelmet” sample**: visually detailed, but its model license documents both CC-BY-4.0 and CC-BY-NC-4.0 provenance for the original asset. Avoid it for this game unless the rights holder clarifies commercial rights.
 
-## Decision needed before scene integration
+## Follow-up free-only research (2026-10-16)
 
-1. **Free NASA props:** approve only the Habitat pair (or Rover after an optimization plan), accepting the NASA-specific visual identity.
-2. **Paid cohesive environment:** acquire the Asset Smash Space Base pack and provide the archive; then verify its license, GLB imports, scale, collision needs, and Android cost before integration.
-3. **Continue free-only research:** keep the world blockout unchanged and search for another downloadable CC0/CC-BY modular sci-fi kit; no NASA or Kenney candidate is integrated.
+The selected direction is free-only research. NASA, Kenney, and paid packs are not integration candidates under the current selection.
 
-No gameplay scenes or world components were changed during this research. Godot import/render and Android performance remain untested in this sandbox.
+### Candidate D — CreepyCat “3D Scifi Starter Kit Free” (best visual/provenance fit so far; FBX, not GLB)
+
+Sources: [free asset pack](https://blackcreepycat.itch.io/3d-scifi-starter-kit-free), [Godot 4.7 edition](https://blackcreepycat.itch.io/3d-scifi-starter-kit-for-godot-47), [official Unity Asset Store listing](https://assetstore.unity.com/packages/3d/environments/3d-scifi-kit-starter-kit-92152). CreepyCat is the original publisher, and the itch listings disclose no generative AI. The free pack is listed as 125 FBX files plus 100 PNG maps (diffuse, normal, AO, metallic), a 247 MB ZIP. Its stated free-pack terms permit personal/commercial use and editing, but prohibit redistribution/resale of the source assets. A separate 218 MB Godot 4.7 project edition is listed; its page identifies the same model/texture counts, and the creator confirms commercial game use while prohibiting resale of the source data.
+
+The official gallery preview was inspected: a detailed, emissive industrial corridor with PBR-style surface maps. It is more considered and detailed than the rejected Kenney direction, though still stylized rather than photorealistic. The kit is modular, and the Godot-edition listing targets Godot 4.7, close to the project’s 4.7.2. **Blocker:** neither listing offers GLB; the stated mesh format is FBX. The original asset-store listing is tagged for mobile, but this pack’s actual draw calls, mesh totals, texture memory, and Android performance were not verified. Keep as a conditional option only if FBX import/use is approved; do not replace the project world with its demo scene.
+
+### Candidate E — Noah Maestre “Sci-Fi Space Station Interior Pack: Modular” (GLB/source-format and license not cleared)
+
+Sources: [Sketchfab model](https://sketchfab.com/3d-models/sci-fi-space-station-interior-pack-modular-56865aaf1acf46bfb631d756981a9da7), [creator’s Gumroad pack](https://noahm1216.gumroad.com/l/WYhgj). Sketchfab lists 60.2k triangles, 33.7k vertices, and about 38 pieces (floors, ceilings, stairs, ramps, walls, doors, elevators, and pipe/electrical systems). Gumroad lists the pack at $0+ and 1.99 MB and says PBR textures are included. Its custom text permits commercial use but restricts redistribution/resale without modification; Sketchfab separately labels its model CC-BY 4.0. The scope of those different grants is unclear, the Gumroad page does not identify the archive’s model format, and the Sketchfab viewer reported a rendering-weight warning (not an Android performance test). No archive or model file was downloaded for local 3D inspection. **Do not integrate unless the creator clarifies the applicable terms and the actual package is audited.**
+
+### Supporting props — David W CG on OpenGameArt (real GLBs, not an environment kit)
+
+[Radio Dish Antenna](https://opengameart.org/content/sci-fi-radio-dish-antenna) (5.5 MB ZIP), [Rotary Turret](https://opengameart.org/content/sci-fi-rotary-turret) (5.4 MB), and [Shipping Crate](https://opengameart.org/content/sci-fi-shipping-crate) (2.1 MB) each explicitly include `.blend` and `.glb` with PBR textures; the listings use CC-BY 4.0 and require attribution to David W CG. The previews were inspected, but appear as simple untextured/clay renders and the listings provide no triangle or texture-resolution budgets. These are possible isolated props, not a coherent modular interior pack, and have not been downloaded or structurally checked. The creator’s [Mini Rocket](https://opengameart.org/content/mini-rocket) is a separate CC0 GLB prop.
+
+### Screened out / still unverified
+
+- **Rejala, “Sci-fi Ship interior - Modular asset pack”:** CC-BY 4.0, 356.8k triangles and 214.5k vertices; the viewer reported a device rendering warning. It is too heavy for a first Android candidate without an optimization/LOD pass, and the downloaded file structure is unverified.
+- **OpenGameArt “Sci-fi environment pack”:** still listed as CC0/PBR with a 185 MB ZIP, but no GLB format is listed and the archive/import path has not been audited. Comments on the listing report past FBX/material setup problems; treat those as a caution, not proof that the current archive is broken.
+- **OpenGameArt “Spaceship Interior” by cheerful sprite:** CC0 and modular, but the creator explicitly describes a low-resolution retro look; it does not meet the current art-direction target.
+- **Quaternius Modular Sci-Fi MegaKit:** CC0 and extensive, but still low-poly/stylized, so it is not proposed after the low-poly direction was rejected.
+- **Tefotec “Sci-Fi Industrial Props”:** the listing discloses AI-generated models and is only a small prop sampler; not selected.
+
+## Current gate before scene integration
+
+No free candidate has yet passed all required checks as a complete, Android-suitable GLB environment pack. The strongest artist-authored visual option is CreepyCat’s free PBR kit, but it is FBX-only. The strongest GLB pack lead is Noah Maestre’s, but its license statements conflict and its archive format is unknown. The small David W CG GLBs are only supplemental props. Keep the component-based 3D world unchanged until a candidate’s source, license, actual files, visual style, import, and mobile budget are verified and the user approves integration.
+
+No gameplay scenes or world components were changed during this research. No model archive was downloaded. Godot import/render and Android performance remain untested in this sandbox.
