@@ -48,6 +48,14 @@ done
 
 [[ -n "$OUTPUT_DIR" ]] || { printf 'ERROR: --output needs a directory.\n' >&2; exit 2; }
 
+# Godot resolves a relative export path against the *project* directory, not the
+# current working directory, so always hand it an absolute path.
+if [[ "$OUTPUT_DIR" != /* ]]; then
+  OUTPUT_DIR="$ROOT_DIR/$OUTPUT_DIR"
+fi
+OUTPUT_DIR="${OUTPUT_DIR%/}"
+cd "$ROOT_DIR" || exit 2
+
 # Logs are written before the export step, so the directory must exist up front.
 mkdir -p "$ROOT_DIR/exports"
 
