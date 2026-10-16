@@ -38,6 +38,14 @@ The engine is ~78 MB and platform specific; `scripts/install_godot.sh` fetches
 the right build for the running system. If you also want the editor in-tree (the
 Scary-Night layout), say so and it can be staged here the same way.
 
+## Refreshing
+
+The `web-preview` CI job exports the game on every push and commits `web/` plus
+`engine/web_templates/` when they change. A re-export can differ by a few bytes
+in `index.pck` even without a source change, which means a push can produce one
+extra generated commit; it carries the skip-CI marker, so it never starts another
+run, and it keeps the payload in step with the sources that produced it.
+
 ## Conventions
 
 The `web-preview` CI job refreshes `web/` and this directory with a generated

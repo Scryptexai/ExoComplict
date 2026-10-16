@@ -957,17 +957,66 @@ def check_web_preview(report: Report, root: Path, game_root: Path) -> None:
 
     landing = root / "index.html"
     if not landing.exists():
-        report.warn(check, "repository root has no index.html landing page for the web preview")
-    elif "web/index.html" not in landing.read_text(encoding="utf-8"):
-        report.fail(check, "index.html does not reference the web build at web/index.html", "index.html")
+        report.fail(check, "repository root has no index.html page for the web preview", "index.html")
         problems += 1
+    else:
+        text = landing.read_text(encoding="utf-8", errors="replace")
+        # Each of these encodes a failure that was observed for real in a browser.
+        for needle, why in (
+            ("./web/index.html", "must read the export config from ./web/index.html"),
+            (
+                '<script src="./web/index.js"',
+                "must load the engine through a static script tag; the engine derives its asset directory "
+                "from document.currentScript, so a dynamically injected script sends it looking for index.wasm in the page directory",
+            ),
+            (
+                "config.executable",
+                "must set config.executable to ./web/index, otherwise index.wasm/index.pck are requested next to the page",
+            ),
+            ("startGame", "must call Engine.startGame()"),
+        ):
+            if needle not in text:
+                report.fail(check, f"index.html {why}", "index.html")
+                problems += 1
+
+    payload = root / "web" / "index.html"
+    if not payload.exists():
+        report.warn(
+            check,
+            "web/ payload is not present; ./scripts/export_web_preview.sh or the web-preview CI job writes it",
+            "web/",
+        )
+    else:
+        for asset in ("index.js", "index.wasm", "index.pck"):
+            if not (root / "web" / asset).exists():
+                report.fail(check, f"web/{asset} is missing next to web/index.html; the payload is incomplete", "web/")
+                problems += 1
 
     gitignore = root / ".gitignore"
-    if gitignore.exists() and "web/" not in gitignore.read_text(encoding="utf-8"):
-        report.warn(check, "'.gitignore' does not ignore the generated web/ build directory")
+    if gitignore.exists():
+        patterns = {line.strip() for line in gitignore.read_text(encoding="utf-8").splitlines()}
+        if "web/" in patterns or "/web/" in patterns:
+            report.fail(
+                check,
+                "'.gitignore' ignores web/, but the export payload is carried in the repository on purpose so that a "
+                "clone can play without downloading an artifact",
+                ".gitignore",
+            )
+            problems += 1
+
+    templates = root / "engine" / "web_templates"
+    if not templates.exists() or not any(templates.glob("*.zip")):
+        report.warn(
+            check,
+            "engine/web_templates has no web export templates; a local export then needs the full ~1.2 GB template download",
+            "engine/web_templates",
+        )
+
+    if not (root / "tools" / "web_qa.mjs").exists():
+        report.warn(check, "tools/web_qa.mjs (headless browser gate) is missing")
 
     if problems == 0:
-        report.ok(check, "custom HTML shell, web renderer setting, and landing page are wired consistently")
+        report.ok(check, "shell, renderer setting, root page import path, payload and browser gate are wired consistently")
 
 
 def check_docs(report: Report, root: Path, game_root: Path, scenes: dict[str, SceneInfo], scripts: dict[str, ScriptInfo]) -> None:
