@@ -149,20 +149,9 @@ func _update_status() -> void:
 	var player_maximum := roundi(player.max_health)
 	var target_health := roundi(training_drone.current_health)
 	var target_maximum := roundi(training_drone.max_health)
-	var down_text := " · DOWN — tap RETRY or press R" if player.is_defeated() else ""
 	var status := (
-		(
-			"NEON FRONTIER · FRONTIER DEFENSE\n"
-			+ "Player: %d / %d%s\n"
-			+ "%s\n"
-			+ "Score: %d · BP earned: %d · KOs: %d · Time: %s\n"
-			+ "Target: %d / %d · Shots: %d"
-		)
+		"Score: %d · BP earned: %d\nKOs: %d · Time: %s\nTarget: %d / %d · Shots: %d"
 		% [
-			player_health,
-			player_maximum,
-			down_text,
-			wave_director.get_state_label(),
 			run_stats.run_score,
 			run_stats.bp_earned,
 			run_stats.eliminations,
@@ -172,4 +161,10 @@ func _update_status() -> void:
 			_shots_fired,
 		]
 	)
+	touch_controls.set_hud_health(player_health, player_maximum)
+	var wave_number := wave_director.current_wave
+	var active_enemies := wave_director.active_enemy_count
+	var remaining_enemies := wave_director.enemies_remaining
+	var wave_state := wave_director.get_state_label()
+	touch_controls.set_wave_status(wave_number, active_enemies, remaining_enemies, wave_state)
 	touch_controls.set_status(status)

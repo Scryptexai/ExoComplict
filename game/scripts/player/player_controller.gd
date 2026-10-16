@@ -42,7 +42,8 @@ func _physics_process(delta: float) -> void:
 		select_next_weapon()
 	var aim_point := _get_aim_point()
 	_face_aim_point(aim_point)
-	if Input.is_action_pressed("fire") or _touch_fire_pressed:
+	var desktop_fire := Input.is_action_pressed("fire") and not _is_pointer_over_ui()
+	if desktop_fire or _touch_fire_pressed:
 		if weapon_controller.try_fire(self, muzzle, aim_point):
 			shot_fired.emit()
 
@@ -150,6 +151,10 @@ func _update_movement(delta: float) -> void:
 	else:
 		velocity.y = 0.0
 	move_and_slide()
+
+
+func _is_pointer_over_ui() -> bool:
+	return is_instance_valid(get_viewport().gui_get_hovered_control())
 
 
 func _get_aim_point() -> Vector3:
