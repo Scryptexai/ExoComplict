@@ -37,3 +37,12 @@ On macOS the templates directory is
 The engine is ~78 MB and platform specific; `scripts/install_godot.sh` fetches
 the right build for the running system. If you also want the editor in-tree (the
 Scary-Night layout), say so and it can be staged here the same way.
+
+## Conventions
+
+The `web-preview` CI job refreshes `web/` and this directory with a generated
+commit whose message carries the skip-CI marker, so refreshing the payload never
+starts another pipeline run. Keep the marker out of hand-written commit messages:
+GitHub scans the whole message (subject and body) and skips *all* workflow runs
+for a commit that contains it — which is how one push here ended up with no CI at
+all.
