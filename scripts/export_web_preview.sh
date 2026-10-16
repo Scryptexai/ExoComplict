@@ -48,6 +48,9 @@ done
 
 [[ -n "$OUTPUT_DIR" ]] || { printf 'ERROR: --output needs a directory.\n' >&2; exit 2; }
 
+# Logs are written before the export step, so the directory must exist up front.
+mkdir -p "$ROOT_DIR/exports"
+
 PYTHON_BIN=""
 if [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
   PYTHON_BIN="$ROOT_DIR/.venv/bin/python"

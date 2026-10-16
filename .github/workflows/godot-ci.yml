@@ -129,6 +129,7 @@ jobs:
 
       - name: Export the Web preview build
         run: |
+          mkdir -p exports
           set +e
           ./scripts/export_web_preview.sh --output web 2>&1 | tee exports/web-preview-run.log
           status=${PIPESTATUS[0]}
@@ -137,9 +138,10 @@ jobs:
             # Surface the tail of the Godot logs as annotations: the full job log
             # is not always retrievable through the API, annotations are.
             digest=""
-            for log_file in exports/web-export.log exports/web-import.log; do
+            for log_file in exports/web-preview-run.log exports/web-export.log exports/web-import.log; do
               [[ -f "$log_file" ]] || continue
               errors="$(grep -iE 'error|fail|missing|cannot|unable|refuse' "$log_file" | tail -n 6 | tr '\n' '|')"
+              [[ -z "$errors" ]] && errors="$(tail -n 4 "$log_file" | tr '\n' '|')"
               digest="${digest}$(basename "$log_file"): ${errors:-<no error lines>} || "
             done
             digest="$(printf '%s' "$digest" | cut -c1-1400)"
