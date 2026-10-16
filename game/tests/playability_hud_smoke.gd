@@ -73,10 +73,15 @@ func _run_smoke_test() -> void:
 		),
 		"fire, weapon-cycle, EMP skill, and pause buttons are visible and labeled",
 	)
+	var camera_rig := player.get_node("CameraRig")
+	# The rig pulls back on a narrow viewport, so the rest distance is a floor and
+	# the exported portrait factor is the ceiling.
+	var rest_distance := float(camera_rig.get("rest_spring_length"))
+	var max_distance := rest_distance * float(camera_rig.get("portrait_distance_factor"))
 	_expect(
 		(
-			spring_arm.spring_length > 4.0
-			and spring_arm.spring_length < 5.5
+			spring_arm.spring_length >= rest_distance - 0.05
+			and spring_arm.spring_length <= max_distance + 0.05
 			and spring_arm.position.x > 0.25
 			and pitch_pivot.rotation.x < -0.1
 		),

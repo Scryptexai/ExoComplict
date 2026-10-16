@@ -148,7 +148,13 @@ fi
 printf '\nWeb preview ready.\n'
 printf 'Serve the repository root and open the preview page:\n\n'
 printf '  python -m http.server 800 --bind 0.0.0.0\n'
-printf '  -> http://localhost:800/            (landing page, embeds the game)\n'
-printf '  -> http://localhost:800/%s/  (raw Godot build)\n\n' "${OUTPUT_DIR#"$ROOT_DIR"/}"
+printf '  -> http://localhost:800/            (game page, loads ./web/)\n'
+# Only advertise the raw build when it actually sits under the repository root, so
+# an absolute --output does not print a nonsense URL.
+if [[ "$OUTPUT_DIR" == "$ROOT_DIR"/* ]]; then
+  printf '  -> http://localhost:800/%s/index.html  (raw Godot page)\n\n' "${OUTPUT_DIR#"$ROOT_DIR"/}"
+else
+  printf '  (this run wrote the build outside the repository: %s)\n\n' "$OUTPUT_DIR"
+fi
 printf 'From another device on the same network use http://<your-ip>:800/ .\n'
 printf 'Details, limitations, and troubleshooting: WEB_PREVIEW.md\n'

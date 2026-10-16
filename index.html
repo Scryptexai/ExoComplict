@@ -91,6 +91,12 @@
 			}
 
 			.chip:hover { border-color: rgba(36, 211, 255, 0.55); color: #fff; }
+			/* Once the run starts the game's own HUD owns the top of the screen, so
+			   the browser chips fold down to one toggle and come back on hover,
+			   focus or tap. */
+			.chips[data-collapsed='true'] .chip:not(#chips-toggle) { display: none; }
+			#chips-toggle { opacity: 0.75; }
+			.chips:not([data-collapsed='true']) #chips-toggle { opacity: 1; }
 			.chip[data-state='ok'] { border-color: rgba(124, 255, 203, 0.45); color: var(--emerald); }
 			.chip[data-state='warn'] { border-color: rgba(255, 204, 102, 0.45); color: var(--warn); }
 			.chip[data-state='bad'] { border-color: rgba(255, 120, 120, 0.5); color: #ff9c9c; }
@@ -208,13 +214,14 @@
 		<canvas id="canvas" tabindex="-1" aria-label="Project Overdrive. Kontrol: WASD bergerak, tahan klik kanan untuk membidik, klik kiri menembak, E ganti senjata, Esc pause, R reset."></canvas>
 
 		<div class="overlay" id="shell-ui">
-			<div class="chips">
+			<div class="chips" id="chips" data-collapsed="false">
 				<span class="chip" id="build-chip" data-state="warn"><i class="dot"></i><span id="build-label">memuat…</span></span>
 				<button class="chip" id="controls-chip" type="button">Kontrol</button>
 				<button class="chip" id="hide-ui" type="button">Hide UI</button>
 				<button class="chip" id="fullscreen" type="button">Fullscreen</button>
 				<button class="chip" id="reload" type="button">Reload</button>
 				<a class="chip" id="raw" href="./web/index.html" target="_blank" rel="noopener">Build mentah</a>
+				<button class="chip" id="chips-toggle" type="button" title="Tampilkan/sembunyikan tombol browser">UI</button>
 			</div>
 
 			<div class="panel" id="controls-panel" hidden>
@@ -373,6 +380,7 @@
 					setBuildChip('ok', `siap · ${threadsEnabled ? 'threaded' : 'single-thread'}`);
 					const canvas = document.getElementById('canvas');
 					if (config.focusCanvas !== false && canvas) canvas.focus();
+					scheduleChipsCollapse(6000);
 				}, (error) => {
 					showFailure(
 						'Engine berhenti saat start',
@@ -391,6 +399,33 @@
 
 			document.getElementById('hide-ui').addEventListener('click', () => {
 				document.body.classList.toggle('hide-ui');
+			});
+
+			/* ---------- browser chips ---------- */
+			const chips = document.getElementById('chips');
+			let chipTimer = 0;
+
+			function scheduleChipsCollapse(delay = 6000) {
+				if (chips.dataset.collapsed === 'true') return;
+				window.clearTimeout(chipTimer);
+				chipTimer = window.setTimeout(() => {
+					chips.dataset.collapsed = 'true';
+				}, delay);
+			}
+
+			document.getElementById('chips-toggle').addEventListener('click', () => {
+				const collapsed = chips.dataset.collapsed === 'true';
+				chips.dataset.collapsed = collapsed ? 'false' : 'true';
+				if (collapsed) scheduleChipsCollapse(8000);
+			});
+			chips.addEventListener('pointerenter', () => {
+				chips.dataset.collapsed = 'false';
+				window.clearTimeout(chipTimer);
+			});
+			chips.addEventListener('pointerleave', () => scheduleChipsCollapse(3000));
+			chips.addEventListener('focusin', () => {
+				chips.dataset.collapsed = 'false';
+				window.clearTimeout(chipTimer);
 			});
 
 			document.getElementById('fullscreen').addEventListener('click', () => {

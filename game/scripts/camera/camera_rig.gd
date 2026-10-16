@@ -14,13 +14,13 @@ extends Node3D
 @export_range(-80.0, 0.0, 1.0) var min_pitch_degrees: float = -55.0
 @export_range(0.0, 80.0, 1.0) var max_pitch_degrees: float = 38.0
 @export_group("Framing")
-@export_range(1.5, 9.0, 0.05) var rest_spring_length: float = 4.6
-@export_range(0.8, 6.0, 0.05) var aim_spring_length: float = 2.45
-@export var rest_shoulder_offset: Vector3 = Vector3(0.42, 0.12, 0.0)
-@export var aim_shoulder_offset: Vector3 = Vector3(0.58, 0.2, 0.0)
-@export var rest_pivot_height: float = 1.52
+@export_range(1.5, 9.0, 0.05) var rest_spring_length: float = 4.2
+@export_range(0.8, 6.0, 0.05) var aim_spring_length: float = 2.5
+@export var rest_shoulder_offset: Vector3 = Vector3(0.55, 0.14, 0.0)
+@export var aim_shoulder_offset: Vector3 = Vector3(0.64, 0.22, 0.0)
+@export var rest_pivot_height: float = 1.58
 @export var aim_pivot_height: float = 1.58
-@export_range(30.0, 110.0, 0.5) var rest_fov: float = 70.0
+@export_range(30.0, 110.0, 0.5) var rest_fov: float = 66.0
 @export_range(20.0, 90.0, 0.5) var aim_fov: float = 50.0
 @export_range(1.0, 30.0, 0.5) var transition_speed: float = 9.0
 @export_group("Kick")
@@ -28,6 +28,10 @@ extends Node3D
 @export_range(0.0, 1.0, 0.005) var kick_push: float = 0.05
 @export_range(1.0, 30.0, 0.5) var kick_recovery: float = 11.0
 @export_range(0.0, 1.0, 0.01) var walk_bob_scale: float = 0.35
+@export_group("Aspect")
+@export_range(1.0, 2.5, 0.05) var portrait_distance_factor: float = 1.45
+@export_range(0.0, 30.0, 0.5) var portrait_fov_boost: float = 7.0
+@export_range(0.0, 0.4, 0.01) var portrait_height_boost: float = 0.12
 
 var _aiming: bool = false
 var _aim_blend: float = 0.0
@@ -101,14 +105,35 @@ func apply_walk_bob(intensity: float, time_seconds: float) -> void:
 	spring_camera.v_offset = absf(sin(time_seconds * 3.0)) * walk_bob_scale * intensity * 0.05
 
 
+## How much extra room a narrow screen needs. A phone in portrait has a small
+## horizontal field of view at a fixed vertical one, so the avatar eats the frame
+## and the player cannot see what is beside them. Pulling the camera back and
+## widening the lens a little fixes both without touching the game rules.
+func _aspect_factor() -> float:
+	var viewport := get_viewport()
+	if viewport == null:
+		return 1.0
+	var size := viewport.get_visible_rect().size
+	if size.y <= 0.0:
+		return 1.0
+	return clampf(1.5 / maxf(size.x / size.y, 0.3), 1.0, maxf(portrait_distance_factor, 1.0))
+
+
 func _apply_blend(blend: float) -> void:
 	if not is_instance_valid(spring_arm):
 		return
-	spring_arm.spring_length = lerpf(rest_spring_length, aim_spring_length, blend)
+	var aspect_room := _aspect_factor()
+	spring_arm.spring_length = lerpf(rest_spring_length, aim_spring_length, blend) * aspect_room
 	spring_arm.position = rest_shoulder_offset.lerp(aim_shoulder_offset, blend)
-	position.y = lerpf(rest_pivot_height, aim_pivot_height, blend)
+	position.y = (
+		lerpf(rest_pivot_height, aim_pivot_height, blend)
+		* (1.0 + (aspect_room - 1.0) * portrait_height_boost)
+	)
 	if is_instance_valid(spring_camera):
-		spring_camera.fov = lerpf(rest_fov, aim_fov, blend)
+		var boost_ratio := (
+			(aspect_room - 1.0) / maxf(maxf(portrait_distance_factor, 1.0) - 1.0, 0.001)
+		)
+		spring_camera.fov = lerpf(rest_fov, aim_fov, blend) + boost_ratio * portrait_fov_boost
 
 
 func _apply_kick() -> void:

@@ -761,6 +761,23 @@ def check_project_settings(report: Report, game_root: Path) -> None:
         if target is None or not target.exists():
             report.fail(check, f"project.godot references a missing file: {res_path}", "game/project.godot")
             problems += 1
+    # Godot's config parser only understands ';' comments. A '#' line is silently
+    # folded into the previous key name, which is how an aspect setting once got
+    # swallowed: the value looked right in the file but never reached the engine.
+    bad_comments = [
+        f"{number}: {line.strip()[:60]}"
+        for number, line in enumerate(text.splitlines(), start=1)
+        if line.lstrip().startswith("#")
+    ]
+    if bad_comments:
+        report.fail(
+            check,
+            "project.godot uses '#' comments; Godot only understands ';' and folds the line into the key before it "
+            f"({'; '.join(bad_comments[:3])})",
+            "game/project.godot",
+        )
+        problems += 1
+
     if 'config/icon=' not in text:
         report.warn(
             check,

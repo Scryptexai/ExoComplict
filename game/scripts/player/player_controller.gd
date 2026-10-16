@@ -111,6 +111,12 @@ func is_aiming() -> bool:
 	return _aiming
 
 
+## Heavier weapons kick harder; the order matches the weapon definitions.
+func _current_recoil_strength() -> float:
+	var kick_by_weapon := [0.7, 1.4, 0.95]
+	return kick_by_weapon[clampi(weapon_controller.get_current_weapon_index(), 0, 2)]
+
+
 ## The HUD AIM button holds aiming for as long as it is held; desktop right
 ## mouse aims through MOUSE_MODE_CAPTURED.
 func set_touch_aim_held(pressed: bool) -> void:

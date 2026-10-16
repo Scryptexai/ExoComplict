@@ -53,7 +53,7 @@ script = ExtResource("3_weapon_controller")
 weapon_definitions = Array[WeaponDefinition]([ExtResource("4_pulse_rifle"), ExtResource("5_nova_launcher"), ExtResource("6_arc_shooter")])
 
 [node name="CameraRig" type="Node3D" parent="."]
-position = Vector3(0, 1.52, 0)
+position = Vector3(0, 1.58, 0)
 script = ExtResource("2_camera")
 
 [node name="YawPivot" type="Node3D" parent="CameraRig"]
@@ -62,12 +62,12 @@ script = ExtResource("2_camera")
 rotation = Vector3(-0.14, 0, 0)
 
 [node name="SpringArm3D" type="SpringArm3D" parent="CameraRig/YawPivot/PitchPivot"]
-position = Vector3(0.42, 0.12, 0)
-spring_length = 4.6
+position = Vector3(0.55, 0.14, 0)
+spring_length = 4.2
 margin = 0.22
 collision_mask = 1
 
 [node name="Camera3D" type="Camera3D" parent="CameraRig/YawPivot/PitchPivot/SpringArm3D"]
 current = true
-fov = 70.0
+fov = 66.0
 near = 0.08

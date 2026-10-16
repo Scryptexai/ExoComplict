@@ -65,7 +65,8 @@ func is_aiming() -> bool:
 	return _aiming
 
 
-## Vertical size of the rendered avatar; the camera uses it to frame the player.
+## Height of the avatar as rendered (after the model was fitted), in metres.
+## The camera uses it to frame the player; 1.8 is the capsule fallback.
 func visual_height() -> float:
 	return _model_height if has_model() else 1.8
 
@@ -168,12 +169,17 @@ func _spawn_model() -> void:
 		_keep_fallback("model did not instantiate as Node3D")
 		return
 
+	# The kit models are authored facing +Z while the game's forward is -Z, so the
+	# avatar is turned by a dedicated pivot. Centring happens *inside* that pivot:
+	# compensating on the rotated node itself would push the model away from the
+	# player by twice the offset (that bug made the avatar render ~9 m off-centre).
 	_model = instance as Node3D
 	_model.name = "CharacterModel"
-	_model.rotation.y = deg_to_rad(model_yaw_offset_degrees)
-	_model.force_update_transform()
-	add_child(_model)
-	_model.force_update_transform()
+	var model_pivot := Node3D.new()
+	model_pivot.name = "ModelPivot"
+	model_pivot.rotation.y = deg_to_rad(model_yaw_offset_degrees)
+	add_child(model_pivot)
+	model_pivot.add_child(_model)
 	_fit_model()
 
 	if _model_height <= 0.001:
@@ -182,8 +188,18 @@ func _spawn_model() -> void:
 		_keep_fallback("model has no measurable mesh")
 		return
 
+	_apply_outline(_model)
 	if is_instance_valid(_fallback_body):
 		_fallback_body.visible = false
+	# One line in the console/log: which model the avatar actually got, how tall it
+	# renders and whether the fallback is in use. Read from the browser console
+	# during web QA and from the editor log on device.
+	print(
+		(
+			"CharacterVisual: model=%s fitted_height=%.3fm scale=%.3f fallback=no"
+			% [_model.name, _model_height, _model.scale.y]
+		)
+	)
 
 
 func _spawn_weapon() -> void:
@@ -196,7 +212,6 @@ func _spawn_weapon() -> void:
 	var weapon := instance as Node3D
 	weapon.name = "WeaponModel"
 	_weapon_socket.add_child(weapon)
-	weapon.force_update_transform()
 
 	var bounds := _combined_bounds(weapon)
 	if bounds.size.length() <= 0.0001:
@@ -215,7 +230,6 @@ func _spawn_weapon() -> void:
 		axis_rotation.y + deg_to_rad(weapon_yaw_offset_degrees),
 		axis_rotation.z
 	)
-	weapon.force_update_transform()
 	# Re-measure after the rotation: the long side now runs along Z.
 	var rotated_bounds := _combined_bounds(weapon)
 	var length := maxf(rotated_bounds.size.z, 0.0001)
@@ -233,6 +247,24 @@ static func _longest_axis(size_vector: Vector3) -> int:
 	return 2
 
 
+## A dark rim around every mesh of the avatar. The world is bright and the kit
+## suit is light, so without it the player reads as a pale smudge against the
+## floor; an unshaded overlay grown past the surface keeps the silhouette legible
+## from any camera angle and costs one extra draw per surface.
+func _apply_outline(root: Node3D) -> void:
+	var outline := StandardMaterial3D.new()
+	outline.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	outline.albedo_color = Color(0.02, 0.05, 0.09, 1.0)
+	outline.cull_mode = BaseMaterial3D.CULL_FRONT
+	outline.grow = true
+	outline.grow_amount = 0.022
+	outline.no_depth_test = false
+	for child in root.find_children("*", "MeshInstance3D", true, false):
+		var mesh_instance := child as MeshInstance3D
+		if is_instance_valid(mesh_instance):
+			mesh_instance.material_overlay = outline
+
+
 func _keep_fallback(reason: String) -> void:
 	push_warning("CharacterVisual: using the fallback capsule (%s)." % reason)
 	if is_instance_valid(_fallback_body):
@@ -245,8 +277,10 @@ func _fit_model() -> void:
 		_model_height = 0.0
 		return
 
-	_model_height = _model_bounds.size.y
 	var fit_scale := target_height / _model_bounds.size.y
+	# report the fitted height: callers care about how tall the avatar renders,
+	# not how the GLB happened to be authored.
+	_model_height = _model_bounds.size.y * fit_scale
 	var center := _model_bounds.position + _model_bounds.size * 0.5
 	_model.scale = Vector3.ONE * fit_scale
 	# Feet on the origin, body centred over the collider.

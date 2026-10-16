@@ -303,6 +303,12 @@ func hide_results() -> void:
 func _build_ui() -> void:
 	_top_bar = HBoxContainer.new()
 	_top_bar.name = "PlaytestHUD"
+	# Anchor to the full width: a bare Control rect collapses to its minimum and
+	# the cards then never share the screen.
+	_top_bar.anchor_left = 0.0
+	_top_bar.anchor_right = 1.0
+	_top_bar.anchor_top = 0.0
+	_top_bar.anchor_bottom = 0.0
 	_top_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_top_bar.add_theme_constant_override("separation", 10)
 	add_child(_top_bar)
@@ -459,7 +465,7 @@ func _build_run_card() -> void:
 	_status_label = Label.new()
 	_status_label.name = "StatusLabel"
 	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_status_label.text = "Score: 0 · BP earned: 0\nKOs: 0 · Time: 00:00\nTarget: 54 / 54 · Shots: 0"
+	_status_label.text = "Score: 0 · BP earned: 0\nKOs: 0 · Time: 00:00\nTarget 54 / 54 · Shots 0"
 	_status_label.add_theme_font_size_override("font_size", 12)
 	_status_label.add_theme_color_override("font_color", Color(0.84, 0.92, 1.0))
 	content.add_child(_status_label)
@@ -519,6 +525,8 @@ func _make_card(card_name: String, minimum_size: Vector2) -> PanelContainer:
 	card.name = card_name
 	card.custom_minimum_size = minimum_size
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	card.clip_contents = true
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_theme_stylebox_override("panel", _make_panel_style())
 	return card
@@ -606,10 +614,10 @@ func _layout_controls() -> void:
 		return
 	var viewport_width := maxf(size.x, 320.0)
 	var viewport_height := maxf(size.y, 320.0)
-	_ui_scale = clampf(minf(viewport_width / 1280.0, viewport_height / 720.0), 0.58, 1.0)
+	_ui_scale = clampf(minf(viewport_width, viewport_height) / 720.0, 0.64, 1.0)
 	var margin := 14.0 * _ui_scale
 	_top_inset = _resolve_top_inset()
-	var card_height := 96.0 * _ui_scale
+	var card_height := 104.0 * _ui_scale
 	# The three cards share the available width instead of fighting over a fixed
 	# minimum, so a 390 px phone keeps the whole top bar on screen.
 	var narrow := viewport_width < 760.0
@@ -676,16 +684,41 @@ func _layout_controls() -> void:
 	_results_panel.offset_bottom = panel_half_height
 	if is_instance_valid(_pause_label):
 		_pause_label.add_theme_font_size_override("font_size", roundi(26.0 * _ui_scale))
+	_apply_font_scale()
+
+
+## Every HUD font is derived from the base size times the UI scale, with a floor
+## of 11 px: a smaller factor would technically fit the card but be unreadable.
+func _apply_font_scale() -> void:
+	for entry in [
+		[_health_value_label, 14],
+		[_wave_title_label, 17],
+		[_wave_state_label, 12],
+		[_wave_enemy_label, 12],
+		[_status_label, 12],
+	]:
+		var label := entry[0] as Label
+		if is_instance_valid(label):
+			label.add_theme_font_size_override(
+				"font_size", maxi(roundi(float(entry[1]) * _ui_scale), 11)
+			)
+	for heading in [_health_card, _wave_card, _run_card]:
+		if not is_instance_valid(heading):
+			continue
+		for child in heading.find_children("*", "Label", true, false):
+			var label := child as Label
+			if label != null and int(label.get_theme_font_size("font_size")) >= 13:
+				label.add_theme_font_size_override("font_size", maxi(roundi(13.0 * _ui_scale), 11))
 
 
 ## Keep the HUD clear of notches and of the browser shell chrome.
 func _resolve_top_inset() -> float:
 	var inset := 0.0
 	if OS.has_feature("web"):
-		inset = WEB_TOP_INSET
-	var window_size := DisplayServer.window_get_size()
-	if window_size.y > 0:
-		var safe_area := DisplayServer.get_display_safe_area()
+		# Browser chips wrap onto two rows on a narrow screen; reserve for that.
+		inset = WEB_TOP_INSET + (WEB_TOP_INSET * 0.8 if size.x < size.y else 0.0)
+	var safe_area := DisplayServer.get_display_safe_area()
+	if safe_area.position.y > 0:
 		inset = maxf(inset, float(safe_area.position.y))
 	return inset * _ui_scale + 10.0 * _ui_scale
 
@@ -705,6 +738,10 @@ func _begin_touch(touch_id: int, position: Vector2) -> void:
 			fire_changed.emit(true)
 		else:
 			_pressed_touch_buttons[touch_id] = touched_button
+			if not touched_button.disabled:
+				# Godot buttons only fire `pressed` on release, so a hold button
+				# (AIM) also needs its press forwarded here.
+				touched_button.emit_signal("button_down")
 		return
 	if _player_down or get_tree().paused or _is_over_hud(position):
 		return
@@ -747,6 +784,8 @@ func _end_touch(touch_id: int, position: Vector2) -> void:
 		var button := _pressed_touch_buttons[touch_id] as Button
 		_pressed_touch_buttons.erase(touch_id)
 		get_viewport().set_input_as_handled()
+		if is_instance_valid(button):
+			button.emit_signal("button_up")
 		if (
 			is_instance_valid(button)
 			and not button.disabled
@@ -780,6 +819,7 @@ func _find_touch_button(position: Vector2) -> Button:
 		_pause_button,
 		_weapon_button,
 		_skill_button,
+		_aim_button,
 		_fire_button,
 	]
 	for button in buttons:
@@ -811,6 +851,7 @@ func _is_over_hud(position: Vector2) -> bool:
 		_fire_button,
 		_weapon_button,
 		_skill_button,
+		_aim_button,
 		_pause_label,
 		_results_panel,
 	]
@@ -908,14 +949,22 @@ func _on_aim_down() -> void:
 	if _player_down or get_tree().paused:
 		return
 	_aiming = true
+	_set_aim_button_active(true)
 	queue_redraw()
 	aim_changed.emit(true)
 
 
 func _on_aim_up() -> void:
 	_aiming = false
+	_set_aim_button_active(false)
 	queue_redraw()
 	aim_changed.emit(false)
+
+
+func _set_aim_button_active(active: bool) -> void:
+	if not is_instance_valid(_aim_button):
+		return
+	_aim_button.modulate = Color(1.0, 1.0, 1.0) if active else Color(0.82, 0.9, 0.98)
 
 
 func _on_weapon_switch_pressed() -> void:

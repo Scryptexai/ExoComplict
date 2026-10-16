@@ -1368,7 +1368,7 @@ func _build_lighting_and_atmosphere() -> void:
 	sun.name = "FrontierDaylightSun"
 	sun.rotation_degrees = Vector3(-47.0, -31.0, 0.0)
 	sun.light_color = Color(1.0, 0.93, 0.78)
-	sun.light_energy = 1.35
+	sun.light_energy = 0.72
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 115.0
 	sun.shadow_bias = 0.04
@@ -1387,14 +1387,22 @@ func _build_lighting_and_atmosphere() -> void:
 	sky.sky_material = sky_material
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	environment.ambient_light_energy = 0.9
+	environment.ambient_light_energy = 0.36
 	environment.reflected_light_source = Environment.REFLECTION_SOURCE_BG
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	environment.tonemap_exposure = 0.92
+	# The space base is authored in light, toy-like colours; without a little
+	# contrast and saturation the whole frame blows out to white and the player
+	# (a light-suited astronaut) stops reading against the floor.
+	environment.adjustment_enabled = true
+	environment.adjustment_brightness = 0.94
+	environment.adjustment_contrast = 1.18
+	environment.adjustment_saturation = 1.22
 	environment.glow_enabled = true
-	environment.glow_intensity = 0.16
+	environment.glow_intensity = 0.1
 	environment.fog_enabled = true
-	environment.fog_light_color = Color(0.55, 0.77, 0.84)
-	environment.fog_density = 0.0018
+	environment.fog_light_color = Color(0.42, 0.62, 0.72)
+	environment.fog_density = 0.0042
 	environment.fog_aerial_perspective = 0.22
 	var world_environment := WorldEnvironment.new()
 	world_environment.name = "ArenaEnvironment"

@@ -162,7 +162,7 @@ func _update_status() -> void:
 	var target_health := roundi(training_drone.current_health)
 	var target_maximum := roundi(training_drone.max_health)
 	var status := (
-		"Score: %d · BP earned: %d\nKOs: %d · Time: %s\nTarget: %d / %d · Shots: %d"
+		"Score: %d · BP earned: %d\nKOs: %d · Time: %s\nTarget %d / %d · Shots %d"
 		% [
 			run_stats.run_score,
 			run_stats.bp_earned,
