@@ -65,8 +65,9 @@ python -m http.server 800 --bind 0.0.0.0
 # http://localhost:800/web/    raw Godot build
 ```
 
-The Godot payload lives in the git-ignored `web/` directory. Get it either from CI (Actions → *Godot CI* → latest
-run → artifact `web-preview`, extracted into the repository root) or build it locally with Godot 4.7.2:
+The Godot payload lives in the git-ignored `web/` directory. Get it from CI (Actions → *Godot CI* → latest run →
+artifact `web-preview`, ~10 MB, extracted into the repository root), from GitHub Pages (enable *Settings → Pages →
+Source: GitHub Actions*, then run the workflow — nothing to download), or build it locally with Godot 4.7.2:
 
 ```bash
 ./scripts/install_godot.sh --with-templates

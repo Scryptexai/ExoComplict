@@ -4,7 +4,7 @@
 >
 > **Ini bukan perubahan target platform.** Android tetap target rilis; pipeline produksi tetap Godot + Blender di mesin dev. Web hanya dipakai sebagai jendela review UI/UX + gameplay supaya iterasi tidak menunggu instalasi toolchain.
 >
-> **Status verifikasi:** seluruh wiring statis sudah diperiksa (`tools/web_preset.py check`, `tools/project_doctor.py` → 0 FAIL, 22 unit test). Export Web nyata dijalankan oleh job CI `web-preview`; artefaknya diunduh lalu diekstrak ke root repo. Selama `web/` belum ada, landing page menampilkan instruksi, bukan game.
+> **Status verifikasi:** seluruh wiring statis sudah diperiksa (`tools/web_preset.py check`, `tools/project_doctor.py` → 0 FAIL, 22 unit test). Ekspor Web nyata sudah dijalankan oleh job CI `web-preview` (run `38918903764`: job hijau, artefak `web-preview` ≈ 10 MB, pengiriman `index.wasm`/`index.pck` lewat `python -m http.server` terverifikasi). Artefaknya diunduh lalu diekstrak ke root repo; selama `web/` belum ada, landing page menampilkan instruksi, bukan game.
 
 ---
 
@@ -25,6 +25,16 @@ python -m http.server 800 --bind 0.0.0.0
 ```
 
 Tidak perlu header COOP/COEP, tidak perlu `--directory`, tidak perlu konfigurasi MIME: build yang dihasilkan memakai **single-thread** (`variant/thread_support=false`), dan Python 3.9+ sudah mengirim `.wasm` sebagai `application/wasm` (diverifikasi di sesi ini pada Python 3.11.2).
+
+### Alternatif tanpa unduh sama sekali (GitHub Pages)
+
+Artefak `web-preview` berukuran ~10 MB. Kalau kuota internet sedang mahal, pakai Pages:
+
+1. Buka **Settings → Pages** di repo, pilih **Source: GitHub Actions** (sekali saja).
+2. Jalankan workflow **Godot CI** lewat **Actions → Godot CI → Run workflow** (atau biarkan terpicu setelah perubahan masuk `main`).
+3. Job `deploy-pages` akan mempublikasikan landing page + build ke URL Pages; URL-nya muncul di ringkasan run dan di environment `github-pages`.
+
+Job `deploy-pages` sudah ada di workflow dan tidak berjalan pada push biasa ke branch sesi — hanya pada dispatch manual atau push ke `main`.
 
 ## 2. Kalau ingin membangun sendiri (butuh Godot 4.7.2 + export templates)
 

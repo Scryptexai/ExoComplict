@@ -155,10 +155,13 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           sleep 2
-          echo "index.html -> $(curl -s -o /dev/null -w '%{http_code} %{content_type}' http://127.0.0.1:8123/index.html)"
-          echo "index.js   -> $(curl -s -o /dev/null -w '%{http_code} %{content_type}' http://127.0.0.1:8123/index.js)"
-          echo "index.wasm -> $(curl -s -o /dev/null -w '%{http_code} %{content_type}' http://127.0.0.1:8123/index.wasm)"
-          echo "index.pck  -> $(curl -s -o /dev/null -w '%{http_code} %{content_type}' http://127.0.0.1:8123/index.pck)"
+          report=""
+          for asset in index.html index.js index.wasm index.pck; do
+            line="$(curl -s -o /dev/null -w '%{http_code} %{content_type} %{size_download}B' "http://127.0.0.1:8123/$asset")"
+            echo "$asset -> $line"
+            report="${report}${asset}: ${line} | "
+          done
+          echo "::notice title=Static delivery (python -m http.server)::${report}"
           wasm_status="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8123/index.wasm)"
           pck_status="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8123/index.pck)"
           if [[ "$wasm_status" != "200" || "$pck_status" != "200" ]]; then
@@ -207,3 +210,66 @@ jobs:
               echo '```'
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+          if [[ -f exports/web-preview/web/index.pck ]]; then
+            total="$(du -sh exports/web-preview/web | cut -f1)"
+            echo "::notice title=Web preview artifact::web/ totals ${total}; artifact 'web-preview' is ready to download"
+          fi
+
+  deploy-pages:
+    name: Publish web preview to GitHub Pages
+    # Manual dispatch (any branch) or automatic after a push to main.
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    needs: web-preview
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the web build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-preview
+          path: artifacts
+
+      - name: Assemble the site
+        run: |
+          mkdir -p site
+          cp -R artifacts/web site/web
+          cp index.html site/index.html
+          # The landing page loads ./web/index.html, which is valid on Pages too.
+          grep -q "web/index.html" site/index.html
+          touch site/.nojekyll   # serve files verbatim, skip Jekyll
+          echo "site contents:"
+          find site -maxdepth 2 -type f -printf '%P %s bytes\n' | sort
+          du -sh site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Publish the preview URL
+        if: always()
+        run: |
+          {
+            echo '## Web preview URL'
+            echo
+            echo "Pages deployment: \`${{ steps.deployment.outputs.page_url }}\`"
+            echo
+            echo 'Open that URL in a browser to play the WebAssembly build; no download or local server needed.'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice title=Web preview URL::${{ steps.deployment.outputs.page_url }}"
