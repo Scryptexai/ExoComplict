@@ -2,24 +2,30 @@
 <html lang="id">
 	<head>
 		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Project Overdrive — Web Preview</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+		<meta name="theme-color" content="#05070d">
+		<title>Project Overdrive — WebAssembly Preview</title>
 		<!--
-			Landing/preview page for the WebAssembly build of Project Overdrive.
+			Halaman pemain untuk preview WebAssembly Project Overdrive.
 
-			Serve the repository root and open this page:
+			Jalankan dari root repo:
 
 			    python -m http.server 800 --bind 0.0.0.0
 			    http://localhost:800/
 
-			The Godot build itself is loaded from ./web/ (git-ignored output of
-			scripts/export_web_preview.sh or of the CI job "web-preview").
-			This page is standalone: no CDN, no build step, no dependencies.
+			Halaman ini TIDAK memakai iframe: ia meng-import build Godot dari ./web/
+			(fetch konfigurasi ekspor dari ./web/index.html, lalu memuat ./web/index.js
+			dan memanggil Engine.startGame) sehingga game tampil langsung di halaman ini.
+			Struktur ini mengikuti pola repo xam-eth/Scary-Night: halaman di root yang
+			meng-import game, dengan payload di dalam repo.
+
+			Isi ./web/ adalah output ekspor (di-commit oleh job CI "web-preview"),
+			bukan sumber. Jangan mengeditnya dengan tangan.
 		-->
 		<style>
 			:root {
 				--bg: #05070d;
-				--panel: rgba(9, 18, 30, 0.82);
+				--panel: rgba(7, 16, 26, 0.86);
 				--line: rgba(127, 216, 255, 0.22);
 				--cyan: #24d3ff;
 				--emerald: #7cffcb;
@@ -33,344 +39,371 @@
 			html, body {
 				margin: 0;
 				padding: 0;
-				min-height: 100%;
-				background:
-					radial-gradient(circle at 18% 8%, rgba(36, 211, 255, 0.16), transparent 55%),
-					radial-gradient(circle at 82% 92%, rgba(124, 255, 203, 0.12), transparent 52%),
-					var(--bg);
+				height: 100%;
+				overflow: hidden;
+				background: var(--bg);
 				color: var(--text);
 				font-family: 'Segoe UI', 'Noto Sans', Arial, sans-serif;
 			}
 
-			.wrap {
-				max-width: 1120px;
-				margin: 0 auto;
-				padding: 1.4rem 1.1rem 2.4rem;
+			#canvas {
+				display: block;
+				width: 100vw;
+				height: 100vh;
+				outline: none;
+				background: #05070d;
 			}
 
-			header {
+			.overlay {
+				position: fixed;
+				inset: 0;
+				pointer-events: none;
+				z-index: 10;
+			}
+
+			/* ---------- chips ---------- */
+			.chips {
+				position: absolute;
+				top: 0.6rem;
+				right: 0.6rem;
 				display: flex;
 				flex-wrap: wrap;
-				gap: 0.6rem 1rem;
-				align-items: center;
-				justify-content: space-between;
-				padding-bottom: 1rem;
-				border-bottom: 1px solid var(--line);
+				gap: 0.4rem;
+				justify-content: flex-end;
+				pointer-events: auto;
 			}
-
-			h1 {
-				margin: 0;
-				font-size: clamp(1.05rem, 2.6vw, 1.5rem);
-				letter-spacing: 0.3em;
-				text-transform: uppercase;
-				text-shadow: 0 0 18px rgba(36, 211, 255, 0.4);
-			}
-
-			h1 span { color: var(--cyan); }
-
-			.chips { display: flex; flex-wrap: wrap; gap: 0.45rem; }
 
 			.chip {
 				display: inline-flex;
 				align-items: center;
 				gap: 0.4rem;
-				padding: 0.3rem 0.65rem;
+				padding: 0.34rem 0.66rem;
 				border: 1px solid var(--line);
 				border-radius: 999px;
 				background: var(--panel);
+				color: var(--text);
+				font: 600 0.68rem/1 'Segoe UI', 'Noto Sans', Arial, sans-serif;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				text-decoration: none;
+				cursor: pointer;
+				backdrop-filter: blur(6px);
+			}
+
+			.chip:hover { border-color: rgba(36, 211, 255, 0.55); color: #fff; }
+			.chip[data-state='ok'] { border-color: rgba(124, 255, 203, 0.45); color: var(--emerald); }
+			.chip[data-state='warn'] { border-color: rgba(255, 204, 102, 0.45); color: var(--warn); }
+			.chip[data-state='bad'] { border-color: rgba(255, 120, 120, 0.5); color: #ff9c9c; }
+			.chip .dot { width: 0.42rem; height: 0.42rem; border-radius: 50%; background: currentColor; }
+
+			/* ---------- controls panel ---------- */
+			.panel {
+				position: absolute;
+				left: 0.6rem;
+				bottom: 0.6rem;
+				max-width: min(30rem, calc(100vw - 1.2rem));
+				padding: 0.7rem 0.85rem;
+				border: 1px solid var(--line);
+				border-radius: 0.7rem;
+				background: var(--panel);
+				pointer-events: auto;
+				font-size: 0.76rem;
+				line-height: 1.5;
 				color: var(--muted);
-				font-size: 0.7rem;
-				letter-spacing: 0.09em;
+				backdrop-filter: blur(6px);
+			}
+
+			.panel[hidden] { display: none; }
+			.panel b { color: var(--text); font-weight: 600; }
+			.panel .warn { color: var(--warn); }
+			body.hide-ui .chips, body.hide-ui .panel { display: none; }
+
+			/* ---------- boot ---------- */
+			#boot {
+				position: fixed;
+				inset: 0;
+				z-index: 20;
+				display: grid;
+				place-content: center;
+				gap: 1rem;
+				padding: 2rem;
+				text-align: center;
+				background:
+					radial-gradient(circle at 20% 10%, rgba(36, 211, 255, 0.16), transparent 55%),
+					radial-gradient(circle at 80% 90%, rgba(124, 255, 203, 0.12), transparent 52%),
+					var(--bg);
+			}
+
+			#boot[hidden] { display: none; }
+			#boot h1 {
+				margin: 0;
+				font-size: clamp(1.4rem, 4vw, 2.4rem);
+				font-weight: 700;
+				letter-spacing: 0.32em;
 				text-transform: uppercase;
 			}
 
-			.chip b { color: var(--emerald); font-weight: 600; }
-			.chip.alert b { color: var(--warn); }
+			#boot h1 span { color: var(--cyan); }
+			#boot .sub { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.22em; text-transform: uppercase; }
+			#bar {
+				width: min(30rem, 70vw);
+				height: 0.4rem;
+				margin: 0 auto;
+				border: 1px solid var(--line);
+				border-radius: 999px;
+				overflow: hidden;
+				background: rgba(255, 255, 255, 0.04);
+			}
 
-			.stage {
-				position: relative;
-				margin-top: 1.1rem;
+			#bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--cyan), var(--emerald)); transition: width 0.2s linear; }
+			#boot-status { color: var(--muted); font-size: 0.78rem; letter-spacing: 0.1em; }
+
+			/* ---------- failure card ---------- */
+			#failure {
+				position: fixed;
+				inset: 0;
+				z-index: 30;
+				display: grid;
+				place-content: center;
+				padding: 2rem;
+				background: rgba(3, 6, 12, 0.94);
+			}
+
+			#failure[hidden] { display: none; }
+			#failure .card {
+				max-width: 46rem;
+				padding: 1.4rem 1.5rem;
 				border: 1px solid var(--line);
 				border-radius: 0.9rem;
-				overflow: hidden;
 				background: var(--panel);
-				aspect-ratio: 16 / 9;
-				min-height: 240px;
-				display: flex;
-				align-items: center;
-				justify-content: center;
 			}
 
-			.stage iframe {
-				position: absolute;
-				inset: 0;
-				width: 100%;
-				height: 100%;
-				border: 0;
-			}
-
-			.placeholder {
-				padding: 1.6rem;
-				text-align: center;
-				max-width: 46rem;
-			}
-
-			.placeholder h2 {
-				margin: 0 0 0.5rem;
-				font-size: 1.02rem;
-				letter-spacing: 0.16em;
-				text-transform: uppercase;
-				color: var(--cyan);
-			}
-
-			.placeholder p { margin: 0.35rem 0; color: var(--muted); font-size: 0.86rem; line-height: 1.6; }
-
-			.actions { display: flex; flex-wrap: wrap; gap: 0.55rem; margin-top: 1.05rem; }
-
-			button, .link-button {
-				cursor: pointer;
-				font: inherit;
-				font-size: 0.78rem;
-				letter-spacing: 0.12em;
-				text-transform: uppercase;
-				padding: 0.6rem 1.15rem;
-				border-radius: 999px;
+			#failure h2 { margin: 0 0 0.6rem; font-size: 1.05rem; letter-spacing: 0.12em; text-transform: uppercase; }
+			#failure p, #failure li { color: var(--muted); font-size: 0.85rem; line-height: 1.6; }
+			#failure pre {
+				max-height: 12rem;
+				overflow: auto;
+				padding: 0.7rem;
 				border: 1px solid var(--line);
-				background: rgba(5, 12, 22, 0.8);
-				color: var(--text);
-				text-decoration: none;
-				display: inline-flex;
-				align-items: center;
-				gap: 0.4rem;
-			}
-
-			button.primary {
-				border-color: transparent;
-				background: linear-gradient(90deg, var(--cyan), var(--emerald));
-				color: #04121a;
-				font-weight: 700;
-			}
-
-			button:disabled { opacity: 0.45; cursor: not-allowed; }
-
-			button:hover:not(:disabled), .link-button:hover { border-color: var(--emerald); }
-
-			.grid {
-				display: grid;
-				grid-template-columns: repeat(auto-fit, minmax(258px, 1fr));
-				gap: 0.85rem;
-				margin-top: 1.15rem;
-			}
-
-			.card {
-				border: 1px solid var(--line);
-				border-radius: 0.8rem;
-				background: var(--panel);
-				padding: 0.95rem 1.05rem;
-			}
-
-			.card h3 {
-				margin: 0 0 0.5rem;
-				font-size: 0.74rem;
-				letter-spacing: 0.16em;
-				text-transform: uppercase;
-				color: var(--cyan);
-			}
-
-			.card p, .card li { color: var(--muted); font-size: 0.8rem; line-height: 1.62; }
-			.card ul, .card ol { margin: 0.3rem 0 0; padding-left: 1.15rem; }
-			.card strong { color: var(--text); }
-
-			code, pre {
-				font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, monospace;
-				font-size: 0.75rem;
-			}
-
-			pre {
-				margin: 0.55rem 0 0;
-				padding: 0.7rem 0.8rem;
 				border-radius: 0.5rem;
-				border: 1px solid var(--line);
-				background: rgba(2, 6, 12, 0.75);
-				color: var(--emerald);
-				overflow-x: auto;
-				white-space: pre;
+				background: rgba(0, 0, 0, 0.35);
+				color: var(--warn);
+				font-size: 0.76rem;
+				white-space: pre-wrap;
 			}
 
-			footer {
-				margin-top: 1.4rem;
-				padding-top: 0.85rem;
-				border-top: 1px solid var(--line);
-				color: var(--muted);
-				font-size: 0.74rem;
-				line-height: 1.6;
-			}
-
-			.hidden { display: none !important; }
+			#failure code { color: var(--emerald); }
 		</style>
+		<!--
+			Skrip engine dimuat sebagai tag statis dengan sengaja: engine menurunkan
+			direktori asetnya (index.wasm, index.pck, worklet audio) dari
+			document.currentScript.src. Tag statis menunjuk ./web/index.js sehingga
+			berkas-berkas itu dicari di ./web/, bukan di root. Skrip yang disuntik
+			dinamis akan membuat currentScript null dan engine mengejar index.wasm 404.
+		-->
+		<script src="./web/index.js" onerror="window.__engineScriptFailed = true;"></script>
 	</head>
 	<body>
-		<div class="wrap">
-			<header>
-				<h1>Project <span>Overdrive</span></h1>
-				<div class="chips">
-					<span class="chip" id="chip-build">build: memeriksa…</span>
-					<span class="chip">WebGL 2 · single-thread</span>
-					<span class="chip">Godot 4.7.2 · WebAssembly</span>
-				</div>
-			</header>
+		<!-- Kanvas milik halaman ini; engine Godot mengambil elemen ini. -->
+		<canvas id="canvas" tabindex="-1" aria-label="Project Overdrive. Kontrol: WASD bergerak, tahan klik kanan untuk membidik, klik kiri menembak, E ganti senjata, Esc pause, R reset."></canvas>
 
-			<div class="stage" id="stage">
-				<div class="placeholder" id="placeholder">
-					<h2 id="placeholder-title">Memuat…</h2>
-					<p id="placeholder-text">Memeriksa apakah build web tersedia di <code>web/index.html</code>.</p>
-					<div class="actions" id="placeholder-actions"></div>
-				</div>
+		<div class="overlay" id="shell-ui">
+			<div class="chips">
+				<span class="chip" id="build-chip" data-state="warn"><i class="dot"></i><span id="build-label">memuat…</span></span>
+				<button class="chip" id="controls-chip" type="button">Kontrol</button>
+				<button class="chip" id="hide-ui" type="button">Hide UI</button>
+				<button class="chip" id="fullscreen" type="button">Fullscreen</button>
+				<button class="chip" id="reload" type="button">Reload</button>
+				<a class="chip" id="raw" href="./web/index.html" target="_blank" rel="noopener">Build mentah</a>
 			</div>
 
-			<div class="actions">
-				<button class="primary" id="play-button" type="button" disabled>▶ Mulai preview</button>
-				<button id="fullscreen-button" type="button" disabled>Fullscreen</button>
-				<button id="reload-button" type="button">Muat ulang</button>
-				<a class="link-button" href="web/" id="raw-link">Buka build mentah</a>
+			<div class="panel" id="controls-panel" hidden>
+				<p><b>Keyboard:</b> WASD bergerak · tahan klik kanan untuk membidik · klik kiri menembak · <b>E</b> ganti senjata · <b>Esc</b> pause · <b>R</b> reset run.</p>
+				<p><b>Sentuh:</b> joystick ibu jari kiri untuk bergerak · geser sisi kanan untuk membidik · tombol FIRE · WEAPON / EMP · PAUSE.</p>
+				<p class="warn">Build ini memakai renderer Compatibility (WebGL 2) dan mode single-thread. Angka FPS di browser bukan ukuran performa Android — lihat ANDROID_BASELINE.md.</p>
 			</div>
+		</div>
 
-			<div class="grid">
-				<div class="card">
-					<h3>Kontrol</h3>
-					<p><strong>Keyboard:</strong> WASD bergerak · tahan klik kanan untuk membidik · tahan klik kiri untuk menembak · E ganti senjata · klik EMP · Esc pause · R reset run.</p>
-					<p><strong>Sentuh:</strong> joystick ibu jari kiri untuk bergerak · geser sisi kanan untuk membidik · tombol FIRE / WEAPON / EMP / PAUSE di kanan.</p>
-					<p>Preview ini memakai build <em>single-thread</em> supaya bisa dilayani <code>python -m http.server</code> tanpa header COOP/COEP.</p>
-				</div>
+		<div id="boot">
+			<h1>Project <span>Overdrive</span></h1>
+			<div class="sub">WebAssembly preview · Godot 4.7.2</div>
+			<div id="bar"><i></i></div>
+			<div id="boot-status">menyiapkan…</div>
+		</div>
 
-				<div class="card" id="card-build">
-					<h3>Build web belum ada?</h3>
-					<ol>
-						<li>Ambil artefak <strong>web-preview</strong> dari GitHub Actions (tab <em>Actions</em> → run terakhir → <em>Artifacts</em>).</li>
-						<li>Ekstrak isinya ke <strong>root repo ini</strong>, sehingga muncul folder <code>web/</code>.</li>
-						<li>Muat ulang halaman ini.</li>
-					</ol>
-					<p>Punya Godot 4.7.2 + export templates? Bangun sendiri:</p>
-					<pre>./scripts/export_web_preview.sh</pre>
-				</div>
-
-				<div class="card">
-					<h3>Menjalankan server</h3>
-					<pre>python -m http.server 800 --bind 0.0.0.0</pre>
-					<p>Lalu buka <code>http://localhost:800/</code>, atau <code>http://&lt;ip-perangkat&gt;:800/</code> dari HP di jaringan yang sama.</p>
-					<p>Python 3.9+ sudah mengirim <code>.wasm</code> sebagai <code>application/wasm</code>, jadi tidak perlu konfigurasi tambahan.</p>
-				</div>
-
-				<div class="card">
-					<h3>Batas preview ini</h3>
-					<ul>
-						<li>Renderer wajib <strong>Compatibility (WebGL 2)</strong>; bukan Forward+/Mobile renderer Android.</li>
-						<li>Angka FPS/frame time di sini <strong>bukan</strong> ukuran performa Android.</li>
-						<li>Build single-thread tidak memakai <code>Thread</code>; hindari menilai audio latency/paralelisme dari preview.</li>
-						<li>Validasi kontrol sentuh, build Android, dan profiling perangkat tetap butuh jalur <code>ANDROID_BASELINE.md</code>.</li>
-					</ul>
-				</div>
+		<div id="failure" hidden>
+			<div class="card">
+				<h2 id="failure-title">Build belum bisa dimuat</h2>
+				<p id="failure-lead"></p>
+				<ul id="failure-steps"></ul>
+				<pre id="failure-detail" hidden></pre>
 			</div>
-
-			<footer>
-				Preview WebAssembly untuk review UI/UX dan gameplay saja. Pipeline produksi tetap: Godot + Blender di mesin dev,
-				lalu export Android sesuai <code>ANDROID_BASELINE.md</code>. Detail teknis: <code>WEB_PREVIEW.md</code>.
-			</footer>
 		</div>
 
 		<script>
-			const BUILD_URL = 'web/index.html';
-			const stage = document.getElementById('stage');
-			const placeholder = document.getElementById('placeholder');
-			const placeholderTitle = document.getElementById('placeholder-title');
-			const placeholderText = document.getElementById('placeholder-text');
-			const placeholderActions = document.getElementById('placeholder-actions');
-			const chipBuild = document.getElementById('chip-build');
-			const playButton = document.getElementById('play-button');
-			const fullscreenButton = document.getElementById('fullscreen-button');
-			const reloadButton = document.getElementById('reload-button');
-			const rawLink = document.getElementById('raw-link');
+			'use strict';
 
-			let buildAvailable = false;
-			let iframe = null;
+			const BUILD_URL = './web/index.html';
+			const ENGINE_URL = './web/index.js';
+			const boot = document.getElementById('boot');
+			const bootBar = document.querySelector('#bar i');
+			const bootStatus = document.getElementById('boot-status');
+			const failure = document.getElementById('failure');
+			const failureTitle = document.getElementById('failure-title');
+			const failureLead = document.getElementById('failure-lead');
+			const failureSteps = document.getElementById('failure-steps');
+			const failureDetail = document.getElementById('failure-detail');
+			const buildChip = document.getElementById('build-chip');
+			const buildLabel = document.getElementById('build-label');
 
-			function showPlaceholder(title, html) {
-				placeholder.classList.remove('hidden');
-				placeholderTitle.textContent = title;
-				placeholderText.innerHTML = html;
+			function setBuildChip(state, label) {
+				buildChip.dataset.state = state;
+				buildLabel.textContent = label;
 			}
 
-			function startGame() {
-				if (!buildAvailable) {
+			function showFailure(title, lead, steps, detail) {
+				boot.hidden = true;
+				failureTitle.textContent = title;
+				failureLead.textContent = lead;
+				failureSteps.replaceChildren(
+					...(steps || []).map((text) => {
+						const li = document.createElement('li');
+						li.textContent = text;
+						return li;
+					}),
+				);
+				if (detail) {
+					failureDetail.hidden = false;
+					failureDetail.textContent = detail;
+				} else {
+					failureDetail.hidden = true;
+				}
+				failure.hidden = false;
+				setBuildChip('bad', 'gagal');
+			}
+
+			const MISSING_STEPS = [
+				'Jalankan halaman dari root repo: python -m http.server 800 --bind 0.0.0.0',
+				'Pastikan folder web/ ada: ia ikut di-commit, jadi git pull biasanya cukup.',
+				'Kalau web/ hilang: ekspor ulang dengan ./scripts/export_web_preview.sh, atau unduh artefak "web-preview" dari GitHub Actions.',
+			];
+
+			async function bootGame() {
+				// 1. Konfigurasi ekspor dibaca dari halaman build Godot (satu baris JSON),
+				//    supaya halaman ini tidak perlu tahu isi preset ekspor.
+				let response;
+				try {
+					response = await fetch(BUILD_URL, { cache: 'no-store' });
+				} catch (error) {
+					showFailure(
+						'Build belum bisa dimuat',
+						'Permintaan ke ' + BUILD_URL + ' gagal. Kalau Anda membuka file ini langsung (file://), JavaScript tidak boleh mengambil berkas — gunakan server statis.',
+						MISSING_STEPS,
+						String(error),
+					);
 					return;
 				}
-				if (iframe == null) {
-					iframe = document.createElement('iframe');
-					iframe.src = BUILD_URL;
-					iframe.title = 'Project Overdrive Web Preview';
-					iframe.allow = 'fullscreen; gamepad; autoplay';
-					iframe.setAttribute('allowfullscreen', '');
-					stage.appendChild(iframe);
+
+				if (!response.ok) {
+					showFailure(
+						'Build web belum ada di repo ini',
+						`Halaman mencari ${BUILD_URL} dan mendapat HTTP ${response.status}.`,
+						MISSING_STEPS,
+					);
+					return;
 				}
-				placeholder.classList.add('hidden');
-				fullscreenButton.disabled = false;
-			}
 
-			function detectBuild() {
-				fetch(BUILD_URL, { method: 'HEAD', cache: 'no-store' })
-					.then((response) => {
-						if (!response.ok) {
-							throw new Error('HTTP ' + response.status);
+				const html = await response.text();
+				const match = html.match(/const GODOT_CONFIG = (\{[^\n]*\});/);
+				if (!match) {
+					showFailure(
+						'Konfigurasi ekspor tidak terbaca',
+						`${BUILD_URL} tidak memuat baris GODOT_CONFIG yang diharapkan.`,
+						['Ekspor ulang build: ./scripts/export_web_preview.sh', 'Pastikan game/web_shell/index.html dipakai sebagai custom HTML shell.'],
+					);
+					return;
+				}
+
+				const config = JSON.parse(match[1]);
+				// Engine menurunkan lokasi index.wasm/index.pck dari halaman tempat ia
+				// dijalankan. Karena payload tinggal di ./web/ sedangkan halaman ini di
+				// root, jalur executable-nya diberi tahu langsung (terbukti lewat uji
+				// headless: tanpa ini engine meminta /index.wasm dan mendapat 404).
+				config.executable = './web/index';
+				const threadsEnabled = /GODOT_THREADS_ENABLED = true/.test(html);
+				setBuildChip('warn', 'memuat engine…');
+
+				const EngineClass = window.Engine || window.Godot;
+				if (typeof EngineClass !== 'function') {
+					showFailure(
+						'Engine tidak tersedia',
+						window.__engineScriptFailed
+							? `Tag skrip untuk ${ENGINE_URL} gagal dimuat (berkasnya tidak ada).`
+							: `${ENGINE_URL} dimuat tetapi tidak menyediakan kelas Engine.`,
+						MISSING_STEPS,
+					);
+					return;
+				}
+
+				const missing = EngineClass.getMissingFeatures ? EngineClass.getMissingFeatures({ threads: threadsEnabled }) : [];
+				if (missing.length) {
+					showFailure(
+						'Browser tidak mendukung fitur yang dibutuhkan',
+						'Build ini memerlukan WebGL 2.',
+						['Pakai Chrome, Edge, atau Firefox terbaru.', 'Pastikan akselerasi perangkat keras/WebGL 2 tidak diblokir.'],
+						missing.join('\n'),
+					);
+					return;
+				}
+
+				const engine = new EngineClass(config);
+				bootStatus.textContent = 'memuat berkas game…';
+
+				engine.startGame({
+					onProgress: (current, total) => {
+						if (current > 0 && total > 0) {
+							bootBar.style.width = `${Math.floor((current / total) * 100)}%`;
+							bootStatus.textContent = `${Math.floor((current / total) * 100)}% dimuat`;
+						} else {
+							bootStatus.textContent = 'memuat berkas game…';
 						}
-						buildAvailable = true;
-						chipBuild.innerHTML = 'build: <b>siap</b> (web/)';
-						playButton.disabled = false;
-						rawLink.classList.remove('hidden');
-						showPlaceholder('Build web siap dijalankan',
-							'Klik <strong>Mulai preview</strong> untuk memuat game di halaman ini, ' +
-							'atau buka <a class="link-button" href="web/">build mentah</a> langsung.');
-					})
-					.catch((error) => {
-						buildAvailable = false;
-						chipBuild.classList.add('alert');
-						chipBuild.innerHTML = 'build: <b>belum ada</b>';
-						playButton.disabled = true;
-						rawLink.classList.add('hidden');
-						showPlaceholder('Build web belum tersedia',
-							'Folder <code>web/</code> tidak ditemukan (' + error.message + '). ' +
-							'Lihat kartu <strong>“Build web belum ada?”</strong> di bawah: unduh artefak ' +
-							'<code>web-preview</code> dari GitHub Actions dan ekstrak ke root repo, ' +
-							'lalu muat ulang halaman ini.');
-						placeholderActions.innerHTML =
-							'<a class="link-button" target="_blank" rel="noopener" ' +
-							'href="https://github.com/xam-eth/Cyber-Strike/actions/workflows/godot-ci.yml">Buka GitHub Actions</a>';
-					});
+					},
+				}).then(() => {
+					boot.hidden = true;
+					setBuildChip('ok', `siap · ${threadsEnabled ? 'threaded' : 'single-thread'}`);
+					const canvas = document.getElementById('canvas');
+					if (config.focusCanvas !== false && canvas) canvas.focus();
+				}, (error) => {
+					showFailure(
+						'Engine berhenti saat start',
+						'Build termuat tetapi startGame gagal.',
+						['Coba Reload.', 'Jalankan ./scripts/export_web_preview.sh --debug untuk build dengan detail error lebih lengkap.'],
+						String(error),
+					);
+				});
 			}
 
-			playButton.addEventListener('click', startGame);
-			reloadButton.addEventListener('click', () => window.location.reload());
-			fullscreenButton.addEventListener('click', () => {
-				const target = iframe || stage;
+			// ---------- kontrol shell ----------
+			document.getElementById('controls-chip').addEventListener('click', () => {
+				const panel = document.getElementById('controls-panel');
+				panel.hidden = !panel.hidden;
+			});
+
+			document.getElementById('hide-ui').addEventListener('click', () => {
+				document.body.classList.toggle('hide-ui');
+			});
+
+			document.getElementById('fullscreen').addEventListener('click', () => {
 				if (document.fullscreenElement) {
 					document.exitFullscreen();
-				} else if (target.requestFullscreen) {
-					target.requestFullscreen().catch((error) => console.warn(error));
+				} else {
+					document.documentElement.requestFullscreen().catch(() => {});
 				}
 			});
-			document.addEventListener('fullscreenchange', () => {
-				fullscreenButton.textContent = document.fullscreenElement ? 'Exit fullscreen' : 'Fullscreen';
-			});
 
-			if (window.location.protocol === 'file:') {
-				chipBuild.classList.add('alert');
-				chipBuild.innerHTML = 'build: <b>perlu http</b>';
-				showPlaceholder('Halaman dibuka lewat file://',
-					'Jalankan server statis dari root repo, lalu buka <code>http://localhost:800/</code>:' +
-					'<pre>python -m http.server 800 --bind 0.0.0.0</pre>' +
-					'Tidak ada build yang bisa dimuat dari protokol file.');
-			} else {
-				detectBuild();
-			}
+			document.getElementById('reload').addEventListener('click', () => window.location.reload());
+
+			bootGame();
 		</script>
 	</body>
 </html>

@@ -75,6 +75,9 @@ export templates that are already in the repository (`engine/web_templates/`):
 ./scripts/export_web_preview.sh      # preset + import + export + build verification
 ```
 
+A headless browser check for both entry pages is one command (`npm ci --prefix tools && node tools/web_qa.mjs`); CI runs
+the same gate, and it is what proves the engine actually boots instead of only serving bytes.
+
 The web export is single-threaded (`variant/thread_support=false`) so it runs on a plain static server without
 COOP/COEP headers, and it uses a custom shell at `game/web_shell/index.html`. The web platform always uses the
 Compatibility (WebGL 2) renderer, while Android keeps the `mobile` renderer — see [`WEB_PREVIEW.md`](WEB_PREVIEW.md)

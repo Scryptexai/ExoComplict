@@ -1,5 +1,8 @@
 # Local tools, Python lint environment/cache (do not commit)
 .cache/
+tools/.cache/
+tools/node_modules/
+node_modules/
 .venv/
 venv/
 __pycache__/

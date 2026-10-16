@@ -197,6 +197,32 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Browser smoke test of the exported build
+        run: |
+          # Real Chromium from the pinned packages: proves the engine boots with
+          # WebGL 2 and that index.wasm/index.pck resolve from both entry pages.
+          npm ci --prefix tools --no-audit --no-fund
+          node tools/web_qa.mjs --json > exports/web-qa-report.json
+          python3 - <<'PY'
+          import json
+          report = json.load(open("exports/web-qa-report.json"))
+          for page in report["pages"]:
+              print(f'{page["target"]}: {"PASS" if not page["failed"] else "FAIL"} | engine: {page["engine"]} | canvas: {page["state"]["canvasSize"]}')
+          print("::notice title=Web QA (Chromium)" + "::" + " | ".join(
+              f'{p["target"]} {"PASS" if not p["failed"] else "FAIL"} ({p["state"]["canvasSize"]}, {p["engine"] or "no engine"})'
+              for p in report["pages"]))
+          raise SystemExit(0 if report["ok"] else 1)
+          PY
+
+      - name: Upload the web QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-qa
+          path: exports/web-qa
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Stage the web export templates for offline builds
         run: |
           # Mirror the Scary-Night layout: keep the *web* export templates in the

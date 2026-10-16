@@ -14,7 +14,9 @@
 | `index.pck` | 588 KB | `application/octet-stream` |
 | total `web/` | 39 MB | — |
 
-Artefak CI `web-preview` (zip, isi `web/` + `README.txt`) ≈ **10 MB** karena wasm terkompresi baik. Artefaknya diekstrak ke root repo; selama `web/` belum ada, landing page menampilkan instruksi, bukan game.
+Artefak CI `web-preview` (zip, isi `web/` + `README.txt`) ≈ **10 MB** karena wasm terkompresi baik. `web/` sudah berada di repo; halaman root memuat game langsung dari situ. Kalau `web/` tidak ada, halaman menampilkan kartu diagnostik (bukan layar kosong).
+
+**Bukti browser (dijalankan di sandbox ini, Chromium headless + WebGL 2):** `node tools/web_qa.mjs` → **2/2 halaman PASS**, keduanya mem-boot Godot `4.7.2.stable.official.ed1daf0bf`, kanvas 1280×720, WebGL hidup, tanpa error halaman maupun permintaan gagal. Tangkapan layar: `exports/web-qa/root.png` dan `exports/web-qa/web-index-html.png`.
 
 > **Catatan bandwith:** kalau menyajikan dari `python -m http.server` di mesin sendiri, 38 MB wasm dimuat dari disk (instan). Kalau lewat GitHub Pages, Pages mengirim terkompresi (~10 MB saat muat pertama, lalu masuk cache browser). Hindari server statis lokal yang dipakai lewat jaringan Wi-Fi/HP — wasm besar tidak dikompresi oleh `http.server`.
 
@@ -26,12 +28,12 @@ Repo ini disusun seperti `xam-eth/Scary-Night` (game lain yang juga dipakai lewa
 
 | Peran | Scary-Night | Cyber-Strike (repo ini) |
 |---|---|---|
-| Halaman yang dibuka pemain | `index.html` di root, meng-import game (`<script type="module" src="./src/main.js">`) | `index.html` di root, memuat build dari `web/` |
+| Halaman yang dibuka pemain | `index.html` di root, meng-import game (`<script type="module" src="./src/main.js">`) | `index.html` di root, **meng-import build Godot langsung** (bukan iframe): konfigurasi ekspor dibaca dari `./web/index.html`, engine dari tag statis `./web/index.js`, lalu `Engine.startGame()` |
 | Payload game | `src/` (JS/Three.js, di-commit) | `web/` (`index.js`, `index.wasm`, `index.pck`, di-commit oleh job CI `web-preview`) |
 | Engine | `Godot_v4.6.2-stable_linux.x86_64.zip` di root | `scripts/install_godot.sh` mengunduh 4.7.2 sesuai OS |
 | Template ekspor web | `web_nothreads_release.zip`, `web_nothreads_debug.zip` di root | `engine/web_templates/*.zip` (di-commit; lihat `engine/README.md`) |
 | Aset mentah (model) | GLB di root + `assets/` | `game/` (project Godot) + GLB di root |
-| QA browser | `tools/*.mjs` + puppeteer-core + `@sparticuz/chromium` | job CI `web-preview` (ekspor + cek pengiriman HTTP) |
+| QA browser | `tools/*.mjs` + puppeteer-core + `@sparticuz/chromium` | `tools/web_qa.mjs` + puppeteer-core + `@sparticuz/chromium`, dijalankan di CI (dan bisa lokal) |
 | Jalur Android | PWA + TWA/Bubblewrap (`android/twa-manifest.json`, `.well-known/assetlinks.json`) | ekspor Android Godot (`ANDROID_BASELINE.md`, gate E) |
 
 Konsekuensinya: `git pull` lalu `python -m http.server 800 --bind 0.0.0.0` **langsung memainkan game** — tidak perlu membuka Actions untuk mengunduh artefak.
@@ -52,6 +54,16 @@ python -m http.server 800 --bind 0.0.0.0        # dari root repo
 mengekspor ulang dan **meng-commit** hasilnya (`Refresh the committed web
 payload and templates [skip ci]`) bila isinya berubah. Jadi tidak ada langkah
 unduh artefak manual; artefak `web-preview` tetap ada sebagai jalur cadangan.
+
+### Uji otomatis di browser (tanpa membuka browser)
+
+```bash
+npm ci --prefix tools          # sekali; mengunduh Chromium headless (paket @sparticuz/chromium)
+node tools/web_qa.mjs          # menyajikan repo sendiri, membuka / dan /web/index.html
+node tools/web_qa.mjs --json   # laporan terstruktur untuk skrip/CI
+```
+
+`tools/web_qa.mjs` membuka halaman sungguhan di Chromium headless dan gagal (exit 1) bila engine tidak boot, tidak ada WebGL 2, kanvas tetap 300×150, ada permintaan 4xx/5xx, atau kartu error tampil. Tangkapan layarnya ditulis ke `exports/web-qa/`. Ini gate yang sama yang dijalankan job CI `web-preview`.
 
 Tidak perlu header COOP/COEP, tidak perlu `--directory`, tidak perlu konfigurasi MIME: build yang dihasilkan memakai **single-thread** (`variant/thread_support=false`), dan Python 3.9+ sudah mengirim `.wasm` sebagai `application/wasm` (diverifikasi di sesi ini pada Python 3.11.2).
 
@@ -91,13 +103,20 @@ Opsi: `--debug` (build debug, error lebih jelas, ukuran lebih besar), `--output 
 
 | Berkas | Peran |
 |---|---|
-| `index.html` (root repo) | Landing/preview page: deteksi keberadaan `web/index.html`, tombol **Mulai preview** (iframe), **Fullscreen**, **Muat ulang**, kartu kontrol, kartu troubleshooting, dan tautan ke GitHub Actions bila build belum ada. Tanpa CDN, tanpa build step. |
+| `index.html` (root repo) | **Halaman game**: meng-import `web/` di halaman yang sama (kanvas penuh layar + chip status/kontrol/fullscreen). Menampilkan kartu diagnostik bila `web/` belum ada, konfigurasi ekspor tidak terbaca, atau WebGL 2 tidak tersedia. Tanpa CDN, tanpa build step. |
+| `tools/web_qa.mjs` | QA browser headless: menyajikan repo, membuka `/` dan `/web/index.html`, memeriksa banner engine, WebGL 2, ukuran kanvas, 4xx/5xx, kartu error; menulis tangkapan layar dan laporan `--json`. |
 | `game/web_shell/index.html` | **Custom Godot HTML shell** (dipakai lewat `html/custom_html_shell`). Menambah boot overlay bertema (progress bar + persentase), HUD atas (chip build, Fullscreen, Hide UI), panel kontrol yang bisa dilipat, dan penanganan error yang menampilkan pesan gagal yang dapat dibaca. Placeholder `$GODOT_*` resmi dipertahankan. |
 | `tools/web_preset.py` | `ensure` / `check` / `show` untuk preset Web (thread support, custom shell, resize policy, PWA off). |
 | `scripts/export_web_preview.sh` | Pipeline ekspor web 5 langkah + verifikasi. |
 | `tools/verify_web_build.py` | Verifikasi hasil ekspor tanpa browser (magic bytes, placeholder, ukuran). |
 | `tools/tests/test_web_preview.py` | 13 unit test untuk preset + verifier (ikut `dev_check.sh` dan CI). |
 | Job CI `web-preview` | Memasang Godot + template, mengekspor, menyajikan dengan `python -m http.server` dan memeriksa pengiriman `index.wasm`/`index.pck` lewat HTTP, lalu mengunggah artefak `web-preview` (berisi `web/` + `README.txt`). |
+
+### Cara halaman root memuat game (dan dua jebakan yang sudah diuji)
+
+1. `fetch('./web/index.html')` → ambil satu baris `const GODOT_CONFIG = {...};` dari build. Halaman ini tidak perlu tahu isi preset ekspor.
+2. Tag **statis** `<script src="./web/index.js">` di `<head>`. Engine menurunkan direktori asetnya dari `document.currentScript.src`; skrip yang disuntik dinamis membuat `currentScript` bernilai `null` sehingga engine mengejar `index.wasm` di root dan mendapat 404.
+3. `config.executable = './web/index'` sebelum `new Engine(config)`. Tanpa ini engine tetap mencari `index.pck`/`index.wasm` relatif halaman (`/index.wasm`), bukan relatif `web/`. Keduanya dibuktikan dengan uji headless (`node tools/web_qa.mjs` lulus untuk `/` dan `/web/index.html`).
 
 `web/` adalah **output yang sengaja di-commit** (lihat §0): jangan mengeditnya dengan tangan, dan jangan menganggap diff-nya sebagai perubahan sumber. Isinya disegarkan oleh job CI `web-preview`; `exports/` tetap di-`.gitignore`.
 
