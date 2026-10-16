@@ -1,0 +1,64 @@
+name: Godot CI
+
+# Static checks run everywhere. The engine job installs the pinned Godot
+# 4.7.2-stable editor and runs the headless smoke tests, which is the only way
+# to verify gameplay behaviour without a local Godot install.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    name: Static checks (gdtoolkit + project doctor)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install gdtoolkit
+        run: pip install -r requirements-dev.txt
+
+      - name: Run static development check
+        run: ./scripts/dev_check.sh
+
+  engine:
+    name: Headless smoke tests (Godot 4.7.2)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install runtime libraries for Godot
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1 libxi6 libxcursor1 libxinerama1 libxrandr2 libxkbcommon0 || \
+            echo "Some optional libraries were unavailable; continuing."
+
+      - name: Install pinned Godot editor
+        run: |
+          ./scripts/install_godot.sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Report engine version
+        run: godot --version
+
+      - name: Run headless smoke tests
+        run: ./scripts/run_smoke_tests.sh
+
+      - name: Upload smoke test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-logs
+          path: exports/test-logs
+          if-no-files-found: ignore
