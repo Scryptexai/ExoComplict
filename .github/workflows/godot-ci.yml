@@ -114,8 +114,38 @@ jobs:
       - name: Report engine version
         run: godot --version
 
+      - name: Report available export templates
+        run: |
+          templates_root="${XDG_DATA_HOME:-$HOME/.local/share}/godot/export_templates"
+          echo "templates root: $templates_root"
+          if [[ -d "$templates_root" ]]; then
+            find "$templates_root" -maxdepth 2 -type f -name '*.zip' -printf '%P\n' | sort | head -40
+            web_count="$(find "$templates_root" -type f -name 'web*.zip' | wc -l | tr -d ' ')"
+            echo "::notice title=Web export templates::installed web template archives: $web_count"
+          else
+            echo "::error title=Export templates missing::no templates directory at $templates_root"
+            exit 1
+          fi
+
       - name: Export the Web preview build
-        run: ./scripts/export_web_preview.sh --output web
+        run: |
+          set +e
+          ./scripts/export_web_preview.sh --output web 2>&1 | tee exports/web-preview-run.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [[ $status -ne 0 ]]; then
+            # Surface the tail of the Godot logs as annotations: the full job log
+            # is not always retrievable through the API, annotations are.
+            digest=""
+            for log_file in exports/web-export.log exports/web-import.log; do
+              [[ -f "$log_file" ]] || continue
+              errors="$(grep -iE 'error|fail|missing|cannot|unable|refuse' "$log_file" | tail -n 6 | tr '\n' '|')"
+              digest="${digest}$(basename "$log_file"): ${errors:-<no error lines>} || "
+            done
+            digest="$(printf '%s' "$digest" | cut -c1-1400)"
+            echo "::error title=Web export failed (exit $status)::${digest:-no log files produced}"
+            exit $status
+          fi
 
       - name: Verify static-server delivery
         run: |

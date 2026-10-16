@@ -747,6 +747,31 @@ def check_class_names(report: Report, scripts: dict[str, ScriptInfo]) -> dict[st
     return seen
 
 
+def check_project_settings(report: Report, game_root: Path) -> None:
+    """Check res:// paths referenced from project.godot (icon, main scene, autoloads...)."""
+    check = "project settings"
+    project_file = game_root / "project.godot"
+    if not project_file.exists():
+        report.fail(check, "game/project.godot not found", "game/")
+        return
+    text = project_file.read_text(encoding="utf-8", errors="replace")
+    problems = 0
+    for res_path in sorted(set(re.findall(r'"(res://[^"]+)"', text))):
+        target = res_to_path(game_root, res_path)
+        if target is None or not target.exists():
+            report.fail(check, f"project.godot references a missing file: {res_path}", "game/project.godot")
+            problems += 1
+    if 'config/icon=' not in text:
+        report.warn(
+            check,
+            "game/project.godot has no application/config/icon; the Web exporter generates favicons from it, "
+            "so html/export_icon=true can fail without one",
+            "game/project.godot",
+        )
+    if problems == 0:
+        report.ok(check, "every res:// path referenced by project.godot exists")
+
+
 def check_weapon_resources(report: Report, game_root: Path, scenes: dict[str, SceneInfo]) -> None:
     check = "weapon resources"
     weapon_dir = game_root / "resources" / "weapons"
@@ -1042,6 +1067,7 @@ def main(argv: list[str] | None = None) -> int:
     check_class_names(report, scripts)
     check_weapon_resources(report, game_root, scenes)
     check_gltf_assets(report, game_root)
+    check_project_settings(report, game_root)
     check_web_preview(report, root, game_root)
     check_docs(report, root, game_root, scenes, scripts)
 
