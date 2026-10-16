@@ -20,25 +20,46 @@ Artefak CI `web-preview` (zip, isi `web/` + `README.txt`) ≈ **10 MB** karena w
 
 ---
 
+## 0. Struktur: semuanya ada di dalam repo
+
+Repo ini disusun seperti `xam-eth/Scary-Night` (game lain yang juga dipakai lewat browser): apa pun yang dibutuhkan untuk **membuka game di browser ada di repo**, bukan di balik langkah unduh manual.
+
+| Peran | Scary-Night | Cyber-Strike (repo ini) |
+|---|---|---|
+| Halaman yang dibuka pemain | `index.html` di root, meng-import game (`<script type="module" src="./src/main.js">`) | `index.html` di root, memuat build dari `web/` |
+| Payload game | `src/` (JS/Three.js, di-commit) | `web/` (`index.js`, `index.wasm`, `index.pck`, di-commit oleh job CI `web-preview`) |
+| Engine | `Godot_v4.6.2-stable_linux.x86_64.zip` di root | `scripts/install_godot.sh` mengunduh 4.7.2 sesuai OS |
+| Template ekspor web | `web_nothreads_release.zip`, `web_nothreads_debug.zip` di root | `engine/web_templates/*.zip` (di-commit; lihat `engine/README.md`) |
+| Aset mentah (model) | GLB di root + `assets/` | `game/` (project Godot) + GLB di root |
+| QA browser | `tools/*.mjs` + puppeteer-core + `@sparticuz/chromium` | job CI `web-preview` (ekspor + cek pengiriman HTTP) |
+| Jalur Android | PWA + TWA/Bubblewrap (`android/twa-manifest.json`, `.well-known/assetlinks.json`) | ekspor Android Godot (`ANDROID_BASELINE.md`, gate E) |
+
+Konsekuensinya: `git pull` lalu `python -m http.server 800 --bind 0.0.0.0` **langsung memainkan game** — tidak perlu membuka Actions untuk mengunduh artefak.
+
 ## 1. Alur singkat (pemakaian harian)
 
 ```bash
-# 1. Ambil artefak "web-preview" dari GitHub Actions
-#    Actions -> Godot CI -> run terbaru -> Artifacts -> web-preview
-#    Ekstrak isinya ke ROOT repo ini sehingga muncul folder web/
+git pull                                        # web/ sudah ikut di dalam repo
+python -m http.server 800 --bind 0.0.0.0        # dari root repo
 
-# 2. Sajikan dari root repo
-python -m http.server 800 --bind 0.0.0.0
-
-# 3. Buka di browser
-#    http://localhost:800/        <- landing page (embed game + status build)
-#    http://localhost:800/web/    <- build Godot mentah (fullscreen-friendly)
-#    http://<ip-perangkat>:800/   <- dari HP di jaringan yang sama
+# Buka di browser
+#   http://localhost:800/        <- landing page + game
+#   http://localhost:800/web/    <- halaman game langsung (fullscreen-friendly)
+#   http://<ip-perangkat>:800/   <- dari HP di jaringan yang sama
 ```
+
+`web/` diperbarui otomatis: setiap push ke branch ini, job CI `web-preview`
+mengekspor ulang dan **meng-commit** hasilnya (`Refresh the committed web
+payload and templates [skip ci]`) bila isinya berubah. Jadi tidak ada langkah
+unduh artefak manual; artefak `web-preview` tetap ada sebagai jalur cadangan.
 
 Tidak perlu header COOP/COEP, tidak perlu `--directory`, tidak perlu konfigurasi MIME: build yang dihasilkan memakai **single-thread** (`variant/thread_support=false`), dan Python 3.9+ sudah mengirim `.wasm` sebagai `application/wasm` (diverifikasi di sesi ini pada Python 3.11.2).
 
-### Alternatif tanpa unduh sama sekali (GitHub Pages)
+### Cadangan: artefak CI (kalau `web/` belum ada di checkout)
+
+`Actions → Godot CI → run terbaru → Artifacts → web-preview`, ekstrak ke root repo.
+
+### Alternatif tanpa unduh: GitHub Pages
 
 Artefak `web-preview` ~10 MB. Kalau kuota internet sedang mahal, pakai Pages (CDN GitHub, terkompresi, tanpa unduh manual):
 
@@ -78,7 +99,7 @@ Opsi: `--debug` (build debug, error lebih jelas, ukuran lebih besar), `--output 
 | `tools/tests/test_web_preview.py` | 13 unit test untuk preset + verifier (ikut `dev_check.sh` dan CI). |
 | Job CI `web-preview` | Memasang Godot + template, mengekspor, menyajikan dengan `python -m http.server` dan memeriksa pengiriman `index.wasm`/`index.pck` lewat HTTP, lalu mengunggah artefak `web-preview` (berisi `web/` + `README.txt`). |
 
-`web/` adalah **output**, bukan sumber: sudah di-`.gitignore`. Jangan commit isinya.
+`web/` adalah **output yang sengaja di-commit** (lihat §0): jangan mengeditnya dengan tangan, dan jangan menganggap diff-nya sebagai perubahan sumber. Isinya disegarkan oleh job CI `web-preview`; `exports/` tetap di-`.gitignore`.
 
 ## 4. Pengaturan renderer
 

@@ -65,9 +65,10 @@ python -m http.server 800 --bind 0.0.0.0
 # http://localhost:800/web/    raw Godot build
 ```
 
-The Godot payload lives in the git-ignored `web/` directory. Get it from CI (Actions → *Godot CI* → latest run →
-artifact `web-preview`, ~10 MB, extracted into the repository root), from GitHub Pages (enable *Settings → Pages →
-Source: GitHub Actions*, then run the workflow — nothing to download), or build it locally with Godot 4.7.2:
+The Godot payload lives in `web/` and **is committed** (≈39 MB, refreshed by the `web-preview` CI job), so a plain
+`git pull` is enough to play. The ~10 MB `web-preview` artifact from Actions is still there as a fallback, GitHub Pages
+(*Settings → Pages → Source: GitHub Actions*) removes the download entirely, and a local export needs only the web
+export templates that are already in the repository (`engine/web_templates/`):
 
 ```bash
 ./scripts/install_godot.sh --with-templates

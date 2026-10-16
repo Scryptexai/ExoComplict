@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - main
+      - "arena/**"
   pull_request:
   workflow_dispatch:
 
@@ -90,6 +91,10 @@ jobs:
   web-preview:
     name: Web preview build (WebAssembly)
     runs-on: ubuntu-latest
+    # contents: write is only used by the "commit the payload" step below, and
+    # that step runs on push events to this repository only.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -191,6 +196,44 @@ jobs:
           path: exports/web-preview
           if-no-files-found: error
           retention-days: 14
+
+      - name: Stage the web export templates for offline builds
+        run: |
+          # Mirror the Scary-Night layout: keep the *web* export templates in the
+          # repository so a local export needs no 1.2 GB template download.
+          templates_root="${XDG_DATA_HOME:-$HOME/.local/share}/godot/export_templates"
+          version_dir="$(find "$templates_root" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort | tail -n 1)"
+          echo "templates directory: ${version_dir:-<none>}"
+          mkdir -p engine/web_templates
+          staged=0
+          for name in web_nothreads_release.zip web_nothreads_debug.zip web_release.zip web_debug.zip; do
+            if [[ -n "$version_dir" && -f "$version_dir/$name" ]]; then
+              cp "$version_dir/$name" "engine/web_templates/$name"
+              staged=$((staged + 1))
+            fi
+          done
+          echo "staged $staged template archive(s)"
+          ls -lh engine/web_templates || true
+          echo "::notice title=Web export templates staged::${staged} archive(s) in engine/web_templates"
+
+      - name: Commit the payload and templates into the repository
+        # Pushes only: PR runs from forks get a read-only token. The commit is
+        # what makes "git pull + python -m http.server 800" play the game.
+        if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[skip ci]')
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for path in web engine/web_templates; do
+            [[ -e "$path" ]] && git add "$path"
+          done
+          if git diff --cached --quiet; then
+            echo "Payload and templates are unchanged; nothing to commit."
+            exit 0
+          fi
+          git commit -m "Refresh the committed web payload and templates [skip ci]" \
+            -m "Exported by the web-preview job of run ${GITHUB_RUN_ID} from ${GITHUB_SHA:0:7}." \
+            -m "Generated output only; no source changes belong here."
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Publish web preview summary
         if: always()
