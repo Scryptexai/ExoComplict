@@ -103,7 +103,7 @@ Prioritas di bawah memakai urutan dependensi di `DEVELOPMENT_ROADMAP.md` §5: ve
 |---|---|---|---|---|
 | G1 | ~~Belum ada verifikasi runtime~~ **Tertutup di CI** | — | Selesai: `install_godot.sh` + `run_smoke_tests.sh` dijalankan di CI | ✅ CI #1: 9/9 smoke test exit code 0. Sisa kecil: belum dijalankan di mesin dev (F5/inspeksi scene) |
 | G2 | ~~Tidak ada CI~~ **Tertutup** | — | Selesai: `.github/workflows/godot-ci.yml` | ✅ Job statis + job engine hijau pada run pertama |
-| G3 | Phase 0 Android belum lulus (gate E): JDK, SDK/ADB, preset lokal, APK, device | Renderer, kontrol sentuh, dan performa belum dapat divalidasi | Pasang JDK + Android SDK, buat preset `Android`, jalankan `./scripts/export_android_debug.sh`, install via `adb` | APK debug terpasang dan dijalankan di perangkat baseline |
+| G3 | Phase 0 Android belum lulus (gate E): JDK, SDK/ADB, preset lokal, APK, device | Renderer, kontrol sentuh, dan performa belum dapat divalidasi | **Tooling siap:** `scripts/setup_android_sdk.sh` (deteksi JDK/SDK, `--install-packages`, env file di luar repo), `tools/android_preset.py` (scaffold/patch/check preset tanpa GUI), dan runbook [`ANDROID_BASELINE.md`](ANDROID_BASELINE.md) dengan checklist perangkat + prosedur profiling. Sisanya butuh perangkat nyata | APK debug terpasang dan dijalankan di perangkat baseline, checklist §6 lulus, tabel §7 terisi |
 | G4 | Aset karakter/senjata tidak valid atau tidak ada; tidak ada rig/animasi | Phase 5 terblokir; presentasi tidak dapat naik kelas | Sediakan GLB berig (atau jalankan Blender) + validasi impor; `HERO_01.glb` (2 byte) dihapus/ditandai | Satu karakter berig + satu senjata terimpor dan tampil benar di Godot |
 
 ### P1 — melengkapi core loop (gate D & pengalaman inti)
@@ -114,7 +114,7 @@ Prioritas di bawah memakai urutan dependensi di `DEVELOPMENT_ROADMAP.md` §5: ve
 | G6 | Audio 0% | "Sensasi menembak" (pillar 3) tidak bisa dinilai; feedback kombat tidak lengkap | Tambahkan bus + `AudioStreamPlayer` untuk muzzle, impact, hit, eliminasi, reward, UI, ambience; aset CC0 berlisensi; batasi jumlah suara bersamaan untuk mobile |
 | G7 | VFX minimal (tanpa partikel/trail/impact) | Readability ancaman & kepuasan menembak lemah | Muzzle flash, impact, explosion Nova, chain Arc, death burst; batasi overdraw berdasarkan pengukuran device |
 | G8 | Musuh tanpa navigasi/obstacle avoidance | Musuh dapat tersangkut di cover/ramp → wave tidak selesai → sesi `BLOCKED` | Minimal steering menghindari tembok (raycast kiri/kanan) atau `NavigationRegion3D` + `NavigationAgent3D` bila profiling mengizinkan; tambahkan test navigasi di smoke |
-| G9 | Tidak ada telemetry internal (FPS/frame time, jumlah musuh aktif, draw call) | Profiling Phase 6 akan menebak-nebak | Tambahkan overlay debug opsional (`Performance.get_monitor`) yang dapat dimatikan di build rilis |
+| G9 | Tidak ada telemetry internal (FPS/frame time, jumlah musuh aktif, draw call) | Profiling Phase 6 akan menebak-nebak; sementara ini hanya bisa lewat remote debug Editor (`Debugger > Monitors`) | Tambahkan overlay debug opsional (`Performance.get_monitor`) yang dapat dimatikan di build rilis |
 | G10 | Tidak ada menu pengaturan & safe-area awareness | Tidak siap untuk perangkat nyata (layar berponi, sensitivitas berbeda) | `DisplayServer.get_display_safe_area()` untuk HUD; slider sensitivitas/volume; simpan ke file save yang sama |
 
 ### P2 — presentasi & efisiensi
@@ -178,9 +178,17 @@ python3 tools/project_doctor.py            # atau: .venv/bin/python tools/projec
 ./scripts/run_smoke_tests.sh --list
 ./scripts/run_smoke_tests.sh wave_director_smoke
 
-# 4. Preflight toolchain & export Android (butuh JDK + Android SDK + preset lokal)
+# 4. Toolchain Android: deteksi/pasang JDK+SDK, tulis env file, lalu preflight
+./scripts/setup_android_sdk.sh --guide
+./scripts/setup_android_sdk.sh --install-packages
 ./scripts/check_toolchain.sh
-./scripts/export_android_debug.sh
+
+# 5. Preset Android lokal (git-ignored) tanpa GUI Editor
+python3 tools/android_preset.py scaffold --package-id com.studioanda.projectoverdrive
+python3 tools/android_preset.py check
+
+# 6. Build APK debug, lalu ikuti runbook perangkat + profiling
+./scripts/export_android_debug.sh        # lihat ANDROID_BASELINE.md untuk langkah adb
 ```
 
 Lint GDScript memakai `.venv`:

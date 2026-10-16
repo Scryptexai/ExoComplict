@@ -9,6 +9,7 @@
 - [`game/assets/world/kenney_space_kit/ASSET_PROVENANCE.md`](game/assets/world/kenney_space_kit/ASSET_PROVENANCE.md) — downloaded Kenney GLB candidates, CC0/source provenance, hashes, and rig inspection; not yet instantiated by gameplay scenes.
 - [`WORLD_BLOCKOUT.md`](WORLD_BLOCKOUT.md) — world zones, route layout, modular asset inventory, and implementation notes.
 - [`DEVELOPMENT_ROADMAP.md`](DEVELOPMENT_ROADMAP.md) — project phases, scope gates, risks, and next steps.
+- [`ANDROID_BASELINE.md`](ANDROID_BASELINE.md) — gate-E runbook: JDK/SDK setup, local Android preset, APK build, device test and profiling checklist.
 - [`GAP_ANALYSIS.md`](GAP_ANALYSIS.md) — verified-vs-claimed status, per-system gaps, prioritized backlog, and how to run the new tooling.
 - [`PROJECT_DECISIONS.md`](PROJECT_DECISIONS.md) — provisional gameplay and technical decisions.
 - [`GAME_CONCEPT.md`](GAME_CONCEPT.md) — source game and technical design concept.
@@ -54,14 +55,26 @@ PC fallback controls: WASD to move, hold right mouse and drag to aim, hold left 
 
 ## Android import/export workflow
 
-The project structure is prepared for Android packaging: runtime KayKit GLTFs are explicitly preloaded as imported `PackedScene` resources so Godot can trace their BIN/texture dependencies. A local Godot Android export preset is still required. Create it in the Editor (`Project > Export > Add... > Android`), set the team's package ID and debug options, and configure matching SDK/JDK/export templates. `game/export_presets.cfg` is intentionally git-ignored because it may contain machine-local paths and signing settings.
+The project structure is prepared for Android packaging: runtime KayKit GLTFs are explicitly preloaded as imported `PackedScene` resources so Godot can trace their BIN/texture dependencies. A local Godot Android export preset is still required. Create it in the Editor (`Project > Export > Add... > Android`), set the team's package ID and debug options, and configure matching SDK/JDK/export templates. `game/export_presets.cfg` is intentionally git-ignored because it may contain machine-local paths and signing settings; `tools/android_preset.py` creates, patches, and validates it from the command line.
 
-After installing the pinned toolchain and creating a local preset named `Android`, run:
+The local toolchain and preset can be prepared without the Editor GUI:
+
+```bash
+./scripts/install_godot.sh --with-templates     # pinned editor + export templates
+./scripts/setup_android_sdk.sh --guide           # JDK/SDK instructions per OS
+./scripts/setup_android_sdk.sh --install-packages
+python3 tools/android_preset.py scaffold --package-id com.yourstudio.projectoverdrive
+python3 tools/android_preset.py check
+```
+
+Then run:
 
 ```bash
 ./scripts/check_toolchain.sh
 ./scripts/export_android_debug.sh
 ```
+
+`ANDROID_BASELINE.md` covers the device installation commands, the manual touch/pause/retry checklist, the profiling procedure, and the gate-E acceptance criteria.
 
 The export script imports in headless Editor mode, runs all `game/tests/*_smoke.gd` scripts, exports `exports/project-overdrive-debug.apk`, and checks the APK archive when `unzip` is installed. Override the preset/output with `ANDROID_EXPORT_PRESET` and `ANDROID_APK_PATH`; set `GODOT_BIN` if the executable is not named `godot` or `godot4`. It does not install SDK packages, create release signing keys, or deploy to a device. **This workflow is prepared, not executed here:** Godot, JDK, Android SDK/ADB and Gradle are unavailable in the current environment, so no APK or Android runtime result is claimed. Use [`TOOLCHAIN_SETUP.md`](TOOLCHAIN_SETUP.md) for setup details.
 

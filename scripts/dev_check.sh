@@ -31,7 +31,7 @@ fi
 # --------------------------------------------------------------------------- #
 # 1. GDScript static analysis (gdtoolkit)
 # --------------------------------------------------------------------------- #
-printf '[1/3] GDScript static analysis\n'
+printf '[1/4] GDScript static analysis\n'
 
 PYTHON_BIN=""
 if [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
@@ -99,7 +99,7 @@ printf '\n'
 # --------------------------------------------------------------------------- #
 # 2. Static project doctor
 # --------------------------------------------------------------------------- #
-printf '[2/3] Static project doctor (references, contracts, assets, docs)\n'
+printf '[2/4] Static project doctor (references, contracts, assets, docs)\n'
 DOCTOR="$ROOT_DIR/tools/project_doctor.py"
 if [[ ! -f "$DOCTOR" ]]; then
   step_failed 'tools/project_doctor.py is missing'
@@ -120,7 +120,40 @@ printf '\n'
 # --------------------------------------------------------------------------- #
 # 3. Smoke-test inventory
 # --------------------------------------------------------------------------- #
-printf '[3/3] Smoke-test inventory\n'
+printf '[3/4] Tooling self-tests\n'
+TOOLS_DIR="$ROOT_DIR/tools"
+if [[ ! -d "$TOOLS_DIR/tests" ]]; then
+  step_skipped 'no tools/tests directory'
+elif [[ -z "$PYTHON_BIN" ]]; then
+  step_skipped 'no python3 interpreter available for tooling self-tests'
+else
+  unit_output="$("$PYTHON_BIN" -m unittest discover -s "$TOOLS_DIR/tests" -t "$TOOLS_DIR/tests" -p 'test_*.py' 2>&1)"
+  unit_code=$?
+  if (( unit_code == 0 )); then
+    ran_line="$(printf '%s\n' "$unit_output" | grep -E '^Ran [0-9]+ test' | tail -n 1)"
+    step_passed "tooling self-tests pass (${ran_line:-unittest suite})"
+  else
+    step_failed 'tooling self-tests failed (run: python3 -m unittest discover -s tools/tests -t tools/tests)'
+    printf '%s\n' "$unit_output" | tail -20 | sed 's/^/         /'
+  fi
+fi
+
+PRESET_FILE="$GAME_DIR/export_presets.cfg"
+if [[ ! -f "$PRESET_FILE" ]]; then
+  step_skipped 'no local Android preset (game/export_presets.cfg); create one with tools/android_preset.py when you start Android work'
+elif [[ -z "$PYTHON_BIN" ]]; then
+  step_skipped 'no python3 interpreter available for tools/android_preset.py'
+else
+  if preset_output="$("$PYTHON_BIN" "$TOOLS_DIR/android_preset.py" check --preset-file "$PRESET_FILE" 2>&1)"; then
+    step_passed 'local Android preset passes android_preset.py check'
+  else
+    step_failed 'local Android preset failed validation'
+    printf '%s\n' "$preset_output" | sed 's/^/         /'
+  fi
+fi
+printf '\n'
+
+printf '[4/4] Smoke-test inventory\n'
 shopt -s nullglob
 SMOKE_TESTS=("$GAME_DIR"/tests/*_smoke.gd)
 shopt -u nullglob

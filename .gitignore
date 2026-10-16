@@ -2,6 +2,8 @@
 .cache/
 .venv/
 venv/
+__pycache__/
+*.pyc
 
 # Godot generated/imported cache (do not commit)
 .godot/
