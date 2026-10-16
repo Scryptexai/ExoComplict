@@ -51,7 +51,7 @@ Catatan: verifikasi runtime headless kini berjalan otomatis di CI, tetapi **tida
 | Installer Godot | dijalankan dengan release tiruan lokal (`GODOT_RELEASE_BASE=file://…`), termasuk template `.tpz` | unduh, **verifikasi SHA-512**, ekstrak, symlink, direktori template: **lulus** |
 | Runner smoke test | dijalankan dengan stub `godot` (bukan engine) | Alur import → 9 test → log → ringkasan → exit code bekerja |
 | `check_toolchain.sh` | dijalankan dengan editor tiruan + tanpa JDK/SDK | Melaporkan 2 FAIL (Java, Android SDK) dan 2 WARN (Blender, LFS) dengan benar |
-| **Import Godot + 9 smoke test** | CI `Godot CI` #1 (run `38905670471`), job "Headless smoke tests (Godot 4.7.2)", langkah *Install pinned Godot editor*, *Report engine version*, dan *Run headless smoke tests* | **Lulus**: engine dipasang dengan verifikasi checksum, import headless berhasil, dan kesembilan test keluar dengan exit code 0. Log per test diunggah sebagai artefak `smoke-test-logs` |
+| **Import Godot + 9 smoke test** | CI `Godot CI` run `38905670471` (commit `d3fec14`) dan `38905987866` (commit `425e159`), job "Headless smoke tests (Godot 4.7.2)" | **Lulus dua kali.** Bukti yang dapat dibaca ulang dari annotation check-run: `Godot engine = 4.7.2.stable.official.ed1daf0bf` dan `Smoke tests = 9 passed, 0 failed (of 9, import ok)`. Log per test tersedia sebagai artefak CI `smoke-test-logs` |
 | Static check di CI | CI `Godot CI` #1, job "Static checks (gdtoolkit + project doctor)" | **Lulus** (gdtoolkit + project doctor berjalan di runner bersih) |
 
 **Belum diverifikasi (jangan diklaim):** tampilan render, performa/frame time, perilaku sentuh di perangkat, export/APK Android, rig/animasi, serta semua angka performa historis (`2.545 MeshInstance3D`, `138 StaticBody3D`) yang berasal dari checkout lama. Log lengkap tiap test tersedia sebagai artefak CI `smoke-test-logs` (unduhan artefak diblokir dari sandbox, jadi di sini buktinya adalah status langkah CI + ringkasan `exports/test-logs/summary.txt` yang juga dicetak ke job summary).
@@ -200,5 +200,6 @@ python3 -m venv .venv
 - Semua status "lulus" pada §2 berasal dari eksekusi di sesi ini (sandbox) atau dari run CI yang dapat diperiksa ulang, dan dapat direproduksi dengan perintah di §8.
 - Installer dan runner smoke test **diuji dua kali**: dengan release lokal tiruan dan stub binary (membuktikan alur skrip), lalu dengan Godot 4.7.2-stable asli di CI (membuktikan perilaku engine headless).
 - Hasil smoke test di CI membuktikan logika gameplay headless: gerak/traversal, tembakan & damage, wave, reward, HUD/touch routing, dan struktur world. Hasil itu **tidak** membuktikan tampilan render, frame time, maupun input di perangkat.
+- Engine yang dipakai CI adalah build resmi `4.7.2.stable.official.ed1daf0bf`, diverifikasi terhadap `SHA512-SUMS.txt` resmi pada saat pemasangan, sehingga kegagalan unduh/checksum akan menggagalkan job — bukan lolos diam-diam.
 - Tidak ada klaim tentang tampilan render, performa mobile, kontrol sentuh, atau APK pada dokumen ini.
 - Angka gameplay (damage, HP, fire rate, reward) adalah nilai prototype sesuai `PROJECT_DECISIONS.md`, bukan hasil balancing terukur.
