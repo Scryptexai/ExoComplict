@@ -78,7 +78,9 @@ export templates that are already in the repository (`engine/web_templates/`):
 ```
 
 A headless browser check for both entry pages is one command (`npm ci --prefix tools && node tools/web_qa.mjs`); CI runs
-the same gate, and it is what proves the engine actually boots instead of only serving bytes.
+the same gate, and it is what proves the engine actually boots instead of only serving bytes. Add `--tour` and the
+same run presses F10 in the engine, walks the eight review vantages and saves one screenshot per district — that is how
+`qa-evidence/world-kit/` was captured, from the shipped `web/` payload rather than from a separate scene.
 
 The web export is single-threaded (`variant/thread_support=false`) so it runs on a plain static server without
 COOP/COEP headers, and it uses a custom shell at `game/web_shell/index.html`. The web platform always uses the
