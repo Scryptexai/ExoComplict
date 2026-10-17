@@ -56,6 +56,10 @@ jobs:
         run: godot --version
 
       - name: Run headless smoke tests
+        env:
+          # A test that hangs is a failed test; cap it short enough that one
+          # regression cannot consume the job budget.
+          SMOKE_TEST_TIMEOUT: 60
         run: ./scripts/run_smoke_tests.sh
 
       - name: Publish verification evidence

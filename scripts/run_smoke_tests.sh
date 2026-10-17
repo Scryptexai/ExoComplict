@@ -165,6 +165,12 @@ for test_path in "${TESTS[@]}"; do
   fi
   if grep -qE 'SCRIPT ERROR|Parse Error|ERROR: Condition' "$test_log"; then
     printf '    engine reported script errors; see %s\n' "${test_log#"$ROOT_DIR"/}"
+    # The full job log is not downloadable from every environment; surface the
+    # first error line as an annotation so the failing call site is never a guess.
+    if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+      error_digest="$(grep -A2 -m1 -E 'SCRIPT ERROR|Parse Error|ERROR: Condition' "$test_log" | tr '\n' '|' | cut -c1-700)"
+      printf '::error title=Script error in %s::%s\n' "${test_name%.gd}" "${error_digest:-see log}"
+    fi
   fi
   # One annotation per test: the job log is not always retrievable (for example
   # from a restricted sandbox), and "which test hung" must never be a guess.
