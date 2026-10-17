@@ -452,6 +452,10 @@ func set_paused(paused: bool) -> void:
 		_pause_button.disabled = false
 	if is_instance_valid(_pause_panel):
 		_pause_panel.visible = paused and not _player_down
+		if _pause_panel.visible and is_instance_valid(_pause_resume_button):
+			_pause_resume_button.grab_focus()
+		elif is_instance_valid(_pause_resume_button) and _pause_resume_button.has_focus():
+			_pause_resume_button.release_focus()
 	if is_instance_valid(_pause_stats_label):
 		_pause_stats_label.text = "SCORE %s  ·  %s" % [_format_number(_run_score), _run_time]
 	if is_instance_valid(_scrim):
@@ -511,6 +515,7 @@ func show_results(
 		)
 	)
 	_results_panel.visible = true
+	_results_retry_button.grab_focus()
 	if is_instance_valid(_scrim):
 		_scrim.visible = true
 	_top_bar.visible = false
@@ -545,6 +550,8 @@ func hide_results() -> void:
 	if not is_instance_valid(_results_panel):
 		return
 	_results_panel.visible = false
+	if _results_retry_button.has_focus():
+		_results_retry_button.release_focus()
 	if is_instance_valid(_scrim):
 		_scrim.visible = get_tree().paused
 	_top_bar.visible = true
@@ -870,7 +877,7 @@ func _build_pause_menu() -> void:
 	_pause_resume_button = AegisButton.new()
 	_pause_resume_button.name = "ResumeButton"
 	_pause_resume_button.text = "RESUME"
-	_pause_resume_button.focus_mode = Control.FOCUS_NONE
+	_pause_resume_button.focus_mode = Control.FOCUS_ALL
 	_pause_resume_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_pause_resume_button.icon = AegisTheme.icon("play", true)
 	_pause_resume_button.add_theme_constant_override("icon_max_width", 18)
@@ -882,7 +889,7 @@ func _build_pause_menu() -> void:
 	_pause_restart_button = AegisButton.new()
 	_pause_restart_button.name = "RestartButton"
 	_pause_restart_button.text = "RESTART RUN"
-	_pause_restart_button.focus_mode = Control.FOCUS_NONE
+	_pause_restart_button.focus_mode = Control.FOCUS_ALL
 	_pause_restart_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_pause_restart_button.icon = AegisTheme.icon("arrow-counter-clockwise")
 	_pause_restart_button.add_theme_constant_override("icon_max_width", 18)
@@ -924,7 +931,7 @@ func _build_results_panel() -> void:
 	_results_retry_button = AegisButton.new()
 	_results_retry_button.name = "ResultsRetryButton"
 	_results_retry_button.text = "RETRY"
-	_results_retry_button.focus_mode = Control.FOCUS_NONE
+	_results_retry_button.focus_mode = Control.FOCUS_ALL
 	_results_retry_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_results_retry_button.icon = AegisTheme.icon("arrow-counter-clockwise")
 	_results_retry_button.add_theme_constant_override("icon_max_width", 18)
@@ -1564,6 +1571,11 @@ func _on_pause_pressed() -> void:
 
 
 func _on_results_retry_pressed() -> void:
+	Sfx.play_ui(&"ui_click")
+	retry_requested.emit()
+
+
+func _on_restart_pressed() -> void:
 	Sfx.play_ui(&"ui_click")
 	retry_requested.emit()
 

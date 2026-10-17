@@ -490,10 +490,27 @@ func _run_smoke_test() -> void:
 		fire_button.disabled and skill_button.disabled,
 		"fire and skill are disabled while the run is paused",
 	)
-	_tap_screen_button(controls, pause_button, 76)
+	var pause_panel := controls.get("_pause_panel") as PanelContainer
+	var resume_button := controls.get("_pause_resume_button") as Button
+	var restart_button := controls.get("_pause_restart_button") as Button
 	_expect(
-		not paused and String(pause_button.get_meta("aegis_state", "")) == "pause",
-		"RESUME restores play input",
+		(
+			pause_panel.is_visible_in_tree()
+			and resume_button.is_visible_in_tree()
+			and restart_button.is_visible_in_tree()
+			and (controls.get("_pause_stats_label") as Label).text.contains("SCORE")
+		),
+		"pause shows a run summary with visible resume and restart actions",
+	)
+	_expect(resume_button.has_focus(), "pause focuses RESUME by default")
+	_tap_screen_button(controls, resume_button, 76)
+	_expect(
+		(
+			not paused
+			and not pause_panel.visible
+			and String(pause_button.get_meta("aegis_state", "")) == "pause"
+		),
+		"touching RESUME returns to play and closes the pause menu",
 	)
 
 	var run_stats: Node = main_scene.get_node("RunStats")
@@ -524,6 +541,19 @@ func _run_smoke_test() -> void:
 			and not skill_button.disabled
 		),
 		"touching results RETRY restores the player and returns to the HUD",
+	)
+	# Restart is a separate pause action; it must unpause the tree and reset the
+	# run, not leave the world frozen behind a dismissed menu.
+	_tap_screen_button(controls, pause_button, 91)
+	_tap_screen_button(controls, restart_button, 92)
+	_expect(
+		(
+			not paused
+			and not pause_panel.visible
+			and not player.call("is_defeated")
+			and is_equal_approx(health_bar.value, 100.0)
+		),
+		"RESTART RUN clears the pause state and begins a fresh session",
 	)
 	print("Playability/HUD smoke test: %d failure(s)" % _failures)
 	main_scene.queue_free()

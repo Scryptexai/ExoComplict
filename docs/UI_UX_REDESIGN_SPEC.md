@@ -1,13 +1,14 @@
 # AEGIS — Spesifikasi redesain UI/UX
 
-**Status:** proposal riset · **belum ada kode game yang diubah** · 17 Oktober 2026
+**Status:** arah visual disetujui · implementasi M0–M6 sedang berjalan · 18 Oktober 2026
 **Branch:** `arena/5257bce8-cyber-strike` · **PR:** #1 (open, jangan di-merge)
 **Papan visual:** [`docs/ui-redesign/board/`](ui-redesign/board) — 7 board, PNG + SVG
 
 Dokumen ini menjawab satu pertanyaan: **seperti apa UI/UX Cyber-Strike kalau
 dirancang sebagai game shooter komersial**, bukan sebagai HUD debug. Semua angka
-di bawah sudah dipakai di papan visual dan siap dipindahkan ke Godot. Tidak ada
-satu baris pun kode game yang disentuh pada fase ini.
+di bawah dipakai di papan visual. Arah AEGIS Industrial sudah disetujui; status
+implementasi per milestone ada di §13. Angka pada board adalah target desain,
+bukan bukti bahwa semua fitur sudah tersedia di build.
 
 ---
 
@@ -39,7 +40,7 @@ sudah ada di dunia, tetapi merapikannya menjadi sistem:
 
 ---
 
-## 1. Keputusan yang perlu disetujui
+## 1. Keputusan visual (disetujui)
 
 1. **Arah visual A — Aegis Industrial**, aksen amber `#FFB020`.
 2. **Tipografi:** Chakra Petch / Barlow / JetBrains Mono (OFL, ikut di repo).
@@ -47,8 +48,8 @@ sudah ada di dunia, tetapi merapikannya menjadi sistem:
 4. **Mobile:** landscape sebagai mode utama, portrait tetap didukung.
 5. **HUD editor** dikerjakan pada milestone M4, bukan ditunda ke v2.
 
-Kalau salah satu ditolak, bagian yang bergantung padanya (layout, token, board)
-direvisi dulu sebelum implementasi.
+Kelima keputusan disetujui pada fase riset. Implementasi dimulai sesudahnya;
+status dan keterbatasannya dilacak per milestone, bukan dianggap selesai otomatis.
 
 ---
 
@@ -557,15 +558,20 @@ node tools/web_qa.mjs --url http://127.0.0.1:8133 --page / \
 
 ## 13. Milestone implementasi
 
-| # | Isi | File utama | Selesai bila |
-|---|---|---|---|
-| M0 | Token + theme + font + ikon | `tokens.gd`, `aegis_theme.gd`, assets | HUD lama tampil dengan token baru tanpa layout berubah |
-| M1 | HUD desktop baru | `hud_desktop.gd` | Board 02 cocok di 1280×720; smoke hijau |
-| M2 | HUD sentuh + portrait/landscape | `hud_touch.gd` | Board 03 cocok di 390×844 & 844×390 |
-| M3 | Pause + results | `pause_menu.gd`, `results_panel.gd` | Board 05; ESC/focus benar |
-| M4 | Settings + HUD editor | `settings_menu.gd`, `hud_editor.gd` | Board 06; setting persist |
-| M5 | Polish + a11y | theme, motion | `reduce_motion`, kontras, 44px |
-| M6 | QA + evidence | smoke, `web_qa` | Semua frame + smoke 13/13 |
+| # | Isi | File utama | Selesai bila | Status |
+|---|---|---|---|---|
+| M0 | Token + theme + font + ikon | `aegis_tokens.gd`, `aegis_theme.gd`, `assets/ui/` | HUD lama tampil dengan token baru | ✅ |
+| M1 | HUD desktop baru | `touch_controls.gd`, `hud_layout.gd`, `hud_renderer.gd` | Board 02 cocok di 1280×720; smoke hijau | ✅ smoke 13/13 (2026-10-17) |
+| M2 | HUD sentuh + portrait/landscape | `hud_layout.gd` (`touch_portrait`, `touch_landscape`) | Board 03 cocok di 390×844 & 844×390 | ⏳ kode ada, verifikasi visual |
+| M3 | Pause + results | `_build_pause_menu`, `_build_results_panel` | Board 05; ESC/focus benar | ⏳ pause menu + results card ada |
+| M4 | Settings + HUD editor | `settings_menu.gd`, `hud_editor.gd` | Board 06; setting persist | — |
+| M5 | Polish + a11y | theme, motion | `reduce_motion`, kontras, 44px | — |
+| M6 | QA + evidence | smoke, `web_qa` | Semua frame + smoke 13/13 | — |
+
+Catatan implementasi: HUD tinggal di satu facade (`touch_controls.gd`) dengan
+geometri di `hud_layout.gd` dan gambar reticle/joystick/vignette di
+`hud_renderer.gd`. Nama file lama (`hud_desktop.gd`, `pause_menu.gd`, …) tidak
+dipakai supaya 13 smoke test yang membaca field privat HUD tetap valid.
 
 Estimasi kasar: M0–M2 = 2 hari, M3–M4 = 2 hari, M5–M6 = 1 hari.
 
