@@ -13,9 +13,11 @@ var remaining: float = 0.0:
 	set(value):
 		remaining = clampf(value, 0.0, 1.0)
 		queue_redraw()
-var ready: bool = true:
+## Named `available`, not `ready`: Node already has a `ready` signal and
+## GDScript rejects a property that collides with it.
+var available: bool = true:
 	set(value):
-		ready = value
+		available = value
 		queue_redraw()
 var ring_color: Color = AegisTokens.ABILITY
 var track_color: Color = Color(AegisTokens.LINE, 0.85)
@@ -31,7 +33,7 @@ func _draw() -> void:
 	var center := size * 0.5
 	var radius := maxf(minf(size.x, size.y) * 0.5 - stroke, 1.0)
 	draw_arc(center, radius, START_ANGLE, START_ANGLE + SWEEP, 40, track_color, stroke, true)
-	if ready:
+	if available:
 		draw_arc(
 			center, radius, START_ANGLE, START_ANGLE + SWEEP, 40, ring_color, stroke + 0.5, true
 		)

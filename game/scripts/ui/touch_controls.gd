@@ -400,7 +400,7 @@ func _refresh_skill_button() -> void:
 		_emp_chip.disabled = _skill_cooldown_remaining > 0.0 or _player_down
 	if is_instance_valid(_skill_ring):
 		_skill_ring.remaining = fraction
-		_skill_ring.ready = _skill_cooldown_remaining <= 0.0
+		_skill_ring.available = _skill_cooldown_remaining <= 0.0
 	_skill_button.set_meta(
 		"aegis_state", "ready" if _skill_cooldown_remaining <= 0.0 else "cooling"
 	)
