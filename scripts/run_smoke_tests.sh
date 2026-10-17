@@ -128,6 +128,10 @@ if (( DO_IMPORT == 1 )); then
   fi
 fi
 
+# Per-test annotations are buffered: GitHub keeps only the first ten annotations
+# of a step, so printing them as tests finish could push the failure line of the
+# eleventh test out of sight. The failure summary is emitted first instead.
+ANNOTATIONS=()
 PASSED=0
 FAILED=0
 FAILED_NAMES=()
@@ -170,7 +174,7 @@ for test_path in "${TESTS[@]}"; do
       124) test_verdict="FAIL (timeout ${TEST_TIMEOUT}s)" ;;
       *) test_verdict="FAIL (exit $test_status)" ;;
     esac
-    printf '::notice title=Smoke %s::%s\n' "${test_name%.gd}" "$test_verdict"
+    ANNOTATIONS+=("::notice title=Smoke ${test_name%.gd}::$test_verdict")
   fi
 done
 
@@ -191,12 +195,15 @@ printf 'Machine-readable summary: %s\n' "${SUMMARY_FILE#"$ROOT_DIR"/}"
 # Surface the evidence in GitHub Actions annotations, which stay readable from
 # the API even when the full job log is not downloadable.
 if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
-  printf '::notice title=Godot engine::%s\n' "$GODOT_VERSION"
-  printf '::notice title=Smoke tests::%d passed, %d failed (of %d, import %s)\n' \
-    "$PASSED" "$FAILED" "${#TESTS[@]}" "$IMPORT_STATE"
   if (( FAILED > 0 )); then
     printf '::error title=Failed smoke tests::%s\n' "${FAILED_NAMES[*]}"
   fi
+  printf '::notice title=Godot engine::%s\n' "$GODOT_VERSION"
+  printf '::notice title=Smoke tests::%d passed, %d failed (of %d, import %s)\n' \
+    "$PASSED" "$FAILED" "${#TESTS[@]}" "$IMPORT_STATE"
+  for annotation in "${ANNOTATIONS[@]}"; do
+    printf '%s\n' "$annotation"
+  done
 fi
 if (( FAILED > 0 )); then
   printf 'Failed tests:\n'
