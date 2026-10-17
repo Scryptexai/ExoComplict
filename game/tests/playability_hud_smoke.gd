@@ -108,31 +108,38 @@ func _run_smoke_test() -> void:
 			and weapon_button.text == "PULSE RIFLE"
 			and skill_button.text.contains("READY")
 			and not skill_button.disabled
-			and pause_button.text == "PAUSE"
+			and String(pause_button.get_meta("aegis_state", "")) == "pause"
 		),
 		"fire, weapon-cycle, EMP skill, and pause buttons are visible and labeled",
 	)
 	# Audio has no settings screen yet, so the mute control living on the HUD is
 	# the only way a player can silence the game.
 	_expect(
-		is_instance_valid(sound_button) and sound_button.text == "SOUND" and not Sfx.is_muted(),
+		(
+			is_instance_valid(sound_button)
+			and String(sound_button.get_meta("aegis_state", "")) == "on"
+			and not Sfx.is_muted()
+		),
 		"the HUD starts with sound on and a mute control",
 	)
 	_tap_screen_button(controls, sound_button, 78)
 	_expect(
-		Sfx.is_muted() and sound_button.text == "MUTED",
+		Sfx.is_muted() and String(sound_button.get_meta("aegis_state", "")) == "muted",
 		"touching SOUND mutes the audio and says so",
 	)
 	_tap_screen_button(controls, sound_button, 79)
 	_expect(
-		not Sfx.is_muted() and sound_button.text == "SOUND",
+		not Sfx.is_muted() and String(sound_button.get_meta("aegis_state", "")) == "on",
 		"touching MUTED restores the audio",
 	)
 	# The HUD label must follow the real audio state, not flip blindly: mute from
 	# outside (as the M key or a restored preference does) and let the label catch up.
 	Sfx.set_muted(true)
 	controls.call("set_sound_muted", Sfx.is_muted())
-	_expect(sound_button.text == "MUTED", "the HUD label follows the audio state it is told about")
+	_expect(
+		String(sound_button.get_meta("aegis_state", "")) == "muted",
+		"the HUD label follows the audio state it is told about",
+	)
 	Sfx.set_muted(false)
 	controls.call("set_sound_muted", Sfx.is_muted())
 	# Narrow screens lose the three-column bar; the numbers must move, not vanish.
@@ -427,7 +434,10 @@ func _run_smoke_test() -> void:
 		"fire and skill are disabled while the run is paused",
 	)
 	_tap_screen_button(controls, pause_button, 76)
-	_expect(not paused and pause_button.text == "PAUSE", "RESUME restores play input")
+	_expect(
+		not paused and String(pause_button.get_meta("aegis_state", "")) == "pause",
+		"RESUME restores play input",
+	)
 
 	var run_stats: Node = main_scene.get_node("RunStats")
 	run_stats.call("start_run")

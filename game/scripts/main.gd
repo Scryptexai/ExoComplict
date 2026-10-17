@@ -66,6 +66,8 @@ func _process(_delta: float) -> void:
 		_reset_session()
 	if Input.is_action_just_pressed("toggle_sound"):
 		_on_sound_mute_requested()
+	if Input.is_action_just_pressed("emp_pulse"):
+		player.activate_skill()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -201,3 +203,13 @@ func _update_status() -> void:
 	var wave_state := wave_director.get_state_label()
 	touch_controls.set_wave_status(wave_number, active_enemies, remaining_enemies, wave_state)
 	touch_controls.set_status(status)
+	(
+		touch_controls
+		. set_run_summary(
+			run_stats.run_score,
+			run_stats.bp_earned,
+			run_stats.eliminations,
+			run_stats.get_survival_time_text(),
+			_shots_fired,
+		)
+	)

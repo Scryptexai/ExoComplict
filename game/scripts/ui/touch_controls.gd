@@ -1,6 +1,14 @@
 class_name TouchControls
 extends Control
 
+## Runtime HUD for Project Overdrive, built on the AEGIS design language
+## (docs/UI_UX_REDESIGN_SPEC.md).
+##
+## The script keeps its historical name and signal surface because main.gd and
+## the smoke tests drive it directly. Inside, it has three layout branches:
+## desktop, touch portrait and touch landscape. All three share the same widgets
+## and tokens so the interface never drifts between platforms.
+
 signal movement_changed(value: Vector2)
 signal look_delta(value: Vector2)
 signal fire_changed(pressed: bool)
@@ -11,75 +19,93 @@ signal pause_requested
 signal retry_requested
 signal sound_mute_requested
 
-const HIT_CONFIRM_DURATION: float = 0.16
+const HIT_CONFIRM_DURATION: float = AegisTokens.HIT_MARKER
 const HELP_VISIBLE_SECONDS: float = 10.0
-# Below this width the three-column top bar stops fitting a phone: the run-data
-# card moves into a single compact card under the bar instead of disappearing.
+## Below this width the top bar stops fitting three cards: the run data moves
+## into a single compact strip under it instead of disappearing.
 const NARROW_WIDTH: float = 760.0
-## Smallest font the HUD may use, in *physical* pixels. The floor matters more
-## than the base size: a font that is 11 logical px inside a canvas the engine
-## then scales down to a third is only ~3 px on the glass, which is unreadable no
-## matter how well it fits the card.
-const MIN_PHYSICAL_FONT_PX: float = 11.0
-## Lines the narrow-screen data card must fit: enemy counts plus the run summary
-## wraps into three lines at phone width.
-# The compact card under the top bar holds four short lines on a phone:
-# enemies, score/time, target/shots. Three wrapped lines were not enough for
-# the fourth and clipped "Shots" onto the card border.
+## Smallest font the HUD may use, in *physical* pixels. A font that is 11
+## logical px inside a canvas the engine then scales down to a third is only
+## ~3 px on the glass, which is unreadable no matter how well it fits the card.
+const MIN_PHYSICAL_FONT_PX: float = AegisTokens.MIN_PHYSICAL_FONT_PX
+## Lines the narrow-screen data strip must fit: the enemy line plus the wrapped
+## run summary. Four gives the wrapped summary one line of slack.
 const COMPACT_LINES: int = 4
 const HELP_FADE_SECONDS: float = 1.5
-# The browser shell (game/web_shell/index.html) draws its chips along the top of
-# the page; the HUD keeps clear of them instead of overlapping.
+## The browser shell (game/web_shell/index.html) draws chips along the top of
+## the page; the HUD keeps clear of them instead of overlapping.
 const WEB_TOP_INSET: float = 46.0
-const DAMAGE_FLASH_DURATION: float = 0.28
-const DEFAULT_HEALTH_COLOR := Color(0.18, 0.88, 0.65, 1.0)
-const WARNING_HEALTH_COLOR := Color(1.0, 0.68, 0.2, 1.0)
-const CRITICAL_HEALTH_COLOR := Color(1.0, 0.24, 0.22, 1.0)
+const DAMAGE_FLASH_DURATION: float = AegisTokens.DAMAGE_VIGNETTE
 
+const DEFAULT_HEALTH_COLOR: Color = AegisTokens.OK
+const WARNING_HEALTH_COLOR: Color = AegisTokens.ACCENT
+const CRITICAL_HEALTH_COLOR: Color = AegisTokens.DANGER
+
+# --- Interaction state ----------------------------------------------------- #
 var _move_touch_id: int = -1
 var _look_touch_id: int = -1
 var _fire_touch_id: int = -1
 var _pressed_touch_buttons: Dictionary = {}
 var _move_origin: Vector2 = Vector2.ZERO
 var _move_position: Vector2 = Vector2.ZERO
+var _touch_mode: bool = false
+var _narrow: bool = false
+var _portrait: bool = false
+var _physical_size: Vector2 = Vector2.ZERO
+var _stretch: float = 1.0
 var _ui_scale: float = 1.0
-var _top_bar: HBoxContainer
-var _health_card: PanelContainer
-var _wave_card: PanelContainer
-var _run_card: PanelContainer
-var _health_bar: ProgressBar
+var _top_inset: float = 0.0
+
+# --- Widgets --------------------------------------------------------------- #
+var _top_bar: Control
+var _health_card: AegisPanel
+var _wave_card: AegisPanel
+var _system_row: HBoxContainer
+var _run_card: AegisPanel
+var _score_chip: AegisPanel
+var _compact_card: AegisPanel
+var _help_panel: AegisPanel
+var _desktop_weapon_card: AegisPanel
+var _ads_chip: AegisPanel
+var _emp_chip: AegisButton
+var _scrim: ColorRect
+
+var _health_heading: Label
 var _health_value_label: Label
+var _health_bar: SegmentedBar
 var _wave_title_label: Label
 var _wave_state_label: Label
 var _wave_enemy_label: Label
+var _wave_chip_label: Label
+var _wave_icon: TextureRect
 var _status_label: Label
-var _compact_card: PanelContainer
+var _score_value_label: Label
 var _compact_label: Label
 var _help_label: Label
-var _help_panel: PanelContainer
 var _desktop_hint: Label
-## True when the HUD should show thumb controls. A desktop browser and the
-## editor simulator both report no touchscreen, which used to leave the FIRE /
-## AIM / EMP cluster sitting on top of the scene and eating mouse clicks.
-var _touch_mode: bool = false
-var _narrow: bool = false
-var _physical_size: Vector2 = Vector2.ZERO
-var _stretch: float = 1.0
-# Every button a touch may land on, registered when it is built. Keeping this
-# list next to the buttons (instead of hard-coding it in the hit test) is what
-# stops a new control from being invisible to touch.
+var _pause_label: Label
+var _results_summary: Label
+var _results_title: Label
+var _desktop_weapon_name: Label
+var _desktop_weapon_meta: Label
+var _ads_label: Label
+
+var _fire_button: AegisButton
+var _weapon_button: AegisButton
+var _skill_button: AegisButton
+var _pause_button: AegisButton
+var _sound_button: AegisButton
+var _aim_button: AegisButton
+var _results_retry_button: AegisButton
+var _skill_ring: CooldownRing
+var _results_panel: AegisPanel
+
 var _touch_buttons: Array[Button] = []
 var _compact_wave_text: String = "ENEMIES  0 ACTIVE  ·  0 LEFT"
-var _fire_button: Button
-var _weapon_button: Button
-var _skill_button: Button
-var _pause_button: Button
-var _sound_button: Button
-var _aim_button: Button
-var _pause_label: Label
-var _results_panel: PanelContainer
-var _results_summary: Label
-var _results_retry_button: Button
+var _joystick_center: Vector2 = Vector2.ZERO
+var _joystick_radius: float = 64.0
+
+# --- Run state ------------------------------------------------------------- #
 var _player_down: bool = false
 var _hit_confirm_remaining: float = 0.0
 var _damage_flash_remaining: float = 0.0
@@ -89,7 +115,11 @@ var _skill_feedback_remaining: float = 0.0
 var _aiming: bool = false
 var _fire_flash_remaining: float = 0.0
 var _help_remaining: float = HELP_VISIBLE_SECONDS
-var _top_inset: float = 0.0
+var _run_score: int = 0
+var _run_bp: int = 0
+var _run_kos: int = 0
+var _run_time: String = "00:00"
+var _run_shots: int = 0
 
 
 func _ready() -> void:
@@ -128,6 +158,8 @@ func _process(delta: float) -> void:
 			_help_panel.modulate.a = clampf(_help_remaining / HELP_FADE_SECONDS, 0.0, 1.0)
 		if _help_remaining <= 0.0:
 			_help_panel.visible = false
+	if _aiming and not get_tree().paused:
+		needs_redraw = true
 	if needs_redraw:
 		queue_redraw()
 
@@ -138,9 +170,8 @@ func _input(event: InputEvent) -> void:
 			# A hybrid laptop or a browser that starts reporting touch after the
 			# first tap should still get the thumb controls.
 			set_touch_mode(true)
-		var local_position: Vector2 = event.position
 		if event.pressed:
-			_begin_touch(event.index, local_position)
+			_begin_touch(event.index, event.position)
 		else:
 			_end_touch(event.index, event.position)
 	elif event is InputEventScreenDrag:
@@ -156,6 +187,11 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+# --------------------------------------------------------------------------- #
+# Public API (kept compatible with main.gd and the smoke tests)
+# --------------------------------------------------------------------------- #
+
+
 func set_hud_health(current: float, maximum: float) -> void:
 	if not is_instance_valid(_health_bar) or not is_instance_valid(_health_value_label):
 		return
@@ -165,12 +201,20 @@ func set_hud_health(current: float, maximum: float) -> void:
 	_health_bar.value = safe_current
 	_health_value_label.text = "%d / %d" % [roundi(safe_current), roundi(safe_maximum)]
 	var health_ratio := safe_current / safe_maximum
-	var health_color := DEFAULT_HEALTH_COLOR
+	var health_color: Color = DEFAULT_HEALTH_COLOR
 	if health_ratio <= 0.3:
 		health_color = CRITICAL_HEALTH_COLOR
 	elif health_ratio <= 0.6:
 		health_color = WARNING_HEALTH_COLOR
-	_health_bar.add_theme_stylebox_override("fill", _make_progress_style(health_color))
+	_health_bar.add_theme_stylebox_override("fill", AegisTheme.flat_style(health_color))
+	_health_bar.add_theme_stylebox_override(
+		"background", AegisTheme.flat_style(Color(AegisTokens.PANEL_3, 0.95))
+	)
+	if is_instance_valid(_health_card):
+		_health_card.accent_color = health_color
+	_health_value_label.add_theme_color_override(
+		"font_color", health_color if health_ratio <= 0.6 else AegisTokens.INK
+	)
 
 
 func set_wave_status(
@@ -182,10 +226,32 @@ func set_wave_status(
 	if not is_instance_valid(_wave_title_label):
 		return
 	_wave_title_label.text = "WAVE %02d" % wave_number if wave_number > 0 else "FRONTIER DEFENSE"
-	_wave_state_label.text = state_text
+	_wave_state_label.text = state_text.to_upper()
 	_wave_enemy_label.text = "ENEMIES  %d ACTIVE  ·  %d LEFT" % [active_enemies, remaining_enemies]
+	_wave_chip_label.text = (
+		"WAVE %02d\n%d LEFT" % [wave_number, remaining_enemies]
+		if wave_number > 0
+		else "READY\n%d LEFT" % remaining_enemies
+	)
 	_compact_wave_text = _wave_enemy_label.text
 	_refresh_compact_label()
+
+
+## Explicit run numbers: the score chip needs the key figure, and parsing the
+## three-line status string would be fragile. main.gd calls this every update.
+func set_run_summary(score: int, bp: int, kos: int, time_text: String, shots: int) -> void:
+	_run_score = score
+	_run_bp = bp
+	_run_kos = kos
+	_run_time = time_text
+	_run_shots = shots
+	_refresh_score_chip()
+
+
+func _refresh_score_chip() -> void:
+	if not is_instance_valid(_score_value_label):
+		return
+	_score_value_label.text = "SCORE %s  ·  %s" % [_format_number(_run_score), _run_time]
 
 
 ## Reflects the audio state on the HUD button, wherever the change came from
@@ -193,10 +259,13 @@ func set_wave_status(
 func set_sound_muted(muted: bool) -> void:
 	if not is_instance_valid(_sound_button):
 		return
-	_sound_button.text = "MUTED" if muted else "SOUND"
-	var background := Color(0.2, 0.09, 0.09, 0.96) if muted else Color(0.09, 0.19, 0.25, 0.96)
-	var border := Color(1.0, 0.42, 0.34, 0.8) if muted else Color(0.18, 0.75, 0.91, 0.78)
-	_apply_button_theme(_sound_button, background, border)
+	_sound_button.icon = AegisTheme.icon("speaker-slash" if muted else "speaker-high", not muted)
+	_sound_button.set_meta("aegis_state", "muted" if muted else "on")
+	_sound_button.tooltip_text = "Unmute audio (M)" if muted else "Mute audio (M)"
+	AegisTheme.set_button_variant(_sound_button, "icon")
+	_sound_button.add_theme_color_override(
+		"font_color", AegisTokens.DANGER if muted else AegisTokens.INK
+	)
 
 
 ## The control hint is noise once the player has started playing; the first shot
@@ -207,14 +276,25 @@ func hide_help() -> void:
 	_help_remaining = 0.0
 
 
+## Bring the control hint back (called on retry and when the run starts).
+func show_help() -> void:
+	if not is_instance_valid(_help_panel):
+		return
+	_help_remaining = HELP_VISIBLE_SECONDS
+	_help_panel.modulate.a = 1.0
+	_help_panel.visible = true
+
+
 ## Switches the HUD between thumb controls and a keyboard/mouse legend. Public
-## because the browser QA and the HUD smoke test drive a touchscreen that the
-## headless display server does not report.
+## because browser QA and the smoke test drive a touchscreen that the headless
+## display server does not report.
 func set_touch_mode(enabled: bool) -> void:
 	if _touch_mode == enabled:
 		return
 	_touch_mode = enabled
 	_apply_input_mode()
+	_layout_controls()
+	queue_redraw()
 
 
 func is_touch_mode() -> bool:
@@ -222,13 +302,21 @@ func is_touch_mode() -> bool:
 
 
 func _apply_input_mode() -> void:
+	var desktop := not _touch_mode and not _narrow
 	for button in [_fire_button, _aim_button, _skill_button, _weapon_button]:
 		if is_instance_valid(button):
 			button.visible = _touch_mode
+	for control in [_desktop_weapon_card, _ads_chip, _emp_chip]:
+		if is_instance_valid(control):
+			control.visible = desktop
 	if is_instance_valid(_desktop_hint):
-		_desktop_hint.visible = not _touch_mode
-		_desktop_hint.modulate.a = 0.9
-	queue_redraw()
+		_desktop_hint.visible = desktop
+	if is_instance_valid(_skill_ring):
+		_skill_ring.visible = _touch_mode and not _narrow
+	if is_instance_valid(_sound_button):
+		_sound_button.visible = not _narrow
+	if is_instance_valid(_pause_button):
+		_pause_button.visible = true
 
 
 ## Lays the HUD out for an explicit viewport size. The public entry point uses
@@ -251,11 +339,12 @@ func show_damage_received() -> void:
 func set_status(text: String) -> void:
 	if is_instance_valid(_status_label):
 		_status_label.text = text
+	_parse_status_fallback(text)
 	_refresh_compact_label(text)
 
 
-## The run-data string is multi-line for the wide card; the compact card joins it
-## into one flowing line so a phone still shows every number.
+## The run-data string is multi-line for the wide card; the compact strip joins
+## it into one flowing line so a phone still shows every number.
 func _collapsed_run_text(source: String = "") -> String:
 	var text := source
 	if text.is_empty() and is_instance_valid(_status_label):
@@ -272,6 +361,8 @@ func _refresh_compact_label(source: String = "") -> void:
 func set_weapon_label(display_name: String) -> void:
 	if is_instance_valid(_weapon_button):
 		_weapon_button.text = display_name.to_upper()
+	if is_instance_valid(_desktop_weapon_name):
+		_desktop_weapon_name.text = display_name.to_upper()
 
 
 func set_skill_cooldown(remaining_seconds: float, total_seconds: float) -> void:
@@ -288,17 +379,31 @@ func show_skill_feedback(targets_hit: int) -> void:
 	_skill_feedback_remaining = 1.1
 	_skill_button.text = "EMP\n%d HIT" % targets_hit if targets_hit > 0 else "EMP\nNO HIT"
 	_skill_button.disabled = (_player_down or get_tree().paused or _skill_cooldown_remaining > 0.0)
+	_emp_chip.text = ("EMP · %d HIT" % targets_hit if targets_hit > 0 else "EMP · NO HIT")
 
 
 func _refresh_skill_button() -> void:
 	if not is_instance_valid(_skill_button):
 		return
+	var fraction := 0.0
+	if _skill_cooldown_total > 0.0:
+		fraction = clampf(_skill_cooldown_remaining / _skill_cooldown_total, 0.0, 1.0)
 	if _skill_feedback_remaining <= 0.0:
 		if _skill_cooldown_remaining > 0.0:
 			_skill_button.text = "EMP\n%d s" % ceili(_skill_cooldown_remaining)
+			_emp_chip.text = "EMP · %d s" % ceili(_skill_cooldown_remaining)
 		else:
 			_skill_button.text = "EMP\nREADY"
+			_emp_chip.text = "EMP · READY"
 	_skill_button.disabled = (_player_down or get_tree().paused or _skill_cooldown_remaining > 0.0)
+	if is_instance_valid(_emp_chip):
+		_emp_chip.disabled = _skill_cooldown_remaining > 0.0 or _player_down
+	if is_instance_valid(_skill_ring):
+		_skill_ring.remaining = fraction
+		_skill_ring.ready = _skill_cooldown_remaining <= 0.0
+	_skill_button.set_meta(
+		"aegis_state", "ready" if _skill_cooldown_remaining <= 0.0 else "cooling"
+	)
 
 
 ## External aim state (desktop right mouse), so the reticle tightens even when
@@ -307,34 +412,33 @@ func set_aim_state(aiming: bool) -> void:
 	if _aiming == aiming:
 		return
 	_aiming = aiming
+	_apply_aim_visual(aiming)
 	queue_redraw()
 
 
-## Bring the control hint back (called on retry and when the run starts).
-func show_help() -> void:
-	if not is_instance_valid(_help_panel):
+func _apply_aim_visual(aiming: bool) -> void:
+	if not is_instance_valid(_aim_button):
 		return
-	_help_remaining = HELP_VISIBLE_SECONDS
-	_help_panel.modulate.a = 1.0
-	_help_panel.visible = true
-
-
-func _apply_help_readability() -> void:
-	var shadow := Color(0.0, 0.02, 0.05, 0.85)
-	_help_label.add_theme_color_override("font_shadow_color", shadow)
-	_help_label.add_theme_constant_override("shadow_offset_x", 1)
-	_help_label.add_theme_constant_override("shadow_offset_y", 1)
-	_help_label.add_theme_constant_override("shadow_outline_size", 4)
+	AegisTheme.set_button_variant(_aim_button, "round")
+	_aim_button.add_theme_color_override(
+		"font_color", AegisTokens.ACCENT_INK if aiming else AegisTokens.INK
+	)
+	_aim_button.icon = AegisTheme.icon("crosshair", aiming)
+	_aim_button.set_meta("aegis_state", "active" if aiming else "idle")
 
 
 func set_paused(paused: bool) -> void:
 	if paused:
 		_clear_touch_state()
 	if is_instance_valid(_pause_button):
-		_pause_button.text = "RETRY" if _player_down else ("RESUME" if paused else "PAUSE")
+		_pause_button.icon = AegisTheme.icon("play" if paused else "pause", paused)
+		_pause_button.set_meta("aegis_state", "resume" if paused else "pause")
+		_pause_button.tooltip_text = "Resume (Esc)" if paused else "Pause (Esc)"
 		_pause_button.disabled = false
 	if is_instance_valid(_pause_label):
-		_pause_label.visible = paused
+		_pause_label.visible = paused and not _player_down
+	if is_instance_valid(_scrim):
+		_scrim.visible = (paused or _player_down) and not _results_visible()
 	if is_instance_valid(_fire_button):
 		_fire_button.disabled = paused or _player_down
 	if is_instance_valid(_weapon_button):
@@ -351,7 +455,11 @@ func set_player_down(down: bool) -> void:
 	if down:
 		_clear_touch_state()
 	if is_instance_valid(_pause_button):
-		_pause_button.text = "RETRY" if down else ("RESUME" if get_tree().paused else "PAUSE")
+		_pause_button.icon = AegisTheme.icon(
+			"arrow-counter-clockwise" if down else ("play" if get_tree().paused else "pause")
+		)
+		_pause_button.set_meta("aegis_state", "retry" if down else "pause")
+		_pause_button.tooltip_text = "Retry the run" if down else "Pause (Esc)"
 	if is_instance_valid(_fire_button):
 		_fire_button.disabled = down or get_tree().paused
 	if is_instance_valid(_weapon_button):
@@ -374,18 +482,44 @@ func show_results(
 		return
 	_clear_touch_state()
 	_results_summary.text = (
-		"Wave reached: %d\nSurvival time: %s\nEliminations: %d\nRun score: %d\nBP earned: %d"
-		% [wave_reached, survival_time, eliminations, run_score, bp_earned]
+		"\n"
+		. join(
+			[
+				"WAVE REACHED      %d" % wave_reached,
+				"SURVIVAL TIME     %s" % survival_time,
+				"ELIMINATIONS      %d" % eliminations,
+				"RUN SCORE         %s" % _format_number(run_score),
+				"BATTLE POINTS     +%d" % bp_earned,
+			]
+		)
 	)
 	_results_panel.visible = true
+	if is_instance_valid(_scrim):
+		_scrim.visible = true
 	_top_bar.visible = false
 	_help_label.visible = false
-	_fire_button.visible = false
-	_weapon_button.visible = false
-	_skill_button.visible = false
-	_aim_button.visible = false
-	_pause_button.visible = false
-	_pause_label.visible = false
+	if is_instance_valid(_help_panel):
+		_help_panel.visible = false
+	for control in [
+		_fire_button,
+		_weapon_button,
+		_skill_button,
+		_aim_button,
+		_pause_button,
+		_sound_button,
+		_compact_card,
+		_score_chip,
+		_run_card,
+		_desktop_hint,
+		_desktop_weapon_card,
+		_emp_chip,
+		_ads_chip,
+		_skill_ring,
+	]:
+		if is_instance_valid(control):
+			control.visible = false
+	if is_instance_valid(_pause_label):
+		_pause_label.visible = false
 	_aiming = false
 	queue_redraw()
 
@@ -394,408 +528,424 @@ func hide_results() -> void:
 	if not is_instance_valid(_results_panel):
 		return
 	_results_panel.visible = false
+	if is_instance_valid(_scrim):
+		_scrim.visible = get_tree().paused
 	_top_bar.visible = true
 	_help_label.visible = true
-	_fire_button.visible = true
-	_weapon_button.visible = true
-	_skill_button.visible = true
-	_aim_button.visible = true
-	_pause_button.visible = true
-	_pause_label.visible = get_tree().paused
+	_apply_input_mode()
+	_layout_controls()
 	_refresh_skill_button()
 	show_help()
 
 
+func _results_visible() -> bool:
+	return is_instance_valid(_results_panel) and _results_panel.visible
+
+
+# --------------------------------------------------------------------------- #
+# Construction
+# --------------------------------------------------------------------------- #
+
+
 func _build_ui() -> void:
-	_top_bar = HBoxContainer.new()
+	_top_bar = Control.new()
 	_top_bar.name = "PlaytestHUD"
-	# Anchor to the full width: a bare Control rect collapses to its minimum and
-	# the cards then never share the screen.
 	_top_bar.anchor_left = 0.0
 	_top_bar.anchor_right = 1.0
 	_top_bar.anchor_top = 0.0
 	_top_bar.anchor_bottom = 0.0
 	_top_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_top_bar.add_theme_constant_override("separation", 10)
 	add_child(_top_bar)
 
 	_build_health_card()
 	_build_wave_card()
+	_build_system_row()
 	_build_run_card()
-
-	_pause_button = Button.new()
-	_pause_button.name = "PauseButton"
-	_pause_button.text = "PAUSE"
-	_pause_button.tooltip_text = "Pause the run"
-	_pause_button.focus_mode = Control.FOCUS_NONE
-	_pause_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_pause_button.custom_minimum_size = Vector2(108.0, 58.0)
-	_pause_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	_apply_button_theme(_pause_button, Color(0.09, 0.19, 0.25, 0.96), Color(0.18, 0.75, 0.91, 0.78))
-	_pause_button.add_theme_font_size_override("font_size", 15)
-	_pause_button.pressed.connect(_on_pause_pressed)
-	_top_bar.add_child(_pause_button)
-	_touch_buttons.append(_pause_button)
-
-	_sound_button = Button.new()
-	_sound_button.name = "SoundButton"
-	_sound_button.text = "SOUND"
-	_sound_button.tooltip_text = "Mute or unmute the game audio (M)"
-	_sound_button.focus_mode = Control.FOCUS_NONE
-	_sound_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_sound_button.custom_minimum_size = Vector2(108.0, 58.0)
-	_sound_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	_apply_button_theme(_sound_button, Color(0.09, 0.19, 0.25, 0.96), Color(0.18, 0.75, 0.91, 0.78))
-	_sound_button.add_theme_font_size_override("font_size", 15)
-	_sound_button.pressed.connect(_on_sound_pressed)
-	_top_bar.add_child(_sound_button)
-	_touch_buttons.append(_sound_button)
-
+	_build_score_chip()
 	_build_compact_card()
+	_build_help_panel()
+	_build_touch_buttons()
+	_build_desktop_chips()
+	_build_overlays()
 
-	_fire_button = _make_button("FIRE", "FireButton")
-	_fire_button.add_theme_font_size_override("font_size", 22)
+
+func _build_health_card() -> void:
+	_health_card = AegisPanel.new()
+	_health_card.name = "HealthCard"
+	_health_card.accent_side = "left"
+	_health_card.accent_color = AegisTokens.OK
+	_health_card.clip_contents = true
+	_top_bar.add_child(_health_card)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 6)
+	_health_card.add_child(content)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	content.add_child(row)
+	_health_heading = _label("VITALS", "label", AegisTokens.INK_3)
+	row.add_child(_health_heading)
+	_health_value_label = _label("100 / 100", "mono_m", AegisTokens.INK)
+	_health_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_health_value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(_health_value_label)
+
+	_health_bar = SegmentedBar.new()
+	_health_bar.name = "HealthBar"
+	_health_bar.min_value = 0.0
+	_health_bar.max_value = 100.0
+	_health_bar.value = 100.0
+	_health_bar.segments = 4
+	_health_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_health_bar.add_theme_stylebox_override(
+		"background", AegisTheme.flat_style(AegisTokens.PANEL_3)
+	)
+	_health_bar.add_theme_stylebox_override("fill", AegisTheme.flat_style(AegisTokens.OK))
+	content.add_child(_health_bar)
+
+
+func _build_wave_card() -> void:
+	_wave_card = AegisPanel.new()
+	_wave_card.name = "WaveCard"
+	_wave_card.clip_contents = true
+	_top_bar.add_child(_wave_card)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	_wave_card.add_child(row)
+
+	_wave_icon = TextureRect.new()
+	_wave_icon.texture = AegisTheme.icon("target")
+	_wave_icon.custom_minimum_size = Vector2(16.0, 16.0)
+	_wave_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_wave_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_wave_icon.modulate = AegisTokens.INK_2
+	row.add_child(_wave_icon)
+
+	var text_col := VBoxContainer.new()
+	text_col.add_theme_constant_override("separation", 0)
+	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(text_col)
+	_wave_title_label = _label("FRONTIER DEFENSE", "heading_s", AegisTokens.INK)
+	text_col.add_child(_wave_title_label)
+	_wave_enemy_label = _label("ENEMIES  0 ACTIVE  ·  0 LEFT", "label_s", AegisTokens.INK_2)
+	text_col.add_child(_wave_enemy_label)
+	_wave_chip_label = _label("READY\n0 LEFT", "label_s", AegisTokens.INK_2)
+	_wave_chip_label.visible = false
+	text_col.add_child(_wave_chip_label)
+
+	_wave_state_label = _label("READY", "label_s", AegisTokens.ACCENT)
+	_wave_state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_wave_state_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(_wave_state_label)
+
+
+func _build_system_row() -> void:
+	_system_row = HBoxContainer.new()
+	_system_row.name = "SystemRow"
+	_system_row.add_theme_constant_override("separation", 8)
+	_system_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_top_bar.add_child(_system_row)
+
+	_sound_button = _icon_button("SoundButton", "speaker-high", "Mute audio (M)")
+	_sound_button.set_meta("aegis_state", "on")
+	_system_row.add_child(_sound_button)
+
+	_pause_button = _icon_button("PauseButton", "pause", "Pause (Esc)")
+	_pause_button.set_meta("aegis_state", "pause")
+	_system_row.add_child(_pause_button)
+
+
+func _build_run_card() -> void:
+	_run_card = AegisPanel.new()
+	_run_card.name = "RunDataCard"
+	_run_card.clip_contents = true
+	add_child(_run_card)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 3)
+	_run_card.add_child(content)
+	content.add_child(_label("RUN DATA", "label_s", AegisTokens.INK_3))
+	_status_label = _label(
+		"Score: 0 · BP earned: 0\nKOs: 0 · Time: 00:00\nTarget 54 / 54 · Shots 0",
+		"mono_s",
+		AegisTokens.INK_2
+	)
+	_status_label.name = "StatusLabel"
+	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(_status_label)
+
+
+func _build_score_chip() -> void:
+	_score_chip = AegisPanel.new()
+	_score_chip.name = "ScoreChip"
+	_score_chip.show_brackets = false
+	add_child(_score_chip)
+	_score_value_label = _label("SCORE 0  ·  00:00", "mono_m", AegisTokens.INK)
+	_score_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_score_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_score_value_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_score_chip.add_child(_score_value_label)
+
+
+## One-line-per-topic strip shown below the top bar on narrow screens, where the
+## three-column bar cannot fit: the player keeps the enemy counts and run stats.
+func _build_compact_card() -> void:
+	_compact_card = AegisPanel.new()
+	_compact_card.name = "CompactDataCard"
+	_compact_card.visible = false
+	_compact_card.clip_contents = true
+	add_child(_compact_card)
+	_compact_label = _label(
+		_compact_wave_text + "\n" + _collapsed_run_text(), "mono_s", AegisTokens.INK_2
+	)
+	_compact_label.name = "CompactDataLabel"
+	_compact_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_compact_card.add_child(_compact_label)
+
+
+func _build_help_panel() -> void:
+	_help_panel = AegisPanel.new()
+	_help_panel.name = "ControlsHelpPanel"
+	_help_panel.accent_side = "left"
+	_help_panel.accent_color = Color(AegisTokens.INFO, 0.9)
+	_help_panel.clip_contents = true
+	_help_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_help_panel)
+	_help_label = _label(
+		(
+			"TOUCH: 360° joystick moves · drag right to aim · hold FIRE / AIM · EMP is the skill\n"
+			+ "DESKTOP: WASD moves · Shift sprint · Space jump · RMB aims · hold LMB to fire\n"
+			+ "E / Q or 1-3 switch weapons · F EMP · R retries · Esc pauses"
+		),
+		"caption",
+		AegisTokens.INK_2,
+		1.0,
+		true
+	)
+	_help_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_help_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_help_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_help_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_help_panel.add_child(_help_label)
+
+
+func _build_touch_buttons() -> void:
+	_fire_button = _text_button("FIRE", "FireButton", "fire", "crosshair", "Hold to fire")
+	_fire_button.add_theme_constant_override("icon_max_width", 22)
 	_fire_button.button_down.connect(_on_fire_down)
 	_fire_button.button_up.connect(_on_fire_up)
-	_touch_buttons.append(_fire_button)
 
-	_weapon_button = _make_button("PULSE RIFLE", "WeaponSwitchButton")
-	_weapon_button.add_theme_font_size_override("font_size", 14)
-	_weapon_button.tooltip_text = "Tap to cycle weapons"
+	_weapon_button = _text_button(
+		"PULSE RIFLE", "WeaponSwitchButton", "round", "", "Tap to cycle weapons"
+	)
+	_weapon_button.set_meta("aegis_state", "idle")
 	_weapon_button.pressed.connect(_on_weapon_switch_pressed)
-	_touch_buttons.append(_weapon_button)
 
-	_aim_button = _make_button("AIM", "AimButton")
-	_aim_button.add_theme_font_size_override("font_size", 15)
-	_aim_button.tooltip_text = "Hold to aim down sights: narrows the camera and steadies the shot"
-	_apply_button_theme(_aim_button, Color(0.05, 0.2, 0.3, 0.96), Color(0.35, 0.88, 1.0, 0.9))
+	_aim_button = _text_button("AIM", "AimButton", "round", "crosshair", "Hold to aim down sights")
+	_aim_button.add_theme_constant_override("icon_max_width", 16)
 	_aim_button.button_down.connect(_on_aim_down)
 	_aim_button.button_up.connect(_on_aim_up)
-	_touch_buttons.append(_aim_button)
 
-	_skill_button = _make_button("EMP\nREADY", "SkillButton")
-	_skill_button.add_theme_font_size_override("font_size", 15)
-	_skill_button.tooltip_text = "EMP Pulse: damage nearby enemies. Recharges over time."
-	_apply_button_theme(_skill_button, Color(0.04, 0.28, 0.36, 0.98), Color(0.22, 0.86, 1.0, 0.96))
-	_skill_button.pressed.connect(_on_skill_pressed)
-	_touch_buttons.append(_skill_button)
-
-	# The help text used to be bare cyan text over a bright floor, which was
-	# impossible to read in the exported build. A dark, rounded plate behind it
-	# costs nothing and makes the first ten seconds legible.
-	_help_panel = PanelContainer.new()
-	_help_panel.name = "ControlsHelpPanel"
-	_help_panel.anchor_left = 0.16
-	_help_panel.anchor_right = 0.84
-	_help_panel.anchor_top = 0.0
-	_help_panel.anchor_bottom = 0.0
-	_help_panel.offset_top = 116.0
-	_help_panel.offset_bottom = 154.0
-	_help_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var help_style := _make_panel_style()
-	help_style.bg_color = Color(0.02, 0.06, 0.1, 0.86)
-	help_style.border_color = Color(0.24, 0.72, 0.9, 0.5)
-	help_style.set_corner_radius_all(10)
-	help_style.content_margin_left = 14.0
-	help_style.content_margin_right = 14.0
-	help_style.content_margin_top = 8.0
-	help_style.content_margin_bottom = 8.0
-	_help_panel.add_theme_stylebox_override("panel", help_style)
-	_help_label = Label.new()
-	_help_label.name = "ControlsHelp"
-	_help_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_help_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_help_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_help_label.text = (
-		"TOUCH: 360° joystick moves · drag right to aim · hold FIRE / AIM · EMP is the skill\n"
-		+ "DESKTOP: WASD moves · Shift sprint · Space jump · right mouse aims · hold left mouse to fire\n"
-		+ "E / Q or 1-3 switch weapons · R retries · Esc pauses"
+	_skill_button = _text_button(
+		"EMP\nREADY", "SkillButton", "ability", "", "EMP Pulse: damage nearby enemies"
 	)
-	_help_label.add_theme_font_size_override("font_size", 12)
-	_help_label.add_theme_color_override("font_color", Color(0.8, 0.91, 0.98, 0.96))
-	_help_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_apply_help_readability()
-	_help_panel.add_child(_help_label)
-	add_child(_help_panel)
+	_skill_button.pressed.connect(_on_skill_pressed)
+	_skill_button.set_meta("aegis_state", "ready")
 
-	# A permanent, quiet keyboard legend for non-touch sessions. It sits where
-	# the joystick would be, so it never covers the play area.
-	_desktop_hint = Label.new()
+	_skill_ring = CooldownRing.new()
+	_skill_ring.name = "SkillCooldownRing"
+	add_child(_skill_ring)
+
+
+func _build_desktop_chips() -> void:
+	_desktop_weapon_card = AegisPanel.new()
+	_desktop_weapon_card.name = "DesktopWeaponCard"
+	_desktop_weapon_card.clip_contents = true
+	add_child(_desktop_weapon_card)
+	var weapon_col := VBoxContainer.new()
+	weapon_col.add_theme_constant_override("separation", 3)
+	_desktop_weapon_card.add_child(weapon_col)
+	weapon_col.add_child(_label("ACTIVE WEAPON", "label_s", AegisTokens.INK_3))
+	_desktop_weapon_name = _label("PULSE RIFLE", "title", AegisTokens.INK)
+	weapon_col.add_child(_desktop_weapon_name)
+	_desktop_weapon_meta = _label("E / Q SWAP · 1-3 SLOTS", "label_s", AegisTokens.INK_3)
+	weapon_col.add_child(_desktop_weapon_meta)
+
+	_emp_chip = AegisButton.new()
+	_emp_chip.name = "DesktopEmpChip"
+	_emp_chip.text = "EMP · READY"
+	_emp_chip.focus_mode = Control.FOCUS_NONE
+	_emp_chip.mouse_filter = Control.MOUSE_FILTER_STOP
+	_emp_chip.icon = AegisTheme.icon("lightning", true)
+	_emp_chip.add_theme_constant_override("icon_max_width", 16)
+	AegisTheme.set_button_variant(_emp_chip, "ability")
+	_emp_chip.pressed.connect(_on_skill_pressed)
+	add_child(_emp_chip)
+	_touch_buttons.append(_emp_chip)
+
+	_ads_chip = AegisPanel.new()
+	_ads_chip.name = "AdsChip"
+	_ads_chip.show_brackets = false
+	add_child(_ads_chip)
+	var ads_row := HBoxContainer.new()
+	ads_row.add_theme_constant_override("separation", 6)
+	_ads_chip.add_child(ads_row)
+	var ads_icon := TextureRect.new()
+	ads_icon.texture = AegisTheme.icon("crosshair-simple")
+	ads_icon.custom_minimum_size = Vector2(14.0, 14.0)
+	ads_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ads_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ads_icon.modulate = AegisTokens.INK_2
+	ads_row.add_child(ads_icon)
+	_ads_label = _label("ADS", "label_s", AegisTokens.INK_2)
+	_ads_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	ads_row.add_child(_ads_label)
+
+	_desktop_hint = _label(
+		"WASD MOVE · SHIFT SPRINT · SPACE JUMP · RMB ADS · LMB FIRE · 1-3 WEAPON · F EMP · ESC PAUSE",
+		"label_s",
+		AegisTokens.INK_2,
+		1.0,
+		true
+	)
 	_desktop_hint.name = "DesktopHint"
-	_desktop_hint.anchor_left = 0.0
-	_desktop_hint.anchor_right = 0.0
-	_desktop_hint.anchor_top = 1.0
-	_desktop_hint.anchor_bottom = 1.0
-	_desktop_hint.offset_left = 20.0
-	_desktop_hint.offset_top = -40.0
-	_desktop_hint.offset_right = 420.0
-	_desktop_hint.offset_bottom = -20.0
-	_desktop_hint.text = "WASD move · Shift sprint · Space jump · RMB aim · LMB fire · 1-3 weapon"
-	_desktop_hint.add_theme_font_size_override("font_size", 11)
-	_desktop_hint.add_theme_color_override("font_color", Color(0.72, 0.85, 0.94, 0.8))
-	_desktop_hint.add_theme_color_override("font_shadow_color", Color(0.0, 0.02, 0.05, 0.9))
-	_desktop_hint.add_theme_constant_override("shadow_offset_x", 1)
-	_desktop_hint.add_theme_constant_override("shadow_offset_y", 1)
-	_desktop_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_desktop_hint)
+
+
+func _build_overlays() -> void:
+	_scrim = ColorRect.new()
+	_scrim.name = "HudScrim"
+	_scrim.color = Color(AegisTokens.VOID, AegisTokens.SCRIM_ALPHA)
+	_scrim.anchor_right = 1.0
+	_scrim.anchor_bottom = 1.0
+	# The scrim is visual only: it must not swallow the click/tap that lands on
+	# the pause or results buttons sitting above it. Touch input is gated by
+	# `get_tree().paused` / `_player_down` instead.
+	_scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_scrim.visible = false
+	add_child(_scrim)
 
 	_pause_label = Label.new()
 	_pause_label.name = "PauseOverlay"
-	_pause_label.anchor_left = 0.5
-	_pause_label.anchor_right = 0.5
-	_pause_label.anchor_top = 0.5
-	_pause_label.anchor_bottom = 0.5
-	_pause_label.offset_left = -190.0
-	_pause_label.offset_right = 190.0
-	_pause_label.offset_top = -70.0
-	_pause_label.offset_bottom = 70.0
-	_pause_label.text = "PAUSED\nTap RESUME to continue"
+	_pause_label.text = "PAUSED\nESC / TAP PLAY TO RESUME"
 	_pause_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_pause_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_pause_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_pause_label.add_theme_font_size_override("font_size", 28)
-	_pause_label.add_theme_color_override("font_color", Color(0.85, 0.96, 1.0))
-	_pause_label.visible = false
 	_pause_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_pause_label.visible = false
+	_register_type(_pause_label, "display_l", AegisTokens.INK, 1.0)
 	add_child(_pause_label)
 
 	_build_results_panel()
 
 
-func _build_health_card() -> void:
-	_health_card = _make_card("HealthCard", Vector2(250.0, 88.0))
-	_top_bar.add_child(_health_card)
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 4)
-	_health_card.add_child(content)
-
-	var heading_row := HBoxContainer.new()
-	content.add_child(heading_row)
-	var heading := _make_heading("VITALS")
-	heading_row.add_child(heading)
-	_health_value_label = Label.new()
-	_health_value_label.text = "100 / 100"
-	_health_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_health_value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_health_value_label.add_theme_font_size_override("font_size", 14)
-	_health_value_label.add_theme_color_override("font_color", Color(0.91, 0.97, 1.0))
-	heading_row.add_child(_health_value_label)
-
-	_health_bar = ProgressBar.new()
-	_health_bar.name = "HealthBar"
-	_health_bar.min_value = 0.0
-	_health_bar.max_value = 100.0
-	_health_bar.value = 100.0
-	_health_bar.show_percentage = false
-	_health_bar.custom_minimum_size = Vector2(0.0, 16.0)
-	_health_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_health_bar.add_theme_stylebox_override(
-		"background", _make_progress_style(Color(0.035, 0.085, 0.11, 1.0))
-	)
-	_health_bar.add_theme_stylebox_override("fill", _make_progress_style(DEFAULT_HEALTH_COLOR))
-	content.add_child(_health_bar)
-
-
-func _build_wave_card() -> void:
-	_wave_card = _make_card("WaveCard", Vector2(280.0, 88.0))
-	_top_bar.add_child(_wave_card)
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 2)
-	_wave_card.add_child(content)
-
-	_wave_title_label = _make_heading("FRONTIER DEFENSE")
-	_wave_title_label.add_theme_font_size_override("font_size", 17)
-	content.add_child(_wave_title_label)
-	_wave_state_label = Label.new()
-	_wave_state_label.text = "READY"
-	_wave_state_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_wave_state_label.add_theme_font_size_override("font_size", 12)
-	_wave_state_label.add_theme_color_override("font_color", Color(0.65, 0.87, 0.96))
-	content.add_child(_wave_state_label)
-	_wave_enemy_label = Label.new()
-	_wave_enemy_label.text = "ENEMIES  0 ACTIVE  ·  0 LEFT"
-	_wave_enemy_label.add_theme_font_size_override("font_size", 12)
-	_wave_enemy_label.add_theme_color_override("font_color", Color(0.84, 0.93, 1.0))
-	content.add_child(_wave_enemy_label)
-
-
-func _build_run_card() -> void:
-	_run_card = _make_card("RunDataCard", Vector2(340.0, 96.0))
-	_top_bar.add_child(_run_card)
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 3)
-	_run_card.add_child(content)
-	var heading := _make_heading("RUN DATA")
-	content.add_child(heading)
-	_status_label = Label.new()
-	_status_label.name = "StatusLabel"
-	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_status_label.text = "Score 0 · BP 0\nKOs 0 · Time 00:00\nTarget 54/54 · Shots 0"
-	_status_label.add_theme_font_size_override("font_size", 12)
-	_status_label.add_theme_color_override("font_color", Color(0.84, 0.92, 1.0))
-	content.add_child(_status_label)
-
-
-## One-line-per-topic card shown on narrow screens, where the three-column top
-## bar cannot fit: the player keeps the enemy counts and the run stats.
-func _build_compact_card() -> void:
-	_compact_card = _make_card("CompactDataCard", Vector2(0.0, 40.0))
-	_compact_card.anchor_left = 0.0
-	_compact_card.anchor_right = 1.0
-	_compact_card.anchor_top = 0.0
-	_compact_card.anchor_bottom = 0.0
-	_compact_card.size_flags_horizontal = Control.SIZE_FILL
-	_compact_card.visible = false
-	add_child(_compact_card)
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 1)
-	_compact_card.add_child(content)
-	_compact_label = Label.new()
-	_compact_label.name = "CompactDataLabel"
-	_compact_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_compact_label.text = _compact_wave_text + "\n" + _collapsed_run_text()
-	_compact_label.add_theme_font_size_override("font_size", 12)
-	_compact_label.add_theme_color_override("font_color", Color(0.84, 0.92, 1.0))
-	content.add_child(_compact_label)
-
-
 func _build_results_panel() -> void:
-	_results_panel = PanelContainer.new()
+	_results_panel = AegisPanel.new()
 	_results_panel.name = "ResultsPanel"
-	_results_panel.anchor_left = 0.5
-	_results_panel.anchor_right = 0.5
-	_results_panel.anchor_top = 0.5
-	_results_panel.anchor_bottom = 0.5
-	_results_panel.offset_left = -220.0
-	_results_panel.offset_right = 220.0
-	_results_panel.offset_top = -178.0
-	_results_panel.offset_bottom = 178.0
-	_results_panel.custom_minimum_size = Vector2(440.0, 356.0)
-	_results_panel.add_theme_stylebox_override("panel", _make_panel_style())
-	_results_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	_results_panel.interactive = true
 	_results_panel.visible = false
 	add_child(_results_panel)
 
 	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 14)
+	content.add_theme_constant_override("separation", 12)
 	_results_panel.add_child(content)
 
-	var title := Label.new()
-	title.text = "RUN RESULTS"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 26)
-	title.add_theme_color_override("font_color", Color(0.45, 0.86, 1.0))
-	content.add_child(title)
+	content.add_child(_label("RUN COMPLETE", "label", AegisTokens.ACCENT))
+	_results_title = _label("RUN RESULTS", "display_l", AegisTokens.INK)
+	content.add_child(_results_title)
 
-	_results_summary = Label.new()
-	_results_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_results_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_results_summary.add_theme_font_size_override("font_size", 18)
-	_results_summary.add_theme_color_override("font_color", Color(0.84, 0.92, 1.0))
+	var rule := ColorRect.new()
+	rule.color = AegisTokens.LINE
+	rule.custom_minimum_size = Vector2(0.0, 1.0)
+	content.add_child(rule)
+
+	_results_summary = _label("", "mono_m", AegisTokens.INK_2)
+	_results_summary.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_results_summary.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_child(_results_summary)
 
-	_results_retry_button = Button.new()
+	_results_retry_button = AegisButton.new()
 	_results_retry_button.name = "ResultsRetryButton"
 	_results_retry_button.text = "RETRY"
-	_results_retry_button.custom_minimum_size = Vector2(190.0, 54.0)
-	_results_retry_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_results_retry_button.focus_mode = Control.FOCUS_NONE
 	_results_retry_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	_apply_button_theme(
-		_results_retry_button, Color(0.08, 0.33, 0.43, 1.0), Color(0.2, 0.82, 1.0, 0.95)
-	)
+	_results_retry_button.icon = AegisTheme.icon("arrow-counter-clockwise")
+	_results_retry_button.add_theme_constant_override("icon_max_width", 18)
+	AegisTheme.set_button_variant(_results_retry_button, "primary")
 	_results_retry_button.pressed.connect(_on_results_retry_pressed)
 	content.add_child(_results_retry_button)
 	_touch_buttons.append(_results_retry_button)
 
 
-func _make_card(card_name: String, minimum_size: Vector2) -> PanelContainer:
-	var card := PanelContainer.new()
-	card.name = card_name
-	card.custom_minimum_size = minimum_size
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	card.clip_contents = true
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_theme_stylebox_override("panel", _make_panel_style())
-	return card
+# --------------------------------------------------------------------------- #
+# Small factories
+# --------------------------------------------------------------------------- #
 
 
-func _make_heading(text: String) -> Label:
+func _label(
+	text: String, role: String, color: Color, multiplier: float = 1.0, shadow: bool = false
+) -> Label:
 	var label := Label.new()
 	label.text = text
-	label.add_theme_font_size_override("font_size", 13)
-	label.add_theme_color_override("font_color", Color(0.39, 0.85, 1.0))
+	AegisTheme.style_label(label, role, color, 1.0, shadow)
+	label.set_meta("aegis_role", role)
+	label.set_meta("aegis_scale", multiplier)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
 
 
-func _make_panel_style() -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.018, 0.045, 0.067, 0.94)
-	style.border_color = Color(0.08, 0.62, 0.82, 0.58)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(9)
-	style.content_margin_left = 12.0
-	style.content_margin_top = 8.0
-	style.content_margin_right = 12.0
-	style.content_margin_bottom = 8.0
-	return style
+func _register_type(control: Control, role: String, _color: Color, multiplier: float = 1.0) -> void:
+	control.set_meta("aegis_role", role)
+	control.set_meta("aegis_scale", multiplier)
 
 
-func _make_progress_style(color: Color) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = color
-	style.set_corner_radius_all(7)
-	style.content_margin_left = 0.0
-	style.content_margin_top = 0.0
-	style.content_margin_right = 0.0
-	style.content_margin_bottom = 0.0
-	return style
-
-
-func _make_button(label: String, button_name: String) -> Button:
-	var button := Button.new()
+func _icon_button(button_name: String, icon_name: String, tooltip: String) -> AegisButton:
+	var button := AegisButton.new()
 	button.name = button_name
-	button.text = label
-	button.anchor_left = 1.0
-	button.anchor_right = 1.0
-	button.anchor_top = 1.0
-	button.anchor_bottom = 1.0
+	button.text = ""
+	button.tooltip_text = tooltip
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
-	_apply_button_theme(button, Color(0.08, 0.25, 0.34, 0.96), Color(0.1, 0.77, 0.96, 0.88))
+	button.icon = AegisTheme.icon(icon_name, true)
+	button.expand_icon = false
+	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.add_theme_constant_override("icon_max_width", 20)
+	button.add_theme_font_size_override("font_size", 11)
+	AegisTheme.set_button_variant(button, "icon")
+	if button_name == "SoundButton":
+		button.pressed.connect(_on_sound_pressed)
+	else:
+		button.pressed.connect(_on_pause_pressed)
 	add_child(button)
+	_touch_buttons.append(button)
 	return button
 
 
-func _apply_button_theme(button: Button, background: Color, border: Color) -> void:
-	button.add_theme_stylebox_override("normal", _make_button_style(background, border))
-	button.add_theme_stylebox_override(
-		"hover", _make_button_style(background.lightened(0.12), border)
-	)
-	button.add_theme_stylebox_override(
-		"pressed", _make_button_style(background.darkened(0.12), border.lightened(0.1))
-	)
-	button.add_theme_stylebox_override(
-		"disabled", _make_button_style(Color(0.05, 0.09, 0.12, 0.78), Color(0.16, 0.28, 0.34, 0.56))
-	)
-	button.add_theme_color_override("font_color", Color(0.9, 0.97, 1.0))
-	button.add_theme_color_override("font_hover_color", Color.WHITE)
-	button.add_theme_color_override("font_pressed_color", Color.WHITE)
-	button.add_theme_color_override("font_disabled_color", Color(0.55, 0.64, 0.7, 0.65))
+func _text_button(
+	label_text: String, button_name: String, variant: String, icon_name: String, tooltip: String
+) -> AegisButton:
+	var button := AegisButton.new()
+	button.name = button_name
+	button.text = label_text
+	button.tooltip_text = tooltip
+	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_filter = Control.MOUSE_FILTER_STOP
+	if not icon_name.is_empty():
+		button.icon = AegisTheme.icon(icon_name, variant == "fire")
+	button.add_theme_constant_override("icon_max_width", 18)
+	button.add_theme_constant_override("h_separation", 6)
+	AegisTheme.set_button_variant(button, variant)
+	button.set_meta("aegis_state", "idle")
+	add_child(button)
+	_touch_buttons.append(button)
+	return button
 
 
-func _make_button_style(background: Color, border: Color) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = background
-	style.border_color = border
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(12)
-	style.content_margin_left = 10.0
-	style.content_margin_top = 8.0
-	style.content_margin_right = 10.0
-	style.content_margin_bottom = 8.0
-	return style
+# --------------------------------------------------------------------------- #
+# Layout
+# --------------------------------------------------------------------------- #
 
 
 func _layout_controls(
@@ -803,13 +953,10 @@ func _layout_controls(
 ) -> void:
 	if not is_instance_valid(_top_bar):
 		return
-	# The HUD must size itself against the *physical* window, not the logical
-	# canvas. With stretch mode canvas_items the logical canvas keeps its width
-	# (1280) on a phone and is only scaled down, so a portrait phone used to get
-	# a HUD rendered at ~30% of the size it was designed for: technically on
-	# screen, effectively unreadable. [param viewport_override] is therefore a
-	# physical size, and every number below is divided back into logical units by
-	# _to_layout() before it is applied.
+	# Size against the *physical* window, not the logical canvas: with stretch
+	# mode canvas_items the logical canvas keeps its width on a phone and is
+	# only scaled down, so a portrait HUD laid out in logical units would render
+	# at ~30 % of its designed size.
 	var physical := (
 		viewport_override if viewport_override != Vector2.ZERO else _resolve_physical_size()
 	)
@@ -818,137 +965,178 @@ func _layout_controls(
 	var physical_height := maxf(physical.y, 320.0)
 	_stretch = stretch_override if stretch_override > 0.0 else _compute_stretch(physical)
 	_ui_scale = clampf(minf(physical_width, physical_height) / 720.0, 0.64, 1.0)
-	# unit: one unit of the HUD's design grid, expressed in logical canvas units.
-	var unit := _ui_scale / _stretch
-	var margin := 14.0 * unit
 	_top_inset = _resolve_top_inset()
-	var card_height := 104.0 * unit
-	# The three cards share the available width instead of fighting over a fixed
-	# minimum, so a 390 px phone keeps the whole top bar on screen.
-	var narrow := physical_width < NARROW_WIDTH
-	_narrow = narrow
-	_health_card.custom_minimum_size = Vector2(0.0, card_height)
-	if is_instance_valid(_health_bar):
-		_health_bar.custom_minimum_size = Vector2(0.0, maxf(16.0, 16.0 * unit))
-	_health_card.size_flags_stretch_ratio = 0.95 if narrow else 1.0
-	_wave_card.custom_minimum_size = Vector2(0.0, card_height)
-	_wave_card.size_flags_stretch_ratio = 1.15
-	_run_card.custom_minimum_size = Vector2(0.0, card_height)
-	_run_card.size_flags_stretch_ratio = 1.0
-	_run_card.visible = not narrow
-	# On a phone the run data is not dropped, it moves under the bar as one
-	# compact line, together with the enemy counts that no longer fit the wave
-	# card's third line.
-	_wave_enemy_label.visible = not narrow
-	if is_instance_valid(_compact_card):
-		_compact_card.visible = narrow
-	_pause_button.custom_minimum_size = Vector2(84.0 * unit, 52.0 * unit)
-	_pause_button.add_theme_font_size_override(
-		"font_size", maxi(roundi(14.0 * unit), _minimum_font_size())
-	)
-	if is_instance_valid(_sound_button):
-		_sound_button.custom_minimum_size = Vector2(84.0 * unit, 52.0 * unit)
-		_sound_button.add_theme_font_size_override(
-			"font_size", maxi(roundi(14.0 * unit), _minimum_font_size())
-		)
-	if is_instance_valid(_compact_card):
-		_compact_card.offset_left = margin
-		_compact_card.offset_right = -margin
-		_compact_card.offset_top = _top_inset + card_height + 6.0 * unit
-	if is_instance_valid(_compact_label):
-		_compact_label.add_theme_font_size_override(
-			"font_size", maxi(roundi(12.0 * unit), _minimum_font_size())
-		)
-	_top_bar.offset_left = margin
-	_top_bar.offset_top = _top_inset
-	_top_bar.offset_right = -margin
-	_top_bar.offset_bottom = _top_inset + card_height
+	_narrow = physical_width < NARROW_WIDTH
+	_portrait = physical_height > physical_width
+	var unit := _control_unit()
 
-	var fire_size := minf(142.0 * unit, _to_layout(minf(physical_width, physical_height) * 0.34))
-	var base_margin := 20.0 * unit
-	_fire_button.offset_left = -fire_size - base_margin
-	_fire_button.offset_top = -fire_size - base_margin
-	_fire_button.offset_right = -base_margin
-	_fire_button.offset_bottom = -base_margin
-	_fire_button.custom_minimum_size = Vector2(fire_size, fire_size)
-	_fire_button.add_theme_font_size_override(
-		"font_size", maxi(roundi(21.0 * unit), _minimum_font_size())
-	)
-
-	var weapon_width := minf(164.0 * unit, _to_layout(physical_width * 0.42))
-	var weapon_height := 58.0 * unit
-	_weapon_button.offset_left = -weapon_width - base_margin
-	_weapon_button.offset_top = -fire_size - base_margin - weapon_height - 12.0 * unit
-	_weapon_button.offset_right = -base_margin
-	_weapon_button.offset_bottom = -fire_size - base_margin - 12.0 * unit
-	_weapon_button.custom_minimum_size = Vector2(weapon_width, weapon_height)
-	_weapon_button.add_theme_font_size_override(
-		"font_size", maxi(roundi(13.0 * unit), _minimum_font_size())
-	)
-
-	var side_size := minf(94.0 * unit, _to_layout(minf(physical_width, physical_height) * 0.22))
-	var side_gap := 12.0 * unit
-	var skill_right := fire_size + base_margin + side_gap
-	var side_center_bottom := base_margin + fire_size * 0.5
-	_skill_button.offset_left = -skill_right - side_size
-	_skill_button.offset_right = -skill_right
-	_skill_button.offset_top = -side_center_bottom - side_size * 0.5
-	_skill_button.offset_bottom = -side_center_bottom + side_size * 0.5
-	_skill_button.custom_minimum_size = Vector2(side_size, side_size)
-	_skill_button.add_theme_font_size_override(
-		"font_size", maxi(roundi(15.0 * unit), _minimum_font_size())
-	)
-	var aim_right := skill_right + side_size + side_gap
-	_aim_button.offset_left = -aim_right - side_size
-	_aim_button.offset_right = -aim_right
-	_aim_button.offset_top = -side_center_bottom - side_size * 0.5
-	_aim_button.offset_bottom = -side_center_bottom + side_size * 0.5
-	_aim_button.custom_minimum_size = Vector2(side_size, side_size)
-	_aim_button.add_theme_font_size_override(
-		"font_size", maxi(roundi(15.0 * unit), _minimum_font_size())
-	)
-
-	# The compact card stores up to three wrapped lines of run data; its height
-	# has to follow the font that survived the physical floor, which is only known
-	# after the fonts were applied.
-	var compact_height := 0.0
-	if narrow and is_instance_valid(_compact_card) and is_instance_valid(_compact_label):
-		var compact_font := float(_compact_label.get_theme_font_size("font_size"))
-		compact_height = compact_font * 1.45 * float(COMPACT_LINES) + 16.0
-		_compact_card.custom_minimum_size = Vector2(0.0, compact_height)
-		_compact_card.offset_bottom = _compact_card.offset_top + compact_height
-	var help_top := _top_inset + card_height + 8.0 * unit
-	if narrow:
-		# The phone layout stacks three bars: cards, compact data, then help.
-		# The help plate has to clear the compact card *and* the gap the
-		# compact card needs for its own wrapped text.
-		help_top = _top_inset + card_height + compact_height + 22.0 * unit
-	_help_panel.offset_top = help_top
-	_help_panel.offset_bottom = help_top + 62.0 * unit
-	_help_label.add_theme_font_size_override(
-		"font_size", maxi(roundi(12.0 * unit), _minimum_font_size())
-	)
-	if is_instance_valid(_desktop_hint):
-		_desktop_hint.offset_left = margin + 6.0 * unit
-		_desktop_hint.offset_right = margin + 460.0 * unit
-		_desktop_hint.offset_top = -base_margin - 26.0 * unit
-		_desktop_hint.offset_bottom = -base_margin - 6.0 * unit
-		_desktop_hint.add_theme_font_size_override(
-			"font_size", maxi(roundi(11.0 * unit), _minimum_font_size())
-		)
-
-	_results_panel.custom_minimum_size = Vector2(440.0 * unit, 356.0 * unit)
-	var panel_half_width := minf(220.0 * unit, _to_layout(physical_width * 0.46))
-	_results_panel.offset_left = -panel_half_width
-	_results_panel.offset_right = panel_half_width
-	var panel_half_height := minf(178.0 * unit, _to_layout(physical_height * 0.42))
-	_results_panel.offset_top = -panel_half_height
-	_results_panel.offset_bottom = panel_half_height
-	if is_instance_valid(_pause_label):
-		_pause_label.add_theme_font_size_override(
-			"font_size", maxi(roundi(26.0 * unit), _minimum_font_size())
-		)
+	_refresh_card_styles()
 	_apply_font_scale()
+	if not _touch_mode and not _narrow:
+		HudLayout.desktop(self)
+	elif _portrait:
+		HudLayout.touch_portrait(self)
+	else:
+		HudLayout.touch_landscape(self)
+
+	_layout_overlays(unit)
+	_apply_input_mode()
+	queue_redraw()
+
+
+func _show_top_wave_details(wide: bool) -> void:
+	_wave_title_label.visible = wide
+	_wave_enemy_label.visible = wide
+	_wave_chip_label.visible = not wide
+	_wave_state_label.visible = wide
+	_health_heading.visible = wide
+	_wave_state_label.add_theme_color_override("font_color", AegisTokens.ACCENT)
+
+
+func _help_block_height(lines: int) -> float:
+	var font := float(_help_label.get_theme_font_size("font_size"))
+	return font * 1.45 * float(lines) + _to_layout(16.0)
+
+
+func _layout_overlays(unit: float) -> void:
+	if is_instance_valid(_scrim):
+		_scrim.anchor_right = 1.0
+		_scrim.anchor_bottom = 1.0
+		_scrim.offset_right = 0.0
+		_scrim.offset_bottom = 0.0
+	var panel_width := minf(600.0 * unit, size.x * 0.92)
+	var panel_height := minf(528.0 * unit, size.y * 0.9)
+	_results_panel.custom_minimum_size = Vector2(panel_width, panel_height)
+	HudLayout.place(
+		self,
+		_results_panel,
+		0.5,
+		0.5,
+		0.5,
+		0.5,
+		Rect2(-panel_width * 0.5, -panel_height * 0.5, panel_width, panel_height)
+	)
+	_results_retry_button.custom_minimum_size = Vector2(
+		minf(240.0 * unit, panel_width - 48.0 * unit), 52.0 * unit
+	)
+	_results_retry_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	if is_instance_valid(_pause_label):
+		var pause_width := minf(size.x * 0.9, 720.0 * unit)
+		HudLayout.place(
+			self,
+			_pause_label,
+			0.5,
+			0.5,
+			0.5,
+			0.5,
+			Rect2(-pause_width * 0.5, -60.0 * unit, pause_width, 120.0 * unit)
+		)
+
+
+## Card padding is expressed in physical pixels so a 168 px phone rail gets the
+## same 8 px breathing room as a 268 px desktop card.
+func _refresh_card_styles() -> void:
+	var pad := _to_layout(10.0)
+	var tight := _to_layout(8.0)
+	var fill := Color(AegisTokens.PANEL, AegisTokens.PANEL_ALPHA)
+	_health_card.add_theme_stylebox_override(
+		"panel", AegisTheme.panel_style(fill, AegisTokens.LINE, 1, AegisTokens.RADIUS, pad)
+	)
+	_wave_card.add_theme_stylebox_override(
+		"panel", AegisTheme.panel_style(fill, AegisTokens.LINE, 1, AegisTokens.RADIUS, tight)
+	)
+	_run_card.add_theme_stylebox_override(
+		"panel", AegisTheme.panel_style(fill, AegisTokens.LINE, 1, AegisTokens.RADIUS, pad)
+	)
+	_score_chip.add_theme_stylebox_override(
+		"panel", AegisTheme.panel_style(fill, AegisTokens.LINE, 1, AegisTokens.RADIUS, tight)
+	)
+	_compact_card.add_theme_stylebox_override(
+		"panel", AegisTheme.panel_style(fill, AegisTokens.LINE, 1, AegisTokens.RADIUS, pad)
+	)
+	_help_panel.add_theme_stylebox_override(
+		"panel",
+		AegisTheme.panel_style(
+			Color(AegisTokens.VOID, 0.86), Color(AegisTokens.LINE, 0.9), 1, AegisTokens.RADIUS, pad
+		)
+	)
+	_desktop_weapon_card.add_theme_stylebox_override(
+		"panel", AegisTheme.panel_style(fill, AegisTokens.LINE, 1, AegisTokens.RADIUS, pad)
+	)
+	_ads_chip.add_theme_stylebox_override(
+		"panel", AegisTheme.panel_style(fill, AegisTokens.LINE, 1, AegisTokens.RADIUS, tight)
+	)
+	_results_panel.add_theme_stylebox_override(
+		"panel",
+		AegisTheme.panel_style(
+			Color(AegisTokens.PANEL, 0.97),
+			Color(AegisTokens.LINE_HI, 0.9),
+			1,
+			AegisTokens.RADIUS,
+			_to_layout(24.0)
+		)
+	)
+	if is_instance_valid(_health_bar):
+		_health_bar.custom_minimum_size = Vector2(0.0, _to_layout(6.0))
+		_health_bar.gap_width = maxf(_to_layout(2.0), 1.0)
+	if is_instance_valid(_wave_icon):
+		var icon_size := _to_layout(16.0)
+		_wave_icon.custom_minimum_size = Vector2(icon_size, icon_size)
+	if is_instance_valid(_results_retry_button):
+		_results_retry_button.add_theme_constant_override(
+			"icon_max_width", roundi(_to_layout(18.0))
+		)
+
+
+func _apply_font_scale() -> void:
+	var floor_size := _minimum_font_size()
+	var unit := _control_unit()
+	for node in find_children("*", "Label", true, false):
+		var label := node as Label
+		if label == null or not label.has_meta("aegis_role"):
+			continue
+		var role := String(label.get_meta("aegis_role"))
+		var multiplier := float(label.get_meta("aegis_scale", 1.0))
+		var text_size := maxi(
+			roundi(float(AegisTheme.type_size(role)) * unit * multiplier), floor_size
+		)
+		AegisTheme.resize_label(label, role, text_size)
+	for node in find_children("*", "Button", true, false):
+		var button := node as Button
+		if button == null:
+			continue
+		button.add_theme_font_size_override("font_size", floor_size)
+		if button == _fire_button:
+			AegisTheme.resize_button_font(button, "title", maxi(roundi(15.0 * unit), floor_size))
+		elif button == _weapon_button or button == _skill_button or button == _aim_button:
+			AegisTheme.resize_button_font(button, "label", maxi(roundi(11.0 * unit), floor_size))
+		elif button == _results_retry_button:
+			AegisTheme.resize_button_font(button, "title", maxi(roundi(15.0 * unit), floor_size))
+	if is_instance_valid(_health_bar):
+		_health_bar.custom_minimum_size.y = maxf(_to_layout(6.0), 3.0)
+	# Icons are raster assets; size them in physical pixels so a 20 px glyph on
+	# desktop is still 20 px on a phone instead of shrinking with the canvas.
+	var icon_px := maxi(roundi(_to_layout(18.0)), 12)
+	var icon_button_px := maxf(_to_layout(44.0), 32.0)
+	for icon_button in [_pause_button, _sound_button]:
+		if is_instance_valid(icon_button):
+			icon_button.custom_minimum_size = Vector2(icon_button_px, icon_button_px)
+	for button in [
+		_fire_button,
+		_weapon_button,
+		_skill_button,
+		_aim_button,
+		_pause_button,
+		_sound_button,
+		_emp_chip
+	]:
+		if is_instance_valid(button):
+			button.add_theme_constant_override("icon_max_width", icon_px)
+
+
+# --------------------------------------------------------------------------- #
+# Geometry helpers
+# --------------------------------------------------------------------------- #
 
 
 ## Physical window size, with a sane fallback for headless runs where there is no
@@ -983,43 +1171,50 @@ func _minimum_font_size() -> int:
 	return maxi(roundi(MIN_PHYSICAL_FONT_PX / maxf(_stretch, 0.0001)), 11)
 
 
-## Every HUD font is derived from the base size times the UI scale, floored at
-## the physical minimum so a portrait phone stays readable.
-func _apply_font_scale() -> void:
-	for entry in [
-		[_health_value_label, 14],
-		[_wave_title_label, 17],
-		[_wave_state_label, 12],
-		[_wave_enemy_label, 12],
-		[_status_label, 12],
-	]:
-		var label := entry[0] as Label
-		if is_instance_valid(label):
-			label.add_theme_font_size_override(
-				"font_size", maxi(roundi(float(entry[1]) * _control_unit()), _minimum_font_size())
-			)
-	for heading in [_health_card, _wave_card, _run_card]:
-		if not is_instance_valid(heading):
-			continue
-		for child in heading.find_children("*", "Label", true, false):
-			var label := child as Label
-			if label != null and int(label.get_theme_font_size("font_size")) >= 13:
-				label.add_theme_font_size_override(
-					"font_size", maxi(roundi(13.0 * _control_unit()), _minimum_font_size())
-				)
-
-
 ## Keep the HUD clear of notches and of the browser shell chrome.
 func _resolve_top_inset() -> float:
-	var inset := 0.0
 	var physical := _physical_size if _physical_size != Vector2.ZERO else size
+	var inset := 20.0 if not _touch_mode else 12.0
 	if OS.has_feature("web"):
 		# Browser chips wrap onto two rows on a narrow screen; reserve for that.
-		inset = WEB_TOP_INSET + (WEB_TOP_INSET * 0.8 if physical.x < physical.y else 0.0)
+		inset = maxf(
+			inset, WEB_TOP_INSET + (WEB_TOP_INSET * 0.8 if physical.x < physical.y else 0.0)
+		)
 	var safe_area := DisplayServer.get_display_safe_area()
 	if safe_area.position.y > 0:
 		inset = maxf(inset, float(safe_area.position.y))
-	return _to_layout(inset * _ui_scale + 10.0 * _ui_scale)
+	return _to_layout(inset)
+
+
+func _format_number(value: int) -> String:
+	var digits := str(absi(value))
+	var grouped := ""
+	while digits.length() > 3:
+		grouped = "," + digits.substr(digits.length() - 3) + grouped
+		digits = digits.substr(0, digits.length() - 3)
+	return ("-" if value < 0 else "") + digits + grouped
+
+
+## Fallback for callers that only hand the HUD its three-line status string
+## (the smoke test does). main.gd calls set_run_summary with exact numbers.
+func _parse_status_fallback(text: String) -> void:
+	var score := _run_score
+	var time_text := _run_time
+	var parts := text.replace("\n", " · ").split("·")
+	for part in parts:
+		var piece := part.strip_edges()
+		if piece.begins_with("Score:"):
+			score = int(piece.trim_prefix("Score:").strip_edges())
+		elif piece.begins_with("Time:"):
+			time_text = piece.trim_prefix("Time:").strip_edges()
+	_run_score = score
+	_run_time = time_text
+	_refresh_score_chip()
+
+
+# --------------------------------------------------------------------------- #
+# Touch input
+# --------------------------------------------------------------------------- #
 
 
 func _begin_touch(touch_id: int, position: Vector2) -> void:
@@ -1034,7 +1229,10 @@ func _begin_touch(touch_id: int, position: Vector2) -> void:
 			and _fire_touch_id == -1
 		):
 			_fire_touch_id = touch_id
+			hide_help()
+			_fire_flash_remaining = 1.0
 			fire_changed.emit(true)
+			queue_redraw()
 		else:
 			_pressed_touch_buttons[touch_id] = touched_button
 			if not touched_button.disabled:
@@ -1042,7 +1240,12 @@ func _begin_touch(touch_id: int, position: Vector2) -> void:
 				# (AIM) also needs its press forwarded here.
 				touched_button.emit_signal("button_down")
 		return
-	if _player_down or get_tree().paused or _is_over_hud(position):
+	if (
+		_player_down
+		or get_tree().paused
+		or _is_over_hud(position)
+		or (is_instance_valid(_scrim) and _scrim.visible)
+	):
 		return
 	if position.y < size.y * 0.2:
 		return
@@ -1065,7 +1268,7 @@ func _update_touch(touch_id: int, position: Vector2, relative: Vector2) -> void:
 		return
 	if touch_id == _move_touch_id:
 		_move_position = position
-		var radius := 68.0 * _control_unit()
+		var radius := maxf(_joystick_radius, 1.0)
 		var offset := (position - _move_origin) / radius
 		if offset.length() > 0.25:
 			hide_help()
@@ -1128,7 +1331,7 @@ func _find_touch_button(position: Vector2) -> Button:
 func _activate_touch_button(button: Button) -> void:
 	if button == _weapon_button:
 		_on_weapon_switch_pressed()
-	elif button == _skill_button:
+	elif button == _skill_button or button == _emp_chip:
 		_on_skill_pressed()
 	elif button == _pause_button:
 		_on_pause_pressed()
@@ -1139,7 +1342,6 @@ func _activate_touch_button(button: Button) -> void:
 
 
 func _is_over_hud(position: Vector2) -> bool:
-	var global_position := position
 	var hud_controls: Array[Control] = [
 		_top_bar,
 		_help_panel,
@@ -1149,88 +1351,69 @@ func _is_over_hud(position: Vector2) -> bool:
 		_aim_button,
 		_pause_label,
 		_results_panel,
+		_run_card,
+		_score_chip,
+		_desktop_weapon_card,
+		_emp_chip,
+		_ads_chip,
+		_compact_card,
 	]
 	for control in hud_controls:
 		if (
 			is_instance_valid(control)
 			and control.visible
-			and control.get_global_rect().has_point(global_position)
+			and control.get_global_rect().has_point(position)
 		):
 			return true
 	return false
 
 
+# --------------------------------------------------------------------------- #
+# Drawing
+# --------------------------------------------------------------------------- #
+
+
 func _draw() -> void:
 	if _damage_flash_remaining > 0.0:
-		var flash_strength := _damage_flash_remaining / DAMAGE_FLASH_DURATION
-		var flash_color := Color(1.0, 0.08, 0.04, 0.2 * flash_strength)
-		draw_rect(Rect2(Vector2.ZERO, size), flash_color, true)
-
-	_draw_crosshair()
-	_draw_joystick()
-
-
-## Reticle: a dot with four ticks, drawn for contrast against a bright world.
-## Ticks spread with walking and firing, and pull in while aiming, so the player
-## can read accuracy state without opening anything.
-func _draw_crosshair() -> void:
-	if _player_down or get_tree().paused or _results_panel.visible:
-		return
-	var center := size * 0.5
-	var spread := 5.0 + _fire_flash_remaining * 46.0
-	if _move_touch_id != -1:
-		spread += 4.0
-	if _aiming:
-		spread *= 0.45
-	var tick := 9.0 * _control_unit()
-	var gap := (10.0 + spread) * _control_unit()
-	var thickness := 2.6 * _control_unit()
-	# The reticle has to survive both a white interior floor and a bright sky;
-	# a saturated mint reads on both, the old pale cyan did not.
-	var color := Color(0.55, 1.0, 0.78, 1.0)
-	if _hit_confirm_remaining > 0.0:
-		color = Color(1.0, 0.72, 0.24, 1.0)
-		gap *= 1.25
-	# dark outline first so the reticle survives a white floor
-	var outline := Color(0.0, 0.03, 0.06, 0.6)
-	for offset in [Vector2(1.0, 0.0), Vector2(-1.0, 0.0), Vector2(0.0, 1.0), Vector2(0.0, -1.0)]:
-		_draw_crosshair_ticks(center + offset * _control_unit(), gap, tick, thickness, outline)
-	_draw_crosshair_ticks(center, gap, tick, thickness, color)
-	draw_circle(center, maxf(1.4 * _control_unit(), 1.0), color)
-	draw_arc(center, 2.6 * _control_unit(), 0.0, TAU, 16, outline, 1.0)
-
-
-func _draw_crosshair_ticks(
-	center: Vector2, gap: float, tick: float, thickness: float, color: Color
-) -> void:
-	draw_line(center + Vector2(gap, 0.0), center + Vector2(gap + tick, 0.0), color, thickness)
-	draw_line(center - Vector2(gap, 0.0), center - Vector2(gap + tick, 0.0), color, thickness)
-	draw_line(center + Vector2(0.0, gap), center + Vector2(0.0, gap + tick), color, thickness)
-	draw_line(center - Vector2(0.0, gap), center - Vector2(0.0, gap + tick), color, thickness)
-
-
-func _draw_joystick() -> void:
-	if not _touch_mode and _move_touch_id == -1:
-		return
-	var joystick_center := Vector2(
-		minf(106.0 * _control_unit(), size.x * 0.18), size.y - 112.0 * _control_unit()
-	)
-	if _move_touch_id != -1:
-		joystick_center = _move_origin
-	var joystick_radius := 68.0 * _control_unit()
-	var joystick_color := Color(0.22, 0.72, 0.94, 0.3)
-	draw_arc(joystick_center, joystick_radius, 0.0, TAU, 40, joystick_color, 2.0 * _control_unit())
-	if _move_touch_id != -1:
-		draw_circle(_move_position, 23.0 * _control_unit(), Color(0.22, 0.72, 0.94, 0.36))
-		draw_arc(
-			_move_position,
-			23.0 * _control_unit(),
-			0.0,
-			TAU,
-			24,
-			Color(0.48, 0.88, 1.0, 0.78),
-			2.0 * _control_unit()
+		HudRenderer.damage_vignette(
+			self,
+			size,
+			_damage_flash_remaining / DAMAGE_FLASH_DURATION,
+			maxf(_to_layout(14.0), 2.0),
+			AegisTokens.DANGER
 		)
+	if _results_visible() or (is_instance_valid(_scrim) and _scrim.visible and _player_down):
+		return
+	if not _player_down and not get_tree().paused:
+		var spread := 5.0 + _fire_flash_remaining * 46.0
+		if _move_touch_id != -1:
+			spread += 4.0
+		if _aiming:
+			spread *= 0.45
+		HudRenderer.crosshair(
+			self,
+			size * 0.5,
+			_to_layout(12.0 + spread),
+			maxf(_to_layout(6.0), 2.0),
+			maxf(_to_layout(1.5), 1.0),
+			AegisTokens.INK,
+			Color(AegisTokens.VOID, 0.7),
+			_hit_confirm_remaining > 0.0,
+			maxf(_to_layout(1.0), 0.75)
+		)
+	if _touch_mode or _move_touch_id != -1:
+		HudRenderer.joystick(
+			self,
+			_move_origin if _move_touch_id != -1 else _joystick_center,
+			_joystick_radius,
+			_move_position if _move_touch_id != -1 else _joystick_center,
+			maxf(_to_layout(1.0), 1.0)
+		)
+
+
+# --------------------------------------------------------------------------- #
+# Callbacks
+# --------------------------------------------------------------------------- #
 
 
 func _on_sound_pressed() -> void:
@@ -1253,22 +1436,16 @@ func _on_aim_down() -> void:
 	if _player_down or get_tree().paused:
 		return
 	_aiming = true
-	_set_aim_button_active(true)
+	_apply_aim_visual(true)
 	queue_redraw()
 	aim_changed.emit(true)
 
 
 func _on_aim_up() -> void:
 	_aiming = false
-	_set_aim_button_active(false)
+	_apply_aim_visual(false)
 	queue_redraw()
 	aim_changed.emit(false)
-
-
-func _set_aim_button_active(active: bool) -> void:
-	if not is_instance_valid(_aim_button):
-		return
-	_aim_button.modulate = Color(1.0, 1.0, 1.0) if active else Color(0.82, 0.9, 0.98)
 
 
 func _on_weapon_switch_pressed() -> void:
