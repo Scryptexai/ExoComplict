@@ -969,15 +969,18 @@ func _set_aim_button_active(active: bool) -> void:
 
 func _on_weapon_switch_pressed() -> void:
 	if not _player_down and not get_tree().paused:
+		Sfx.play_ui(&"ui_click")
 		weapon_switch_requested.emit()
 
 
 func _on_skill_pressed() -> void:
 	if not _player_down and not get_tree().paused and _skill_cooldown_remaining <= 0.0:
+		Sfx.play_ui(&"ui_click")
 		skill_requested.emit()
 
 
 func _on_pause_pressed() -> void:
+	Sfx.play_ui(&"ui_click")
 	if _player_down:
 		retry_requested.emit()
 	else:
@@ -985,6 +988,7 @@ func _on_pause_pressed() -> void:
 
 
 func _on_results_retry_pressed() -> void:
+	Sfx.play_ui(&"ui_click")
 	retry_requested.emit()
 
 

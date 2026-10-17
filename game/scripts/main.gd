@@ -51,6 +51,9 @@ func _ready() -> void:
 	wave_director.session_ended.connect(_on_wave_session_ended)
 	wave_director.spawn_blocked.connect(_on_wave_spawn_blocked)
 	_update_status()
+	# One line per session so the browser console proves audio came up in the
+	# exported build, not only in the editor.
+	print(Sfx.describe())
 	if start_wave_session_on_ready:
 		wave_director.start_session()
 
@@ -109,6 +112,7 @@ func _on_player_damage_received(_amount: float, _current: float, _maximum: float
 
 
 func _on_player_defeated() -> void:
+	Sfx.play_ui(&"defeat")
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	touch_controls.set_player_down(true)
 	wave_director.end_session()
@@ -116,10 +120,12 @@ func _on_player_defeated() -> void:
 
 
 func _on_target_damage_received(_amount: float, _current: float, _maximum: float) -> void:
+	Sfx.play_ui(&"hit_confirm")
 	touch_controls.show_hit_confirmed()
 
 
 func _on_skill_used(targets_hit: int, _cooldown_seconds: float) -> void:
+	Sfx.play_3d(&"skill_pulse", player.global_position)
 	touch_controls.show_skill_feedback(targets_hit)
 
 
@@ -128,6 +134,7 @@ func _on_combatant_health_changed(_current: float, _maximum: float) -> void:
 
 
 func _on_wave_started(_wave_index: int, _enemy_count: int) -> void:
+	Sfx.play_ui(&"wave_start")
 	run_stats.start_run()
 	_update_status()
 
@@ -142,6 +149,7 @@ func _on_wave_enemy_spawned(enemy: Node3D) -> void:
 
 
 func _on_wave_session_ended(wave_index: int, _total_defeated: int) -> void:
+	Sfx.play_ui(&"session_clear")
 	run_stats.end_run()
 	var run_time := run_stats.get_survival_time_text()
 	var run_kos := run_stats.eliminations

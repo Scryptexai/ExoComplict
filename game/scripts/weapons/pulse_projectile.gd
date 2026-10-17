@@ -50,6 +50,7 @@ func _physics_process(delta: float) -> void:
 			collider.call("apply_damage", _damage, _shooter)
 		var hit_position: Vector3 = hit.get("position", next_position)
 		global_position = hit_position
+		Sfx.play_3d(&"impact", hit_position)
 		queue_free()
 		return
 

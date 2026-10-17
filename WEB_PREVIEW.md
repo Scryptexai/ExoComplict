@@ -61,9 +61,14 @@ unduh artefak manual; artefak `web-preview` tetap ada sebagai jalur cadangan.
 npm ci --prefix tools          # sekali; mengunduh Chromium headless (paket @sparticuz/chromium)
 node tools/web_qa.mjs          # menyajikan repo sendiri, membuka / dan /web/index.html
 node tools/web_qa.mjs --json   # laporan terstruktur untuk skrip/CI
+node tools/web_qa.mjs --play 80 --play-shot-every 25   # main sungguhan + foto berseri
 ```
 
 `tools/web_qa.mjs` membuka halaman sungguhan di Chromium headless dan gagal (exit 1) bila engine tidak boot, tidak ada WebGL 2, kanvas tetap 300×150, ada permintaan 4xx/5xx, atau kartu error tampil. Tangkapan layarnya ditulis ke `exports/web-qa/`. Ini gate yang sama yang dijalankan job CI `web-preview`.
+
+**Mode `--play <detik>`** menambahkan uji main: klik kanvas (sekaligus gesture yang dibutuhkan browser sebelum audio boleh berbunyi), lalu berjalan, berbelok, berganti senjata, dan menembak dengan event input sungguhan sambil menulis rangkaian foto `<halaman>-<viewport>-play-<t>s.png`. Ia juga memeriksa baris log `Audio:` — termasuk `Audio: first voice played (...)`, bukti audio benar-benar terpakai di browser, bukan sekadar ter-import.
+
+Bukti terakhir (Chromium headless, software rendering): `exports/web-qa/enemy-audio/root-1280x720-play-38s.png` dan `...-73s.png` — Runner Kenney menempel di jarak melee, VITALS turun 100 → 84 → 60, wave tetap `ACTIVE 3/3`, dan senjata berganti mengikuti tombol `E`. Karena renderer-nya SwiftShader (tanpa GPU), laju frame di run ini **tidak** mewakili browser sungguhan; satu tangkapan layar pun butuh belasan detik di sana, jadi pakai `--play-shot-every` yang longgar.
 
 Tidak perlu header COOP/COEP, tidak perlu `--directory`, tidak perlu konfigurasi MIME: build yang dihasilkan memakai **single-thread** (`variant/thread_support=false`), dan Python 3.9+ sudah mengirim `.wasm` sebagai `application/wasm` (diverifikasi di sesi ini pada Python 3.11.2).
 
@@ -104,7 +109,7 @@ Opsi: `--debug` (build debug, error lebih jelas, ukuran lebih besar), `--output 
 | Berkas | Peran |
 |---|---|
 | `index.html` (root repo) | **Halaman game**: meng-import `web/` di halaman yang sama (kanvas penuh layar + chip status/kontrol/fullscreen). Menampilkan kartu diagnostik bila `web/` belum ada, konfigurasi ekspor tidak terbaca, atau WebGL 2 tidak tersedia. Tanpa CDN, tanpa build step. |
-| `tools/web_qa.mjs` | QA browser headless: menyajikan repo, membuka `/` dan `/web/index.html`, memeriksa banner engine, WebGL 2, ukuran kanvas, 4xx/5xx, kartu error; menulis tangkapan layar dan laporan `--json`. |
+| `tools/web_qa.mjs` | QA browser headless: menyajikan repo, membuka `/` dan `/web/index.html`, memeriksa banner engine, WebGL 2, ukuran kanvas, 4xx/5xx, kartu error; menulis tangkapan layar dan laporan `--json`. Mode `--play <detik>` memainkan game dengan input sungguhan, menulis foto berseri, dan memverifikasi pipeline audio. |
 | `game/web_shell/index.html` | **Custom Godot HTML shell** (dipakai lewat `html/custom_html_shell`). Menambah boot overlay bertema (progress bar + persentase), HUD atas (chip build, Fullscreen, Hide UI), panel kontrol yang bisa dilipat, dan penanganan error yang menampilkan pesan gagal yang dapat dibaca. Placeholder `$GODOT_*` resmi dipertahankan. |
 | `tools/web_preset.py` | `ensure` / `check` / `show` untuk preset Web (thread support, custom shell, resize policy, PWA off). |
 | `scripts/export_web_preview.sh` | Pipeline ekspor web 5 langkah + verifikasi. |

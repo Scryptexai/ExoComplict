@@ -189,6 +189,7 @@ func apply_damage(amount: float, _source: Node = null) -> void:
 	health_changed.emit(current_health, max_health)
 	if current_health <= 0.0:
 		_is_defeated = true
+		Sfx.play_ui(&"player_hurt")
 		_touch_fire_pressed = false
 		_touch_movement = Vector2.ZERO
 		defeated.emit()

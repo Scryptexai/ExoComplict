@@ -1066,12 +1066,31 @@ def check_docs(report: Report, root: Path, game_root: Path, scenes: dict[str, Sc
     referenced: set[str] = set()
     for script in scripts.values():
         referenced |= set(SCRIPT_REF_RE.findall(script.text))
+    # A global class_name is a reference too: gameplay calls Sfx.play_ui(), the
+    # facade script itself is never named by path anywhere.
+    global_classes = {
+        script.class_name: res_path for res_path, script in scripts.items() if script.class_name
+    }
+    for script in scripts.values():
+        for class_name, res_path in global_classes.items():
+            if re.search(r"\b%s\b" % re.escape(class_name), script.text) and res_path != script.path:
+                referenced.add(res_path)
     for res_path, scene in scenes.items():
         for ext in scene.ext_resources.values():
             referenced.add(ext.get("path", ""))
-    main_scene_match = re.search(r'run/main_scene="([^"]+)"', project_file.read_text(encoding="utf-8")) if project_file.exists() else None
+    project_text = project_file.read_text(encoding="utf-8") if project_file.exists() else ""
+    main_scene_match = re.search(r'run/main_scene="([^"]+)"', project_text)
     if main_scene_match:
         referenced.add(main_scene_match.group(1))
+    # Autoloads live in project.godot, not in a scene: without this the audio
+    # director (and any future singleton) shows up as an unreferenced script.
+    if project_text:
+        autoload_section = re.search(r"^\[autoload\]\s*$([\s\S]*?)(?=^\[|\Z)", project_text, re.MULTILINE)
+        if autoload_section:
+            referenced |= {
+                match.group(1)
+                for match in re.finditer(r'=\s*"\*?(res://[^"]+)"', autoload_section.group(1))
+            }
 
     for res_path in sorted(scenes):
         if res_path not in referenced:

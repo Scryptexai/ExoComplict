@@ -7,6 +7,13 @@
  *   node tools/web_qa.mjs --url http://host/   # check an already-running server
  *   node tools/web_qa.mjs --page /web/index.html --page /
  *   node tools/web_qa.mjs --viewport 390x844 --viewport 1280x720
+ *   node tools/web_qa.mjs --play 30         # also play: click, move, shoot, film
+ *
+ * `--play <seconds>` turns the boot check into a play test: it clicks the canvas
+ * (which is also the user gesture browsers require before any audio can start),
+ * walks and shoots with real input events, and writes a screenshot series. Those
+ * frames are the only evidence that the game renders and reacts in a browser —
+ * a boot check cannot see enemies, hits or the HUD under load.
  *
  * Why: an export that passes every static check can still boot to a black
  * screen — a missing index.wasm (wrong base path), no WebGL 2, a shell whose
@@ -46,6 +53,9 @@ const viewports = (viewportArgs.length ? viewportArgs : ['1280x720', '390x844'])
 const outDir = path.resolve(ROOT, flag('--out', path.join('exports', 'web-qa')));
 const bootTimeoutMs = Number(flag('--timeout', '45')) * 1000;
 const asJson = has('--json');
+// Play pass: seconds of scripted input after boot. 0 keeps the fast boot check.
+const playSeconds = Math.max(0, Number(flag('--play', '0')) || 0);
+const playShotEvery = Math.max(1, Number(flag('--play-shot-every', '5')) || 5);
 const givenUrl = flag('--url', '');
 const port = Number(flag('--port', '8126'));
 
@@ -152,6 +162,49 @@ async function checkPage(target, viewport) {
   const slug = target.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'root';
   const shot = path.join(outDir, `${slug}-${viewport.spec}.png`);
   await page.screenshot({ path: shot });
+
+  /* ---------- optional play pass ---------- */
+  const frames = [];
+  if (booted && playSeconds > 0) {
+    const centre = await page.evaluate(() => {
+      const canvas = document.querySelector('canvas');
+      if (!canvas) return null;
+      const rect = canvas.getBoundingClientRect();
+      return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+    });
+    if (centre) {
+      // The click doubles as the gesture browsers require before audio runs.
+      await page.mouse.click(centre.x, centre.y);
+      const started = Date.now();
+      let nextShot = 0;
+      // Input is fire-and-forget on purpose: a headless Chromium rendering this
+      // scene through SwiftShader answers CDP calls slowly, so awaiting every
+      // keystroke would spend the whole play window waiting on round-trips.
+      while ((Date.now() - started) / 1000 < playSeconds) {
+        const elapsed = (Date.now() - started) / 1000;
+        const phase = Math.floor(elapsed / 6) % 3;
+        const key = ['KeyW', 'KeyA', 'KeyD'][phase];
+        void page.keyboard.down(key);
+        void page.keyboard.press('KeyE');
+        // Turn towards the spawn ring so the enemies that chase the player end
+        // up in front of the camera instead of behind it.
+        void page.mouse.move(centre.x + 120 + phase * 60, centre.y - 10);
+        void page.mouse.down();
+        await new Promise((r) => setTimeout(r, 400));
+        void page.mouse.up();
+        await new Promise((r) => setTimeout(r, 400));
+        void page.keyboard.up(key);
+        if (elapsed >= nextShot) {
+          const frame = path.join(outDir, `${slug}-${viewport.spec}-play-${Math.round(elapsed)}s.png`);
+          await page.screenshot({ path: frame });
+          frames.push(path.relative(ROOT, frame));
+          nextShot += playShotEvery;
+        }
+      }
+    }
+  }
+
+  const audioLines = consoleLines.filter((line) => line.includes('Audio:'));
   await page.close();
 
   const checks = [
@@ -164,6 +217,14 @@ async function checkPage(target, viewport) {
     ['WebGL context alive', state.glContext === true && state.glLost === false],
     ['no failure card shown', state.failureVisible === false],
   ];
+  if (playSeconds > 0) {
+    checks.push(['scripted play captured frames', frames.length > 0]);
+    checks.push(['audio pipeline reported itself', audioLines.length > 0]);
+    checks.push([
+      'audio played a voice in the browser',
+      audioLines.some((line) => line.includes('first voice')),
+    ]);
+  }
 
   const result = {
     target,
@@ -176,6 +237,8 @@ async function checkPage(target, viewport) {
     checks: checks.map(([name, ok]) => ({ name, ok })),
     failed: checks.filter(([, ok]) => !ok).map(([name]) => name),
     screenshot: path.relative(ROOT, shot),
+    frames,
+    audio: audioLines,
     console: consoleLines,
     pageErrors,
     badResponses,
@@ -199,6 +262,8 @@ try {
       if (result.failedRequests.length) console.log(`  failed requests: ${result.failedRequests.join(' | ')}`);
       if (result.state.failureText) console.log(`  failure card: ${result.state.failureText}`);
       console.log(`  screenshot: ${result.screenshot}`);
+      if (result.frames?.length) console.log(`  play frames: ${result.frames.join(', ')}`);
+      if (result.audio?.length) console.log(`  audio: ${result.audio.join(' | ')}`);
     }
     }
   }

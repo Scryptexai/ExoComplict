@@ -14,6 +14,8 @@ extends Node3D
 ## controller's velocity. If the model is missing, the fallback capsule stays
 ## visible instead of leaving the player invisible.
 
+const ModelFitterScript = preload("res://scripts/visual/model_fitter.gd")
+
 @export var model_scene: PackedScene
 @export var weapon_scene: PackedScene
 @export_range(1.0, 2.4, 0.01) var target_height: float = 1.78
@@ -160,35 +162,21 @@ func _spawn_model() -> void:
 	if is_instance_valid(_weapon_socket):
 		_weapon_socket_base_position = _weapon_socket.position
 		_weapon_socket_base_rotation = _weapon_socket.rotation
-	if model_scene == null:
-		_keep_fallback("no model assigned")
+	# The kit models are authored facing +Z while the game's forward is -Z, and the
+	# ModelFitter pivot carries that yaw and centres the model inside itself: doing
+	# the compensation on the rotated node would push the avatar ~9 m off-centre.
+	var fitted := ModelFitterScript.attach(
+		self, model_scene, target_height, model_yaw_offset_degrees, "ModelPivot", "CharacterModel"
+	)
+	if fitted.is_empty():
+		_keep_fallback("no measurable model")
 		return
-
-	var instance := model_scene.instantiate()
-	if not instance is Node3D:
-		_keep_fallback("model did not instantiate as Node3D")
-		return
-
-	# The kit models are authored facing +Z while the game's forward is -Z, so the
-	# avatar is turned by a dedicated pivot. Centring happens *inside* that pivot:
-	# compensating on the rotated node itself would push the model away from the
-	# player by twice the offset (that bug made the avatar render ~9 m off-centre).
-	_model = instance as Node3D
-	_model.name = "CharacterModel"
-	var model_pivot := Node3D.new()
-	model_pivot.name = "ModelPivot"
-	model_pivot.rotation.y = deg_to_rad(model_yaw_offset_degrees)
-	add_child(model_pivot)
-	model_pivot.add_child(_model)
-	_fit_model()
-
-	if _model_height <= 0.001:
-		_model.queue_free()
-		_model = null
-		_keep_fallback("model has no measurable mesh")
-		return
-
-	_apply_outline(_model)
+	_model = fitted["model"] as Node3D
+	_model_bounds = fitted["bounds"]
+	_model_height = float(fitted["height"])
+	ModelFitterScript.apply_overlay_material(
+		self, ModelFitterScript.outline_material(Color(0.02, 0.05, 0.09, 1.0))
+	)
 	if is_instance_valid(_fallback_body):
 		_fallback_body.visible = false
 	# One line in the console/log: which model the avatar actually got, how tall it
@@ -213,7 +201,7 @@ func _spawn_weapon() -> void:
 	weapon.name = "WeaponModel"
 	_weapon_socket.add_child(weapon)
 
-	var bounds := _combined_bounds(weapon)
+	var bounds := ModelFitterScript.combined_bounds(weapon)
 	if bounds.size.length() <= 0.0001:
 		weapon.queue_free()
 		return
@@ -231,7 +219,7 @@ func _spawn_weapon() -> void:
 		axis_rotation.z
 	)
 	# Re-measure after the rotation: the long side now runs along Z.
-	var rotated_bounds := _combined_bounds(weapon)
+	var rotated_bounds := ModelFitterScript.combined_bounds(weapon)
 	var length := maxf(rotated_bounds.size.z, 0.0001)
 	var fit := weapon_length / length
 	weapon.scale = Vector3.ONE * fit
@@ -247,90 +235,7 @@ static func _longest_axis(size_vector: Vector3) -> int:
 	return 2
 
 
-## A dark rim around every mesh of the avatar. The world is bright and the kit
-## suit is light, so without it the player reads as a pale smudge against the
-## floor; an unshaded overlay grown past the surface keeps the silhouette legible
-## from any camera angle and costs one extra draw per surface.
-func _apply_outline(root: Node3D) -> void:
-	var outline := StandardMaterial3D.new()
-	outline.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	outline.albedo_color = Color(0.02, 0.05, 0.09, 1.0)
-	outline.cull_mode = BaseMaterial3D.CULL_FRONT
-	outline.grow = true
-	outline.grow_amount = 0.022
-	outline.no_depth_test = false
-	for child in root.find_children("*", "MeshInstance3D", true, false):
-		var mesh_instance := child as MeshInstance3D
-		if is_instance_valid(mesh_instance):
-			mesh_instance.material_overlay = outline
-
-
 func _keep_fallback(reason: String) -> void:
 	push_warning("CharacterVisual: using the fallback capsule (%s)." % reason)
 	if is_instance_valid(_fallback_body):
 		_fallback_body.visible = true
-
-
-func _fit_model() -> void:
-	_model_bounds = _combined_bounds(_model)
-	if _model_bounds.size.y <= 0.0001:
-		_model_height = 0.0
-		return
-
-	var fit_scale := target_height / _model_bounds.size.y
-	# report the fitted height: callers care about how tall the avatar renders,
-	# not how the GLB happened to be authored.
-	_model_height = _model_bounds.size.y * fit_scale
-	var center := _model_bounds.position + _model_bounds.size * 0.5
-	_model.scale = Vector3.ONE * fit_scale
-	# Feet on the origin, body centred over the collider.
-	_model.position = Vector3(
-		-center.x * fit_scale, -_model_bounds.position.y * fit_scale, -center.z * fit_scale
-	)
-
-
-## Bounds of every mesh under [param root], expressed in root-local space.
-func _combined_bounds(root: Node3D) -> AABB:
-	var has_bounds := false
-	var combined := AABB()
-	for child in root.find_children("*", "MeshInstance3D", true, false):
-		var mesh_instance := child as MeshInstance3D
-		if not is_instance_valid(mesh_instance) or mesh_instance.mesh == null:
-			continue
-		var relative := _local_transform_within(root, mesh_instance)
-		var converted := _transform_aabb(mesh_instance.get_aabb(), relative)
-		combined = converted if not has_bounds else combined.merge(converted)
-		has_bounds = true
-	return combined
-
-
-## Transform of [param node] relative to [param root], built by walking parents so
-## nested GLTF nodes are measured correctly without relying on global transforms.
-static func _local_transform_within(root: Node3D, node: Node3D) -> Transform3D:
-	var chain: Array[Node3D] = []
-	var current: Node = node
-	while current != null and current != root:
-		if current is Node3D:
-			chain.append(current as Node3D)
-		current = current.get_parent()
-	var result := Transform3D.IDENTITY
-	for index in range(chain.size() - 1, -1, -1):
-		result = result * chain[index].transform
-	return result
-
-
-static func _transform_aabb(bounds: AABB, transform: Transform3D) -> AABB:
-	var min_corner := Vector3.INF
-	var max_corner := -Vector3.INF
-	for corner_index in range(8):
-		var local_corner := bounds.position
-		if (corner_index & 1) != 0:
-			local_corner.x += bounds.size.x
-		if (corner_index & 2) != 0:
-			local_corner.y += bounds.size.y
-		if (corner_index & 4) != 0:
-			local_corner.z += bounds.size.z
-		var transformed := transform * local_corner
-		min_corner = min_corner.min(transformed)
-		max_corner = max_corner.max(transformed)
-	return AABB(min_corner, max_corner - min_corner)
