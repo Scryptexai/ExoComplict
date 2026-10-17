@@ -62,6 +62,19 @@ func _run_smoke_test() -> void:
 		wave_title.text == "FRONTIER DEFENSE" and wave_enemy_label.text.contains("0 ACTIVE"),
 		"wave HUD starts in a clear ready state",
 	)
+	# On a phone the compact data card and the help plate must not overlap; this
+	# was the first thing a 390x844 screenshot showed.
+	controls.call("apply_layout_for_size", Vector2(390.0, 844.0), 1.0)
+	# Containers recompute their rects on the next frame; reading the rects
+	# immediately measures the previous layout and reports a false overlap.
+	await process_frame
+	var compact_bottom := compact_card.get_global_rect().end.y
+	var help_top := help_label.get_global_rect().position.y
+	_expect(
+		help_top >= compact_bottom - 0.5,
+		"narrow layout keeps the help plate below the compact data card",
+	)
+	controls.call("apply_layout_for_size", Vector2(1280.0, 720.0), 1.0)
 	_expect(
 		(
 			help_label.autowrap_mode != TextServer.AUTOWRAP_OFF

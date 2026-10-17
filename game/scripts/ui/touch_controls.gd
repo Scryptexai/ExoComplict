@@ -23,7 +23,10 @@ const NARROW_WIDTH: float = 760.0
 const MIN_PHYSICAL_FONT_PX: float = 11.0
 ## Lines the narrow-screen data card must fit: enemy counts plus the run summary
 ## wraps into three lines at phone width.
-const COMPACT_LINES: int = 3
+# The compact card under the top bar holds four short lines on a phone:
+# enemies, score/time, target/shots. Three wrapped lines were not enough for
+# the fourth and clipped "Shots" onto the card border.
+const COMPACT_LINES: int = 4
 const HELP_FADE_SECONDS: float = 1.5
 # The browser shell (game/web_shell/index.html) draws its chips along the top of
 # the page; the HUD keeps clear of them instead of overlapping.
@@ -225,8 +228,6 @@ func _apply_input_mode() -> void:
 	if is_instance_valid(_desktop_hint):
 		_desktop_hint.visible = not _touch_mode
 		_desktop_hint.modulate.a = 0.9
-	if is_instance_valid(_help_label):
-		_layout_controls()
 	queue_redraw()
 
 
@@ -881,6 +882,9 @@ func _layout_controls(
 	_weapon_button.offset_right = -base_margin
 	_weapon_button.offset_bottom = -fire_size - base_margin - 12.0 * unit
 	_weapon_button.custom_minimum_size = Vector2(weapon_width, weapon_height)
+	_weapon_button.add_theme_font_size_override(
+		"font_size", maxi(roundi(13.0 * unit), _minimum_font_size())
+	)
 
 	var side_size := minf(94.0 * unit, _to_layout(minf(physical_width, physical_height) * 0.22))
 	var side_gap := 12.0 * unit
@@ -915,7 +919,10 @@ func _layout_controls(
 		_compact_card.offset_bottom = _compact_card.offset_top + compact_height
 	var help_top := _top_inset + card_height + 8.0 * unit
 	if narrow:
-		help_top = _top_inset + card_height + compact_height + 12.0 * unit
+		# The phone layout stacks three bars: cards, compact data, then help.
+		# The help plate has to clear the compact card *and* the gap the
+		# compact card needs for its own wrapped text.
+		help_top = _top_inset + card_height + compact_height + 22.0 * unit
 	_help_panel.offset_top = help_top
 	_help_panel.offset_bottom = help_top + 62.0 * unit
 	_help_label.add_theme_font_size_override(

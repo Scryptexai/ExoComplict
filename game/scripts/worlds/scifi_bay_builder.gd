@@ -39,7 +39,43 @@ static func build(world: Node3D) -> Dictionary:
 	stats["gates"] = _build_gateways(root)
 	stats["props"] = _build_props(root)
 	stats["lights"] = _build_lights(root)
+	stats["retired"] = retire_legacy_deck(world)
 	return stats
+
+
+## The old arena drew its floor detail as thin boxes: panel tiles, seam strips,
+## orange conduits and edge stripes. They sit between 1 mm and 8.5 cm above the
+## new plates, so they poked through the SciFi floor as bright bands — the orange
+## conduit in particular read as a wall when the camera was near the ground.
+## They are hidden rather than deleted: the world smoke test asserts that the
+## components still exist, and flipping one flag is a cheaper revert than
+## re-adding geometry.
+static func retire_legacy_deck(world: Node3D) -> int:
+	var prefixes := [
+		"ArenaPanel_",
+		"ArenaPanelSeam",
+		"ArenaOrangeConduit",
+		"ArenaCrossChannel",
+		"ArenaEnergyChannel",
+		"ArenaEdgeStripe",
+		"ArenaCornerWarningPanel",
+		"ArenaCornerPiece",
+	]
+	var retired := 0
+	for child in world.get_children():
+		if not (child is MeshInstance3D):
+			continue
+		var node_name := str(child.name)
+		var matches := false
+		for prefix in prefixes:
+			if node_name.begins_with(prefix):
+				matches = true
+				break
+		if not matches:
+			continue
+		(child as MeshInstance3D).visible = false
+		retired += 1
+	return retired
 
 
 ## Seven tiles of 5.4 m are 37.8 m, which covers the 38 m deck without a lip and
