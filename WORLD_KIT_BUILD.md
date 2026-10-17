@@ -1,4 +1,4 @@
-# World build from the KayKit Space Base Bits pack
+# World build: KayKit exterior + uploaded SciFi Starter Kit interior
 
 **Date:** 2026-10-17 · **Branch:** `arena/5257bce8-cyber-strike`
 
@@ -103,6 +103,53 @@ placements above were chosen — by looking at the geometry, not at file names.
 
 Full suite: **13/13 pass**, `dev_check` 0 failed / 8 warnings.
 
+
+## The uploaded pack is the one inside the arena
+
+The first version of this document described only the KayKit pass. That was the
+wrong reading of the request: the zip you pushed (`3DScifiStarterKitFree.zip`,
+125 FBX) is what the playable arena is now built from, and the KayKit pack does
+the outside — outpost, landing zone, cliffs, terrain.
+
+Getting the archive here needed a detour. The 259 MB zip is a **Git LFS pointer**
+whose download host is unreachable from this sandbox, and GitHub artifact
+downloads are blocked too, so no data can be pulled in either direction except
+through git. The CI job `lfs-pack` resolves the archive on a runner, converts
+every FBX with Blender (`tools/convert_fbx_pack.py`) and commits 2.4 MB of GLB:
+**125 converted, 0 failed**. `docs/LFS_ASSET_MANIFEST.md` is the full manifest.
+
+| | Before | Now |
+|---|---|---|
+| Arena floor | painted plates + decals | 49 SciFi floor plates |
+| Arena walls | none (open platform) | 4 wall runs, 28 pieces, 6 m lane opening per side |
+| Lanes | open edge | `DoorWay_01_Large` frame, no collider |
+| Cover | none | 8 octagonal pillars, crates, low plates |
+| Detail | decals | consoles, pipe stacks, 16 emissive strips |
+
+Two things in that pack are traps, both documented in the code:
+
+* **Orientation.** `Wall_Simple_01_Long` is 6 m along its own Z. Placed with no
+  yaw it stands as a fin; the east-west runs need a 90° turn. The first build
+  looked like a walled arena that was missing two of its walls.
+* **Material names.** Every model — floors included — carries a material
+  literally named `Orange`. Mapping that name to orange painted the whole arena
+  orange. Colour is resolved per model (`ScifiKitLibrary.surface_color_key`).
+
+The pack's 4K texture set is not used: the FBX carry named materials with no
+image links, and importing ~700 MB of TIF/PNG to colour a floor is the wrong
+trade for a repository. The palette is applied in code.
+
+### Controls and HUD this round
+
+* `Shift` sprint, `Space` jump, `Q` previous weapon, `1`/`2`/`3` direct weapon
+  selection. All are real actions in `project.godot`, not hard-coded key reads.
+* The thumb controls (FIRE / AIM / EMP / weapon) are **hidden on a desktop
+  session** — they covered a third of the play area and swallowed clicks — and a
+  compact keyboard legend takes their place. A real touch event switches back;
+  the HUD smoke test asserts both modes.
+* The help text sits on a dark plate over three lines instead of floating cyan
+  pixels on a white floor, and the reticle is thicker mint rather than pale cyan.
+
 ## Known gaps
 
 * The 259 MB LFS zip itself is not in the tree and cannot be fetched here. If you
@@ -115,3 +162,9 @@ Full suite: **13/13 pass**, `dev_check` 0 failed / 8 warnings.
   terrain relief. The relief is all outside the route lanes.
 * Nothing here was measured on an Android device: mesh count is not a frame-rate
   claim.
+* The SciFi pack's own textures are unused (see above); if the interior should
+  use them, the conversion step can pack them, at roughly 50x the committed size.
+* Enemies, shooting and the HUD were reported as needing work in the same
+  message as the world. This round fixed the two concrete input problems found
+  by inspection (invisible weapon switching beyond `E`, and desktop showing thumb
+  controls); AI behaviour, weapon feel and the results screen were not redesigned.
