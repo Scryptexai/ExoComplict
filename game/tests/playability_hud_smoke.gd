@@ -262,11 +262,16 @@ func _run_smoke_test() -> void:
 		bool(player.call("is_aiming")) and player_camera.fov < rest_fov - 5.0,
 		(
 			(
-				"holding AIM zooms the camera in for aim-down-sights (aiming=%s fov=%.1f rest=%.1f "
-				+ "disabled=%s rect=%s)"
+				"holding AIM zooms the camera in for aim-down-sights (aiming=%s hold=%s hud_aim=%s "
+				+ "held=%s paused=%s down=%s fov=%.1f rest=%.1f disabled=%s rect=%s)"
 			)
 			% [
 				player.call("is_aiming"),
+				player.get("_touch_aim_hold"),
+				controls.get("_aiming"),
+				controls.get("_pressed_touch_buttons").keys(),
+				int(paused),
+				controls.get("_player_down"),
 				player_camera.fov,
 				rest_fov,
 				aim_button.disabled,
