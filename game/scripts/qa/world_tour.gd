@@ -19,9 +19,9 @@ extends Node3D
 const VANTAGES := [
 	{
 		"name": "arena",
-		"from": Vector3(0.0, 9.0, 31.0),
-		"at": Vector3(0.0, 1.6, 0.0),
-		"fov": 62.0,
+		"from": Vector3(-27.0, 14.0, 27.0),
+		"at": Vector3(0.0, 1.0, -2.0),
+		"fov": 60.0,
 	},
 	{
 		"name": "outpost",
@@ -61,8 +61,8 @@ const VANTAGES := [
 	},
 	{
 		"name": "cliffs",
-		"from": Vector3(54.0, 7.0, 56.0),
-		"at": Vector3(88.0, 3.0, 16.0),
+		"from": Vector3(40.0, 10.0, 30.0),
+		"at": Vector3(86.0, 4.0, 18.0),
 		"fov": 58.0,
 	},
 ]
