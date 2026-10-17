@@ -188,6 +188,35 @@ func _run_smoke_test() -> void:
 	await process_frame
 	var portrait_font := float(pause_button.get_theme_font_size("font_size")) * 0.3047
 	var portrait_body_font := float(compact_label.get_theme_font_size("font_size")) * 0.3047
+	var vitals_card := controls.get("_health_card") as Control
+	var wave_card := controls.get("_wave_card") as Control
+	var system_row := controls.get("_system_row") as Control
+	var rail_gap := float(controls.call("_to_layout", 8.0))
+	_expect(
+		(
+			(
+				wave_card.get_global_rect().position.x
+				>= vitals_card.get_global_rect().end.x + rail_gap - 1.0
+			)
+			and (
+				wave_card.get_global_rect().end.x
+				<= system_row.get_global_rect().position.x - rail_gap + 1.0
+			)
+		),
+		"portrait top rail keeps WAVE clear of VITALS and system buttons",
+	)
+	_expect(
+		(
+			weapon_button.get_global_rect().size.y * 0.3047 >= 43.5
+			and not (
+				weapon_button
+				. get_global_rect()
+				. grow(controls.call("_to_layout", 5.9))
+				. intersects(aim_button.get_global_rect())
+			)
+		),
+		"portrait SWAP is a 44px target with space from AIM",
+	)
 	_expect(
 		(
 			is_equal_approx(float(controls.get("_ui_scale")), 0.64)
@@ -212,6 +241,21 @@ func _run_smoke_test() -> void:
 				compact_label.get_combined_minimum_size().y,
 			]
 		),
+	)
+	controls.call("apply_layout_for_size", Vector2(844.0, 390.0), 0.541667)
+	await process_frame
+	var landscape_gap := float(controls.call("_to_layout", 5.9))
+	_expect(
+		(
+			weapon_button.get_global_rect().size.y * 0.541667 >= 43.5
+			and not weapon_button.get_global_rect().grow(landscape_gap).intersects(
+				aim_button.get_global_rect()
+			)
+			and not weapon_button.get_global_rect().grow(landscape_gap).intersects(
+				skill_button.get_global_rect()
+			)
+		),
+		"landscape SWAP is at least 44px high and clear of AIM and EMP",
 	)
 	controls.call("apply_layout_for_size", Vector2(1280.0, 720.0), 1.0)
 	_expect(
@@ -366,9 +410,17 @@ func _run_smoke_test() -> void:
 	await process_frame
 
 	var initial_position: Vector3 = player.global_position
+	var joystick_origin: Vector2 = controls.get("_joystick_center")
+	var outside_ring := joystick_origin - Vector2(0.0, 180.0)
+	_send_screen_touch(controls, 93, outside_ring, true)
+	_expect(
+		int(controls.get("_move_touch_id")) == -1,
+		"left-side taps outside the fixed joystick do not move the player",
+	)
+	_send_screen_touch(controls, 93, outside_ring, false)
 	var joystick_touch := InputEventScreenTouch.new()
 	joystick_touch.index = 71
-	joystick_touch.position = Vector2(controls.size.x * 0.12, controls.size.y * 0.62)
+	joystick_touch.position = joystick_origin
 	joystick_touch.pressed = true
 	controls.call("_input", joystick_touch)
 	var joystick_drag := InputEventScreenDrag.new()
@@ -395,7 +447,6 @@ func _run_smoke_test() -> void:
 		Vector2(player.get("_touch_movement")).is_zero_approx(),
 		"releasing the movement touch clears the virtual joystick",
 	)
-	var joystick_origin := Vector2(controls.size.x * 0.12, controls.size.y * 0.62)
 	await _test_joystick_vector(
 		controls, player, 80, joystick_origin, Vector2(0.0, -90.0), Vector2(0.0, -1.0), "up"
 	)

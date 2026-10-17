@@ -97,7 +97,8 @@ static func touch_portrait(hud) -> void:
 	_place_button(hud, hud._fire_button, 18.0, 50.0, 92.0, 92.0)
 	_place_button(hud, hud._aim_button, 36.0, 176.0, 56.0, 56.0)
 	_place_button(hud, hud._skill_button, 130.0, 116.0, 56.0, 56.0)
-	_place_button(hud, hud._weapon_button, 92.0, 208.0, 132.0, 40.0)
+	# Keep the weapon action at least 44 px high and 12 px away from AIM.
+	_place_button(hud, hud._weapon_button, 112.0, 218.0, 120.0, 48.0)
 	_place(
 		hud._skill_ring,
 		1,
@@ -140,7 +141,7 @@ static func touch_portrait(hud) -> void:
 		edge,
 		compact_top + compact_height + hud._to_layout(8.0),
 		minf(hud._to_layout(342.0), hud.size.x - edge * 2.0),
-		hud._help_block_height(5)
+		hud._help_block_height(3 if hud._touch_mode else 5)
 	)
 	if not hud._touch_mode:
 		_place(
@@ -173,7 +174,9 @@ static func touch_landscape(hud) -> void:
 	_place_button(hud, hud._fire_button, 44.0, 50.0, 80.0, 80.0)
 	_place_button(hud, hud._aim_button, 60.0, 154.0, 48.0, 48.0)
 	_place_button(hud, hud._skill_button, 148.0, 104.0, 48.0, 48.0)
-	_place_button(hud, hud._weapon_button, 108.0, 190.0, 132.0, 36.0)
+	# Below the run card at 844x390, but horizontally clear of AIM and vertically
+	# clear of EMP. A 36 px row was not a usable touch target.
+	_place_button(hud, hud._weapon_button, 120.0, 168.0, 132.0, 48.0)
 	_place(
 		hud._skill_ring,
 		1,
@@ -228,6 +231,60 @@ static func _place_wave(
 	var left: float = (hud.size.x - wave_w) * 0.5
 	left = clampf(left, edge + health_w + gap, hud.size.x - edge - system_w - gap - wave_w)
 	_place_in_top_bar(hud._wave_card, 0, 0, 0, 0, Rect2(left - edge, 0, wave_w, bar_height))
+
+
+## Portrait menus are bottom sheets above the gesture area; wide layouts use
+## centered cards. The same pause/results widgets work in both orientations.
+static func overlays(hud) -> void:
+	var sheet: bool = hud._portrait and hud._narrow
+	var anchor_y := 1.0 if sheet else 0.5
+	var sheet_bottom := hud._to_layout(34.0) if sheet else 0.0
+
+	var results_width: float = minf(
+		hud._to_layout(390.0 if sheet else 600.0), hud.size.x * (0.94 if sheet else 0.92)
+	)
+	var results_height: float = minf(hud._to_layout(528.0), hud.size.y * (0.86 if sheet else 0.9))
+	hud._results_panel.custom_minimum_size = Vector2(results_width, results_height)
+	_place(
+		hud._results_panel,
+		0.5,
+		anchor_y,
+		0.5,
+		anchor_y,
+		Rect2(
+			-results_width * 0.5,
+			-results_height - sheet_bottom if sheet else -results_height * 0.5,
+			results_width,
+			results_height
+		)
+	)
+	hud._results_retry_button.custom_minimum_size = Vector2(
+		minf(hud._to_layout(302.0 if sheet else 240.0), results_width - hud._to_layout(48.0)),
+		hud._to_layout(56.0 if sheet else 52.0)
+	)
+	hud._results_retry_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+
+	var pause_width: float = minf(
+		hud._to_layout(390.0 if sheet else 400.0), hud.size.x * (0.94 if sheet else 0.88)
+	)
+	var pause_height: float = minf(hud._to_layout(440.0 if sheet else 330.0), hud.size.y * 0.84)
+	hud._pause_panel.custom_minimum_size = Vector2(pause_width, pause_height)
+	_place(
+		hud._pause_panel,
+		0.5,
+		anchor_y,
+		0.5,
+		anchor_y,
+		Rect2(
+			-pause_width * 0.5,
+			-pause_height - sheet_bottom if sheet else -pause_height * 0.5,
+			pause_width,
+			pause_height
+		)
+	)
+	for button in [hud._pause_resume_button, hud._pause_restart_button]:
+		if is_instance_valid(button):
+			button.custom_minimum_size = Vector2(0.0, hud._to_layout(56.0 if sheet else 52.0))
 
 
 static func place(

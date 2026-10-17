@@ -38,6 +38,12 @@ const DESKTOP_HINT := (
 	+ " · F EMP · ESC PAUSE"
 )
 const DESKTOP_HINT_SHORT := "WASD · SHIFT · SPACE · RMB ADS · LMB FIRE · 1-3 · F EMP · ESC"
+const HELP_TEXT := (
+	"TOUCH: 360° joystick moves · drag right to aim · hold FIRE / AIM · EMP is the skill\n"
+	+ "DESKTOP: WASD moves · Shift sprint · Space jump · RMB aims · hold LMB to fire\n"
+	+ "E / Q or 1-3 switch weapons · F EMP · R retries · Esc pauses"
+)
+const MOBILE_HELP_TEXT := "JOYSTICK MOVE · DRAG RIGHT AIM\nFIRE · HOLD AIM · EMP · SWAP"
 const HELP_FADE_SECONDS: float = 1.5
 ## The browser shell (game/web_shell/index.html) draws chips along the top of
 ## the page; the HUD keeps clear of them instead of overlapping.
@@ -316,21 +322,26 @@ func is_touch_mode() -> bool:
 
 
 func _apply_input_mode() -> void:
+	var gameplay_visible := not _results_visible()
 	var desktop := not _touch_mode and not _narrow
 	for button in [_fire_button, _aim_button, _skill_button, _weapon_button]:
 		if is_instance_valid(button):
-			button.visible = _touch_mode
+			button.visible = _touch_mode and gameplay_visible
 	for control in [_desktop_weapon_card, _ads_chip, _emp_chip]:
 		if is_instance_valid(control):
-			control.visible = desktop
+			control.visible = desktop and gameplay_visible
 	if is_instance_valid(_desktop_hint):
-		_desktop_hint.visible = not _touch_mode
+		_desktop_hint.visible = not _touch_mode and gameplay_visible and not get_tree().paused
 	if is_instance_valid(_skill_ring):
-		_skill_ring.visible = _touch_mode and not _narrow
+		_skill_ring.visible = _touch_mode and not _narrow and gameplay_visible
 	if is_instance_valid(_sound_button):
-		_sound_button.visible = not _narrow
+		_sound_button.visible = not _narrow and gameplay_visible
 	if is_instance_valid(_pause_button):
-		_pause_button.visible = true
+		_pause_button.visible = gameplay_visible
+	if not gameplay_visible:
+		for control in [_run_card, _score_chip, _compact_card, _help_panel]:
+			if is_instance_valid(control):
+				control.visible = false
 
 
 ## Lays the HUD out for an explicit viewport size. The public entry point uses
@@ -460,6 +471,10 @@ func set_paused(paused: bool) -> void:
 		_pause_stats_label.text = "SCORE %s  ·  %s" % [_format_number(_run_score), _run_time]
 	if is_instance_valid(_scrim):
 		_scrim.visible = (paused or _player_down) and not _results_visible()
+	if is_instance_valid(_help_panel):
+		_help_panel.visible = not paused and _help_remaining > 0.0 and not _results_visible()
+	if is_instance_valid(_desktop_hint):
+		_desktop_hint.visible = not paused and not _touch_mode and not _results_visible()
 	if is_instance_valid(_fire_button):
 		_fire_button.disabled = paused or _player_down
 	if is_instance_valid(_weapon_button):
@@ -502,6 +517,7 @@ func show_results(
 	if not is_instance_valid(_results_panel):
 		return
 	_clear_touch_state()
+	_results_title.text = "WAVE %02d" % maxi(wave_reached, 0)
 	_results_summary.text = (
 		"\n"
 		. join(
@@ -511,6 +527,7 @@ func show_results(
 				"ELIMINATIONS      %d" % eliminations,
 				"RUN SCORE         %s" % _format_number(run_score),
 				"BATTLE POINTS     +%d" % bp_earned,
+				"SHOTS FIRED       %d" % _run_shots,
 			]
 		)
 	)
@@ -737,17 +754,7 @@ func _build_help_panel() -> void:
 	_help_panel.clip_contents = true
 	_help_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_help_panel)
-	_help_label = _label(
-		(
-			"TOUCH: 360° joystick moves · drag right to aim · hold FIRE / AIM · EMP is the skill\n"
-			+ "DESKTOP: WASD moves · Shift sprint · Space jump · RMB aims · hold LMB to fire\n"
-			+ "E / Q or 1-3 switch weapons · F EMP · R retries · Esc pauses"
-		),
-		"caption",
-		AegisTokens.INK_2,
-		1.0,
-		true
-	)
+	_help_label = _label(HELP_TEXT, "caption", AegisTokens.INK_2, 1.0, true)
 	_help_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_help_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_help_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -915,7 +922,7 @@ func _build_results_panel() -> void:
 	_results_panel.add_child(content)
 
 	content.add_child(_label("RUN COMPLETE", "label", AegisTokens.ACCENT))
-	_results_title = _label("RUN RESULTS", "display_l", AegisTokens.INK)
+	_results_title = _label("RUN RESULTS", "display_xl", AegisTokens.INK)
 	content.add_child(_results_title)
 
 	var rule := ColorRect.new()
@@ -1033,6 +1040,8 @@ func _layout_controls(
 	_narrow = physical_width < NARROW_WIDTH
 	if is_instance_valid(_desktop_hint):
 		_desktop_hint.text = DESKTOP_HINT_SHORT if _narrow else DESKTOP_HINT
+	if is_instance_valid(_help_label):
+		_help_label.text = MOBILE_HELP_TEXT if _narrow and _touch_mode else HELP_TEXT
 	_portrait = physical_height > physical_width
 
 	_refresh_card_styles()
@@ -1069,37 +1078,7 @@ func _layout_overlays() -> void:
 		_scrim.anchor_bottom = 1.0
 		_scrim.offset_right = 0.0
 		_scrim.offset_bottom = 0.0
-	var panel_width := minf(_to_layout(600.0), size.x * 0.92)
-	var panel_height := minf(_to_layout(528.0), size.y * 0.9)
-	_results_panel.custom_minimum_size = Vector2(panel_width, panel_height)
-	HudLayout.place(
-		self,
-		_results_panel,
-		0.5,
-		0.5,
-		0.5,
-		0.5,
-		Rect2(-panel_width * 0.5, -panel_height * 0.5, panel_width, panel_height)
-	)
-	_results_retry_button.custom_minimum_size = Vector2(
-		minf(_to_layout(240.0), panel_width - _to_layout(48.0)), _to_layout(52.0)
-	)
-	_results_retry_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	if is_instance_valid(_pause_panel):
-		var pause_width := minf(_to_layout(400.0), size.x * 0.88)
-		var pause_height := minf(_to_layout(330.0), size.y * 0.84)
-		HudLayout.place(
-			self,
-			_pause_panel,
-			0.5,
-			0.5,
-			0.5,
-			0.5,
-			Rect2(-pause_width * 0.5, -pause_height * 0.5, pause_width, pause_height)
-		)
-		for button in [_pause_resume_button, _pause_restart_button]:
-			if is_instance_valid(button):
-				button.custom_minimum_size = Vector2(0.0, _to_layout(52.0))
+	HudLayout.overlays(self)
 
 
 ## Card padding is expressed in physical pixels so a 168 px phone rail gets the
@@ -1341,10 +1320,15 @@ func _begin_touch(touch_id: int, position: Vector2) -> void:
 	if position.y < size.y * 0.2:
 		return
 	if position.x < size.x * 0.47 and _move_touch_id == -1:
+		# Movement is a fixed thumb zone, not any tap on the left half. Offset
+		# starts at the painted ring; touching its edge gives immediate motion.
+		if position.distance_to(_joystick_center) > _joystick_radius + _to_layout(20.0):
+			return
 		_move_touch_id = touch_id
-		_move_origin = position
+		_move_origin = _joystick_center
 		_move_position = position
-		movement_changed.emit(Vector2.ZERO)
+		var offset := (position - _move_origin) / maxf(_joystick_radius, 1.0)
+		movement_changed.emit(offset.limit_length(1.0))
 		queue_redraw()
 	elif position.x >= size.x * 0.47 and _look_touch_id == -1:
 		_look_touch_id = touch_id

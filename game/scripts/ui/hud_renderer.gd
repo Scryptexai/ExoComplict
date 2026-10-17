@@ -68,9 +68,12 @@ static func joystick(
 	host.draw_arc(
 		center, radius * 0.59, 0.0, TAU, 36, Color(AegisTokens.LINE_HI, 0.32), stroke, true
 	)
-	host.draw_circle(knob, radius * 0.40, Color(AegisTokens.PANEL_3, 0.82))
+	# The thumb may drag arbitrarily far; the visual knob must remain inside the
+	# fixed ring instead of following it over the rest of the HUD.
+	var visual_knob := center + (knob - center).limit_length(radius * 0.60)
+	host.draw_circle(visual_knob, radius * 0.40, Color(AegisTokens.PANEL_3, 0.82))
 	host.draw_arc(
-		knob,
+		visual_knob,
 		radius * 0.40,
 		0.0,
 		TAU,

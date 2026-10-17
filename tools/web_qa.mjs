@@ -10,6 +10,7 @@
  *   node tools/web_qa.mjs --play 30         # also play: click, move, shoot, film
  *   node tools/web_qa.mjs --play 30 --hold 955,636 --touch --still
  *       # hold the AIM button with a real touch event, standing still
+ *   node tools/web_qa.mjs --menus         # screenshot pause, then resume
  *   node tools/web_qa.mjs --tour          # world review camera: F10 + keys 1-8
  *
  * `--hold` exists because the touch HUD lives inside the WebGL canvas: the AIM
@@ -124,7 +125,17 @@ const report = { base: baseUrl, pages: [] };
 async function checkPage(target, viewport) {
   const url = `${baseUrl}${target}`;
   const page = await browser.newPage();
-  await page.setViewport({ width: viewport.width, height: viewport.height });
+  // A narrow viewport alone is not a phone: without touch emulation Godot
+  // correctly hides the thumb controls, so mobile screenshots used to QA the
+  // wrong HUD. --touch also forces touch on a wide viewport when requested.
+  const touchDevice = has('--touch') || Math.min(viewport.width, viewport.height) < 600;
+  await page.setViewport({
+    width: viewport.width,
+    height: viewport.height,
+    hasTouch: touchDevice,
+    isMobile: touchDevice,
+    deviceScaleFactor: 1,
+  });
   const consoleLines = [];
   const pageErrors = [];
   const badResponses = [];
@@ -175,6 +186,24 @@ async function checkPage(target, viewport) {
   const slug = target.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'root';
   const shot = path.join(outDir, `${slug}-${viewport.spec}.png`);
   await page.screenshot({ path: shot });
+
+  /* ---------- optional pause/resume frame ---------- */
+  const menuFrames = [];
+  if (booted && has('--menus')) {
+    const canvasCentre = await page.evaluate(() => {
+      const rect = document.querySelector('canvas')?.getBoundingClientRect();
+      return rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 } : null;
+    });
+    if (canvasCentre) {
+      await page.mouse.click(canvasCentre.x, canvasCentre.y);
+      await page.keyboard.press('Escape');
+      await new Promise((r) => setTimeout(r, 500));
+      const pauseFrame = path.join(outDir, `${slug}-${viewport.spec}-pause.png`);
+      await page.screenshot({ path: pauseFrame });
+      menuFrames.push(path.relative(ROOT, pauseFrame));
+      await page.keyboard.press('Escape');
+    }
+  }
 
   /* ---------- optional world tour ---------- */
   const tourFrames = [];
@@ -268,10 +297,12 @@ async function checkPage(target, viewport) {
   }
 
   const audioLines = consoleLines.filter((line) => line.includes('Audio:'));
+  const scriptErrors = consoleLines.filter((line) => /SCRIPT ERROR:|Parse Error:/.test(line));
   await page.close();
 
   const checks = [
     ['engine booted (console banner)', booted],
+    ['no Godot script/parse errors', scriptErrors.length === 0],
     ['no page errors', pageErrors.length === 0],
     ['no failed requests', failedRequests.length === 0],
     ['no HTTP 4xx/5xx for page assets', badResponses.length === 0],
@@ -282,6 +313,9 @@ async function checkPage(target, viewport) {
   ];
   if (tourMode) {
     checks.push(['world tour captured frames', tourFrames.length === 8]);
+  }
+  if (has('--menus')) {
+    checks.push(['pause menu captured a frame', menuFrames.length === 1]);
   }
   if (playSeconds > 0) {
     checks.push(['scripted play captured frames', frames.length > 0]);
@@ -301,6 +335,7 @@ async function checkPage(target, viewport) {
   const result = {
     target,
     viewport: viewport.spec,
+    touchDevice,
     url,
     ms: Date.now() - started,
     booted,
@@ -309,9 +344,11 @@ async function checkPage(target, viewport) {
     checks: checks.map(([name, ok]) => ({ name, ok })),
     failed: checks.filter(([, ok]) => !ok).map(([name]) => name),
     screenshot: path.relative(ROOT, shot),
+    menuFrames,
     frames,
     tourFrames,
     audio: audioLines,
+    scriptErrors,
     console: consoleLines,
     pageErrors,
     badResponses,
@@ -328,13 +365,15 @@ try {
     if (!asJson) {
       console.log(`\n${target} @ ${viewport.spec} → ${result.failed.length ? 'FAIL' : 'PASS'} (${(result.ms / 1000).toFixed(1)}s)`);
       if (result.engine) console.log(`  engine: ${result.engine}`);
-      console.log(`  canvas: ${result.state.canvasSize} | WebGL: ${result.state.glContext ? 'yes' : 'no'} | chip: ${result.state.chip ?? '-'}`);
+      console.log(`  canvas: ${result.state.canvasSize} | WebGL: ${result.state.glContext ? 'yes' : 'no'} | touch: ${result.touchDevice ? 'yes' : 'no'} | chip: ${result.state.chip ?? '-'}`);
       for (const c of result.checks) console.log(`  ${c.ok ? 'ok  ' : 'FAIL'} ${c.name}`);
       if (result.pageErrors.length) console.log(`  page errors: ${result.pageErrors.join(' | ')}`);
       if (result.badResponses.length) console.log(`  bad responses: ${result.badResponses.join(' | ')}`);
       if (result.failedRequests.length) console.log(`  failed requests: ${result.failedRequests.join(' | ')}`);
       if (result.state.failureText) console.log(`  failure card: ${result.state.failureText}`);
+      if (result.scriptErrors.length) console.log(`  script errors: ${result.scriptErrors.join(' | ')}`);
       console.log(`  screenshot: ${result.screenshot}`);
+      if (result.menuFrames?.length) console.log(`  menu frames: ${result.menuFrames.join(', ')}`);
       if (result.frames?.length) console.log(`  play frames: ${result.frames.join(', ')}`);
       if (result.tourFrames?.length) console.log(`  tour frames: ${result.tourFrames.length} in ${path.relative(ROOT, outDir)}`);
       if (result.audio?.length) console.log(`  audio: ${result.audio.join(' | ')}`);

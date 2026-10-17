@@ -182,8 +182,9 @@ static func focus_style() -> StyleBoxFlat:
 	return style
 
 
-## Theme colours apply to the glyph too; without this the SVG's own black fill
-## disappears against the dark panel.
+## Game SVGs import as white alpha masks; theme colors multiply that white into
+## each semantic color. Importing currentColor as black would stay black even
+## with these overrides, so keep the white-mask test in tools/tests.
 static func tint_icon(button: Button, color: Color) -> void:
 	for state in ["icon_normal_color", "icon_hover_color", "icon_pressed_color"]:
 		button.add_theme_color_override(state, color)
