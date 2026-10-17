@@ -17,6 +17,10 @@ extends Node
 
 const ProceduralSfxScript = preload("res://scripts/audio/procedural_sfx.gd")
 
+const PREFERENCE_PATH := "user://audio.cfg"
+const PREFERENCE_SECTION := "audio"
+const PREFERENCE_KEY := "muted"
+
 const POOL_3D_SIZE := 12
 const POOL_UI_SIZE := 4
 
@@ -48,6 +52,7 @@ func _ready() -> void:
 	_build_pool(_pool_3d, POOL_3D_SIZE, false)
 	_build_pool(_pool_ui, POOL_UI_SIZE, true)
 	_ready_ms = Time.get_ticks_msec() - started
+	_muted = _load_muted_preference()
 	# One line at boot: the browser console and the editor log both show whether
 	# audio came up, how long synthesis took and how many sounds exist.
 	print("Audio: %d sounds synthesised in %d ms" % [_streams.size(), _ready_ms])
@@ -104,6 +109,10 @@ func set_muted(value: bool) -> void:
 	_muted = value
 	if _muted:
 		stop_all()
+	_save_muted_preference(value)
+	# Logged on purpose: a screenshot cannot show mute, and the browser QA gate
+	# asserts on this line to prove the HUD button and the M key reach the audio.
+	print("Audio: %s" % ("muted" if _muted else "unmuted"))
 
 
 func is_muted() -> bool:
@@ -146,6 +155,24 @@ func _ensure_pools() -> void:
 		_build_pool(_pool_3d, POOL_3D_SIZE, false)
 	if _pool_ui.is_empty():
 		_build_pool(_pool_ui, POOL_UI_SIZE, true)
+
+
+## The preference lives in user:// so a muted player stays muted across a reload
+## (on the web build user:// is IndexedDB-backed, so it survives the tab too).
+## Storage failures are not worth a crash: an unwritable path just means the
+## preference is forgotten.
+func _load_muted_preference() -> bool:
+	var config := ConfigFile.new()
+	if config.load(PREFERENCE_PATH) != OK:
+		return false
+	return bool(config.get_value(PREFERENCE_SECTION, PREFERENCE_KEY, false))
+
+
+func _save_muted_preference(value: bool) -> void:
+	var config := ConfigFile.new()
+	config.load(PREFERENCE_PATH)
+	config.set_value(PREFERENCE_SECTION, PREFERENCE_KEY, value)
+	config.save(PREFERENCE_PATH)
 
 
 func _stream(sound_id: StringName) -> AudioStreamWAV:

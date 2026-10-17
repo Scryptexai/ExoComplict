@@ -28,6 +28,8 @@ func _ready() -> void:
 	touch_controls.weapon_switch_requested.connect(player.select_next_weapon)
 	touch_controls.skill_requested.connect(player.activate_skill)
 	touch_controls.pause_requested.connect(_toggle_pause)
+	touch_controls.sound_mute_requested.connect(_on_sound_mute_requested)
+	touch_controls.set_sound_muted(Sfx.is_muted())
 	player.weapon_changed.connect(touch_controls.set_weapon_label)
 	player.skill_cooldown_changed.connect(touch_controls.set_skill_cooldown)
 	player.skill_used.connect(_on_skill_used)
@@ -62,6 +64,8 @@ func _process(_delta: float) -> void:
 	touch_controls.set_aim_state(player.is_aiming())
 	if Input.is_action_just_pressed("reset_session"):
 		_reset_session()
+	if Input.is_action_just_pressed("toggle_sound"):
+		_on_sound_mute_requested()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -72,6 +76,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_toggle_pause()
 	get_viewport().set_input_as_handled()
+
+
+## Audio mute is owned here rather than in the HUD: the button and the M key go
+## through the same path, and the label is updated from the real audio state
+## instead of being flipped blindly.
+func _on_sound_mute_requested() -> void:
+	var muted := Sfx.toggle_muted()
+	touch_controls.set_sound_muted(muted)
+	Sfx.play_ui(&"ui_click")
 
 
 func _toggle_pause() -> void:

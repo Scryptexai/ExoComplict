@@ -11,6 +11,9 @@ func _initialize() -> void:
 
 
 func _run_smoke_test() -> void:
+	# The mute preference is persisted in user://, so a previous run could hand
+	# this one a muted game: start from a known state.
+	Sfx.set_muted(false)
 	var main_scene := MainScene.instantiate()
 	main_scene.set("start_wave_session_on_ready", false)
 	root.add_child(main_scene)
@@ -29,6 +32,9 @@ func _run_smoke_test() -> void:
 	var weapon_button := controls.get("_weapon_button") as Button
 	var skill_button := controls.get("_skill_button") as Button
 	var pause_button := controls.get("_pause_button") as Button
+	var sound_button := controls.get("_sound_button") as Button
+	var compact_card := controls.get("_compact_card") as PanelContainer
+	var compact_label := controls.get("_compact_label") as Label
 	var aim_button := controls.get("_aim_button") as Button
 	var character_visual := player.get_node("VisualRoot")
 	var player_camera := (
@@ -73,6 +79,94 @@ func _run_smoke_test() -> void:
 		),
 		"fire, weapon-cycle, EMP skill, and pause buttons are visible and labeled",
 	)
+	# Audio has no settings screen yet, so the mute control living on the HUD is
+	# the only way a player can silence the game.
+	_expect(
+		is_instance_valid(sound_button) and sound_button.text == "SOUND" and not Sfx.is_muted(),
+		"the HUD starts with sound on and a mute control",
+	)
+	_tap_screen_button(controls, sound_button, 78)
+	_expect(
+		Sfx.is_muted() and sound_button.text == "MUTED",
+		"touching SOUND mutes the audio and says so",
+	)
+	_tap_screen_button(controls, sound_button, 79)
+	_expect(
+		not Sfx.is_muted() and sound_button.text == "SOUND",
+		"touching MUTED restores the audio",
+	)
+	# The HUD label must follow the real audio state, not flip blindly: mute from
+	# outside (as the M key or a restored preference does) and let the label catch up.
+	Sfx.set_muted(true)
+	controls.call("set_sound_muted", Sfx.is_muted())
+	_expect(sound_button.text == "MUTED", "the HUD label follows the audio state it is told about")
+	Sfx.set_muted(false)
+	controls.call("set_sound_muted", Sfx.is_muted())
+	# Narrow screens lose the three-column bar; the numbers must move, not vanish.
+	controls.call("apply_layout_for_size", Vector2(390.0, 844.0), 1.0)
+	var status_snapshot := status_label.text
+	controls.call("set_status", status_snapshot)
+	_expect(
+		(
+			compact_card.visible
+			and not controls.get("_run_card").visible
+			and not wave_enemy_label.visible
+			and compact_label.text.contains("ENEMIES")
+			and compact_label.text.contains("Score:")
+			and compact_label.text.count("\n") == 1
+		),
+		"a narrow screen shows one compact card with enemy counts and run stats",
+	)
+	# The web build keeps a 1280-unit logical canvas in portrait, so on a phone
+	# the whole HUD used to render at ~30% of its designed size. The layout must
+	# size itself from the physical window instead: a 390 px wide phone therefore
+	# gets portrait body text (~11 px on glass), not 3 px.
+	controls.call("apply_layout_for_size", Vector2(390.0, 844.0), 0.3047)
+	# One frame so the containers settle at the new font sizes before measuring.
+	await process_frame
+	await process_frame
+	var portrait_font := float(pause_button.get_theme_font_size("font_size")) * 0.3047
+	var portrait_body_font := float(compact_label.get_theme_font_size("font_size")) * 0.3047
+	_expect(
+		(
+			is_equal_approx(float(controls.get("_ui_scale")), 0.64)
+			and is_equal_approx(float(controls.get("_stretch")), 0.3047)
+			# The promise is about pixels on the glass, not about the canvas: the
+			# web build keeps a 1280-unit logical canvas in portrait, so a 390 px
+			# phone renders every logical pixel at ~0.3x.
+			and portrait_font >= 10.5
+			and portrait_body_font >= 10.5
+			and compact_card.visible
+			and compact_card.size.y >= compact_label.get_combined_minimum_size().y
+		),
+		(
+			(
+				"a portrait phone renders HUD text at >=11 physical px (%.1f px / %.1f px) "
+				+ "and fits its data card (%.0f >= %.0f)"
+			)
+			% [
+				portrait_body_font,
+				portrait_font,
+				compact_card.size.y,
+				compact_label.get_combined_minimum_size().y,
+			]
+		),
+	)
+	controls.call("apply_layout_for_size", Vector2(1280.0, 720.0), 1.0)
+	_expect(
+		not compact_card.visible and controls.get("_run_card").visible and wave_enemy_label.visible,
+		"a wide screen returns to the three-column top bar",
+	)
+	_expect(
+		help_label.visible,
+		"the control hint is shown at the start of a run",
+	)
+	controls.call("hide_help")
+	_expect(
+		not help_label.visible,
+		"firing or moving retires the control hint so it stops covering the action",
+	)
+	controls.call("show_help")
 	var camera_rig := player.get_node("CameraRig")
 	# The rig pulls back on a narrow viewport, so the rest distance is a floor and
 	# the exported portrait factor is the ceiling.

@@ -44,6 +44,11 @@ static func set_muted(value: bool) -> void:
 		director.set_muted(value)
 
 
+static func toggle_muted() -> bool:
+	var director := _director()
+	return director.toggle_muted() if director != null else false
+
+
 static func is_muted() -> bool:
 	var director := _director()
 	return director.is_muted() if director != null else false

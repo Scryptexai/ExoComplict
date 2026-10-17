@@ -9,9 +9,21 @@ signal weapon_switch_requested
 signal skill_requested
 signal pause_requested
 signal retry_requested
+signal sound_mute_requested
 
 const HIT_CONFIRM_DURATION: float = 0.16
-const HELP_VISIBLE_SECONDS: float = 12.0
+const HELP_VISIBLE_SECONDS: float = 10.0
+# Below this width the three-column top bar stops fitting a phone: the run-data
+# card moves into a single compact card under the bar instead of disappearing.
+const NARROW_WIDTH: float = 760.0
+## Smallest font the HUD may use, in *physical* pixels. The floor matters more
+## than the base size: a font that is 11 logical px inside a canvas the engine
+## then scales down to a third is only ~3 px on the glass, which is unreadable no
+## matter how well it fits the card.
+const MIN_PHYSICAL_FONT_PX: float = 11.0
+## Lines the narrow-screen data card must fit: enemy counts plus the run summary
+## wraps into three lines at phone width.
+const COMPACT_LINES: int = 3
 const HELP_FADE_SECONDS: float = 1.5
 # The browser shell (game/web_shell/index.html) draws its chips along the top of
 # the page; the HUD keeps clear of them instead of overlapping.
@@ -38,11 +50,22 @@ var _wave_title_label: Label
 var _wave_state_label: Label
 var _wave_enemy_label: Label
 var _status_label: Label
+var _compact_card: PanelContainer
+var _compact_label: Label
 var _help_label: Label
+var _narrow: bool = false
+var _physical_size: Vector2 = Vector2.ZERO
+var _stretch: float = 1.0
+# Every button a touch may land on, registered when it is built. Keeping this
+# list next to the buttons (instead of hard-coding it in the hit test) is what
+# stops a new control from being invisible to touch.
+var _touch_buttons: Array[Button] = []
+var _compact_wave_text: String = "ENEMIES  0 ACTIVE  ·  0 LEFT"
 var _fire_button: Button
 var _weapon_button: Button
 var _skill_button: Button
 var _pause_button: Button
+var _sound_button: Button
 var _aim_button: Button
 var _pause_label: Label
 var _results_panel: PanelContainer
@@ -146,6 +169,34 @@ func set_wave_status(
 	_wave_title_label.text = "WAVE %02d" % wave_number if wave_number > 0 else "FRONTIER DEFENSE"
 	_wave_state_label.text = state_text
 	_wave_enemy_label.text = "ENEMIES  %d ACTIVE  ·  %d LEFT" % [active_enemies, remaining_enemies]
+	_compact_wave_text = _wave_enemy_label.text
+	_refresh_compact_label()
+
+
+## Reflects the audio state on the HUD button, wherever the change came from
+## (the button itself, the M key, or a restored preference).
+func set_sound_muted(muted: bool) -> void:
+	if not is_instance_valid(_sound_button):
+		return
+	_sound_button.text = "MUTED" if muted else "SOUND"
+	var background := Color(0.2, 0.09, 0.09, 0.96) if muted else Color(0.09, 0.19, 0.25, 0.96)
+	var border := Color(1.0, 0.42, 0.34, 0.8) if muted else Color(0.18, 0.75, 0.91, 0.78)
+	_apply_button_theme(_sound_button, background, border)
+
+
+## The control hint is noise once the player has started playing; the first shot
+## or the first joystick drag retires it early.
+func hide_help() -> void:
+	if is_instance_valid(_help_label):
+		_help_label.visible = false
+	_help_remaining = 0.0
+
+
+## Lays the HUD out for an explicit viewport size. The public entry point uses
+## the control's own rect; tests call this directly so a narrow phone layout can
+## be exercised without a real window.
+func apply_layout_for_size(viewport_size: Vector2, stretch_scale: float = 0.0) -> void:
+	_layout_controls(viewport_size, stretch_scale)
 
 
 func show_hit_confirmed() -> void:
@@ -161,6 +212,22 @@ func show_damage_received() -> void:
 func set_status(text: String) -> void:
 	if is_instance_valid(_status_label):
 		_status_label.text = text
+	_refresh_compact_label(text)
+
+
+## The run-data string is multi-line for the wide card; the compact card joins it
+## into one flowing line so a phone still shows every number.
+func _collapsed_run_text(source: String = "") -> String:
+	var text := source
+	if text.is_empty() and is_instance_valid(_status_label):
+		text = _status_label.text
+	return text.replace("\n", "  ·  ")
+
+
+func _refresh_compact_label(source: String = "") -> void:
+	if not is_instance_valid(_compact_label):
+		return
+	_compact_label.text = _compact_wave_text + "\n" + _collapsed_run_text(source)
 
 
 func set_weapon_label(display_name: String) -> void:
@@ -329,16 +396,35 @@ func _build_ui() -> void:
 	_pause_button.add_theme_font_size_override("font_size", 15)
 	_pause_button.pressed.connect(_on_pause_pressed)
 	_top_bar.add_child(_pause_button)
+	_touch_buttons.append(_pause_button)
+
+	_sound_button = Button.new()
+	_sound_button.name = "SoundButton"
+	_sound_button.text = "SOUND"
+	_sound_button.tooltip_text = "Mute or unmute the game audio (M)"
+	_sound_button.focus_mode = Control.FOCUS_NONE
+	_sound_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_sound_button.custom_minimum_size = Vector2(108.0, 58.0)
+	_sound_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	_apply_button_theme(_sound_button, Color(0.09, 0.19, 0.25, 0.96), Color(0.18, 0.75, 0.91, 0.78))
+	_sound_button.add_theme_font_size_override("font_size", 15)
+	_sound_button.pressed.connect(_on_sound_pressed)
+	_top_bar.add_child(_sound_button)
+	_touch_buttons.append(_sound_button)
+
+	_build_compact_card()
 
 	_fire_button = _make_button("FIRE", "FireButton")
 	_fire_button.add_theme_font_size_override("font_size", 22)
 	_fire_button.button_down.connect(_on_fire_down)
 	_fire_button.button_up.connect(_on_fire_up)
+	_touch_buttons.append(_fire_button)
 
 	_weapon_button = _make_button("PULSE RIFLE", "WeaponSwitchButton")
 	_weapon_button.add_theme_font_size_override("font_size", 14)
 	_weapon_button.tooltip_text = "Tap to cycle weapons"
 	_weapon_button.pressed.connect(_on_weapon_switch_pressed)
+	_touch_buttons.append(_weapon_button)
 
 	_aim_button = _make_button("AIM", "AimButton")
 	_aim_button.add_theme_font_size_override("font_size", 15)
@@ -346,12 +432,14 @@ func _build_ui() -> void:
 	_apply_button_theme(_aim_button, Color(0.05, 0.2, 0.3, 0.96), Color(0.35, 0.88, 1.0, 0.9))
 	_aim_button.button_down.connect(_on_aim_down)
 	_aim_button.button_up.connect(_on_aim_up)
+	_touch_buttons.append(_aim_button)
 
 	_skill_button = _make_button("EMP\nREADY", "SkillButton")
 	_skill_button.add_theme_font_size_override("font_size", 15)
 	_skill_button.tooltip_text = "EMP Pulse: damage nearby enemies. Recharges over time."
 	_apply_button_theme(_skill_button, Color(0.04, 0.28, 0.36, 0.98), Color(0.22, 0.86, 1.0, 0.96))
 	_skill_button.pressed.connect(_on_skill_pressed)
+	_touch_buttons.append(_skill_button)
 
 	_help_label = Label.new()
 	_help_label.name = "ControlsHelp"
@@ -471,6 +559,29 @@ func _build_run_card() -> void:
 	content.add_child(_status_label)
 
 
+## One-line-per-topic card shown on narrow screens, where the three-column top
+## bar cannot fit: the player keeps the enemy counts and the run stats.
+func _build_compact_card() -> void:
+	_compact_card = _make_card("CompactDataCard", Vector2(0.0, 40.0))
+	_compact_card.anchor_left = 0.0
+	_compact_card.anchor_right = 1.0
+	_compact_card.anchor_top = 0.0
+	_compact_card.anchor_bottom = 0.0
+	_compact_card.size_flags_horizontal = Control.SIZE_FILL
+	_compact_card.visible = false
+	add_child(_compact_card)
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 1)
+	_compact_card.add_child(content)
+	_compact_label = Label.new()
+	_compact_label.name = "CompactDataLabel"
+	_compact_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_compact_label.text = _compact_wave_text + "\n" + _collapsed_run_text()
+	_compact_label.add_theme_font_size_override("font_size", 12)
+	_compact_label.add_theme_color_override("font_color", Color(0.84, 0.92, 1.0))
+	content.add_child(_compact_label)
+
+
 func _build_results_panel() -> void:
 	_results_panel = PanelContainer.new()
 	_results_panel.name = "ResultsPanel"
@@ -518,6 +629,7 @@ func _build_results_panel() -> void:
 	)
 	_results_retry_button.pressed.connect(_on_results_retry_pressed)
 	content.add_child(_results_retry_button)
+	_touch_buttons.append(_results_retry_button)
 
 
 func _make_card(card_name: String, minimum_size: Vector2) -> PanelContainer:
@@ -609,51 +721,93 @@ func _make_button_style(background: Color, border: Color) -> StyleBoxFlat:
 	return style
 
 
-func _layout_controls() -> void:
+func _layout_controls(
+	viewport_override: Vector2 = Vector2.ZERO, stretch_override: float = 0.0
+) -> void:
 	if not is_instance_valid(_top_bar):
 		return
-	var viewport_width := maxf(size.x, 320.0)
-	var viewport_height := maxf(size.y, 320.0)
-	_ui_scale = clampf(minf(viewport_width, viewport_height) / 720.0, 0.64, 1.0)
-	var margin := 14.0 * _ui_scale
+	# The HUD must size itself against the *physical* window, not the logical
+	# canvas. With stretch mode canvas_items the logical canvas keeps its width
+	# (1280) on a phone and is only scaled down, so a portrait phone used to get
+	# a HUD rendered at ~30% of the size it was designed for: technically on
+	# screen, effectively unreadable. [param viewport_override] is therefore a
+	# physical size, and every number below is divided back into logical units by
+	# _to_layout() before it is applied.
+	var physical := (
+		viewport_override if viewport_override != Vector2.ZERO else _resolve_physical_size()
+	)
+	_physical_size = physical
+	var physical_width := maxf(physical.x, 320.0)
+	var physical_height := maxf(physical.y, 320.0)
+	_stretch = stretch_override if stretch_override > 0.0 else _compute_stretch(physical)
+	_ui_scale = clampf(minf(physical_width, physical_height) / 720.0, 0.64, 1.0)
+	# unit: one unit of the HUD's design grid, expressed in logical canvas units.
+	var unit := _ui_scale / _stretch
+	var margin := 14.0 * unit
 	_top_inset = _resolve_top_inset()
-	var card_height := 104.0 * _ui_scale
+	var card_height := 104.0 * unit
 	# The three cards share the available width instead of fighting over a fixed
 	# minimum, so a 390 px phone keeps the whole top bar on screen.
-	var narrow := viewport_width < 760.0
+	var narrow := physical_width < NARROW_WIDTH
+	_narrow = narrow
 	_health_card.custom_minimum_size = Vector2(0.0, card_height)
+	if is_instance_valid(_health_bar):
+		_health_bar.custom_minimum_size = Vector2(0.0, maxf(16.0, 16.0 * unit))
 	_health_card.size_flags_stretch_ratio = 0.95 if narrow else 1.0
 	_wave_card.custom_minimum_size = Vector2(0.0, card_height)
-	_wave_card.size_flags_stretch_ratio = 1.15 if narrow else 1.15
+	_wave_card.size_flags_stretch_ratio = 1.15
 	_run_card.custom_minimum_size = Vector2(0.0, card_height)
 	_run_card.size_flags_stretch_ratio = 1.0
 	_run_card.visible = not narrow
-	_pause_button.custom_minimum_size = Vector2(84.0 * _ui_scale, 52.0 * _ui_scale)
-	_pause_button.add_theme_font_size_override("font_size", roundi(14.0 * _ui_scale))
+	# On a phone the run data is not dropped, it moves under the bar as one
+	# compact line, together with the enemy counts that no longer fit the wave
+	# card's third line.
+	_wave_enemy_label.visible = not narrow
+	if is_instance_valid(_compact_card):
+		_compact_card.visible = narrow
+	_pause_button.custom_minimum_size = Vector2(84.0 * unit, 52.0 * unit)
+	_pause_button.add_theme_font_size_override(
+		"font_size", maxi(roundi(14.0 * unit), _minimum_font_size())
+	)
+	if is_instance_valid(_sound_button):
+		_sound_button.custom_minimum_size = Vector2(84.0 * unit, 52.0 * unit)
+		_sound_button.add_theme_font_size_override(
+			"font_size", maxi(roundi(14.0 * unit), _minimum_font_size())
+		)
+	if is_instance_valid(_compact_card):
+		_compact_card.offset_left = margin
+		_compact_card.offset_right = -margin
+		_compact_card.offset_top = _top_inset + card_height + 6.0 * unit
+	if is_instance_valid(_compact_label):
+		_compact_label.add_theme_font_size_override(
+			"font_size", maxi(roundi(12.0 * unit), _minimum_font_size())
+		)
 	_top_bar.offset_left = margin
 	_top_bar.offset_top = _top_inset
 	_top_bar.offset_right = -margin
 	_top_bar.offset_bottom = _top_inset + card_height
 
-	var fire_size := minf(142.0 * _ui_scale, minf(viewport_width, viewport_height) * 0.34)
-	var base_margin := 20.0 * _ui_scale
+	var fire_size := minf(142.0 * unit, _to_layout(minf(physical_width, physical_height) * 0.34))
+	var base_margin := 20.0 * unit
 	_fire_button.offset_left = -fire_size - base_margin
 	_fire_button.offset_top = -fire_size - base_margin
 	_fire_button.offset_right = -base_margin
 	_fire_button.offset_bottom = -base_margin
 	_fire_button.custom_minimum_size = Vector2(fire_size, fire_size)
-	_fire_button.add_theme_font_size_override("font_size", roundi(21.0 * _ui_scale))
+	_fire_button.add_theme_font_size_override(
+		"font_size", maxi(roundi(21.0 * unit), _minimum_font_size())
+	)
 
-	var weapon_width := minf(164.0 * _ui_scale, viewport_width * 0.42)
-	var weapon_height := 58.0 * _ui_scale
+	var weapon_width := minf(164.0 * unit, _to_layout(physical_width * 0.42))
+	var weapon_height := 58.0 * unit
 	_weapon_button.offset_left = -weapon_width - base_margin
-	_weapon_button.offset_top = -fire_size - base_margin - weapon_height - 12.0 * _ui_scale
+	_weapon_button.offset_top = -fire_size - base_margin - weapon_height - 12.0 * unit
 	_weapon_button.offset_right = -base_margin
-	_weapon_button.offset_bottom = -fire_size - base_margin - 12.0 * _ui_scale
+	_weapon_button.offset_bottom = -fire_size - base_margin - 12.0 * unit
 	_weapon_button.custom_minimum_size = Vector2(weapon_width, weapon_height)
 
-	var side_size := minf(94.0 * _ui_scale, minf(viewport_width, viewport_height) * 0.22)
-	var side_gap := 12.0 * _ui_scale
+	var side_size := minf(94.0 * unit, _to_layout(minf(physical_width, physical_height) * 0.22))
+	var side_gap := 12.0 * unit
 	var skill_right := fire_size + base_margin + side_gap
 	var side_center_bottom := base_margin + fire_size * 0.5
 	_skill_button.offset_left = -skill_right - side_size
@@ -661,34 +815,85 @@ func _layout_controls() -> void:
 	_skill_button.offset_top = -side_center_bottom - side_size * 0.5
 	_skill_button.offset_bottom = -side_center_bottom + side_size * 0.5
 	_skill_button.custom_minimum_size = Vector2(side_size, side_size)
-	_skill_button.add_theme_font_size_override("font_size", roundi(15.0 * _ui_scale))
+	_skill_button.add_theme_font_size_override(
+		"font_size", maxi(roundi(15.0 * unit), _minimum_font_size())
+	)
 	var aim_right := skill_right + side_size + side_gap
 	_aim_button.offset_left = -aim_right - side_size
 	_aim_button.offset_right = -aim_right
 	_aim_button.offset_top = -side_center_bottom - side_size * 0.5
 	_aim_button.offset_bottom = -side_center_bottom + side_size * 0.5
 	_aim_button.custom_minimum_size = Vector2(side_size, side_size)
-	_aim_button.add_theme_font_size_override("font_size", roundi(15.0 * _ui_scale))
+	_aim_button.add_theme_font_size_override(
+		"font_size", maxi(roundi(15.0 * unit), _minimum_font_size())
+	)
 
-	var help_top := _top_inset + card_height + 8.0 * _ui_scale
+	# The compact card stores up to three wrapped lines of run data; its height
+	# has to follow the font that survived the physical floor, which is only known
+	# after the fonts were applied.
+	var compact_height := 0.0
+	if narrow and is_instance_valid(_compact_card) and is_instance_valid(_compact_label):
+		var compact_font := float(_compact_label.get_theme_font_size("font_size"))
+		compact_height = compact_font * 1.45 * float(COMPACT_LINES) + 16.0
+		_compact_card.custom_minimum_size = Vector2(0.0, compact_height)
+		_compact_card.offset_bottom = _compact_card.offset_top + compact_height
+	var help_top := _top_inset + card_height + 8.0 * unit
+	if narrow:
+		help_top = _top_inset + card_height + compact_height + 12.0 * unit
 	_help_label.offset_top = help_top
-	_help_label.offset_bottom = help_top + 40.0 * _ui_scale
-	_help_label.add_theme_font_size_override("font_size", roundi(12.0 * _ui_scale))
+	_help_label.offset_bottom = help_top + 40.0 * unit
+	_help_label.add_theme_font_size_override(
+		"font_size", maxi(roundi(12.0 * unit), _minimum_font_size())
+	)
 
-	_results_panel.custom_minimum_size = Vector2(440.0 * _ui_scale, 356.0 * _ui_scale)
-	var panel_half_width := minf(220.0 * _ui_scale, viewport_width * 0.46)
+	_results_panel.custom_minimum_size = Vector2(440.0 * unit, 356.0 * unit)
+	var panel_half_width := minf(220.0 * unit, _to_layout(physical_width * 0.46))
 	_results_panel.offset_left = -panel_half_width
 	_results_panel.offset_right = panel_half_width
-	var panel_half_height := minf(178.0 * _ui_scale, viewport_height * 0.42)
+	var panel_half_height := minf(178.0 * unit, _to_layout(physical_height * 0.42))
 	_results_panel.offset_top = -panel_half_height
 	_results_panel.offset_bottom = panel_half_height
 	if is_instance_valid(_pause_label):
-		_pause_label.add_theme_font_size_override("font_size", roundi(26.0 * _ui_scale))
+		_pause_label.add_theme_font_size_override(
+			"font_size", maxi(roundi(26.0 * unit), _minimum_font_size())
+		)
 	_apply_font_scale()
 
 
-## Every HUD font is derived from the base size times the UI scale, with a floor
-## of 11 px: a smaller factor would technically fit the card but be unreadable.
+## Physical window size, with a sane fallback for headless runs where there is no
+## window at all.
+func _resolve_physical_size() -> Vector2:
+	var window := get_window()
+	if is_instance_valid(window) and window.size.x > 0 and window.size.y > 0:
+		return Vector2(window.size)
+	return size
+
+
+## How many physical pixels one logical canvas unit occupies. With stretch mode
+## canvas_items this is the uniform scale the engine applies to the canvas.
+func _compute_stretch(physical: Vector2) -> float:
+	if size.x <= 0.0 or size.y <= 0.0 or physical.x <= 0.0 or physical.y <= 0.0:
+		return 1.0
+	return maxf(minf(physical.x / size.x, physical.y / size.y), 0.0001)
+
+
+## Converts physical pixels into the logical units the HUD lays out in.
+func _to_layout(physical_pixels: float) -> float:
+	return physical_pixels / _stretch
+
+
+func _control_unit() -> float:
+	return _ui_scale / _stretch
+
+
+## Font size (in logical canvas units) that renders as [constant
+## MIN_PHYSICAL_FONT_PX] on the actual screen.
+func _minimum_font_size() -> int:
+	return maxi(roundi(MIN_PHYSICAL_FONT_PX / maxf(_stretch, 0.0001)), 11)
+
+
+## Every HUD font is derived from the base size times the UI scale, floored at
+## the physical minimum so a portrait phone stays readable.
 func _apply_font_scale() -> void:
 	for entry in [
 		[_health_value_label, 14],
@@ -700,7 +905,7 @@ func _apply_font_scale() -> void:
 		var label := entry[0] as Label
 		if is_instance_valid(label):
 			label.add_theme_font_size_override(
-				"font_size", maxi(roundi(float(entry[1]) * _ui_scale), 11)
+				"font_size", maxi(roundi(float(entry[1]) * _control_unit()), _minimum_font_size())
 			)
 	for heading in [_health_card, _wave_card, _run_card]:
 		if not is_instance_valid(heading):
@@ -708,19 +913,22 @@ func _apply_font_scale() -> void:
 		for child in heading.find_children("*", "Label", true, false):
 			var label := child as Label
 			if label != null and int(label.get_theme_font_size("font_size")) >= 13:
-				label.add_theme_font_size_override("font_size", maxi(roundi(13.0 * _ui_scale), 11))
+				label.add_theme_font_size_override(
+					"font_size", maxi(roundi(13.0 * _control_unit()), _minimum_font_size())
+				)
 
 
 ## Keep the HUD clear of notches and of the browser shell chrome.
 func _resolve_top_inset() -> float:
 	var inset := 0.0
+	var physical := _physical_size if _physical_size != Vector2.ZERO else size
 	if OS.has_feature("web"):
 		# Browser chips wrap onto two rows on a narrow screen; reserve for that.
-		inset = WEB_TOP_INSET + (WEB_TOP_INSET * 0.8 if size.x < size.y else 0.0)
+		inset = WEB_TOP_INSET + (WEB_TOP_INSET * 0.8 if physical.x < physical.y else 0.0)
 	var safe_area := DisplayServer.get_display_safe_area()
 	if safe_area.position.y > 0:
 		inset = maxf(inset, float(safe_area.position.y))
-	return inset * _ui_scale + 10.0 * _ui_scale
+	return _to_layout(inset * _ui_scale + 10.0 * _ui_scale)
 
 
 func _begin_touch(touch_id: int, position: Vector2) -> void:
@@ -766,8 +974,10 @@ func _update_touch(touch_id: int, position: Vector2, relative: Vector2) -> void:
 		return
 	if touch_id == _move_touch_id:
 		_move_position = position
-		var radius := 68.0 * _ui_scale
+		var radius := 68.0 * _control_unit()
 		var offset := (position - _move_origin) / radius
+		if offset.length() > 0.25:
+			hide_help()
 		movement_changed.emit(offset.limit_length(1.0))
 		queue_redraw()
 	elif touch_id == _look_touch_id:
@@ -814,15 +1024,7 @@ func _clear_touch_state() -> void:
 
 
 func _find_touch_button(position: Vector2) -> Button:
-	var buttons: Array[Button] = [
-		_results_retry_button,
-		_pause_button,
-		_weapon_button,
-		_skill_button,
-		_aim_button,
-		_fire_button,
-	]
-	for button in buttons:
+	for button in _touch_buttons:
 		if (
 			is_instance_valid(button)
 			and button.is_visible_in_tree()
@@ -839,6 +1041,8 @@ func _activate_touch_button(button: Button) -> void:
 		_on_skill_pressed()
 	elif button == _pause_button:
 		_on_pause_pressed()
+	elif button == _sound_button:
+		_on_sound_pressed()
 	elif button == _results_retry_button:
 		_on_results_retry_pressed()
 
@@ -887,9 +1091,9 @@ func _draw_crosshair() -> void:
 		spread += 4.0
 	if _aiming:
 		spread *= 0.45
-	var tick := 7.0 * _ui_scale
-	var gap := (10.0 + spread) * _ui_scale
-	var thickness := 2.0 * _ui_scale
+	var tick := 7.0 * _control_unit()
+	var gap := (10.0 + spread) * _control_unit()
+	var thickness := 2.0 * _control_unit()
 	var color := Color(0.52, 0.96, 1.0, 0.95)
 	if _hit_confirm_remaining > 0.0:
 		color = Color(1.0, 0.72, 0.24, 1.0)
@@ -897,10 +1101,10 @@ func _draw_crosshair() -> void:
 	# dark outline first so the reticle survives a white floor
 	var outline := Color(0.0, 0.03, 0.06, 0.6)
 	for offset in [Vector2(1.0, 0.0), Vector2(-1.0, 0.0), Vector2(0.0, 1.0), Vector2(0.0, -1.0)]:
-		_draw_crosshair_ticks(center + offset * _ui_scale, gap, tick, thickness, outline)
+		_draw_crosshair_ticks(center + offset * _control_unit(), gap, tick, thickness, outline)
 	_draw_crosshair_ticks(center, gap, tick, thickness, color)
-	draw_circle(center, maxf(1.4 * _ui_scale, 1.0), color)
-	draw_arc(center, 2.6 * _ui_scale, 0.0, TAU, 16, outline, 1.0)
+	draw_circle(center, maxf(1.4 * _control_unit(), 1.0), color)
+	draw_arc(center, 2.6 * _control_unit(), 0.0, TAU, 16, outline, 1.0)
 
 
 func _draw_crosshair_ticks(
@@ -914,28 +1118,33 @@ func _draw_crosshair_ticks(
 
 func _draw_joystick() -> void:
 	var joystick_center := Vector2(
-		minf(106.0 * _ui_scale, size.x * 0.18), size.y - 112.0 * _ui_scale
+		minf(106.0 * _control_unit(), size.x * 0.18), size.y - 112.0 * _control_unit()
 	)
 	if _move_touch_id != -1:
 		joystick_center = _move_origin
-	var joystick_radius := 68.0 * _ui_scale
+	var joystick_radius := 68.0 * _control_unit()
 	var joystick_color := Color(0.22, 0.72, 0.94, 0.3)
-	draw_arc(joystick_center, joystick_radius, 0.0, TAU, 40, joystick_color, 2.0 * _ui_scale)
+	draw_arc(joystick_center, joystick_radius, 0.0, TAU, 40, joystick_color, 2.0 * _control_unit())
 	if _move_touch_id != -1:
-		draw_circle(_move_position, 23.0 * _ui_scale, Color(0.22, 0.72, 0.94, 0.36))
+		draw_circle(_move_position, 23.0 * _control_unit(), Color(0.22, 0.72, 0.94, 0.36))
 		draw_arc(
 			_move_position,
-			23.0 * _ui_scale,
+			23.0 * _control_unit(),
 			0.0,
 			TAU,
 			24,
 			Color(0.48, 0.88, 1.0, 0.78),
-			2.0 * _ui_scale
+			2.0 * _control_unit()
 		)
+
+
+func _on_sound_pressed() -> void:
+	sound_mute_requested.emit()
 
 
 func _on_fire_down() -> void:
 	if not _player_down and not get_tree().paused:
+		hide_help()
 		_fire_flash_remaining = 1.0
 		queue_redraw()
 		fire_changed.emit(true)

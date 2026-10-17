@@ -180,8 +180,15 @@ async function checkPage(target, viewport) {
       // Input is fire-and-forget on purpose: a headless Chromium rendering this
       // scene through SwiftShader answers CDP calls slowly, so awaiting every
       // keystroke would spend the whole play window waiting on round-trips.
+      let mutePressed = false;
       while ((Date.now() - started) / 1000 < playSeconds) {
         const elapsed = (Date.now() - started) / 1000;
+        if (!mutePressed && elapsed > playSeconds / 3) {
+          // M is the mute shortcut; the console line it prints is the only way to
+          // see from outside the canvas that the audio toggle is wired.
+          mutePressed = true;
+          void page.keyboard.press('KeyM');
+        }
         const phase = Math.floor(elapsed / 6) % 3;
         const key = ['KeyW', 'KeyA', 'KeyD'][phase];
         void page.keyboard.down(key);
@@ -223,6 +230,12 @@ async function checkPage(target, viewport) {
     checks.push([
       'audio played a voice in the browser',
       audioLines.some((line) => line.includes('first voice')),
+    ]);
+    checks.push([
+      'the mute control reaches the audio pipeline',
+      // Exact line only: the boot line ends in "muted=no", so a loose substring
+      // match here would pass without the M key ever reaching the audio.
+      audioLines.some((line) => line.trim().endsWith('Audio: muted')),
     ]);
   }
 
