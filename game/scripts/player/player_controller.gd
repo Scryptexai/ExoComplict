@@ -16,6 +16,10 @@ const WeaponControllerScript = preload("res://scripts/weapons/weapon_controller.
 
 @export_range(1.0, 15.0, 0.1) var move_speed: float = 6.0
 @export_range(1.0, 60.0, 0.5) var move_acceleration: float = 24.0
+## Holding sprint raises the top speed instead of adding a second, faster walk
+## cycle: the avatar has one run clip and stretching it looks wrong.
+@export_range(1.0, 2.5, 0.05) var sprint_multiplier: float = 1.45
+@export_range(0.0, 12.0, 0.1) var jump_velocity: float = 5.2
 @export_range(10.0, 100.0, 1.0) var aim_range: float = 55.0
 @export_range(1.0, 500.0, 1.0) var max_health: float = 100.0
 @export_range(6.0, 30.0, 0.5) var emp_pulse_cooldown: float = 12.0
@@ -58,6 +62,12 @@ func _physics_process(delta: float) -> void:
 			skill_cooldown_changed.emit(_skill_cooldown_remaining, emp_pulse_cooldown)
 	if Input.is_action_just_pressed("weapon_next"):
 		select_next_weapon()
+	elif Input.is_action_just_pressed("weapon_prev"):
+		select_previous_weapon()
+	var slots := ["weapon_1", "weapon_2", "weapon_3"]
+	for slot in range(slots.size()):
+		if Input.is_action_just_pressed(slots[slot]):
+			select_weapon(slot)
 	_update_aiming()
 	var aim_point := _get_aim_point()
 	camera_rig.set_aiming(_aiming)
@@ -262,17 +272,22 @@ func _update_movement(delta: float) -> void:
 	right = right.normalized()
 	var move_direction := (right * input_vector.x - forward * input_vector.y).limit_length(1.0)
 	var horizontal_velocity := Vector3(velocity.x, 0.0, velocity.z)
-	var desired_velocity := move_direction * move_speed
+	var sprinting := Input.is_action_pressed("sprint") and input_vector.length() > 0.2
+	var target_speed := move_speed * (sprint_multiplier if sprinting else 1.0)
+	var desired_velocity := move_direction * target_speed
 	horizontal_velocity = horizontal_velocity.move_toward(
 		desired_velocity, move_acceleration * delta
 	)
 	velocity.x = horizontal_velocity.x
 	velocity.z = horizontal_velocity.z
 
-	if not is_on_floor():
-		velocity.y -= float(ProjectSettings.get_setting("physics/3d/default_gravity")) * delta
+	if is_on_floor():
+		if velocity.y < 0.0:
+			velocity.y = 0.0
+		if Input.is_action_just_pressed("jump") and jump_velocity > 0.0:
+			velocity.y = jump_velocity
 	else:
-		velocity.y = 0.0
+		velocity.y -= float(ProjectSettings.get_setting("physics/3d/default_gravity")) * delta
 	move_and_slide()
 
 

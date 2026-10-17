@@ -3,6 +3,7 @@ extends Node3D
 
 const GltfAssetLibrary = preload("res://scripts/worlds/gltf_asset_library.gd")
 const KayKitBaseBuilder = preload("res://scripts/worlds/kaykit_base_builder.gd")
+const ScifiBayBuilder = preload("res://scripts/worlds/scifi_bay_builder.gd")
 const REACTOR_SCENE: PackedScene = preload("res://scenes/worlds/components/reactor_core.tscn")
 const COMMAND_SCENE: PackedScene = preload("res://scenes/worlds/components/command_center.tscn")
 const LAB_SCENE: PackedScene = preload("res://scenes/worlds/components/research_lab.tscn")
@@ -52,6 +53,7 @@ func _ready() -> void:
 	_build_lighting_and_atmosphere()
 	_build_spawn_beacons()
 	KayKitBaseBuilder.dress_districts(self)
+	ScifiBayBuilder.build(self)
 
 
 func _create_materials() -> void:

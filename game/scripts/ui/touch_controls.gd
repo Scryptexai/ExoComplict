@@ -53,6 +53,12 @@ var _status_label: Label
 var _compact_card: PanelContainer
 var _compact_label: Label
 var _help_label: Label
+var _help_panel: PanelContainer
+var _desktop_hint: Label
+## True when the HUD should show thumb controls. A desktop browser and the
+## editor simulator both report no touchscreen, which used to leave the FIRE /
+## AIM / EMP cluster sitting on top of the scene and eating mouse clicks.
+var _touch_mode: bool = false
 var _narrow: bool = false
 var _physical_size: Vector2 = Vector2.ZERO
 var _stretch: float = 1.0
@@ -87,12 +93,14 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_touch_mode = DisplayServer.is_touchscreen_available()
 	_build_ui()
 	resized.connect(_layout_controls)
 	var window := get_window()
 	if is_instance_valid(window):
 		window.focus_exited.connect(_on_window_focus_exited)
 	_layout_controls()
+	_apply_input_mode()
 	queue_redraw()
 
 
@@ -111,18 +119,22 @@ func _process(delta: float) -> void:
 	if _fire_flash_remaining > 0.0:
 		_fire_flash_remaining = maxf(_fire_flash_remaining - delta, 0.0)
 		needs_redraw = true
-	if is_instance_valid(_help_label) and _help_label.visible and _help_remaining > 0.0:
+	if is_instance_valid(_help_panel) and _help_panel.visible and _help_remaining > 0.0:
 		_help_remaining = maxf(_help_remaining - delta, 0.0)
 		if _help_remaining <= HELP_FADE_SECONDS:
-			_help_label.modulate.a = clampf(_help_remaining / HELP_FADE_SECONDS, 0.0, 1.0)
+			_help_panel.modulate.a = clampf(_help_remaining / HELP_FADE_SECONDS, 0.0, 1.0)
 		if _help_remaining <= 0.0:
-			_help_label.visible = false
+			_help_panel.visible = false
 	if needs_redraw:
 		queue_redraw()
 
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
+		if event.pressed and not _touch_mode:
+			# A hybrid laptop or a browser that starts reporting touch after the
+			# first tap should still get the thumb controls.
+			set_touch_mode(true)
 		var local_position: Vector2 = event.position
 		if event.pressed:
 			_begin_touch(event.index, local_position)
@@ -187,9 +199,35 @@ func set_sound_muted(muted: bool) -> void:
 ## The control hint is noise once the player has started playing; the first shot
 ## or the first joystick drag retires it early.
 func hide_help() -> void:
-	if is_instance_valid(_help_label):
-		_help_label.visible = false
+	if is_instance_valid(_help_panel):
+		_help_panel.visible = false
 	_help_remaining = 0.0
+
+
+## Switches the HUD between thumb controls and a keyboard/mouse legend. Public
+## because the browser QA and the HUD smoke test drive a touchscreen that the
+## headless display server does not report.
+func set_touch_mode(enabled: bool) -> void:
+	if _touch_mode == enabled:
+		return
+	_touch_mode = enabled
+	_apply_input_mode()
+
+
+func is_touch_mode() -> bool:
+	return _touch_mode
+
+
+func _apply_input_mode() -> void:
+	for button in [_fire_button, _aim_button, _skill_button, _weapon_button]:
+		if is_instance_valid(button):
+			button.visible = _touch_mode
+	if is_instance_valid(_desktop_hint):
+		_desktop_hint.visible = not _touch_mode
+		_desktop_hint.modulate.a = 0.9
+	if is_instance_valid(_help_label):
+		_layout_controls()
+	queue_redraw()
 
 
 ## Lays the HUD out for an explicit viewport size. The public entry point uses
@@ -273,11 +311,11 @@ func set_aim_state(aiming: bool) -> void:
 
 ## Bring the control hint back (called on retry and when the run starts).
 func show_help() -> void:
-	if not is_instance_valid(_help_label):
+	if not is_instance_valid(_help_panel):
 		return
 	_help_remaining = HELP_VISIBLE_SECONDS
-	_help_label.modulate.a = 1.0
-	_help_label.visible = true
+	_help_panel.modulate.a = 1.0
+	_help_panel.visible = true
 
 
 func _apply_help_readability() -> void:
@@ -441,26 +479,64 @@ func _build_ui() -> void:
 	_skill_button.pressed.connect(_on_skill_pressed)
 	_touch_buttons.append(_skill_button)
 
+	# The help text used to be bare cyan text over a bright floor, which was
+	# impossible to read in the exported build. A dark, rounded plate behind it
+	# costs nothing and makes the first ten seconds legible.
+	_help_panel = PanelContainer.new()
+	_help_panel.name = "ControlsHelpPanel"
+	_help_panel.anchor_left = 0.16
+	_help_panel.anchor_right = 0.84
+	_help_panel.anchor_top = 0.0
+	_help_panel.anchor_bottom = 0.0
+	_help_panel.offset_top = 116.0
+	_help_panel.offset_bottom = 154.0
+	_help_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var help_style := _make_panel_style()
+	help_style.bg_color = Color(0.02, 0.06, 0.1, 0.86)
+	help_style.border_color = Color(0.24, 0.72, 0.9, 0.5)
+	help_style.set_corner_radius_all(10)
+	help_style.content_margin_left = 14.0
+	help_style.content_margin_right = 14.0
+	help_style.content_margin_top = 8.0
+	help_style.content_margin_bottom = 8.0
+	_help_panel.add_theme_stylebox_override("panel", help_style)
 	_help_label = Label.new()
 	_help_label.name = "ControlsHelp"
-	_help_label.anchor_left = 0.16
-	_help_label.anchor_right = 0.84
-	_help_label.anchor_top = 0.0
-	_help_label.anchor_bottom = 0.0
-	_help_label.offset_top = 116.0
-	_help_label.offset_bottom = 154.0
 	_help_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_help_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_help_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_help_label.text = (
 		"TOUCH: 360° joystick moves · drag right to aim · hold FIRE / AIM · EMP is the skill\n"
-		+ "DESKTOP: WASD moves · right mouse aims · hold left mouse to fire · E cycles · R retries"
+		+ "DESKTOP: WASD moves · Shift sprint · Space jump · right mouse aims · hold left mouse to fire\n"
+		+ "E / Q or 1-3 switch weapons · R retries · Esc pauses"
 	)
 	_help_label.add_theme_font_size_override("font_size", 12)
-	_help_label.add_theme_color_override("font_color", Color(0.76, 0.88, 0.96, 0.92))
+	_help_label.add_theme_color_override("font_color", Color(0.8, 0.91, 0.98, 0.96))
 	_help_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_apply_help_readability()
-	add_child(_help_label)
+	_help_panel.add_child(_help_label)
+	add_child(_help_panel)
+
+	# A permanent, quiet keyboard legend for non-touch sessions. It sits where
+	# the joystick would be, so it never covers the play area.
+	_desktop_hint = Label.new()
+	_desktop_hint.name = "DesktopHint"
+	_desktop_hint.anchor_left = 0.0
+	_desktop_hint.anchor_right = 0.0
+	_desktop_hint.anchor_top = 1.0
+	_desktop_hint.anchor_bottom = 1.0
+	_desktop_hint.offset_left = 20.0
+	_desktop_hint.offset_top = -40.0
+	_desktop_hint.offset_right = 420.0
+	_desktop_hint.offset_bottom = -20.0
+	_desktop_hint.text = "WASD move · Shift sprint · Space jump · RMB aim · LMB fire · 1-3 weapon"
+	_desktop_hint.add_theme_font_size_override("font_size", 11)
+	_desktop_hint.add_theme_color_override("font_color", Color(0.72, 0.85, 0.94, 0.8))
+	_desktop_hint.add_theme_color_override("font_shadow_color", Color(0.0, 0.02, 0.05, 0.9))
+	_desktop_hint.add_theme_constant_override("shadow_offset_x", 1)
+	_desktop_hint.add_theme_constant_override("shadow_offset_y", 1)
+	_desktop_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_desktop_hint)
 
 	_pause_label = Label.new()
 	_pause_label.name = "PauseOverlay"
@@ -543,7 +619,7 @@ func _build_wave_card() -> void:
 
 
 func _build_run_card() -> void:
-	_run_card = _make_card("RunDataCard", Vector2(320.0, 88.0))
+	_run_card = _make_card("RunDataCard", Vector2(340.0, 96.0))
 	_top_bar.add_child(_run_card)
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", 3)
@@ -553,7 +629,7 @@ func _build_run_card() -> void:
 	_status_label = Label.new()
 	_status_label.name = "StatusLabel"
 	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_status_label.text = "Score: 0 · BP earned: 0\nKOs: 0 · Time: 00:00\nTarget 54 / 54 · Shots 0"
+	_status_label.text = "Score 0 · BP 0\nKOs 0 · Time 00:00\nTarget 54/54 · Shots 0"
 	_status_label.add_theme_font_size_override("font_size", 12)
 	_status_label.add_theme_color_override("font_color", Color(0.84, 0.92, 1.0))
 	content.add_child(_status_label)
@@ -840,11 +916,19 @@ func _layout_controls(
 	var help_top := _top_inset + card_height + 8.0 * unit
 	if narrow:
 		help_top = _top_inset + card_height + compact_height + 12.0 * unit
-	_help_label.offset_top = help_top
-	_help_label.offset_bottom = help_top + 40.0 * unit
+	_help_panel.offset_top = help_top
+	_help_panel.offset_bottom = help_top + 62.0 * unit
 	_help_label.add_theme_font_size_override(
 		"font_size", maxi(roundi(12.0 * unit), _minimum_font_size())
 	)
+	if is_instance_valid(_desktop_hint):
+		_desktop_hint.offset_left = margin + 6.0 * unit
+		_desktop_hint.offset_right = margin + 460.0 * unit
+		_desktop_hint.offset_top = -base_margin - 26.0 * unit
+		_desktop_hint.offset_bottom = -base_margin - 6.0 * unit
+		_desktop_hint.add_theme_font_size_override(
+			"font_size", maxi(roundi(11.0 * unit), _minimum_font_size())
+		)
 
 	_results_panel.custom_minimum_size = Vector2(440.0 * unit, 356.0 * unit)
 	var panel_half_width := minf(220.0 * unit, _to_layout(physical_width * 0.46))
@@ -1051,7 +1135,7 @@ func _is_over_hud(position: Vector2) -> bool:
 	var global_position := position
 	var hud_controls: Array[Control] = [
 		_top_bar,
-		_help_label,
+		_help_panel,
 		_fire_button,
 		_weapon_button,
 		_skill_button,
@@ -1117,6 +1201,8 @@ func _draw_crosshair_ticks(
 
 
 func _draw_joystick() -> void:
+	if not _touch_mode and _move_touch_id == -1:
+		return
 	var joystick_center := Vector2(
 		minf(106.0 * _control_unit(), size.x * 0.18), size.y - 112.0 * _control_unit()
 	)

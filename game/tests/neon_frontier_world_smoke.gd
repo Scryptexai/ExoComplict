@@ -92,6 +92,31 @@ func _run_smoke_test() -> void:
 			)
 			and test_passed
 		)
+	# The uploaded SciFi Starter Kit is the playable interior: a 7x7 floor grid,
+	# wall runs with a lane opening per side, and a door frame on each lane.
+	var bay := world.get_node_or_null("SciFiBay") as Node3D
+	var bay_floor := 0
+	var bay_walls := 0
+	var bay_gates := 0
+	if bay != null:
+		for child in bay.get_children():
+			var child_name := str(child.name)
+			if child_name.begins_with("SciFiBayFloor"):
+				bay_floor += 1
+			elif child_name.begins_with("SciFiBayWall") or child_name.begins_with("SciFiBayCover"):
+				bay_walls += 1
+			elif child_name.begins_with("SciFiBayGate"):
+				bay_gates += 1
+	test_passed = (
+		_expect(
+			bay_floor >= 49 and bay_walls >= 28 and bay_gates == 4,
+			(
+				"the arena interior is built from the uploaded SciFi kit (floor %d, walls %d, gates %d)"
+				% [bay_floor, bay_walls, bay_gates]
+			),
+		)
+		and test_passed
+	)
 	# The boundary is no longer four flat boxes: a collider keeps the player in,
 	# and rock tiles close the horizon. Both have to exist at the same time.
 	for wall_name in [

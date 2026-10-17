@@ -33,11 +33,13 @@ const outDir = path.resolve(ROOT, flag('--out', 'exports/kit-sheet'));
 const size = Number(flag('--size', '320'));
 const only = flag('--only', '');
 
+// .gltf and .glb behave the same through GLTFLoader; the uploaded SciFi pack
+// arrives as GLB, so both extensions are accepted.
 const models = fs
   .readdirSync(path.join(ROOT, assetDir))
-  .filter((f) => f.endsWith('.gltf'))
-  .filter((f) => !only || only.split(',').includes(path.basename(f, '.gltf')))
-  .map((f) => path.basename(f, '.gltf'))
+  .filter((f) => f.endsWith('.gltf') || f.endsWith('.glb'))
+  .filter((f) => !only || only.split(',').includes(path.basename(f).replace(/\.gl[b]?tf?$/, '')))
+  .map((f) => ({ name: path.basename(f).replace(/\.gl[b]?tf?$/, ''), file: f }))
   .sort();
 if (!models.length) {
   console.error('no .gltf files found in ' + assetDir);
@@ -81,8 +83,9 @@ await page.setViewport({ width: size, height: size });
 await page.goto(`http://127.0.0.1:${port}/tools/render/kit_viewer.html`, { waitUntil: 'domcontentloaded' });
 
 const report = {};
-for (const model of models) {
-  const url = `/${assetDir}/${model}.gltf`;
+for (const entry of models) {
+  const model = entry.name;
+  const url = `/${assetDir}/${entry.file}`;
   await page.evaluate((u) => { window.__ready = false; return window.showModel(u); }, url);
   await page.waitForFunction(() => window.__ready || window.__error, { timeout: 60000 });
   const error = await page.evaluate(() => window.__error);

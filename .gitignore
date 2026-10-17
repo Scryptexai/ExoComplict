@@ -19,6 +19,9 @@ __pycache__/
 # the same import step as the .import files, so they are regenerated too.
 game/assets/**/hero_HERO_3d_model_*.jpg
 game/assets/**/rifle_futuristic+gun+3d+model_*.jpg
+# Same for the uploaded SciFi kit: the GLB carry their textures, and the
+# importer writes an extracted copy next to each model.
+game/assets/world/scifi_starter_kit/models/*.jpg
 # Godot 4.6+ writes one .uid next to every script. This project references
 # scripts by res:// path everywhere, so the files are regenerated on import and
 # never need to be tracked.

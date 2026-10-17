@@ -36,6 +36,9 @@ func _run_smoke_test() -> void:
 	var compact_card := controls.get("_compact_card") as PanelContainer
 	var compact_label := controls.get("_compact_label") as Label
 	var aim_button := controls.get("_aim_button") as Button
+	# The test drives a touchscreen that a headless display server never reports,
+	# so it opts into the thumb layout explicitly. Desktop mode is asserted below.
+	controls.call("set_touch_mode", true)
 	var character_visual := player.get_node("VisualRoot")
 	var player_camera := (
 		player.get_node("CameraRig/YawPivot/PitchPivot/SpringArm3D/Camera3D") as Camera3D
@@ -68,6 +71,23 @@ func _run_smoke_test() -> void:
 			and help_label.text.contains("WASD")
 		),
 		"wrapped help explains mobile and desktop controls",
+	)
+	# Desktop sessions must not keep the thumb cluster on screen: it covered the
+	# play area and swallowed clicks.
+	controls.call("set_touch_mode", false)
+	_expect(
+		not fire_button.visible and not aim_button.visible and not skill_button.visible,
+		"desktop mode hides the thumb controls",
+	)
+	var desktop_hint := controls.get("_desktop_hint") as Label
+	_expect(
+		is_instance_valid(desktop_hint) and desktop_hint.visible,
+		"desktop mode shows the keyboard legend",
+	)
+	controls.call("set_touch_mode", true)
+	_expect(
+		fire_button.visible and aim_button.visible and skill_button.visible,
+		"touch mode restores the thumb controls",
 	)
 	_expect(
 		(
@@ -158,12 +178,12 @@ func _run_smoke_test() -> void:
 		"a wide screen returns to the three-column top bar",
 	)
 	_expect(
-		help_label.visible,
+		help_label.is_visible_in_tree(),
 		"the control hint is shown at the start of a run",
 	)
 	controls.call("hide_help")
 	_expect(
-		not help_label.visible,
+		not help_label.is_visible_in_tree(),
 		"firing or moving retires the control hint so it stops covering the action",
 	)
 	controls.call("show_help")
