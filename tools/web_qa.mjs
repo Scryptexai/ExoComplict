@@ -175,20 +175,23 @@ async function checkPage(target, viewport) {
     if (centre) {
       // The click doubles as the gesture browsers require before audio runs.
       await page.mouse.click(centre.x, centre.y);
+      // Mute and unmute up front. Each screenshot can cost tens of seconds in a
+      // software-rendered browser, so anything timing-based inside the loop may
+      // never be reached — and the console lines these produce are the only
+      // outside proof that the audio toggle is wired.
+      void page.keyboard.press('KeyM');
+      await new Promise((r) => setTimeout(r, 300));
+      void page.keyboard.press('KeyM');
       const started = Date.now();
       let nextShot = 0;
+      // A hard cap on frames: SwiftShader needs 15-30 s per screenshot, and a
+      // play window is measured in wall clock.
+      const maxFrames = 6;
       // Input is fire-and-forget on purpose: a headless Chromium rendering this
       // scene through SwiftShader answers CDP calls slowly, so awaiting every
       // keystroke would spend the whole play window waiting on round-trips.
-      let mutePressed = false;
       while ((Date.now() - started) / 1000 < playSeconds) {
         const elapsed = (Date.now() - started) / 1000;
-        if (!mutePressed && elapsed > playSeconds / 3) {
-          // M is the mute shortcut; the console line it prints is the only way to
-          // see from outside the canvas that the audio toggle is wired.
-          mutePressed = true;
-          void page.keyboard.press('KeyM');
-        }
         const phase = Math.floor(elapsed / 6) % 3;
         const key = ['KeyW', 'KeyA', 'KeyD'][phase];
         void page.keyboard.down(key);
@@ -201,7 +204,7 @@ async function checkPage(target, viewport) {
         void page.mouse.up();
         await new Promise((r) => setTimeout(r, 400));
         void page.keyboard.up(key);
-        if (elapsed >= nextShot) {
+        if (elapsed >= nextShot && frames.length < maxFrames) {
           const frame = path.join(outDir, `${slug}-${viewport.spec}-play-${Math.round(elapsed)}s.png`);
           await page.screenshot({ path: frame });
           frames.push(path.relative(ROOT, frame));

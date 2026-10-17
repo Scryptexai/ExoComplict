@@ -35,6 +35,7 @@ var _walk_time: float = 0.0
 @onready var aim_camera: Camera3D = $CameraRig/YawPivot/PitchPivot/SpringArm3D/Camera3D
 @onready var visual_root: CharacterVisualScript = $VisualRoot
 @onready var muzzle: Marker3D = $VisualRoot/WeaponSocket/Muzzle
+@onready var muzzle_flash: MuzzleFlash = get_node_or_null("VisualRoot/WeaponSocket/MuzzleFlash")
 @onready var weapon_controller: WeaponControllerScript = $WeaponController
 
 
@@ -68,6 +69,8 @@ func _physics_process(delta: float) -> void:
 	var desktop_fire := Input.is_action_pressed("fire") and not _is_pointer_over_ui()
 	if desktop_fire or _touch_fire_pressed:
 		if weapon_controller.try_fire(self, muzzle, aim_point):
+			if is_instance_valid(muzzle_flash):
+				muzzle_flash.flash()
 			shot_fired.emit()
 			visual_root.play_recoil(_current_recoil_strength())
 			camera_rig.add_recoil_kick(_current_recoil_strength())
