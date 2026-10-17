@@ -15,9 +15,7 @@ static func desktop(hud) -> void:
 	var inset := 20.0 * unit
 	_place_top_bar(hud, inset, hud._top_inset, 64.0 * unit)
 	_place_in_top_bar(hud._health_card, 0, 0, 0, 0, Rect2(0, 0, 268.0 * unit, 64.0 * unit))
-	_place_in_top_bar(
-		hud._wave_card, 0.5, 0, 0.5, 0, Rect2(-150.0 * unit, 0, 300.0 * unit, 44.0 * unit)
-	)
+	_place_wave(hud, inset, 44.0 * unit, 268.0 * unit, 300.0 * unit, 96.0 * unit)
 	_place_in_top_bar(hud._system_row, 1, 0, 1, 0, Rect2(-96.0 * unit, 0, 96.0 * unit, 44.0 * unit))
 	_place(
 		hud._score_chip,
@@ -81,13 +79,13 @@ static func touch_portrait(hud) -> void:
 	var bar_height: float = hud._to_layout(48.0)
 	_place_top_bar(hud, edge, hud._top_inset, bar_height)
 	_place_in_top_bar(hud._health_card, 0, 0, 0, 0, Rect2(0, 0, hud._to_layout(168.0), bar_height))
-	_place_in_top_bar(
-		hud._wave_card,
-		0.5,
-		0,
-		0.5,
-		0,
-		Rect2(-hud._to_layout(44.0), 0, hud._to_layout(88.0), bar_height)
+	_place_wave(
+		hud,
+		edge,
+		bar_height,
+		hud._to_layout(168.0),
+		hud._to_layout(88.0),
+		hud._to_layout(44.0 if hud._narrow else 96.0)
 	)
 	# The sound control is hidden on phones, so the row only needs one target
 	# there; on a wide touch screen both buttons must fit side by side.
@@ -144,6 +142,15 @@ static func touch_portrait(hud) -> void:
 		minf(hud._to_layout(342.0), hud.size.x - edge * 2.0),
 		hud._help_block_height(5)
 	)
+	if not hud._touch_mode:
+		_place(
+			hud._desktop_hint,
+			0,
+			1,
+			0,
+			1,
+			Rect2(edge, -edge - hud._to_layout(18.0), hud.size.x - edge * 2.0, hud._to_layout(18.0))
+		)
 
 
 static func touch_landscape(hud) -> void:
@@ -151,13 +158,8 @@ static func touch_landscape(hud) -> void:
 	var bar_height: float = hud._to_layout(44.0)
 	_place_top_bar(hud, edge, hud._top_inset, bar_height)
 	_place_in_top_bar(hud._health_card, 0, 0, 0, 0, Rect2(0, 0, hud._to_layout(196.0), bar_height))
-	_place_in_top_bar(
-		hud._wave_card,
-		0.5,
-		0,
-		0.5,
-		0,
-		Rect2(-hud._to_layout(50.0), 0, hud._to_layout(100.0), bar_height)
+	_place_wave(
+		hud, edge, bar_height, hud._to_layout(196.0), hud._to_layout(100.0), hud._to_layout(96.0)
 	)
 	_place_in_top_bar(
 		hud._system_row,
@@ -215,6 +217,17 @@ static func touch_landscape(hud) -> void:
 		hud._to_layout(560.0),
 		hud._to_layout(60.0)
 	)
+
+
+## Centres the wave card on screen but clamps it into the gap between the
+## vitals card and the system row, so a 390 px phone never overlaps either.
+static func _place_wave(
+	hud, edge: float, bar_height: float, health_w: float, wave_w: float, system_w: float
+) -> void:
+	var gap: float = hud._to_layout(8.0)
+	var left: float = (hud.size.x - wave_w) * 0.5
+	left = clampf(left, edge + health_w + gap, hud.size.x - edge - system_w - gap - wave_w)
+	_place_in_top_bar(hud._wave_card, 0, 0, 0, 0, Rect2(left - edge, 0, wave_w, bar_height))
 
 
 static func place(

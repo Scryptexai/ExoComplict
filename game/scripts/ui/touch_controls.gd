@@ -33,6 +33,11 @@ const MIN_PHYSICAL_FONT_PX: float = AegisTokens.MIN_PHYSICAL_FONT_PX
 ## Lines the narrow-screen data strip must fit: the enemy line plus the wrapped
 ## run summary. Four gives the wrapped summary one line of slack.
 const COMPACT_LINES: int = 4
+const DESKTOP_HINT := (
+	"WASD MOVE · SHIFT SPRINT · SPACE JUMP · RMB ADS · LMB FIRE · 1-3 WEAPON"
+	+ " · F EMP · ESC PAUSE"
+)
+const DESKTOP_HINT_SHORT := "WASD · SHIFT · SPACE · RMB ADS · LMB FIRE · 1-3 · F EMP · ESC"
 const HELP_FADE_SECONDS: float = 1.5
 ## The browser shell (game/web_shell/index.html) draws chips along the top of
 ## the page; the HUD keeps clear of them instead of overlapping.
@@ -87,7 +92,11 @@ var _score_value_label: Label
 var _compact_label: Label
 var _help_label: Label
 var _desktop_hint: Label
+var _pause_panel: AegisPanel
 var _pause_label: Label
+var _pause_stats_label: Label
+var _pause_resume_button: AegisButton
+var _pause_restart_button: AegisButton
 var _results_summary: Label
 var _results_title: Label
 var _desktop_weapon_name: Label
@@ -270,6 +279,7 @@ func set_sound_muted(muted: bool) -> void:
 	_sound_button.add_theme_color_override(
 		"font_color", AegisTokens.DANGER if muted else AegisTokens.INK
 	)
+	AegisTheme.tint_icon(_sound_button, AegisTokens.DANGER if muted else AegisTokens.INK)
 
 
 ## The control hint is noise once the player has started playing; the first shot
@@ -314,7 +324,7 @@ func _apply_input_mode() -> void:
 		if is_instance_valid(control):
 			control.visible = desktop
 	if is_instance_valid(_desktop_hint):
-		_desktop_hint.visible = desktop
+		_desktop_hint.visible = not _touch_mode
 	if is_instance_valid(_skill_ring):
 		_skill_ring.visible = _touch_mode and not _narrow
 	if is_instance_valid(_sound_button):
@@ -427,6 +437,7 @@ func _apply_aim_visual(aiming: bool) -> void:
 	_aim_button.add_theme_color_override(
 		"font_color", AegisTokens.ACCENT_INK if aiming else AegisTokens.INK
 	)
+	AegisTheme.tint_icon(_aim_button, AegisTokens.ACCENT_INK if aiming else AegisTokens.INK)
 	_aim_button.icon = AegisTheme.icon("crosshair", aiming)
 	_aim_button.set_meta("aegis_state", "active" if aiming else "idle")
 
@@ -439,8 +450,10 @@ func set_paused(paused: bool) -> void:
 		_pause_button.set_meta("aegis_state", "resume" if paused else "pause")
 		_pause_button.tooltip_text = "Resume (Esc)" if paused else "Pause (Esc)"
 		_pause_button.disabled = false
-	if is_instance_valid(_pause_label):
-		_pause_label.visible = paused and not _player_down
+	if is_instance_valid(_pause_panel):
+		_pause_panel.visible = paused and not _player_down
+	if is_instance_valid(_pause_stats_label):
+		_pause_stats_label.text = "SCORE %s  ·  %s" % [_format_number(_run_score), _run_time]
 	if is_instance_valid(_scrim):
 		_scrim.visible = (paused or _player_down) and not _results_visible()
 	if is_instance_valid(_fire_button):
@@ -522,8 +535,8 @@ func show_results(
 	]:
 		if is_instance_valid(control):
 			control.visible = false
-	if is_instance_valid(_pause_label):
-		_pause_label.visible = false
+	if is_instance_valid(_pause_panel):
+		_pause_panel.visible = false
 	_aiming = false
 	queue_redraw()
 
@@ -807,13 +820,7 @@ func _build_desktop_chips() -> void:
 	_ads_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	ads_row.add_child(_ads_label)
 
-	_desktop_hint = _label(
-		"WASD MOVE · SHIFT SPRINT · SPACE JUMP · RMB ADS · LMB FIRE · 1-3 WEAPON · F EMP · ESC PAUSE",
-		"label_s",
-		AegisTokens.INK_2,
-		1.0,
-		true
-	)
+	_desktop_hint = _label(DESKTOP_HINT, "label_s", AegisTokens.INK_2, 1.0, true)
 	_desktop_hint.name = "DesktopHint"
 	add_child(_desktop_hint)
 
@@ -831,18 +838,62 @@ func _build_overlays() -> void:
 	_scrim.visible = false
 	add_child(_scrim)
 
-	_pause_label = Label.new()
-	_pause_label.name = "PauseOverlay"
-	_pause_label.text = "PAUSED\nESC / TAP PLAY TO RESUME"
-	_pause_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_pause_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_pause_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_pause_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_pause_label.visible = false
-	_register_type(_pause_label, "display_l", AegisTokens.INK, 1.0)
-	add_child(_pause_label)
-
+	_build_pause_menu()
 	_build_results_panel()
+
+
+## Pause is a sibling of the results card: same panel language, same button
+## hierarchy. RESUME is the first (and default) action, RESTART the second.
+func _build_pause_menu() -> void:
+	_pause_panel = AegisPanel.new()
+	_pause_panel.name = "PausePanel"
+	_pause_panel.interactive = true
+	_pause_panel.visible = false
+	add_child(_pause_panel)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 12)
+	_pause_panel.add_child(content)
+
+	var eyebrow := _label("RUN SUSPENDED", "label", AegisTokens.ACCENT)
+	content.add_child(eyebrow)
+	_pause_label = _label("PAUSED", "display_l", AegisTokens.INK)
+	content.add_child(_pause_label)
+	_pause_stats_label = _label("SCORE 0  ·  00:00", "mono_m", AegisTokens.INK_2)
+	content.add_child(_pause_stats_label)
+
+	var rule := ColorRect.new()
+	rule.color = AegisTokens.LINE
+	rule.custom_minimum_size = Vector2(0.0, 1.0)
+	content.add_child(rule)
+
+	_pause_resume_button = AegisButton.new()
+	_pause_resume_button.name = "ResumeButton"
+	_pause_resume_button.text = "RESUME"
+	_pause_resume_button.focus_mode = Control.FOCUS_NONE
+	_pause_resume_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	_pause_resume_button.icon = AegisTheme.icon("play", true)
+	_pause_resume_button.add_theme_constant_override("icon_max_width", 18)
+	AegisTheme.set_button_variant(_pause_resume_button, "primary")
+	_pause_resume_button.pressed.connect(_on_pause_pressed)
+	content.add_child(_pause_resume_button)
+	_touch_buttons.append(_pause_resume_button)
+
+	_pause_restart_button = AegisButton.new()
+	_pause_restart_button.name = "RestartButton"
+	_pause_restart_button.text = "RESTART RUN"
+	_pause_restart_button.focus_mode = Control.FOCUS_NONE
+	_pause_restart_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	_pause_restart_button.icon = AegisTheme.icon("arrow-counter-clockwise")
+	_pause_restart_button.add_theme_constant_override("icon_max_width", 18)
+	AegisTheme.set_button_variant(_pause_restart_button, "ghost")
+	_pause_restart_button.pressed.connect(_on_restart_pressed)
+	content.add_child(_pause_restart_button)
+	_touch_buttons.append(_pause_restart_button)
+
+	var hint := _label("ESC  ·  RESUME  ·  R  ·  RESTART", "label_s", AegisTokens.INK_3)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(hint)
 
 
 func _build_results_panel() -> void:
@@ -973,8 +1024,9 @@ func _layout_controls(
 	_ui_scale = clampf(minf(physical_width, physical_height) / 720.0, 0.64, 1.0)
 	_top_inset = _resolve_top_inset()
 	_narrow = physical_width < NARROW_WIDTH
+	if is_instance_valid(_desktop_hint):
+		_desktop_hint.text = DESKTOP_HINT_SHORT if _narrow else DESKTOP_HINT
 	_portrait = physical_height > physical_width
-	var unit := _control_unit()
 
 	_refresh_card_styles()
 	_apply_font_scale()
@@ -985,7 +1037,7 @@ func _layout_controls(
 	else:
 		HudLayout.touch_landscape(self)
 
-	_layout_overlays(unit)
+	_layout_overlays()
 	_apply_input_mode()
 	queue_redraw()
 
@@ -1004,14 +1056,14 @@ func _help_block_height(lines: int) -> float:
 	return font * 1.45 * float(lines) + _to_layout(16.0)
 
 
-func _layout_overlays(unit: float) -> void:
+func _layout_overlays() -> void:
 	if is_instance_valid(_scrim):
 		_scrim.anchor_right = 1.0
 		_scrim.anchor_bottom = 1.0
 		_scrim.offset_right = 0.0
 		_scrim.offset_bottom = 0.0
-	var panel_width := minf(600.0 * unit, size.x * 0.92)
-	var panel_height := minf(528.0 * unit, size.y * 0.9)
+	var panel_width := minf(_to_layout(600.0), size.x * 0.92)
+	var panel_height := minf(_to_layout(528.0), size.y * 0.9)
 	_results_panel.custom_minimum_size = Vector2(panel_width, panel_height)
 	HudLayout.place(
 		self,
@@ -1023,20 +1075,24 @@ func _layout_overlays(unit: float) -> void:
 		Rect2(-panel_width * 0.5, -panel_height * 0.5, panel_width, panel_height)
 	)
 	_results_retry_button.custom_minimum_size = Vector2(
-		minf(240.0 * unit, panel_width - 48.0 * unit), 52.0 * unit
+		minf(_to_layout(240.0), panel_width - _to_layout(48.0)), _to_layout(52.0)
 	)
 	_results_retry_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	if is_instance_valid(_pause_label):
-		var pause_width := minf(size.x * 0.9, 720.0 * unit)
+	if is_instance_valid(_pause_panel):
+		var pause_width := minf(_to_layout(400.0), size.x * 0.88)
+		var pause_height := minf(_to_layout(330.0), size.y * 0.84)
 		HudLayout.place(
 			self,
-			_pause_label,
+			_pause_panel,
 			0.5,
 			0.5,
 			0.5,
 			0.5,
-			Rect2(-pause_width * 0.5, -60.0 * unit, pause_width, 120.0 * unit)
+			Rect2(-pause_width * 0.5, -pause_height * 0.5, pause_width, pause_height)
 		)
+		for button in [_pause_resume_button, _pause_restart_button]:
+			if is_instance_valid(button):
+				button.custom_minimum_size = Vector2(0.0, _to_layout(52.0))
 
 
 ## Card padding is expressed in physical pixels so a 168 px phone rail gets the
@@ -1071,6 +1127,16 @@ func _refresh_card_styles() -> void:
 	)
 	_ads_chip.add_theme_stylebox_override(
 		"panel", AegisTheme.panel_style(fill, AegisTokens.LINE, 1, AegisTokens.RADIUS, tight)
+	)
+	_pause_panel.add_theme_stylebox_override(
+		"panel",
+		AegisTheme.panel_style(
+			Color(AegisTokens.PANEL, 0.97),
+			Color(AegisTokens.LINE_HI, 0.9),
+			1,
+			AegisTokens.RADIUS,
+			_to_layout(24.0)
+		)
 	)
 	_results_panel.add_theme_stylebox_override(
 		"panel",
@@ -1116,7 +1182,11 @@ func _apply_font_scale() -> void:
 			AegisTheme.resize_button_font(button, "title", maxi(roundi(15.0 * unit), floor_size))
 		elif button == _weapon_button or button == _skill_button or button == _aim_button:
 			AegisTheme.resize_button_font(button, "label", maxi(roundi(11.0 * unit), floor_size))
-		elif button == _results_retry_button:
+		elif (
+			button == _results_retry_button
+			or button == _pause_resume_button
+			or button == _pause_restart_button
+		):
 			AegisTheme.resize_button_font(button, "title", maxi(roundi(15.0 * unit), floor_size))
 	if is_instance_valid(_health_bar):
 		_health_bar.custom_minimum_size.y = maxf(_to_layout(6.0), 3.0)
@@ -1360,6 +1430,10 @@ func _activate_touch_button(button: Button) -> void:
 		_on_sound_pressed()
 	elif button == _results_retry_button:
 		_on_results_retry_pressed()
+	elif button == _pause_resume_button:
+		_on_pause_pressed()
+	elif button == _pause_restart_button:
+		_on_restart_pressed()
 
 
 func _is_over_hud(position: Vector2) -> bool:
@@ -1370,7 +1444,7 @@ func _is_over_hud(position: Vector2) -> bool:
 		_weapon_button,
 		_skill_button,
 		_aim_button,
-		_pause_label,
+		_pause_panel,
 		_results_panel,
 		_run_card,
 		_score_chip,

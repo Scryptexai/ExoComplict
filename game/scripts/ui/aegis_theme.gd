@@ -182,6 +182,13 @@ static func focus_style() -> StyleBoxFlat:
 	return style
 
 
+## Theme colours apply to the glyph too; without this the SVG's own black fill
+## disappears against the dark panel.
+static func tint_icon(button: Button, color: Color) -> void:
+	for state in ["icon_normal_color", "icon_hover_color", "icon_pressed_color"]:
+		button.add_theme_color_override(state, color)
+
+
 static func set_button_variant(button: Button, variant: String) -> void:
 	if not is_instance_valid(button):
 		return
@@ -249,6 +256,7 @@ static func set_button_variant(button: Button, variant: String) -> void:
 	button.add_theme_color_override("font_color", font_color)
 	button.add_theme_color_override("font_hover_color", font_color)
 	button.add_theme_color_override("font_pressed_color", font_color)
+	tint_icon(button, font_color)
 	button.add_theme_color_override(
 		"font_disabled_color", Color(AegisTokens.INK_3, AegisTokens.DISABLED_ALPHA)
 	)
