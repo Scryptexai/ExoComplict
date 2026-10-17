@@ -10,6 +10,7 @@
  *   node tools/web_qa.mjs --play 30         # also play: click, move, shoot, film
  *   node tools/web_qa.mjs --play 30 --hold 955,636 --touch --still
  *       # hold the AIM button with a real touch event, standing still
+ *   node tools/web_qa.mjs --tour          # world review camera: F10 + keys 1-8
  *
  * `--hold` exists because the touch HUD lives inside the WebGL canvas: the AIM
  * button cannot be found with a DOM selector, so its canvas coordinates (read
@@ -65,6 +66,10 @@ const asJson = has('--json');
 const playSeconds = Math.max(0, Number(flag('--play', '0')) || 0);
 const playShotEvery = Math.max(1, Number(flag('--play-shot-every', '5')) || 5);
 const givenUrl = flag('--url', '');
+// --tour drives the in-game review camera (WorldTour): F10 toggles it, keys 1-8
+// pick a district. Screenshots come from the real build, not a separate scene.
+const tourMode = has('--tour');
+const tourWaitMs = Number(flag('--tour-wait', '900'));
 const port = Number(flag('--port', '8126'));
 
 let chromium;
@@ -171,6 +176,20 @@ async function checkPage(target, viewport) {
   const shot = path.join(outDir, `${slug}-${viewport.spec}.png`);
   await page.screenshot({ path: shot });
 
+  /* ---------- optional world tour ---------- */
+  const tourFrames = [];
+  if (booted && tourMode) {
+    await page.keyboard.press('F10');
+    await new Promise((r) => setTimeout(r, 600));
+    for (const digit of ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8']) {
+      await page.keyboard.press(digit);
+      await new Promise((r) => setTimeout(r, tourWaitMs));
+      const frame = path.join(outDir, `${slug}-${viewport.spec}-tour-${digit.replace('Digit', '')}.png`);
+      await page.screenshot({ path: frame });
+      tourFrames.push(path.relative(ROOT, frame));
+    }
+  }
+
   /* ---------- optional play pass ---------- */
   const frames = [];
   if (booted && playSeconds > 0) {
@@ -261,6 +280,9 @@ async function checkPage(target, viewport) {
     ['WebGL context alive', state.glContext === true && state.glLost === false],
     ['no failure card shown', state.failureVisible === false],
   ];
+  if (tourMode) {
+    checks.push(['world tour captured frames', tourFrames.length === 8]);
+  }
   if (playSeconds > 0) {
     checks.push(['scripted play captured frames', frames.length > 0]);
     checks.push(['audio pipeline reported itself', audioLines.length > 0]);
@@ -288,6 +310,7 @@ async function checkPage(target, viewport) {
     failed: checks.filter(([, ok]) => !ok).map(([name]) => name),
     screenshot: path.relative(ROOT, shot),
     frames,
+    tourFrames,
     audio: audioLines,
     console: consoleLines,
     pageErrors,
@@ -313,6 +336,7 @@ try {
       if (result.state.failureText) console.log(`  failure card: ${result.state.failureText}`);
       console.log(`  screenshot: ${result.screenshot}`);
       if (result.frames?.length) console.log(`  play frames: ${result.frames.join(', ')}`);
+      if (result.tourFrames?.length) console.log(`  tour frames: ${result.tourFrames.length} in ${path.relative(ROOT, outDir)}`);
       if (result.audio?.length) console.log(`  audio: ${result.audio.join(' | ')}`);
     }
     }
