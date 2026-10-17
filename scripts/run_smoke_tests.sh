@@ -172,6 +172,13 @@ for test_path in "${TESTS[@]}"; do
       printf '::error title=Script error in %s::%s\n' "${test_name%.gd}" "${error_digest:-see log}"
     fi
   fi
+  if grep -q 'FAIL:' "$test_log"; then
+    printf '    assertion failures; see %s\n' "${test_log#"$ROOT_DIR"/}"
+    if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+      assertion_digest="$(grep -m4 'FAIL:' "$test_log" | tr '\n' '|' | cut -c1-900)"
+      printf '::error title=Assertion failed in %s::%s\n' "${test_name%.gd}" "${assertion_digest:-see log}"
+    fi
+  fi
   # One annotation per test: the job log is not always retrievable (for example
   # from a restricted sandbox), and "which test hung" must never be a guess.
   if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
