@@ -467,9 +467,23 @@ jobs:
 
       - name: Install Blender
         run: |
+          # The apt build on ubuntu-latest ships without numpy, which the FBX
+          # importer needs, so the blender.org tarball is the reliable path.
           sudo apt-get update -qq
-          sudo apt-get install -y -qq blender
-          blender --version | head -3
+          sudo apt-get install -y -qq blender python3-numpy
+          if ! blender --background --factory-startup --python-expr "import numpy" >/tmp/blender-check.log 2>&1; then
+            echo "apt Blender cannot import numpy; using the official tarball"
+            curl -fsSL https://download.blender.org/release/Blender4.2/ \
+              | grep -o 'blender-4\.2\.[0-9]*-linux-x64\.tar\.xz' | sort -u | tail -1 > /tmp/blender-name.txt
+            name=$(cat /tmp/blender-name.txt)
+            echo "downloading $name"
+            curl -fsSL -o /tmp/blender.tar.xz "https://download.blender.org/release/Blender4.2/$name"
+            tar -xf /tmp/blender.tar.xz -C /tmp
+            echo "BLENDER_BIN=$(find /tmp -maxdepth 2 -name blender -type f | head -1)" >> "$GITHUB_ENV"
+          else
+            echo "BLENDER_BIN=blender" >> "$GITHUB_ENV"
+          fi
+          "$BLENDER_BIN" --version | head -3
 
       - name: Unpack the archive
         run: |
@@ -484,11 +498,17 @@ jobs:
       - name: Convert FBX to GLB
         run: |
           mkdir -p game/assets/world/scifi_starter_kit/models
-          blender --background --factory-startup --python tools/convert_fbx_pack.py -- \
+          "$BLENDER_BIN" --background --factory-startup --python tools/convert_fbx_pack.py -- \
             /tmp/pack game/assets/world/scifi_starter_kit/models \
             --texture-size 512 2>&1 | tail -40
           ls -la game/assets/world/scifi_starter_kit/models | head
           du -sh game/assets/world/scifi_starter_kit/models
+          count=$(find game/assets/world/scifi_starter_kit/models -name '*.glb' | wc -l)
+          echo "converted $count models"
+          if [ "$count" -lt 1 ]; then
+            echo "::error title=Conversion produced nothing::see the Blender log above"
+            exit 1
+          fi
 
       - name: Write the manifest
         run: |
