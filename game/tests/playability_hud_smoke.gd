@@ -263,7 +263,8 @@ func _run_smoke_test() -> void:
 		(
 			(
 				"holding AIM zooms the camera in for aim-down-sights (aiming=%s hold=%s hud_aim=%s "
-				+ "held=%s paused=%s down=%s fov=%.1f rest=%.1f disabled=%s rect=%s)"
+				+ "held=%s paused=%s down=%s ids=%s fov=%.1f rest=%.1f disabled=%s rect=%s "
+				+ "buttons=%s)"
 			)
 			% [
 				player.call("is_aiming"),
@@ -272,10 +273,19 @@ func _run_smoke_test() -> void:
 				controls.get("_pressed_touch_buttons").keys(),
 				int(paused),
 				controls.get("_player_down"),
+				(
+					"%s/%s/%s"
+					% [
+						controls.get("_move_touch_id"),
+						controls.get("_look_touch_id"),
+						controls.get("_fire_touch_id"),
+					]
+				),
 				player_camera.fov,
 				rest_fov,
 				aim_button.disabled,
 				aim_button.get_global_rect(),
+				_touch_button_debug(controls),
 			]
 		),
 	)
@@ -553,6 +563,31 @@ func _test_joystick_vector(
 	)
 	_send_screen_touch(controls, touch_id, origin + drag_delta, false)
 	player.set("velocity", Vector3.ZERO)
+
+
+func _touch_button_debug(controls: Control) -> String:
+	var parts: PackedStringArray = []
+	for button in controls.get("_touch_buttons"):
+		if not is_instance_valid(button):
+			continue
+		var rect: Rect2 = button.get_global_rect()
+		(
+			parts
+			. append(
+				(
+					"%s:%s:(%.0f,%.0f,%.0f,%.0f)"
+					% [
+						button.name,
+						button.is_visible_in_tree(),
+						rect.position.x,
+						rect.position.y,
+						rect.size.x,
+						rect.size.y,
+					]
+				)
+			)
+		)
+	return " ".join(parts)
 
 
 func _send_screen_touch(controls: Control, touch_id: int, position: Vector2, pressed: bool) -> void:
