@@ -1,0 +1,119 @@
+name: Inspect LFS asset archive
+
+# The 259 MB starter-kit zip is a Git LFS pointer in the tree. The sandbox this
+# branch is developed in cannot reach the LFS download host, so this workflow
+# resolves the real archive on a GitHub runner (which can) and commits a
+# manifest of what is inside. That manifest is the only way to plan which
+# models to convert without guessing.
+#
+# Run with:
+#   gh workflow run inspect-lfs.yml --ref <branch>
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: inspect-lfs-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          ref: ${{ github.ref_name }}
+
+      - name: Verify the archive resolved
+        run: |
+          ls -lh 3DScifiStarterKitFree.zip
+          size=$(stat -c%s 3DScifiStarterKitFree.zip)
+          echo "size=$size"
+          if [ "$size" -lt 100000000 ]; then
+            echo "::error title=LFS object not fetched::the zip is $size bytes, which is still the pointer"
+            exit 1
+          fi
+          sha256sum 3DScifiStarterKitFree.zip
+
+      - name: Write the manifest
+        run: |
+          mkdir -p docs
+          out=docs/LFS_ASSET_MANIFEST.md
+          {
+            echo "# Manifest of \`3DScifiStarterKitFree.zip\`"
+            echo
+            echo "Generated on a GitHub runner from the LFS object, $(date -u +%Y-%m-%dT%H:%M:%SZ)."
+            echo "Archive size: $(stat -c%s 3DScifiStarterKitFree.zip) bytes."
+            echo
+            echo "## By extension"
+            echo
+            echo '| Extension | Files | Uncompressed bytes |'
+            echo '|---|---:|---:|'
+            unzip -l 3DScifiStarterKitFree.zip \
+              | awk 'NR>3 && NF>=4 {n=$4; for(i=5;i<=NF;i++) n=n" "$i;
+                     if (n ~ /\/$/) next;
+                     ext="(none)"; if (match(n, /\.[^.\/]+$/)) ext=tolower(substr(n, RSTART+1));
+                     count[ext]++; bytes[ext]+=$1}
+                     END {for (e in count) printf "%s\t%d\t%d\n", e, count[e], bytes[e]}' \
+              | sort -t$'\t' -k2,2nr \
+              | while IFS=$'\t' read -r ext n b; do echo "| \`$ext\` | $n | $b |"; done
+            echo
+            echo "## Directories"
+            echo
+            echo '| Top-level path | Files |'
+            echo '|---|---:|'
+            unzip -l 3DScifiStarterKitFree.zip \
+              | awk 'NR>3 && NF>=4 {n=$4; for(i=5;i<=NF;i++) n=n" "$i;
+                     if (n ~ /\/$/) next;
+                     split(n, parts, "/"); if (length(parts) == 1) top="(root)"; else top=parts[1];
+                     count[top]++}
+                     END {for (d in count) printf "%s\t%d\n", d, count[d]}' \
+              | sort -t$'\t' -k2,2nr \
+              | while IFS=$'\t' read -r d n; do echo "| \`$d\` | $n |"; done
+            echo
+            echo "## Every model file"
+            echo
+            echo '| Model | Compressed bytes |'
+            echo '|---|---:|'
+            unzip -l 3DScifiStarterKitFree.zip \
+              | awk 'NR>3 && NF>=4 {n=$4; for(i=5;i<=NF;i++) n=n" "$i;
+                     if (n ~ /\.(fbx|obj|glb|gltf|blend|max)$/) printf "%s\t%d\n", n, $1}' \
+              | sort \
+              | while IFS=$'\t' read -r f b; do echo "| \`$f\` | $b |"; done
+            echo
+            echo "## Every texture"
+            echo
+            echo '| Texture | Compressed bytes |'
+            echo '|---|---:|'
+            unzip -l 3DScifiStarterKitFree.zip \
+              | awk 'NR>3 && NF>=4 {n=$4; for(i=5;i<=NF;i++) n=n" "$i;
+                     if (n ~ /\.(png|jpg|jpeg|tga|tif|tiff|exr|hdr)$/) printf "%s\t%d\n", n, $1}' \
+              | sort \
+              | while IFS=$'\t' read -r f b; do echo "| \`$f\` | $b |"; done
+          } > "$out"
+          wc -l "$out"
+          head -40 "$out"
+
+      - name: Commit the manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/LFS_ASSET_MANIFEST.md
+          if git diff --cached --quiet; then
+            echo "Manifest unchanged."
+            exit 0
+          fi
+          git commit -m "Add the LFS archive manifest [skip ci]" \
+            -m "Generated from the real 3DScifiStarterKitFree.zip on a runner that can fetch LFS."
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lfs-manifest
+          path: docs/LFS_ASSET_MANIFEST.md
+          retention-days: 7
