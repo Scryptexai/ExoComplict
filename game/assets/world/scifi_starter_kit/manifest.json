@@ -1,0 +1,6 @@
+{
+  "source": "3DScifiStarterKitFree.zip",
+  "generator": "tools/convert_fbx_pack.py (Blender glTF exporter)",
+  "texture_size": 512,
+  "models": []
+}

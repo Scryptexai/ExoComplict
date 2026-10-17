@@ -1,0 +1,631 @@
+{
+  "texture_size": 512,
+  "quality": 80,
+  "models": [
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Doors/DoorWay_01_Large.FBX",
+      "model": "DoorWay_01_Large.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Doors/DoorWay_01_Ramp.FBX",
+      "model": "DoorWay_01_Ramp.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Doors/DoorWay_01_Up.FBX",
+      "model": "DoorWay_01_Up.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Doors/Door_Left_01.FBX",
+      "model": "Door_Left_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Doors/Door_Right_01.FBX",
+      "model": "Door_Right_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Doors/Door_Vert_01.FBX",
+      "model": "Door_Vert_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Fences/Fence_Long_01.FBX",
+      "model": "Fence_Long_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Fences/Fence_Short_01.FBX",
+      "model": "Fence_Short_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Fences/Fence_Turn_90_Large_01.FBX",
+      "model": "Fence_Turn_90_Large_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Fences/Fence_Turn_90_Short_01.FBX",
+      "model": "Fence_Turn_90_Short_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Floors/Floor_Angle_01_6x6.FBX",
+      "model": "Floor_Angle_01_6x6.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Floors/Floor_Coin_01_Small.FBX",
+      "model": "Floor_Coin_01_Small.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Floors/Floor_Descent_01.FBX",
+      "model": "Floor_Descent_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Floors/Floor_Hole_01.FBX",
+      "model": "Floor_Hole_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Floors/Floor_Pipes_01.FBX",
+      "model": "Floor_Pipes_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Floors/Floor_Squared_01_6x6.FBX",
+      "model": "Floor_Squared_01_6x6.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Floors/Floor_Squared_02_6x6.FBX",
+      "model": "Floor_Squared_02_6x6.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Floors/Floor_Third_01_Strip_2x6.FBX",
+      "model": "Floor_Third_01_Strip_2x6.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Floors/Floor_Third_02_Strip_2x6.FBX",
+      "model": "Floor_Third_02_Strip_2x6.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Floors/Floor_Third_03_Strip_2x6.FBX",
+      "model": "Floor_Third_03_Strip_2x6.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Floors/Floor_Third_04_Strip_2x6.FBX",
+      "model": "Floor_Third_04_Strip_2x6.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Lights/Light_Corridor_01.FBX",
+      "model": "Light_Corridor_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Lights/Light_Corridor_02.FBX",
+      "model": "Light_Corridor_02.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Lights/Light_SideLight_01.FBX",
+      "model": "Light_SideLight_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Lights/Light_SideLight_02.FBX",
+      "model": "Light_SideLight_02.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Lights/Light_SideLight_03.FBX",
+      "model": "Light_SideLight_03.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Lights/Light_SideLight_04.FBX",
+      "model": "Light_SideLight_04.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Lights/Light_SideLight_05.FBX",
+      "model": "Light_SideLight_05.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Props/Airing_01.FBX",
+      "model": "Airing_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Props/Crate_01.FBX",
+      "model": "Crate_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Roofs/Roof_Angle_01_6x6.FBX",
+      "model": "Roof_Angle_01_6x6.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Roofs/Roof_Glass_01_6x6.FBX",
+      "model": "Roof_Glass_01_6x6.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Roofs/Roof_Squared_01_6x6.FBX",
+      "model": "Roof_Squared_01_6x6.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Roofs/Roof_Squared_02_6x6.FBX",
+      "model": "Roof_Squared_02_6x6.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stairways/Stairway_Angle_Right_01.FBX",
+      "model": "Stairway_Angle_Right_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stairways/Stairway_PillarAngle_01.FBX",
+      "model": "Stairway_PillarAngle_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stairways/Stairway_Plateform_00.FBX",
+      "model": "Stairway_Plateform_00.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stairways/Stairway_Plateform_01.FBX",
+      "model": "Stairway_Plateform_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stairways/Stairway_Plateform_02.FBX",
+      "model": "Stairway_Plateform_02.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stairways/Stairway_Plateform_03.FBX",
+      "model": "Stairway_Plateform_03.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stairways/Stairway_Plateform_04.FBX",
+      "model": "Stairway_Plateform_04.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stairways/Stairway_Plateform_05.FBX",
+      "model": "Stairway_Plateform_05.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stairways/Stairway_Plateform_06.FBX",
+      "model": "Stairway_Plateform_06.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stairways/Stairway_Plateform_07.FBX",
+      "model": "Stairway_Plateform_07.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stairways/Stairway_Plateform_08.FBX",
+      "model": "Stairway_Plateform_08.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stairways/Stairway_Plateform_09.FBX",
+      "model": "Stairway_Plateform_09.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stairways/Stairway_Plateform_10.FBX",
+      "model": "Stairway_Plateform_10.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stairways/Stairway_Plateform_11.FBX",
+      "model": "Stairway_Plateform_11.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stairways/Stairway_Slope_45_01.FBX",
+      "model": "Stairway_Slope_45_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stairways/Stairway_Step_01.FBX",
+      "model": "Stairway_Step_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stuff/Air_Grid_01.FBX",
+      "model": "Air_Grid_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stuff/Beam_01.FBX",
+      "model": "Beam_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stuff/Beam_02.FBX",
+      "model": "Beam_02.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stuff/Beam_03.FBX",
+      "model": "Beam_03.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stuff/Grid_01.FBX",
+      "model": "Grid_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stuff/Intercom_01.FBX",
+      "model": "Intercom_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stuff/Intercom_02.FBX",
+      "model": "Intercom_02.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stuff/Pipes_01.FBX",
+      "model": "Pipes_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stuff/Pipes_02.FBX",
+      "model": "Pipes_02.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Stuff/Pipes_03.FBX",
+      "model": "Pipes_03.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Num_0.FBX",
+      "model": "Num_0.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Num_1.FBX",
+      "model": "Num_1.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Num_2.FBX",
+      "model": "Num_2.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Num_3.FBX",
+      "model": "Num_3.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Num_4.FBX",
+      "model": "Num_4.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Num_5.FBX",
+      "model": "Num_5.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Num_6.FBX",
+      "model": "Num_6.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Num_7.FBX",
+      "model": "Num_7.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Num_8.FBX",
+      "model": "Num_8.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Num_9.FBX",
+      "model": "Num_9.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Sign_Caution_01.FBX",
+      "model": "Sign_Caution_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Sign_Caution_02.FBX",
+      "model": "Sign_Caution_02.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Sign_Danger_01.FBX",
+      "model": "Sign_Danger_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Sign_Danger_02.FBX",
+      "model": "Sign_Danger_02.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Symb_Arrow.FBX",
+      "model": "Symb_Arrow.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Word_Area.FBX",
+      "model": "Word_Area.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Word_Deck.FBX",
+      "model": "Word_Deck.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Word_Exit.FBX",
+      "model": "Word_Exit.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Word_Lab.FBX",
+      "model": "Word_Lab.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Word_Level.FBX",
+      "model": "Word_Level.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Word_Tech.FBX",
+      "model": "Word_Tech.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Word_Warning.FBX",
+      "model": "Word_Warning.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Symbols/Word_Zone.FBX",
+      "model": "Word_Zone.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Column_01_Big.FBX",
+      "model": "Column_01_Big.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Porthole_01_Long.FBX",
+      "model": "Porthole_01_Long.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Bed_01.FBX",
+      "model": "Wall_Bed_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Console_01_Half.FBX",
+      "model": "Wall_Console_01_Half.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Console_01_Large.FBX",
+      "model": "Wall_Console_01_Large.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Cube_01_Coin.FBX",
+      "model": "Wall_Cube_01_Coin.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Cube_01_Flat.FBX",
+      "model": "Wall_Cube_01_Flat.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Cube_01_InvertCoin.FBX",
+      "model": "Wall_Cube_01_InvertCoin.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Cube_01_Long.FBX",
+      "model": "Wall_Cube_01_Long.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Cube_01_Round.FBX",
+      "model": "Wall_Cube_01_Round.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Cube_01_Thin.FBX",
+      "model": "Wall_Cube_01_Thin.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Cube_02_Flat.FBX",
+      "model": "Wall_Cube_02_Flat.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Down_01_Long.FBX",
+      "model": "Wall_Down_01_Long.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Gear_01_Half.FBX",
+      "model": "Wall_Gear_01_Half.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Gear_02_Half.FBX",
+      "model": "Wall_Gear_02_Half.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Gear_03_Half.FBX",
+      "model": "Wall_Gear_03_Half.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Inclined_01_Coin.FBX",
+      "model": "Wall_Inclined_01_Coin.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Inclined_01_CoinLeft.FBX",
+      "model": "Wall_Inclined_01_CoinLeft.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Inclined_01_CoinLeft_Half.FBX",
+      "model": "Wall_Inclined_01_CoinLeft_Half.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Inclined_01_CoinRight.FBX",
+      "model": "Wall_Inclined_01_CoinRight.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Inclined_01_CoinRight_Half.FBX",
+      "model": "Wall_Inclined_01_CoinRight_Half.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Inclined_01_Half.FBX",
+      "model": "Wall_Inclined_01_Half.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Inclined_01_Long.FBX",
+      "model": "Wall_Inclined_01_Long.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Inclined_02_Coin.FBX",
+      "model": "Wall_Inclined_02_Coin.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Inclined_02_CoinLeft.FBX",
+      "model": "Wall_Inclined_02_CoinLeft.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Inclined_02_CoinRight.FBX",
+      "model": "Wall_Inclined_02_CoinRight.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Inclined_02_Long.FBX",
+      "model": "Wall_Inclined_02_Long.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Pipes_01_Large.FBX",
+      "model": "Wall_Pipes_01_Large.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Pipes_02_Large.FBX",
+      "model": "Wall_Pipes_02_Large.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Simple_01_Coin.FBX",
+      "model": "Wall_Simple_01_Coin.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Simple_01_Half.FBX",
+      "model": "Wall_Simple_01_Half.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Simple_01_InvertCoin.FBX",
+      "model": "Wall_Simple_01_InvertCoin.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Simple_01_Long.FBX",
+      "model": "Wall_Simple_01_Long.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Simple_01_Squared.FBX",
+      "model": "Wall_Simple_01_Squared.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Simple_01_TurnLarge_90.FBX",
+      "model": "Wall_Simple_01_TurnLarge_90.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Simple_01_TurnShort_90.FBX",
+      "model": "Wall_Simple_01_TurnShort_90.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Simple_02_Long.FBX",
+      "model": "Wall_Simple_02_Long.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Simple_03_Long.FBX",
+      "model": "Wall_Simple_03_Long.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Simple_04_Long.FBX",
+      "model": "Wall_Simple_04_Long.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Simple_05_Long.FBX",
+      "model": "Wall_Simple_05_Long.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Table_01.FBX",
+      "model": "Wall_Table_01.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    },
+    {
+      "source": "3D Scifi Starter Kit Free/_Meshes/Walls/Wall_Up_01_Long.FBX",
+      "model": "Wall_Up_01_Long.glb",
+      "error": "Error: Python: Traceback (most recent call last):\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/__init__.py\", line 201, in execute\n    from . import import_fbx\n  File \"/usr/share/blender/scripts/addons/io_scene_fbx/import_fbx.py\", line 22, in <module>\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\nLocation: /usr/share/blender/scripts/modules/bpy/ops.py:109\n"
+    }
+  ]
+}
