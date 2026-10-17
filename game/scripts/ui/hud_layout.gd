@@ -238,7 +238,7 @@ static func _place_wave(
 static func overlays(hud) -> void:
 	var sheet: bool = hud._portrait and hud._narrow
 	var anchor_y := 1.0 if sheet else 0.5
-	var sheet_bottom := hud._to_layout(34.0) if sheet else 0.0
+	var sheet_bottom: float = hud._to_layout(34.0) if sheet else 0.0
 
 	var results_width: float = minf(
 		hud._to_layout(390.0 if sheet else 600.0), hud.size.x * (0.94 if sheet else 0.92)
