@@ -264,7 +264,7 @@ func _run_smoke_test() -> void:
 			(
 				"holding AIM zooms the camera in for aim-down-sights (aiming=%s hold=%s hud_aim=%s "
 				+ "held=%s paused=%s down=%s ids=%s fov=%.1f rest=%.1f disabled=%s rect=%s "
-				+ "buttons=%s)"
+				+ "buttons=%s last=%s)"
 			)
 			% [
 				player.call("is_aiming"),
@@ -286,6 +286,7 @@ func _run_smoke_test() -> void:
 				aim_button.disabled,
 				aim_button.get_global_rect(),
 				_touch_button_debug(controls),
+				controls.get("_last_touch_debug"),
 			]
 		),
 	)

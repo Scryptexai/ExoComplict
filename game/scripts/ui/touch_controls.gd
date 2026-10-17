@@ -47,6 +47,8 @@ const CRITICAL_HEALTH_COLOR: Color = AegisTokens.DANGER
 var _move_touch_id: int = -1
 var _look_touch_id: int = -1
 var _fire_touch_id: int = -1
+## Debug breadcrumb for the smoke test: what the last touch resolved to.
+var _last_touch_debug: String = ""
 var _pressed_touch_buttons: Dictionary = {}
 var _move_origin: Vector2 = Vector2.ZERO
 var _move_position: Vector2 = Vector2.ZERO
@@ -1227,6 +1229,10 @@ func _parse_status_fallback(text: String) -> void:
 
 func _begin_touch(touch_id: int, position: Vector2) -> void:
 	var touched_button := _find_touch_button(position)
+	_last_touch_debug = (
+		"id=%d pos=%s hit=%s"
+		% [touch_id, position, touched_button.name if is_instance_valid(touched_button) else "none"]
+	)
 	if is_instance_valid(touched_button):
 		get_viewport().set_input_as_handled()
 		if (
@@ -1326,14 +1332,21 @@ func _clear_touch_state() -> void:
 
 
 func _find_touch_button(position: Vector2) -> Button:
+	# Pick the smallest target containing the touch: the AIM button sits close to
+	# FIRE and an overlapping (larger) control must not steal the press.
+	var best: Button = null
+	var best_area := INF
 	for button in _touch_buttons:
-		if (
-			is_instance_valid(button)
-			and button.is_visible_in_tree()
-			and button.get_global_rect().has_point(position)
-		):
-			return button
-	return null
+		if not is_instance_valid(button) or not button.is_visible_in_tree():
+			continue
+		var rect := button.get_global_rect()
+		if not rect.has_point(position):
+			continue
+		var area := rect.size.x * rect.size.y
+		if area < best_area:
+			best_area = area
+			best = button
+	return best
 
 
 func _activate_touch_button(button: Button) -> void:
