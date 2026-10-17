@@ -19,11 +19,11 @@ extends RefCounted
 ## Node names are `SciFiBay*` and the whole bay lives under one `SciFiBay` node;
 ## the world smoke test counts floor tiles, wall pieces and gates.
 
-# Above the old deck's seam strips (whose tops reach 0.079) by a clear margin:
-# a zero-thickness plate at the same height z-fights with them and the floor
-# reads as random dark patches.
-const FLOOR_Y := 0.12
-const TILE := 5.4
+# Flush with the old deck's panel tops (0.071): below that the plates z-fight
+# with the seam strips and the floor reads as dark patches, above it the player
+# visibly sinks into the new floor.
+const FLOOR_Y := 0.075
+const TILE := 6.0
 const WALL_LINE := 20.0
 const WALL_TILE := 6.0
 const WALL_HEIGHT_SCALE := 0.66
@@ -57,7 +57,7 @@ static func _build_floor(root: Node3D) -> int:
 				"SciFiBayFloor_%d_%d" % [ix + 3, iz + 3],
 				Vector3(float(ix) * TILE, FLOOR_Y, float(iz) * TILE),
 				90.0,
-				0.9,
+				0.995,
 				false,
 				false
 			)

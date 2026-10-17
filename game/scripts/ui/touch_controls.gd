@@ -1175,10 +1175,12 @@ func _draw_crosshair() -> void:
 		spread += 4.0
 	if _aiming:
 		spread *= 0.45
-	var tick := 7.0 * _control_unit()
+	var tick := 9.0 * _control_unit()
 	var gap := (10.0 + spread) * _control_unit()
-	var thickness := 2.0 * _control_unit()
-	var color := Color(0.52, 0.96, 1.0, 0.95)
+	var thickness := 2.6 * _control_unit()
+	# The reticle has to survive both a white interior floor and a bright sky;
+	# a saturated mint reads on both, the old pale cyan did not.
+	var color := Color(0.55, 1.0, 0.78, 1.0)
 	if _hit_confirm_remaining > 0.0:
 		color = Color(1.0, 0.72, 0.24, 1.0)
 		gap *= 1.25

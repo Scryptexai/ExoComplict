@@ -99,12 +99,12 @@ const SIZE := {
 ## result is deliberately a step away from the pastel KayKit exterior, so the
 ## arena reads as an interior bay and the horizon reads as outside.
 const COLORS := {
-	"orange": Color(0.92, 0.42, 0.12),
-	"steel": Color(0.57, 0.61, 0.66),
-	"steel_light": Color(0.68, 0.72, 0.76),
-	"panel": Color(0.4, 0.44, 0.5),
-	"trim": Color(0.24, 0.27, 0.32),
-	"floor": Color(0.42, 0.46, 0.52),
+	"orange": Color(0.95, 0.45, 0.1),
+	"steel": Color(0.44, 0.47, 0.52),
+	"steel_light": Color(0.56, 0.59, 0.64),
+	"panel": Color(0.29, 0.32, 0.37),
+	"trim": Color(0.16, 0.18, 0.22),
+	"floor": Color(0.3, 0.33, 0.38),
 	"glass": Color(0.35, 0.78, 0.92),
 	"light": Color(0.62, 0.93, 1.0),
 }
@@ -124,7 +124,7 @@ const POLICY := {
 	"wall_low": {"Orange": "orange"},
 	"doorway": {"Orange": "steel_light"},
 	"column": {"all": "steel"},
-	"pillar": {"all": "steel_light"},
+	"pillar": {"all": "steel"},
 	"crate": {"Orange": "orange", "all": "panel"},
 	"console": {"Orange": "light", "all": "panel"},
 	"console_large": {"Orange": "light", "all": "panel"},
