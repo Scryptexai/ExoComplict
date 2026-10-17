@@ -416,7 +416,7 @@ jobs:
             echo '|---|---:|'
             unzip -l 3DScifiStarterKitFree.zip \
               | awk 'NR>3 && NF>=4 {n=$4; for(i=5;i<=NF;i++) n=n" "$i;
-                     if (n ~ /\.(fbx|obj|glb|gltf|blend|max)$/) printf "%s\t%d\n", n, $1}' \
+                     if (tolower(n) ~ /\.(fbx|obj|glb|gltf|blend|max)$/) printf "%s\t%d\n", n, $1}' \
               | sort \
               | while IFS=$'\t' read -r f b; do echo "| \`$f\` | $b |"; done
             echo
