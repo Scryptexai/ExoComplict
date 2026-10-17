@@ -89,13 +89,11 @@ static func touch_portrait(hud) -> void:
 		0,
 		Rect2(-hud._to_layout(44.0), 0, hud._to_layout(88.0), bar_height)
 	)
+	# The sound control is hidden on phones, so the row only needs one target
+	# there; on a wide touch screen both buttons must fit side by side.
+	var system_width: float = hud._to_layout(44.0 if hud._narrow else 96.0)
 	_place_in_top_bar(
-		hud._system_row,
-		1,
-		0,
-		1,
-		0,
-		Rect2(-hud._to_layout(44.0), 0, hud._to_layout(44.0), bar_height)
+		hud._system_row, 1, 0, 1, 0, Rect2(-system_width, 0, system_width, bar_height)
 	)
 
 	_place_button(hud, hud._fire_button, 18.0, 50.0, 92.0, 92.0)

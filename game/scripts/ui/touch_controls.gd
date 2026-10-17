@@ -24,6 +24,8 @@ const HELP_VISIBLE_SECONDS: float = 10.0
 ## Below this width the top bar stops fitting three cards: the run data moves
 ## into a single compact strip under it instead of disappearing.
 const NARROW_WIDTH: float = 760.0
+## Smaller than this is a headless dummy window, not a real viewport.
+const MIN_WINDOW_PX: float = 200.0
 ## Smallest font the HUD may use, in *physical* pixels. A font that is 11
 ## logical px inside a canvas the engine then scales down to a third is only
 ## ~3 px on the glass, which is unreadable no matter how well it fits the card.
@@ -918,7 +920,9 @@ func _icon_button(button_name: String, icon_name: String, tooltip: String) -> Ae
 		button.pressed.connect(_on_sound_pressed)
 	else:
 		button.pressed.connect(_on_pause_pressed)
-	add_child(button)
+	# The caller reparents the button into `_system_row`; adding it to the HUD
+	# first and then calling add_child() again fails in Godot, which left the
+	# pause and sound buttons floating at the top-left corner of the screen.
 	_touch_buttons.append(button)
 	return button
 
@@ -1143,8 +1147,12 @@ func _apply_font_scale() -> void:
 ## window at all.
 func _resolve_physical_size() -> Vector2:
 	var window := get_window()
-	if is_instance_valid(window) and window.size.x > 0 and window.size.y > 0:
-		return Vector2(window.size)
+	if is_instance_valid(window):
+		var window_size := Vector2(window.size)
+		# A headless run reports a 64x64 dummy window; trusting it would make the
+		# HUD believe every viewport is a phone and hide the desktop legend.
+		if window_size.x >= MIN_WINDOW_PX and window_size.y >= MIN_WINDOW_PX:
+			return window_size
 	return size
 
 
