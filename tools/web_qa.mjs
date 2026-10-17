@@ -8,6 +8,14 @@
  *   node tools/web_qa.mjs --page /web/index.html --page /
  *   node tools/web_qa.mjs --viewport 390x844 --viewport 1280x720
  *   node tools/web_qa.mjs --play 30         # also play: click, move, shoot, film
+ *   node tools/web_qa.mjs --play 30 --hold 955,636 --touch --still
+ *       # hold the AIM button with a real touch event, standing still
+ *
+ * `--hold` exists because the touch HUD lives inside the WebGL canvas: the AIM
+ * button cannot be found with a DOM selector, so its canvas coordinates (read
+ * from a screenshot) are passed explicitly. Holding AIM is the only way to
+ * capture the aimed pose in a headless browser, where pointer-lock capture
+ * never engages.
  *
  * `--play <seconds>` turns the boot check into a play test: it clicks the canvas
  * (which is also the user gesture browsers require before any audio can start),
@@ -182,6 +190,24 @@ async function checkPage(target, viewport) {
       void page.keyboard.press('KeyM');
       await new Promise((r) => setTimeout(r, 300));
       void page.keyboard.press('KeyM');
+      // --hold presses and holds one canvas point for the whole play pass. The
+      // play screenshots then show the held state (e.g. the AIM button -> the
+      // aimed pose), which is the only outside proof of the aimed weapon.
+      const holdSpec = flag('--hold', '');
+      let holdPoint = null;
+      if (holdSpec) {
+        const [hx, hy] = holdSpec.split(',').map(Number);
+        holdPoint = { x: hx, y: hy };
+        if (has('--touch')) {
+          await page.touchscreen.touchStart(holdPoint.x, holdPoint.y);
+        } else {
+          await page.mouse.move(holdPoint.x, holdPoint.y);
+          await page.mouse.down();
+        }
+        // Let the held state settle (socket blend is 0.16 s) before the first
+        // scheduled screenshot, otherwise frame 0 shows a half-blended pose.
+        await new Promise((r) => setTimeout(r, Number(flag('--warmup', '1200'))));
+      }
       const started = Date.now();
       let nextShot = 0;
       // A hard cap on frames: SwiftShader needs 15-30 s per screenshot, and a
@@ -194,22 +220,30 @@ async function checkPage(target, viewport) {
         const elapsed = (Date.now() - started) / 1000;
         const phase = Math.floor(elapsed / 6) % 3;
         const key = ['KeyW', 'KeyA', 'KeyD'][phase];
-        void page.keyboard.down(key);
+        if (!has('--still')) void page.keyboard.down(key);
         void page.keyboard.press('KeyE');
         // Turn towards the spawn ring so the enemies that chase the player end
         // up in front of the camera instead of behind it.
         void page.mouse.move(centre.x + 120 + phase * 60, centre.y - 10);
-        void page.mouse.down();
+        if (!holdPoint) {
+          void page.mouse.down();
+          await new Promise((r) => setTimeout(r, 400));
+          void page.mouse.up();
+        } else {
+          await new Promise((r) => setTimeout(r, 400));
+        }
         await new Promise((r) => setTimeout(r, 400));
-        void page.mouse.up();
-        await new Promise((r) => setTimeout(r, 400));
-        void page.keyboard.up(key);
+        if (!has('--still')) void page.keyboard.up(key);
         if (elapsed >= nextShot && frames.length < maxFrames) {
           const frame = path.join(outDir, `${slug}-${viewport.spec}-play-${Math.round(elapsed)}s.png`);
           await page.screenshot({ path: frame });
           frames.push(path.relative(ROOT, frame));
           nextShot += playShotEvery;
         }
+      }
+      if (holdPoint) {
+        if (has('--touch')) await page.touchscreen.touchEnd();
+        else await page.mouse.up();
       }
     }
   }

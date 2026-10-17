@@ -113,7 +113,7 @@ Jangan pasang SDK iklan, plugin IAP, Google Play Billing wrapper, atau masukkan 
 
    ```bash
    ./scripts/install_godot.sh --with-templates   # ke ~/.local/share, tidak ke repo
-   ./scripts/run_smoke_tests.sh                  # import + 12 smoke test + log di exports/test-logs/
+   ./scripts/run_smoke_tests.sh                  # import + 13 smoke test + log di exports/test-logs/
    ./scripts/run_smoke_tests.sh --list
    ./scripts/run_smoke_tests.sh wave_director_smoke
    ```
@@ -135,6 +135,7 @@ Jangan pasang SDK iklan, plugin IAP, Google Play Billing wrapper, atau masukkan 
 godot --headless --path game --script res://tests/enemy_visual_smoke.gd
 godot --headless --path game --script res://tests/audio_smoke.gd
 godot --headless --path game --script res://tests/effects_smoke.gd
+godot --headless --path game --script res://tests/hero_rig_smoke.gd
    ```
 
    Dua belas smoke test memeriksa world 3D modular dan GLTF placement, mesh/collider count, floor/rute, import aset dari `PackedScene`, gerak/aim/fire sentuh, joystick delapan arah (empat kardinal + empat diagonal), EMP damage/cooldown/feedback, weapon switching, pause/retry/HUD, weapon/projectile combat, Shooter/Runner, wave/progress/spawn, reward, traversal, visual musuh (model GLB terpasang, terpusat di kolidernya, siklus mati/reset), skala HUD fisik di layar ponsel (>=11 px fisik, kartu ringkas di layar sempit, label mute mengikuti status audio), audio prosedural (jenis stream, mute, throttle, pemetaan senjata→suara, serta bukti senjata benar-benar memanggil singleton audio), dan efek tempur (muzzle flash menyala lalu padam sendiri termasuk saat delta frame lebih panjang dari durasinya, tracer sepanjang ≥0,8 m di sumbu tembak, serta burst percikan yang membersihkan dirinya). Jalankan semuanya sebelum export; keberadaan test bukan bukti lulus sampai exit code Godot diperoleh.
