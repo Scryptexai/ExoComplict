@@ -95,7 +95,20 @@ func _run_smoke_test() -> void:
 	var desktop_hint := controls.get("_desktop_hint") as Label
 	_expect(
 		is_instance_valid(desktop_hint) and desktop_hint.visible,
-		"desktop mode shows the keyboard legend",
+		(
+			(
+				"desktop mode shows the keyboard legend (valid=%s visible=%s touch=%s narrow=%s "
+				+ "size=%s physical=%s)"
+			)
+			% [
+				is_instance_valid(desktop_hint),
+				is_instance_valid(desktop_hint) and desktop_hint.visible,
+				controls.call("is_touch_mode"),
+				controls.get("_narrow"),
+				controls.size,
+				controls.get("_physical_size"),
+			]
+		),
 	)
 	controls.call("set_touch_mode", true)
 	_expect(
@@ -125,7 +138,15 @@ func _run_smoke_test() -> void:
 	_tap_screen_button(controls, sound_button, 78)
 	_expect(
 		Sfx.is_muted() and String(sound_button.get_meta("aegis_state", "")) == "muted",
-		"touching SOUND mutes the audio and says so",
+		(
+			("touching SOUND mutes the audio and says so (muted=%s state=%s disabled=%s rect=%s)")
+			% [
+				Sfx.is_muted(),
+				sound_button.get_meta("aegis_state", ""),
+				sound_button.disabled,
+				sound_button.get_global_rect(),
+			]
+		),
 	)
 	_tap_screen_button(controls, sound_button, 79)
 	_expect(
@@ -239,7 +260,19 @@ func _run_smoke_test() -> void:
 		await process_frame
 	_expect(
 		bool(player.call("is_aiming")) and player_camera.fov < rest_fov - 5.0,
-		"holding AIM zooms the camera in for aim-down-sights",
+		(
+			(
+				"holding AIM zooms the camera in for aim-down-sights (aiming=%s fov=%.1f rest=%.1f "
+				+ "disabled=%s rect=%s)"
+			)
+			% [
+				player.call("is_aiming"),
+				player_camera.fov,
+				rest_fov,
+				aim_button.disabled,
+				aim_button.get_global_rect(),
+			]
+		),
 	)
 	_send_screen_touch(controls, 90, aim_button.get_global_rect().get_center(), false)
 	for _frame in 20:
@@ -427,7 +460,15 @@ func _run_smoke_test() -> void:
 			and not bool(player.get("_touch_fire_pressed"))
 			and Vector2(player.get("_touch_movement")).is_zero_approx()
 		),
-		"pausing clears held touch fire and movement input",
+		(
+			("pausing clears held touch fire and movement input (paused=%s fire=%s move=%s rect=%s)")
+			% [
+				paused,
+				player.get("_touch_fire_pressed"),
+				player.get("_touch_movement"),
+				pause_button.get_global_rect(),
+			]
+		),
 	)
 	_expect(
 		fire_button.disabled and skill_button.disabled,

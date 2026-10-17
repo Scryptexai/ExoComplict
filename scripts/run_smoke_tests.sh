@@ -175,7 +175,7 @@ for test_path in "${TESTS[@]}"; do
   if grep -q 'FAIL:' "$test_log"; then
     printf '    assertion failures; see %s\n' "${test_log#"$ROOT_DIR"/}"
     if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
-      assertion_digest="$(grep -m4 'FAIL:' "$test_log" | tr '\n' '|' | cut -c1-900)"
+      assertion_digest="$(grep -m6 'FAIL:' "$test_log" | tr '\n' '|' | cut -c1-1400)"
       printf '::error title=Assertion failed in %s::%s\n' "${test_name%.gd}" "${assertion_digest:-see log}"
     fi
   fi
