@@ -222,9 +222,15 @@ static func touch_portrait(hud) -> void:
 	)
 
 	_mirror_skill_ring(hud)
-	var stick_x: float = hud._to_layout(86.0)
+	# At 375x667 the ADS hero fills x≈65..165/y≈345..577, while the old
+	# (86, height-106) move ring crossed the leg and boot. Keep the same
+	# 72px finger radius, but tuck its *centre* into the bottom-left pocket on
+	# short phones instead of shrinking its hit target or hiding it entirely.
+	var short_portrait: bool = hud.size.y < hud._to_layout(720.0)
+	var stick_x: float = hud._to_layout(62.0 if short_portrait else 86.0)
+	var stick_bottom: float = hud._to_layout(82.0 if short_portrait else 106.0)
 	hud._joystick_center = Vector2(
-		hud.size.x - stick_x if hud._left_handed else stick_x, hud.size.y - hud._to_layout(106.0)
+		hud.size.x - stick_x if hud._left_handed else stick_x, hud.size.y - stick_bottom
 	)
 	hud._joystick_radius = hud._to_layout(72.0)
 
