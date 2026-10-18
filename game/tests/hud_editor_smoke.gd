@@ -72,9 +72,10 @@ func _run() -> void:
 		(
 			AegisPreferences.read()["hud_offsets"].is_empty()
 			and String(AegisPreferences.read()["hud_preset"]) == "STANDARD"
-			and run_card.visible
+			and not run_card.visible
+			and (hud.get("_wave_card") as Control).visible
 		),
-		"reset layout clears saved offsets and returns to standard preset",
+		"reset layout clears offsets and keeps the contextual objective, not run clutter",
 	)
 
 	hud.call("set_touch_mode", true)

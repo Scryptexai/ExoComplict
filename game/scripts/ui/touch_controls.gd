@@ -17,6 +17,8 @@ signal weapon_switch_requested
 signal skill_requested
 signal pause_requested
 signal retry_requested
+signal defense_start_requested
+signal return_to_explore_requested
 signal sound_mute_requested
 signal settings_changed(values: Dictionary)
 
@@ -35,18 +37,14 @@ const MIN_PHYSICAL_FONT_PX: float = AegisTokens.MIN_PHYSICAL_FONT_PX
 ## run summary. Four gives the wrapped summary one line of slack.
 const COMPACT_LINES: int = 4
 const DESKTOP_HINT := (
-	"WASD MOVE · SHIFT SPRINT · SPACE JUMP · RMB ADS · LMB FIRE · 1-3 WEAPON"
-	+ " · F EMP · G RELOAD · ESC PAUSE"
+	"WASD MOVE · DRAG/RMB LOOK · LMB FIRE · " + "B START DEFENSE · ESC PAUSE / CONTROLS"
 )
-const DESKTOP_HINT_SHORT := "WASD · SHIFT · SPACE · RMB ADS · LMB FIRE · 1-3 · F · G · ESC"
+const DESKTOP_HINT_SHORT := "WASD MOVE · B DEFENSE · ESC CONTROLS"
 const HELP_TEXT := (
-	"TOUCH: 360° joystick moves · drag right to aim · hold FIRE / AIM · EMP is the skill\n"
-	+ "DESKTOP: WASD moves · Shift sprint · Space jump · RMB aims · hold LMB to fire\n"
-	+ "E / Q or 1-3 switch weapons · F EMP · G reload · R retries · Esc pauses"
+	"MOVE WASD / LEFT STICK · LOOK DRAG RIGHT / RMB · FIRE LMB / HOLD FIRE\n"
+	+ "B START DEFENSE · G RELOAD · E/Q SWAP · F EMP · ESC PAUSE / CONTROLS"
 )
-const MOBILE_HELP_TEXT := (
-	"JOYSTICK MOVE · DRAG RIGHT AIM\n" + "FIRE · HOLD AIM · EMP · SWAP · AUTO RELOAD"
-)
+const MOBILE_HELP_TEXT := "LEFT STICK MOVE · DRAG RIGHT LOOK\nFIRE · HOLD AIM · EMP · SWAP"
 const HELP_FADE_SECONDS: float = 1.5
 ## The browser shell (game/web_shell/index.html) draws chips along the top of
 ## the page; the HUD keeps clear of them instead of overlapping.
@@ -87,6 +85,7 @@ var _reduce_flash: bool = false
 var _top_bar: Control
 var _health_card: AegisPanel
 var _wave_card: AegisPanel
+var _defense_button: AegisButton
 var _system_row: HBoxContainer
 var _run_card: AegisPanel
 var _score_chip: AegisPanel
@@ -134,6 +133,7 @@ var _pause_button: AegisButton
 var _sound_button: AegisButton
 var _aim_button: AegisButton
 var _results_retry_button: AegisButton
+var _results_explore_button: AegisButton
 var _skill_ring: CooldownRing
 var _touch_ammo_chip: AegisAmmoChip
 var _results_panel: AegisPanel
@@ -158,6 +158,8 @@ var _run_bp: int = 0
 var _run_kos: int = 0
 var _run_time: String = "00:00"
 var _run_shots: int = 0
+var _play_phase: String = "explore"
+var _preparation_seconds: int = 0
 
 
 func _ready() -> void:
@@ -276,23 +278,11 @@ func set_hud_health(current: float, maximum: float) -> void:
 
 
 func set_wave_status(
-	wave_number: int,
-	active_enemies: int,
-	remaining_enemies: int,
-	state_text: String,
+	wave_number: int, active_enemies: int, remaining_enemies: int, state_text: String
 ) -> void:
-	if not is_instance_valid(_wave_title_label):
-		return
-	_wave_title_label.text = "WAVE %02d" % wave_number if wave_number > 0 else "FRONTIER DEFENSE"
-	_wave_state_label.text = state_text.to_upper()
-	_wave_enemy_label.text = "ENEMIES  %d ACTIVE  ·  %d LEFT" % [active_enemies, remaining_enemies]
-	_wave_chip_label.text = (
-		"WAVE %02d\n%d LEFT" % [wave_number, remaining_enemies]
-		if wave_number > 0
-		else "READY\n%d LEFT" % remaining_enemies
+	HudEncounterUi.update_objective(
+		self, wave_number, active_enemies, remaining_enemies, state_text
 	)
-	_compact_wave_text = _wave_enemy_label.text
-	_refresh_compact_label()
 
 
 ## Explicit run numbers: the score chip needs the key figure, and parsing the
@@ -360,6 +350,24 @@ func is_touch_mode() -> bool:
 	return _touch_mode
 
 
+## The objective rail follows the encounter state, not a permanently visible
+## scoreboard. Explore has one explicit start action; run data lives in pause
+## and results. This keeps the scenery and the crosshair free of status noise.
+func _set_play_phase(phase: String, seconds: int = 0) -> void:
+	if phase == _play_phase and seconds == _preparation_seconds:
+		return
+	_play_phase = phase
+	_preparation_seconds = seconds
+	if phase != "defense":
+		set_wave_status(0, 0, 0, "")
+	_apply_context_visibility()
+	queue_redraw()
+
+
+func _apply_context_visibility() -> void:
+	HudEncounterUi.apply_context(self)
+
+
 func _apply_input_mode() -> void:
 	var gameplay_visible := not _results_visible()
 	var desktop := not _touch_mode and not _narrow
@@ -383,6 +391,7 @@ func _apply_input_mode() -> void:
 		for control in [_run_card, _score_chip, _compact_card, _help_panel]:
 			if is_instance_valid(control):
 				control.visible = false
+	_apply_context_visibility()
 
 
 ## Lays the HUD out for an explicit viewport size. The public entry point uses
@@ -526,7 +535,11 @@ func set_paused(paused: bool) -> void:
 		elif is_instance_valid(_pause_resume_button) and _pause_resume_button.has_focus():
 			_pause_resume_button.release_focus()
 	if is_instance_valid(_pause_stats_label):
-		_pause_stats_label.text = "SCORE %s  ·  %s" % [_format_number(_run_score), _run_time]
+		_pause_stats_label.text = (
+			"SAFE ZONE · NO WAVES UNTIL YOU START"
+			if _play_phase == "explore"
+			else "SCORE %s  ·  %s" % [_format_number(_run_score), _run_time]
+		)
 	if is_instance_valid(_scrim):
 		_scrim.visible = (paused or _player_down) and not _results_visible()
 	if is_instance_valid(_help_panel):
@@ -542,6 +555,7 @@ func set_paused(paused: bool) -> void:
 	if paused and _aiming:
 		_on_aim_up()
 	_refresh_skill_button()
+	_apply_context_visibility()
 
 
 func set_player_down(down: bool) -> void:
@@ -563,6 +577,7 @@ func set_player_down(down: bool) -> void:
 	if down and _aiming:
 		_on_aim_up()
 	_refresh_skill_button()
+	_apply_context_visibility()
 
 
 func show_results(
@@ -598,6 +613,7 @@ func show_results(
 	if is_instance_valid(_help_panel):
 		_help_panel.visible = false
 	for control in [
+		_defense_button,
 		_fire_button,
 		_weapon_button,
 		_skill_button,
@@ -628,6 +644,8 @@ func hide_results() -> void:
 	_results_panel.visible = false
 	if _results_retry_button.has_focus():
 		_results_retry_button.release_focus()
+	if _results_explore_button.has_focus():
+		_results_explore_button.release_focus()
 	if is_instance_valid(_scrim):
 		_scrim.visible = get_tree().paused
 	_top_bar.visible = true
@@ -635,7 +653,6 @@ func hide_results() -> void:
 	_apply_input_mode()
 	_layout_controls()
 	_refresh_skill_button()
-	show_help()
 
 
 func _results_visible() -> bool:
@@ -659,10 +676,10 @@ func _build_ui() -> void:
 
 	_build_health_card()
 	_build_wave_card()
+	_build_defense_action()
 	_build_system_row()
 	_build_run_card()
-	_build_score_chip()
-	_build_compact_card()
+	HudEncounterUi.build_legacy_score_widgets(self)
 	_build_help_panel()
 	_build_touch_buttons()
 	_build_desktop_chips()
@@ -706,39 +723,11 @@ func _build_health_card() -> void:
 
 
 func _build_wave_card() -> void:
-	_wave_card = AegisPanel.new()
-	_wave_card.name = "WaveCard"
-	_wave_card.clip_contents = true
-	_top_bar.add_child(_wave_card)
+	HudEncounterUi.build_objective(self)
 
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	_wave_card.add_child(row)
 
-	_wave_icon = TextureRect.new()
-	_wave_icon.texture = AegisTheme.icon("target")
-	_wave_icon.custom_minimum_size = Vector2(16.0, 16.0)
-	_wave_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_wave_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_wave_icon.modulate = AegisTokens.INK_2
-	row.add_child(_wave_icon)
-
-	var text_col := VBoxContainer.new()
-	text_col.add_theme_constant_override("separation", 0)
-	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(text_col)
-	_wave_title_label = _label("FRONTIER DEFENSE", "heading_s", AegisTokens.INK)
-	text_col.add_child(_wave_title_label)
-	_wave_enemy_label = _label("ENEMIES  0 ACTIVE  ·  0 LEFT", "label_s", AegisTokens.INK_2)
-	text_col.add_child(_wave_enemy_label)
-	_wave_chip_label = _label("READY\n0 LEFT", "label_s", AegisTokens.INK_2)
-	_wave_chip_label.visible = false
-	text_col.add_child(_wave_chip_label)
-
-	_wave_state_label = _label("READY", "label_s", AegisTokens.ACCENT)
-	_wave_state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_wave_state_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(_wave_state_label)
+func _build_defense_action() -> void:
+	HudEncounterUi.build_start_action(self)
 
 
 func _build_system_row() -> void:
@@ -777,39 +766,13 @@ func _build_run_card() -> void:
 	content.add_child(_status_label)
 
 
-func _build_score_chip() -> void:
-	_score_chip = AegisPanel.new()
-	_score_chip.name = "ScoreChip"
-	_score_chip.show_brackets = false
-	add_child(_score_chip)
-	_score_value_label = _label("SCORE 0  ·  00:00", "mono_m", AegisTokens.INK)
-	_score_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_score_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_score_value_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_score_chip.add_child(_score_value_label)
-
-
-## One-line-per-topic strip shown below the top bar on narrow screens, where the
-## three-column bar cannot fit: the player keeps the enemy counts and run stats.
-func _build_compact_card() -> void:
-	_compact_card = AegisPanel.new()
-	_compact_card.name = "CompactDataCard"
-	_compact_card.visible = false
-	_compact_card.clip_contents = true
-	add_child(_compact_card)
-	_compact_label = _label(
-		_compact_wave_text + "\n" + _collapsed_run_text(), "mono_s", AegisTokens.INK_2
-	)
-	_compact_label.name = "CompactDataLabel"
-	_compact_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_compact_card.add_child(_compact_label)
-
-
 func _build_help_panel() -> void:
 	_help_panel = AegisPanel.new()
 	_help_panel.name = "ControlsHelpPanel"
 	_help_panel.accent_side = "left"
 	_help_panel.accent_color = Color(AegisTokens.INFO, 0.9)
+	_help_panel.visible = false
+	_help_remaining = 0.0
 	_help_panel.clip_contents = true
 	_help_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_help_panel)
@@ -991,7 +954,7 @@ func _build_pause_menu() -> void:
 	content.add_child(_pause_settings_button)
 	_touch_buttons.append(_pause_settings_button)
 
-	var hint := _label("ESC  ·  RESUME  ·  R  ·  RESTART", "label_s", AegisTokens.INK_3)
+	var hint := _label("SETTINGS → CONTROLS · ESC RESUME", "label_s", AegisTokens.INK_3)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(hint)
 
@@ -1032,6 +995,17 @@ func _build_results_panel() -> void:
 	_results_retry_button.pressed.connect(_on_results_retry_pressed)
 	content.add_child(_results_retry_button)
 	_touch_buttons.append(_results_retry_button)
+
+	_results_explore_button = AegisButton.new()
+	_results_explore_button.name = "ResultsExploreButton"
+	_results_explore_button.text = "RETURN TO EXPLORE"
+	_results_explore_button.focus_mode = Control.FOCUS_ALL
+	_results_explore_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	_results_explore_button.icon = AegisTheme.icon("caret-right")
+	AegisTheme.set_button_variant(_results_explore_button, "ghost")
+	_results_explore_button.pressed.connect(_on_return_to_explore_pressed)
+	content.add_child(_results_explore_button)
+	_touch_buttons.append(_results_explore_button)
 
 
 # --------------------------------------------------------------------------- #
@@ -1419,7 +1393,11 @@ func _find_touch_button(position: Vector2) -> Button:
 
 
 func _activate_touch_button(button: Button) -> void:
-	if button == _weapon_button:
+	if button == _defense_button:
+		_on_defense_pressed()
+	elif button == _results_explore_button:
+		_on_return_to_explore_pressed()
+	elif button == _weapon_button:
 		_on_weapon_switch_pressed()
 	elif button == _skill_button or button == _emp_chip:
 		_on_skill_pressed()
@@ -1583,6 +1561,18 @@ func _apply_preferences(values: Dictionary) -> void:
 	settings_changed.emit(values)
 
 
+func _on_defense_pressed() -> void:
+	if _play_phase != "explore" or get_tree().paused or _player_down:
+		return
+	Sfx.play_ui(&"ui_click")
+	defense_start_requested.emit()
+
+
+func _on_return_to_explore_pressed() -> void:
+	Sfx.play_ui(&"ui_click")
+	return_to_explore_requested.emit()
+
+
 func _on_results_retry_pressed() -> void:
 	Sfx.play_ui(&"ui_click")
 	retry_requested.emit()
@@ -1590,7 +1580,10 @@ func _on_results_retry_pressed() -> void:
 
 func _on_restart_pressed() -> void:
 	Sfx.play_ui(&"ui_click")
-	retry_requested.emit()
+	if _play_phase == "explore":
+		retry_requested.emit()
+	else:
+		return_to_explore_requested.emit()
 
 
 func _on_window_focus_exited() -> void:

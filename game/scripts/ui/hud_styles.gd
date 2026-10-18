@@ -64,6 +64,7 @@ static func apply(hud) -> void:
 		hud._wave_icon.custom_minimum_size = Vector2(icon_size, icon_size)
 	for button in [
 		hud._results_retry_button,
+		hud._results_explore_button,
 		hud._pause_resume_button,
 		hud._pause_restart_button,
 		hud._pause_settings_button,
@@ -100,7 +101,9 @@ static func apply_fonts(hud) -> void:
 		):
 			AegisTheme.resize_button_font(button, "label", maxi(roundi(11.0 * unit), floor_size))
 		elif (
-			button == hud._results_retry_button
+			button == hud._defense_button
+			or button == hud._results_retry_button
+			or button == hud._results_explore_button
 			or button == hud._pause_resume_button
 			or button == hud._pause_restart_button
 			or button == hud._pause_settings_button
@@ -116,6 +119,8 @@ static func apply_fonts(hud) -> void:
 		if is_instance_valid(icon_button):
 			icon_button.custom_minimum_size = Vector2(icon_button_px, icon_button_px)
 	for button in [
+		hud._defense_button,
+		hud._results_explore_button,
 		hud._fire_button,
 		hud._weapon_button,
 		hud._skill_button,

@@ -13,6 +13,8 @@ extends RefCounted
 static func over_hud(hud, position: Vector2) -> bool:
 	var hud_controls: Array[Control] = [
 		hud._top_bar,
+		hud._wave_card,
+		hud._defense_button,
 		hud._help_panel,
 		hud._fire_button,
 		hud._weapon_button,
@@ -43,8 +45,18 @@ static func desktop(hud) -> void:
 	var unit: float = hud._control_unit()
 	var inset := 20.0 * unit
 	_place_top_bar(hud, inset, hud._top_inset, 64.0 * unit)
-	_place_in_top_bar(hud._health_card, 0, 0, 0, 0, Rect2(0, 0, 268.0 * unit, 64.0 * unit))
-	_place_wave(hud, inset, 44.0 * unit, 268.0 * unit, 300.0 * unit, 96.0 * unit)
+	_place_in_top_bar(hud._health_card, 0, 0, 0, 0, Rect2(0, 0, 268.0 * unit, 56.0 * unit))
+	# Destiny-style objective hierarchy: the task sits below health on the
+	# left, never across the sightline in the centre of the screen.
+	_place_in_top_bar(hud._wave_card, 0, 0, 0, 0, Rect2(0, 64.0 * unit, 306.0 * unit, 56.0 * unit))
+	_place(
+		hud._defense_button,
+		0,
+		0,
+		0,
+		0,
+		Rect2(inset, hud._top_inset + 128.0 * unit, 230.0 * unit, 52.0 * unit)
+	)
 	_place_in_top_bar(hud._system_row, 1, 0, 1, 0, Rect2(-96.0 * unit, 0, 96.0 * unit, 44.0 * unit))
 	_place(
 		hud._score_chip,
@@ -108,13 +120,23 @@ static func touch_portrait(hud) -> void:
 	var bar_height: float = hud._to_layout(48.0)
 	_place_top_bar(hud, edge, hud._top_inset, bar_height)
 	_place_in_top_bar(hud._health_card, 0, 0, 0, 0, Rect2(0, 0, hud._to_layout(168.0), bar_height))
-	_place_wave(
-		hud,
-		edge,
-		bar_height,
-		hud._to_layout(168.0),
-		hud._to_layout(88.0),
-		hud._to_layout(44.0 if hud._narrow else 96.0)
+	var objective_top: float = bar_height + hud._to_layout(8.0)
+	var objective_width: float = minf(hud._to_layout(330.0), hud.size.x - edge * 2.0)
+	_place_in_top_bar(
+		hud._wave_card, 0, 0, 0, 0, Rect2(0, objective_top, objective_width, hud._to_layout(58.0))
+	)
+	_place(
+		hud._defense_button,
+		0,
+		0,
+		0,
+		0,
+		Rect2(
+			edge,
+			hud._top_inset + objective_top + hud._to_layout(66.0),
+			hud._to_layout(196.0),
+			hud._to_layout(50.0)
+		)
 	)
 	# The sound control is hidden on phones, so the row only needs one target
 	# there; on a wide touch screen both buttons must fit side by side.
@@ -163,19 +185,21 @@ static func touch_portrait(hud) -> void:
 	)
 	hud._joystick_radius = hud._to_layout(64.0)
 
-	hud._show_top_wave_details(false)
+	hud._show_top_wave_details(true)
+	# The objective now has its own row: display a readable description instead
+	# of cramming a two-word badge between health and pause.
+	hud._wave_state_label.visible = false
 	hud._run_card.visible = false
 	hud._score_chip.visible = false
 	hud._sound_button.visible = false
 	hud._wave_icon.visible = false
-	var compact_top: float = hud._top_inset + bar_height + hud._to_layout(8.0)
-	var compact_height: float = _place_compact(hud, edge, compact_top, true)
+	_place_compact(hud, edge, 0.0, false)
 	_place_help(
 		hud,
 		edge,
-		compact_top + compact_height + hud._to_layout(8.0),
+		hud._top_inset + objective_top + hud._to_layout(124.0),
 		minf(hud._to_layout(342.0), hud.size.x - edge * 2.0),
-		hud._help_block_height(3 if hud._touch_mode else 5)
+		hud._help_block_height(2)
 	)
 	if not hud._touch_mode:
 		_place(
@@ -193,8 +217,27 @@ static func touch_landscape(hud) -> void:
 	var bar_height: float = hud._to_layout(44.0)
 	_place_top_bar(hud, edge, hud._top_inset, bar_height)
 	_place_in_top_bar(hud._health_card, 0, 0, 0, 0, Rect2(0, 0, hud._to_layout(196.0), bar_height))
-	_place_wave(
-		hud, edge, bar_height, hud._to_layout(196.0), hud._to_layout(100.0), hud._to_layout(96.0)
+	var objective_top: float = bar_height + hud._to_layout(8.0)
+	_place_in_top_bar(
+		hud._wave_card,
+		0,
+		0,
+		0,
+		0,
+		Rect2(0, objective_top, hud._to_layout(270.0), hud._to_layout(52.0))
+	)
+	_place(
+		hud._defense_button,
+		0,
+		0,
+		0,
+		0,
+		Rect2(
+			edge,
+			hud._top_inset + objective_top + hud._to_layout(60.0),
+			hud._to_layout(200.0),
+			hud._to_layout(48.0)
+		)
 	)
 	_place_in_top_bar(
 		hud._system_row,
@@ -252,34 +295,21 @@ static func touch_landscape(hud) -> void:
 			hud._to_layout(64.0)
 		)
 	)
-	# The run card occupies the right rail at the same height. A centered 560px
-	# help plate overlaps it at 844x390; pin a short hint into the left gap.
-	var run_left: float = hud.size.x - edge - hud._to_layout(236.0)
-	var help_width: float = minf(hud._to_layout(440.0), run_left - edge - hud._to_layout(8.0))
+	# Optional controls help sits in the right rail, never on the left objective
+	# or over the look/crosshair zone. Normal gameplay leaves it hidden.
 	_place(
 		hud._help_panel,
+		1,
 		0,
-		0,
-		0,
+		1,
 		0,
 		Rect2(
-			edge,
-			hud._top_inset + bar_height + hud._to_layout(8.0),
-			maxf(help_width, hud._to_layout(160.0)),
+			-edge - hud._to_layout(300.0),
+			hud._top_inset + objective_top,
+			hud._to_layout(300.0),
 			hud._to_layout(60.0)
 		)
 	)
-
-
-## Centres the wave card on screen but clamps it into the gap between the
-## vitals card and the system row, so a 390 px phone never overlaps either.
-static func _place_wave(
-	hud, edge: float, bar_height: float, health_w: float, wave_w: float, system_w: float
-) -> void:
-	var gap: float = hud._to_layout(8.0)
-	var left: float = (hud.size.x - wave_w) * 0.5
-	left = clampf(left, edge + health_w + gap, hud.size.x - edge - system_w - gap - wave_w)
-	_place_in_top_bar(hud._wave_card, 0, 0, 0, 0, Rect2(left - edge, 0, wave_w, bar_height))
 
 
 ## Portrait menus are bottom sheets above the gesture area; wide layouts use
@@ -312,6 +342,8 @@ static func overlays(hud) -> void:
 		hud._to_layout(56.0 if sheet else 52.0)
 	)
 	hud._results_retry_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	hud._results_explore_button.custom_minimum_size = hud._results_retry_button.custom_minimum_size
+	hud._results_explore_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 	var pause_width: float = minf(
 		hud._to_layout(390.0 if sheet else 400.0), hud.size.x * (0.94 if sheet else 0.88)

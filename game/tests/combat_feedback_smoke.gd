@@ -124,7 +124,6 @@ func _run_smoke_test() -> void:
 		)
 		and test_passed
 	)
-	main_scene.set("start_wave_session_on_ready", true)
 	results_retry_button.emit_signal("pressed")
 	test_passed = (
 		_expect(not bool(player.call("is_defeated")), "retry restores the player") and test_passed
@@ -146,8 +145,11 @@ func _run_smoke_test() -> void:
 	var wave_director: Node = main_scene.get_node("WaveDirector")
 	test_passed = (
 		_expect(
-			int(wave_director.get("current_wave")) == 1,
-			"retry starts a fresh survival wave",
+			(
+				int(wave_director.get("current_wave")) == 0
+				and int(main_scene.get("session_mode")) == 0
+			),
+			"retry from an Explore encounter restores safe Explore, not an unsolicited wave",
 		)
 		and test_passed
 	)

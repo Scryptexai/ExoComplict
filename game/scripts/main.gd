@@ -1,5 +1,7 @@
 extends Node3D
 
+enum SessionMode { EXPLORE, PREPARING, DEFENSE, RESULTS }
+
 const PlayerControllerScript = preload("res://scripts/player/player_controller.gd")
 const TrainingDroneScript = preload("res://scripts/enemies/training_drone.gd")
 const WaveDirectorScript = preload("res://scripts/waves/wave_director.gd")
@@ -7,8 +9,14 @@ const TouchControlsScript = preload("res://scripts/ui/touch_controls.gd")
 const RunStatsScript = preload("res://scripts/progression/run_stats.gd")
 const RewardServiceScript = preload("res://scripts/progression/reward_service.gd")
 
-@export var start_wave_session_on_ready: bool = true
+## Test/authoring override only. The shipped scene starts in safe Explore; the
+## player must explicitly choose Defense before the WaveDirector can run.
+@export var start_wave_session_on_ready: bool = false
+@export_range(2.0, 10.0, 0.5) var defense_preparation_seconds: float = 5.0
 
+var session_mode: SessionMode = SessionMode.EXPLORE
+var _preparation_remaining: float = 0.0
+var _retry_defense: bool = false
 var _shots_fired: int = 0
 var _is_paused: bool = false
 var _base_look_sensitivity: float = 0.0
@@ -47,6 +55,8 @@ func _ready() -> void:
 	)
 	touch_controls.set_skill_cooldown(0.0, player.emp_pulse_cooldown)
 	touch_controls.retry_requested.connect(_reset_session)
+	touch_controls.defense_start_requested.connect(_request_defense)
+	touch_controls.return_to_explore_requested.connect(_return_to_explore)
 	player.aim_changed.connect(touch_controls.set_aim_state)
 	player.shot_fired.connect(_on_shot_fired)
 	player.health_changed.connect(_on_combatant_health_changed)
@@ -63,16 +73,29 @@ func _ready() -> void:
 	wave_director.enemy_defeated.connect(reward_service.award_enemy_defeat)
 	wave_director.session_ended.connect(_on_wave_session_ended)
 	wave_director.spawn_blocked.connect(_on_wave_spawn_blocked)
+	touch_controls._set_play_phase("explore")
 	_update_status()
 	# One line per session so the browser console proves audio came up in the
 	# exported build, not only in the editor.
 	print(Sfx.describe())
 	if start_wave_session_on_ready:
-		wave_director.start_session()
+		# Explicit opt-in for automated fixtures; never enabled in main.tscn.
+		_request_defense()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	touch_controls.set_aim_state(player.is_aiming())
+	if session_mode == SessionMode.PREPARING:
+		var before := ceili(_preparation_remaining)
+		_preparation_remaining = maxf(_preparation_remaining - delta, 0.0)
+		if _preparation_remaining <= 0.0:
+			session_mode = SessionMode.DEFENSE
+			touch_controls._set_play_phase("defense")
+			wave_director.start_session()
+		elif ceili(_preparation_remaining) != before:
+			touch_controls._set_play_phase("preparing", ceili(_preparation_remaining))
+	if Input.is_action_just_pressed("start_defense"):
+		_request_defense()
 	if Input.is_action_just_pressed("reset_session"):
 		_reset_session()
 	if Input.is_action_just_pressed("toggle_sound"):
@@ -120,21 +143,47 @@ func _toggle_pause() -> void:
 	print("HUD: paused" if _is_paused else "HUD: resumed")
 
 
+## Separate exploration from a survival encounter. Starting a run only enters
+## preparation; no enemies may spawn before the player sees the countdown.
+func _request_defense() -> void:
+	if session_mode != SessionMode.EXPLORE or player.is_defeated() or _is_paused:
+		return
+	session_mode = SessionMode.PREPARING
+	_preparation_remaining = defense_preparation_seconds
+	touch_controls.hide_help()
+	touch_controls._set_play_phase("preparing", ceili(_preparation_remaining))
+	_update_status()
+
+
+## Retry preserves the encounter intent; returning to Explore does not. Both
+## routes clear remaining enemies and reset health/ammo before the HUD unlocks.
 func _reset_session() -> void:
+	var restart_defense := (
+		session_mode == SessionMode.PREPARING
+		or session_mode == SessionMode.DEFENSE
+		or (session_mode == SessionMode.RESULTS and _retry_defense)
+	)
+	_return_to_explore()
+	if restart_defense:
+		_request_defense()
+
+
+func _return_to_explore() -> void:
 	_is_paused = false
 	get_tree().paused = false
-	touch_controls.hide_results()
-	touch_controls.set_paused(false)
-	touch_controls.set_player_down(false)
+	_preparation_remaining = 0.0
+	_retry_defense = false
+	wave_director.reset_session()
 	player.reset_player()
 	training_drone.reset()
 	_shots_fired = 0
 	run_stats.reset_run()
 	reward_service.reset_run()
-	wave_director.reset_session()
-	touch_controls.show_help()
-	if start_wave_session_on_ready:
-		wave_director.start_session()
+	session_mode = SessionMode.EXPLORE
+	touch_controls.hide_results()
+	touch_controls.set_player_down(false)
+	touch_controls.set_paused(false)
+	touch_controls._set_play_phase("explore")
 	_update_status()
 
 
@@ -171,6 +220,9 @@ func _on_combatant_health_changed(_current: float, _maximum: float) -> void:
 
 
 func _on_wave_started(_wave_index: int, _enemy_count: int) -> void:
+	# Also covers smoke fixtures that call WaveDirector.start_session() directly.
+	session_mode = SessionMode.DEFENSE
+	touch_controls._set_play_phase("defense")
 	Sfx.play_ui(&"wave_start")
 	run_stats.start_run()
 	_update_status()
@@ -186,6 +238,9 @@ func _on_wave_enemy_spawned(enemy: Node3D) -> void:
 
 
 func _on_wave_session_ended(wave_index: int, _total_defeated: int) -> void:
+	_retry_defense = session_mode == SessionMode.DEFENSE
+	session_mode = SessionMode.RESULTS
+	touch_controls._set_play_phase("results")
 	Sfx.play_ui(&"session_clear")
 	run_stats.end_run()
 	var run_time := run_stats.get_survival_time_text()
@@ -196,9 +251,9 @@ func _on_wave_session_ended(wave_index: int, _total_defeated: int) -> void:
 	_update_status()
 
 
-func _on_wave_spawn_blocked(_reason: String) -> void:
-	run_stats.end_run()
-	_update_status()
+func _on_wave_spawn_blocked(reason: String) -> void:
+	push_warning("Defense could not spawn: " + reason)
+	_return_to_explore()
 
 
 func _update_status() -> void:

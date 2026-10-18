@@ -27,6 +27,7 @@ func _run_smoke_test() -> void:
 	var health_value := controls.get("_health_value_label") as Label
 	var wave_title := controls.get("_wave_title_label") as Label
 	var wave_enemy_label := controls.get("_wave_enemy_label") as Label
+	var defense_button := controls.get("_defense_button") as Button
 	var status_label := controls.get("_status_label") as Label
 	var help_label := controls.get("_help_label") as Label
 	var fire_button := controls.get("_fire_button") as Button
@@ -35,7 +36,6 @@ func _run_smoke_test() -> void:
 	var pause_button := controls.get("_pause_button") as Button
 	var sound_button := controls.get("_sound_button") as Button
 	var compact_card := controls.get("_compact_card") as PanelContainer
-	var compact_label := controls.get("_compact_label") as Label
 	var aim_button := controls.get("_aim_button") as Button
 	# The test drives a touchscreen that a headless display server never reports,
 	# so it opts into the thumb layout explicitly. Desktop mode is asserted below.
@@ -60,27 +60,33 @@ func _run_smoke_test() -> void:
 		"health bar reflects the live player health",
 	)
 	_expect(
-		wave_title.text == "FRONTIER DEFENSE" and wave_enemy_label.text.contains("0 ACTIVE"),
-		"wave HUD starts in a clear ready state",
+		(
+			wave_title.text == "EXPLORE THE FRONTIER"
+			and wave_enemy_label.text.contains("SAFE ZONE")
+			and defense_button.visible
+			and not controls.get("_run_card").visible
+			and int(wave_director.get("current_wave")) == 0
+		),
+		"Explore starts safe, with a visible start action and no scoreboard",
 	)
-	# On a phone the compact data card and the help plate must not overlap; this
-	# was the first thing a 390x844 screenshot showed.
+	# In portrait the optional help plate must sit below the objective and
+	# Defense button, leaving the centre of the screen unobstructed.
 	controls.call("apply_layout_for_size", Vector2(390.0, 844.0), 1.0)
 	# Containers recompute their rects on the next frame; reading the rects
 	# immediately measures the previous layout and reports a false overlap.
 	await process_frame
-	var compact_bottom := compact_card.get_global_rect().end.y
+	var defense_bottom := defense_button.get_global_rect().end.y
 	var help_top := help_label.get_global_rect().position.y
 	_expect(
-		help_top >= compact_bottom - 0.5,
-		"narrow layout keeps the help plate below the compact data card",
+		help_top >= defense_bottom + 7.0 and not compact_card.visible,
+		"portrait help sits below the start action; the run-data strip stays hidden",
 	)
 	controls.call("apply_layout_for_size", Vector2(1280.0, 720.0), 1.0)
 	_expect(
 		(
 			help_label.autowrap_mode != TextServer.AUTOWRAP_OFF
-			and help_label.text.contains("TOUCH")
-			and help_label.text.contains("360°")
+			and help_label.text.contains("LEFT STICK")
+			and help_label.text.contains("B START DEFENSE")
 			and help_label.text.contains("EMP")
 			and help_label.text.contains("WASD")
 		),
@@ -163,20 +169,18 @@ func _run_smoke_test() -> void:
 	)
 	Sfx.set_muted(false)
 	controls.call("set_sound_muted", Sfx.is_muted())
-	# Narrow screens lose the three-column bar; the numbers must move, not vanish.
+	# The objective is below the vitals on a phone; run score is reserved for
+	# pause/results instead of spilling over the play area.
 	controls.call("apply_layout_for_size", Vector2(390.0, 844.0), 1.0)
-	var status_snapshot := status_label.text
-	controls.call("set_status", status_snapshot)
 	_expect(
 		(
-			compact_card.visible
+			not compact_card.visible
 			and not controls.get("_run_card").visible
-			and not wave_enemy_label.visible
-			and compact_label.text.contains("ENEMIES")
-			and compact_label.text.contains("Score:")
-			and compact_label.text.count("\n") == 1
+			and wave_enemy_label.visible
+			and wave_enemy_label.text.contains("SAFE ZONE")
+			and defense_button.visible
 		),
-		"a narrow screen shows one compact card with enemy counts and run stats",
+		"portrait shows a safe Explore objective, not a persistent data table",
 	)
 	# The web build keeps a 1280-unit logical canvas in portrait, so on a phone
 	# the whole HUD used to render at ~30% of its designed size. The layout must
@@ -187,7 +191,7 @@ func _run_smoke_test() -> void:
 	await process_frame
 	await process_frame
 	var portrait_font := float(pause_button.get_theme_font_size("font_size")) * 0.3047
-	var portrait_body_font := float(compact_label.get_theme_font_size("font_size")) * 0.3047
+	var portrait_body_font := float(wave_enemy_label.get_theme_font_size("font_size")) * 0.3047
 	var vitals_card := controls.get("_health_card") as Control
 	var wave_card := controls.get("_wave_card") as Control
 	var system_row := controls.get("_system_row") as Control
@@ -195,15 +199,19 @@ func _run_smoke_test() -> void:
 	_expect(
 		(
 			(
-				wave_card.get_global_rect().position.x
-				>= vitals_card.get_global_rect().end.x + rail_gap - 1.0
+				wave_card.get_global_rect().position.y
+				>= (
+					maxf(vitals_card.get_global_rect().end.y, system_row.get_global_rect().end.y)
+					+ rail_gap
+					- 1.0
+				)
 			)
 			and (
-				wave_card.get_global_rect().end.x
-				<= system_row.get_global_rect().position.x - rail_gap + 1.0
+				defense_button.get_global_rect().position.y
+				>= wave_card.get_global_rect().end.y + rail_gap - 1.0
 			)
 		),
-		"portrait top rail keeps WAVE clear of VITALS and system buttons",
+		"portrait objective and start action stack below vitals without overlap",
 	)
 	_expect(
 		(
@@ -226,19 +234,19 @@ func _run_smoke_test() -> void:
 			# phone renders every logical pixel at ~0.3x.
 			and portrait_font >= 10.5
 			and portrait_body_font >= 10.5
-			and compact_card.visible
-			and compact_card.size.y >= compact_label.get_combined_minimum_size().y
+			and wave_card.size.y >= wave_enemy_label.get_combined_minimum_size().y
+			and defense_button.get_global_rect().size.y * 0.3047 >= 48.0
 		),
 		(
 			(
-				"a portrait phone renders HUD text at >=11 physical px (%.1f px / %.1f px) "
-				+ "and fits its data card (%.0f >= %.0f)"
+				"portrait HUD text stays >=11 physical px (%.1f / %.1f), "
+				+ "objective and start control fit (%.0f >= %.0f)"
 			)
 			% [
 				portrait_body_font,
 				portrait_font,
-				compact_card.size.y,
-				compact_label.get_combined_minimum_size().y,
+				wave_card.size.y,
+				wave_enemy_label.get_combined_minimum_size().y,
 			]
 		),
 	)
@@ -257,26 +265,31 @@ func _run_smoke_test() -> void:
 		),
 		"landscape SWAP is at least 44px high and clear of AIM and EMP",
 	)
-	var run_card := controls.get("_run_card") as Control
 	var help_plate := controls.get("_help_panel") as Control
 	_expect(
-		not help_plate.get_global_rect().intersects(run_card.get_global_rect()),
-		"landscape hint never covers the run-data card",
+		(
+			not help_plate.get_global_rect().intersects(wave_card.get_global_rect())
+			and not controls.get("_run_card").visible
+		),
+		"landscape optional help stays clear of the objective; run data stays in pause",
 	)
 	controls.call("apply_layout_for_size", Vector2(1280.0, 720.0), 1.0)
 	_expect(
-		not compact_card.visible and controls.get("_run_card").visible and wave_enemy_label.visible,
-		"a wide screen returns to the three-column top bar",
+		(
+			not compact_card.visible
+			and not controls.get("_run_card").visible
+			and wave_enemy_label.visible
+		),
+		"desktop retains the left-side objective without the run-data table",
 	)
-	_expect(
-		help_label.is_visible_in_tree(),
-		"the control hint is shown at the start of a run",
-	)
-	controls.call("hide_help")
 	_expect(
 		not help_label.is_visible_in_tree(),
-		"firing or moving retires the control hint so it stops covering the action",
+		"play opens without a large control overlay obscuring the world",
 	)
+	controls.call("show_help")
+	_expect(help_label.is_visible_in_tree(), "controls can be displayed explicitly")
+	controls.call("hide_help")
+	_expect(not help_label.is_visible_in_tree(), "controls can be dismissed")
 	controls.call("show_help")
 	var camera_rig := player.get_node("CameraRig")
 	# The rig pulls back on a narrow viewport, so the rest distance is a floor and
@@ -567,9 +580,10 @@ func _run_smoke_test() -> void:
 			pause_panel.is_visible_in_tree()
 			and resume_button.is_visible_in_tree()
 			and restart_button.is_visible_in_tree()
+			and restart_button.text == "RETURN TO EXPLORE"
 			and (controls.get("_pause_stats_label") as Label).text.contains("SCORE")
 		),
-		"pause shows a run summary with visible resume and restart actions",
+		"Defense pause shows score, RESUME, and an explicit exit to Explore",
 	)
 	_expect(resume_button.has_focus(), "pause focuses RESUME by default")
 	_tap_screen_button(controls, resume_button, 76)
@@ -621,8 +635,8 @@ func _run_smoke_test() -> void:
 		),
 		"touching results RETRY restores the player and returns to the HUD",
 	)
-	# Restart is a separate pause action; it must unpause the tree and reset the
-	# run, not leave the world frozen behind a dismissed menu.
+	# The escape hatch must clear every wave enemy and return to safe Explore,
+	# never quietly start another Defense run after the pause closes.
 	_tap_screen_button(controls, pause_button, 91)
 	_tap_screen_button(controls, restart_button, 92)
 	_expect(
@@ -631,8 +645,10 @@ func _run_smoke_test() -> void:
 			and not pause_panel.visible
 			and not player.call("is_defeated")
 			and is_equal_approx(health_bar.value, 100.0)
+			and wave_title.text == "EXPLORE THE FRONTIER"
+			and int(wave_director.get("current_wave")) == 0
 		),
-		"RESTART RUN clears the pause state and begins a fresh session",
+		"RETURN TO EXPLORE unpauses, removes the wave and restores the safe objective",
 	)
 	print("Playability/HUD smoke test: %d failure(s)" % _failures)
 	main_scene.queue_free()
