@@ -6,6 +6,8 @@ extends Node3D
 ## round "glowing ball" silhouette without covering the sight line. Every mesh
 ## is transient and the accompanying light has a bounded range for mobile/Web.
 
+const GLINT_MASK: Texture2D = preload("res://assets/vfx/muzzle_glint.png")
+
 @export_range(0.02, 0.4, 0.005) var duration: float = 0.15
 @export_range(0.0, 12.0, 0.1) var flash_energy: float = 2.8
 @export_range(0.02, 2.0, 0.01) var flash_scale: float = 0.48
@@ -13,6 +15,8 @@ extends Node3D
 
 var _mesh: MeshInstance3D
 var _core: MeshInstance3D
+var _glint: MeshInstance3D
+var _glint_material: StandardMaterial3D
 var _streaks: Array[MeshInstance3D] = []
 var _light: OmniLight3D
 var _material: StandardMaterial3D
@@ -56,6 +60,25 @@ func _ready() -> void:
 	_core.position.z = -0.11
 	_core.material_override = _hot_core_material
 
+	# The face-on alpha flare supplies the pixels a nearly head-on barrel cone
+	# cannot provide at 390px, without a large opaque mesh crossing the helmet.
+	# It sits ahead of the measured muzzle and remains depth-tested by the world.
+	_glint_material = StandardMaterial3D.new()
+	_glint_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_glint_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_glint_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_glint_material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	_glint_material.albedo_texture = GLINT_MASK
+	_glint_material.albedo_color = Color(1.0, 1.0, 1.0, 0.95)
+	_glint_material.emission_enabled = true
+	_glint_material.emission = Color.WHITE
+	_glint_material.emission_energy_multiplier = 2.3
+	var glint_quad := QuadMesh.new()
+	glint_quad.size = Vector2(0.34, 0.34)
+	_glint = _add_shape("FlashGlint", glint_quad)
+	_glint.position.z = -0.32
+	_glint.material_override = _glint_material
+
 	var streak_mesh := BoxMesh.new()
 	streak_mesh.size = Vector3(0.014, 0.024, 0.18)
 	for index in range(2):
@@ -90,6 +113,7 @@ func _add_shape(node_name: String, shape: Mesh) -> MeshInstance3D:
 func _set_active(active: bool) -> void:
 	_mesh.visible = active
 	_core.visible = active
+	_glint.visible = active and not _reduce_flash
 	for streak in _streaks:
 		streak.visible = active and not _reduce_flash
 
@@ -110,6 +134,7 @@ func _process(delta: float) -> void:
 	_light.light_energy = 0.0 if _reduce_flash else flash_energy * 0.4 * ratio
 	_material.albedo_color.a = clampf(ratio * 1.1, 0.0, 0.85)
 	_hot_core_material.albedo_color.a = clampf(ratio * 1.9, 0.0, 1.0)
+	_glint_material.albedo_color.a = clampf(ratio * 1.4, 0.0, 0.95)
 	if _remaining <= 0.0:
 		_set_active(false)
 		_light.light_energy = 0.0
@@ -125,16 +150,20 @@ func flash(strength: float = 1.0, tint: Color = Color(0.0, 0.0, 0.0, 0.0)) -> vo
 	_hot_core_material.albedo_color = white_centre
 	_hot_core_material.emission = white_centre
 	_hot_core_material.emission_energy_multiplier = 1.2 if _reduce_flash else flash_energy + 0.7
+	_glint_material.albedo_color = Color.WHITE.lerp(color, 0.28)
+	_glint_material.emission = Color.WHITE.lerp(color, 0.35)
 	_light.light_color = color
 	_remaining = duration * clampf(strength, 0.4, 2.0)
 	_trigger_frame = Engine.get_process_frames()
 	_set_active(true)
 	_material.albedo_color.a = 0.85
 	_hot_core_material.albedo_color.a = 1.0
+	_glint_material.albedo_color.a = 0.95
 	_light.light_energy = 0.0 if _reduce_flash else flash_energy * 0.4
 	var size := flash_scale / 0.34 * randf_range(0.88, 1.12)
 	_mesh.scale = Vector3.ONE * size
 	_core.scale = Vector3.ONE * size
+	_glint.scale = Vector3.ONE * size
 	for index in range(_streaks.size()):
 		var streak := _streaks[index]
 		streak.scale = Vector3.ONE * size * (0.85 if index else 1.0)

@@ -39,6 +39,7 @@ func _run_smoke_test() -> void:
 			and test_passed
 		)
 		var cone := muzzle_flash.get_node_or_null("FlashCone") as MeshInstance3D
+		var glint := muzzle_flash.get_node_or_null("FlashGlint") as MeshInstance3D
 		test_passed = (
 			_expect(
 				(
@@ -47,6 +48,9 @@ func _run_smoke_test() -> void:
 					and cone.position.z < -0.1
 					and (cone.mesh as CylinderMesh).height <= 0.4
 					and (cone.mesh as CylinderMesh).bottom_radius <= 0.08
+					and glint != null
+					and glint.mesh is QuadMesh
+					and (glint.material_override as StandardMaterial3D).albedo_texture != null
 					and muzzle_flash.get_node_or_null("FlashSpark_1") != null
 				),
 				"barrel flash cone has bounded forward dimensions (visual check still needed)",
@@ -148,6 +152,8 @@ func _run_smoke_test() -> void:
 				(
 					spark != null
 					and not spark.visible
+					and glint != null
+					and not glint.visible
 					and bounce != null
 					and bounce.light_energy == 0.0
 				),
@@ -158,7 +164,8 @@ func _run_smoke_test() -> void:
 		muzzle_flash.call("set_reduced_flash", false)
 		test_passed = (
 			_expect(
-				spark != null and spark.visible, "normal axial muzzle streaks return when opted in"
+				spark != null and spark.visible and glint != null and glint.visible,
+				"normal axial muzzle streaks and face-on glint return when opted in"
 			)
 			and test_passed
 		)
