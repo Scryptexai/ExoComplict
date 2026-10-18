@@ -216,13 +216,29 @@ func _run() -> void:
 		results.visible and retry.is_visible_in_tree() and explore.is_visible_in_tree(),
 		"results display distinct RETRY and RETURN TO EXPLORE actions",
 	)
+	var camera_rig := player.get_node("CameraRig") as Node3D
+	var yaw_pivot := camera_rig.get_node("YawPivot") as Node3D
+	var pitch_pivot := camera_rig.get_node("YawPivot/PitchPivot") as Node3D
+	var authored_pitch := pitch_pivot.rotation.x
+	camera_rig.call("apply_look_delta", Vector2(100.0, 220.0))
+	var chosen_yaw := yaw_pivot.rotation.y
+	_expect(
+		pitch_pivot.rotation.x < authored_pitch - 0.3,
+		"a prior fight can leave the camera pitched toward the floor",
+	)
 	retry.pressed.emit()
 	_expect(
-		int(main.get("session_mode")) == 1 and int(wave.get("current_wave")) == 0,
-		"RETRY restarts preparation without an immediate spawn",
+		(
+			int(main.get("session_mode")) == 1
+			and int(wave.get("current_wave")) == 0
+			and is_equal_approx(pitch_pivot.rotation.x, authored_pitch)
+			and is_equal_approx(yaw_pivot.rotation.y, chosen_y)
+		),
+		"RETRY re-centers the horizon without turning the player or spawning immediately",
 	)
 	main.call("_process", 5.1)
 	wave.call("end_session")
+	camera_rig.call("apply_look_delta", Vector2(0.0, 185.0))
 	explore.pressed.emit()
 	_expect(
 		(
@@ -231,8 +247,9 @@ func _run() -> void:
 			and int(wave.get("current_wave")) == 0
 			and drone.visible
 			and drone.is_in_group("enemies")
+			and is_equal_approx(pitch_pivot.rotation.x, authored_pitch)
 		),
-		"results RETURN TO EXPLORE restores the harmless practice target",
+		"RETURN TO EXPLORE restores the harmless target and a readable horizon",
 	)
 
 	main.queue_free()

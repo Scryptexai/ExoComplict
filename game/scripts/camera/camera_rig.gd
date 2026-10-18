@@ -42,6 +42,7 @@ var _kick_offset: Vector3 = Vector3.ZERO
 var _default_walk_bob: float = 0.0
 var _default_kick_rotation: float = 0.0
 var _default_kick_push: float = 0.0
+var _default_pitch: float = 0.0
 var _qa_camera_trace: bool = false
 var _qa_trace_elapsed: float = 0.0
 
@@ -66,6 +67,7 @@ func _ready() -> void:
 	pitch_pivot.rotation.x = clampf(
 		pitch_pivot.rotation.x, deg_to_rad(min_pitch_degrees), deg_to_rad(max_pitch_degrees)
 	)
+	_default_pitch = pitch_pivot.rotation.x
 
 
 func _process(delta: float) -> void:
@@ -142,6 +144,22 @@ func set_reduced_motion(enabled: bool) -> void:
 		spring_arm.position.z = rest_shoulder_offset.lerp(aim_shoulder_offset, _aim_blend).z
 		spring_camera.h_offset = 0.0
 		spring_camera.v_offset = 0.0
+
+
+## Returning from Results begins a new run, not a continuation of the last
+## floor-level combat view. Keep yaw/location to respect the player's chosen
+## direction, but restore the scene-authored horizon and clear weapon kick.
+## Pause/resume deliberately does NOT call this method.
+func recenter_for_new_run() -> void:
+	_aiming = false
+	_aim_blend = 0.0
+	_kick = 0.0
+	_kick_offset = Vector3.ZERO
+	pitch_pivot.rotation.x = _default_pitch
+	spring_camera.rotation = Vector3.ZERO
+	spring_camera.h_offset = 0.0
+	spring_camera.v_offset = 0.0
+	_apply_blend(0.0)
 
 
 func apply_look_delta(delta: Vector2) -> void:

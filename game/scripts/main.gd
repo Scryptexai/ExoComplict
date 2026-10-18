@@ -293,6 +293,7 @@ func _return_to_explore() -> void:
 	_retry_defense = false
 	wave_director.reset_session()
 	player.reset_player()
+	player.camera_rig.recenter_for_new_run()
 	training_drone.set_active(true)
 	training_drone.reset()
 	_shots_fired = 0
