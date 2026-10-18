@@ -80,6 +80,8 @@ func _create_materials() -> void:
 		# The reactor's big glass and energy shapes were becoming a white/cyan
 		# billboard in portrait; reserve the brightest values for slim halos.
 		"reactor_core": _make_emissive(Color(0.02, 0.3, 0.37), 0.27),
+		"reactor_spine": _make_material(Color(0.07, 0.16, 0.19), 0.62, 0.38),
+		"reactor_coils": _make_emissive(Color(0.08, 0.64, 0.58), 0.75),
 		"emerald": _make_emissive(Color(0.08, 0.53, 0.33), 0.58),
 		"yellow": _make_emissive(Color(0.9, 0.54, 0.065), 0.43),
 		"orange": _make_emissive(Color(1.0, 0.27, 0.035), 0.95),
@@ -89,6 +91,7 @@ func _create_materials() -> void:
 		"rock_light": _make_material(Color(0.76, 0.58, 0.42), 0.02, 0.88),
 		"rock_rose": _make_material(Color(0.64, 0.39, 0.37), 0.03, 0.9),
 		"glass": _make_translucent(Color(0.09, 0.48, 0.61, 0.2), 0.25, 0.2),
+		"reactor_glass": _make_translucent(Color(0.07, 0.34, 0.42, 0.085), 0.25, 0.2),
 		"flora": _make_material(Color(0.19, 0.64, 0.35), 0.0, 0.72),
 		"flora_lime": _make_emissive(Color(0.51, 0.87, 0.17), 0.25),
 		"flora_teal": _make_material(Color(0.04, 0.58, 0.54), 0.05, 0.52),
@@ -245,6 +248,45 @@ func _ring(
 		)
 
 
+func _reactor_coils() -> MeshInstance3D:
+	# One small mesh, not ten extra glowing cylinders/draw calls. Keeping dark
+	# gaps between these powered bands breaks the old six-metre green billboard
+	# without removing the uploaded-FBX columns and cladding around the reactor.
+	var vertices := PackedVector3Array()
+	var normals := PackedVector3Array()
+	for tier in range(10):
+		var height := 4.38 + float(tier) * 0.59
+		var radius := lerpf(0.98, 0.78, float(tier) / 9.0)
+		for segment in range(24):
+			var angle := TAU * float(segment) / 24.0
+			var next_angle := TAU * float(segment + 1) / 24.0
+			var lower := Vector3(cos(angle) * radius, height, sin(angle) * radius)
+			var upper := lower + Vector3.UP * 0.075
+			var next_lower := Vector3(cos(next_angle) * radius, height, sin(next_angle) * radius)
+			var next_upper := next_lower + Vector3.UP * 0.075
+			vertices.append_array(
+				PackedVector3Array([lower, upper, next_lower, upper, next_upper, next_lower])
+			)
+			var normal := Vector3(cos(angle), 0.0, sin(angle))
+			var next_normal := Vector3(cos(next_angle), 0.0, sin(next_angle))
+			normals.append_array(
+				PackedVector3Array([normal, normal, next_normal, normal, next_normal, next_normal])
+			)
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var coils := MeshInstance3D.new()
+	coils.name = "ReactorCoils"
+	coils.mesh = mesh
+	coils.material_override = _materials["reactor_coils"]
+	coils.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(coils)
+	return coils
+
+
 func _add_bolts(
 	prefix: String, center: Vector3, half_size: Vector2, y: float, material: Material
 ) -> void:
@@ -348,20 +390,30 @@ func _build_reactor_core() -> void:
 		2.45,
 		2.45,
 		5.6,
-		_materials["glass"],
+		_materials["reactor_glass"],
 		Vector3.ZERO,
 		32
 	)
 	_cylinder(
 		"EmeraldEnergyColumn",
 		Vector3(0.0, 7.0, 0.0),
-		1.25,
-		0.7,
+		0.84,
+		0.64,
 		6.1,
-		_materials["emerald"],
+		_materials["reactor_spine"],
 		Vector3.ZERO,
 		24
 	)
+	_reactor_coils()
+	for rail in range(6):
+		var angle := TAU * float(rail) / 6.0
+		_box(
+			"ReactorCoilRail_%02d" % rail,
+			Vector3(cos(angle) * 1.06, 7.0, sin(angle) * 1.06),
+			Vector3(0.12, 5.7, 0.12),
+			_materials["dark_trim"],
+			Vector3(0.0, -rad_to_deg(angle), 0.0)
+		)
 	# Focus the emissive focal point inside the larger FBX-framed structure:
 	# the earlier overexposed cyan orb filled the portrait camera's horizon.
 	_sphere(

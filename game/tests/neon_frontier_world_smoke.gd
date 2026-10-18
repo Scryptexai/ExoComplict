@@ -119,6 +119,31 @@ func _run_smoke_test() -> void:
 		_expect(kit_pylons == 4, "the central reactor's pylons use uploaded FBX geometry")
 		and test_passed
 	)
+	var reactor := world.get_node_or_null("CentralReactor") as Node3D
+	var spine: MeshInstance3D = null
+	var coils: MeshInstance3D = null
+	var glass: MeshInstance3D = null
+	if reactor != null:
+		spine = reactor.get_node_or_null("EmeraldEnergyColumn") as MeshInstance3D
+		coils = reactor.get_node_or_null("ReactorCoils") as MeshInstance3D
+		glass = reactor.get_node_or_null("ContainmentGlass") as MeshInstance3D
+	var spine_mesh := spine.mesh as CylinderMesh if spine != null else null
+	var glass_material := glass.material_override as StandardMaterial3D if glass != null else null
+	test_passed = (
+		_expect(
+			(
+				spine_mesh != null
+				and spine_mesh.bottom_radius < 1.0
+				and coils != null
+				and coils.mesh != null
+				and coils.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size() >= 1400
+				and glass_material != null
+				and glass_material.albedo_color.a < 0.12
+			),
+			"reactor energy reads as slim powered coils in FBX framing, not an opaque green slab",
+		)
+		and test_passed
+	)
 	for district in ["Outpost", "Landing", "Extraction", "Boss", "Wreck"]:
 		var group := world.get_node_or_null("SciFi%sDistrict" % district) as Node3D
 		test_passed = (
