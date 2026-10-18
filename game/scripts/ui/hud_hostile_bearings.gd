@@ -34,14 +34,15 @@ static func collect(
 			continue
 		var target := enemy.global_position + Vector3.UP
 		var screen := camera.unproject_position(target)
-		if not camera.is_position_behind(target) and safe_area.grow(-15.0 * unit).has_point(screen):
+		var behind := camera.is_position_behind(target)
+		if not behind and safe_area.grow(-15.0 * unit).has_point(screen):
 			continue
 		var to_enemy := enemy.global_position - camera.global_position
 		to_enemy.y = 0.0
-		var bearing := Vector2(to_enemy.dot(right), -to_enemy.dot(forward))
-		if bearing.length_squared() < 0.0001:
+		var horizontal := Vector2(to_enemy.dot(right), -to_enemy.dot(forward))
+		var direction := _projected_direction(screen, safe_area, horizontal, behind)
+		if direction.length_squared() < 0.0001:
 			continue
-		var direction := bearing.normalized()
 		var half := safe_area.size * 0.5
 		var extent := minf(
 			half.x / maxf(absf(direction.x), 0.001), half.y / maxf(absf(direction.y), 0.001)
@@ -53,6 +54,20 @@ static func collect(
 		}
 		bearings.append(marker)
 	return bearings
+
+
+static func _projected_direction(
+	screen: Vector2, safe_area: Rect2, horizontal: Vector2, behind_camera: bool
+) -> Vector2:
+	# A Runner beside the player's feet can be *in front of the camera* but
+	# project below the phone's thumb cluster. World-facing forward used to put
+	# its arrow at the TOP of the screen, exactly opposite the visible threat.
+	# Use the actual screen position when it is in the front hemisphere; only
+	# an enemy behind the lens needs a world-space fallback.
+	var projected := screen - safe_area.get_center()
+	if not behind_camera and projected.length_squared() > 0.0001:
+		return projected.normalized()
+	return horizontal.normalized() if horizontal.length_squared() > 0.0001 else Vector2.ZERO
 
 
 static func draw_marker(host: CanvasItem, bearing: Dictionary, unit: float) -> void:

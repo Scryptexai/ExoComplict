@@ -81,6 +81,7 @@ func _ready() -> void:
 	reward_service.wave_rewarded.connect(_on_wave_rewarded)
 	wave_director.enemy_spawned.connect(_on_wave_enemy_spawned)
 	wave_director.enemy_defeated.connect(reward_service.award_enemy_defeat)
+	reward_service.enemy_rewarded.connect(_on_enemy_rewarded)
 	wave_director.session_ended.connect(_on_wave_session_ended)
 	wave_director.spawn_blocked.connect(_on_wave_spawn_blocked)
 	touch_controls._set_play_phase("explore")
@@ -337,6 +338,14 @@ func _on_wave_started(_wave_index: int, _enemy_count: int) -> void:
 
 func _on_wave_completed(_wave_index: int) -> void:
 	_update_status()
+
+
+func _on_enemy_rewarded(enemy: Node3D, _score_reward: int, bp_reward: int) -> void:
+	# A real KO deserves an immediate outcome even if the player cannot finish
+	# the wave. The same earned reward appears in Results and the browser log.
+	touch_controls._feedback_panel.show_message("TARGET DOWN · +%d BP" % bp_reward)
+	var archetype := "SHOOTER" if enemy.is_in_group("shooter_enemies") else "RUNNER"
+	print("Encounter: %s KO · +%d BP" % [archetype, bp_reward])
 
 
 func _on_wave_rewarded(wave_index: int, bp_reward: int) -> void:

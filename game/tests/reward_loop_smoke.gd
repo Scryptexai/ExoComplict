@@ -102,6 +102,15 @@ func _run_smoke_test() -> void:
 		)
 		and test_passed
 	)
+	var feedback := main_scene.get_node("HUD/TouchControls").get("_feedback_panel") as Control
+	var feedback_label := feedback.get("_message_label") as Label
+	test_passed = (
+		_expect(
+			feedback.visible and feedback_label.text.contains("WAVE 01 CLEAR · +100 BP"),
+			"a rewarded KO follows through to the real wave-clear outcome chip",
+		)
+		and test_passed
+	)
 
 	wave_director.call("end_session")
 	var results_panel := (

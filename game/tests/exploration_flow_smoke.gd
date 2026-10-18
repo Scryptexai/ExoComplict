@@ -145,6 +145,13 @@ func _run() -> void:
 		),
 		"offscreen hostiles cue direction above thumb controls in both orientations",
 	)
+	var lower_threat_direction := HudHostileBearings._projected_direction(
+		Vector2(240.0, 770.0), Rect2(Vector2(40.0, 224.0), Vector2(310.0, 299.0)), Vector2.UP, false
+	)
+	_expect(
+		lower_threat_direction.y > 0.9,
+		"a nearby Runner hidden below the thumb cluster points DOWN, not up",
+	)
 	threat.queue_free()
 	var valid_spawns: Array[Marker3D] = []
 	for child in main.get_node("SpawnPoints").get_children():
