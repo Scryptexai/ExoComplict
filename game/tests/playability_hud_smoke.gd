@@ -270,7 +270,11 @@ func _run_smoke_test() -> void:
 		(
 			weapon_button.get_global_rect().size.y * 0.3047 >= 71.0
 			and weapon_button.get_global_rect().size.x * 0.3047 >= 75.0
-			and weapon_button.get_global_rect().get_center().x * 0.3047 > 290.0
+			and weapon_button.get_global_rect().get_center().x * 0.3047 < 90.0
+			and (
+				weapon_button.get_global_rect().position.y
+				>= defense_button.get_global_rect().end.y + portrait_gap
+			)
 			and fire_button.get_global_rect().size.x * 0.3047 >= 119.0
 			and fire_button.get_theme_constant("icon_max_width") * 0.3047 >= 87.0
 			and fire_button.expand_icon
@@ -289,7 +293,7 @@ func _run_smoke_test() -> void:
 				skill_button.get_global_rect()
 			)
 		),
-		"portrait FIRE 120/88 glyph ceiling, AIM/EMP 80/56, SWAP 76/60, PAUSE 56 px with gaps",
+		"portrait FIRE/ADS/EMP finger targets clear the upper-left SWAP dock and each other",
 	)
 	_expect(
 		(
@@ -356,15 +360,16 @@ func _run_smoke_test() -> void:
 			and help_label.text.contains("AIM")
 			and help_label.text.contains("EMP")
 			and help_label.text.contains("SWAP")
-			and not help_plate.get_global_rect().intersects(wave_card.get_global_rect())
-			and not help_plate.get_global_rect().intersects(armory_entry.get_global_rect())
-			and not help_plate.get_global_rect().intersects(weapon_button.get_global_rect())
+			and not help_plate.visible
+			and not (controls.get("_touch_ammo_chip") as Control).get_global_rect().intersects(
+				armory_entry.get_global_rect()
+			)
 			and not (controls.get("_wave_state_label") as Label).visible
 			and not controls.get("_run_card").visible
 		),
 		(
 			(
-				"landscape objective/help clear armory and SWAP: canvas=%s objective=%s "
+				"landscape ammo clears Armory, short-screen hint stays hidden: canvas=%s objective=%s "
 				+ "help=%s armory=%s swap=%s font=%d text=%s state=%s"
 			)
 			% [

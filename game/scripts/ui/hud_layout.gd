@@ -183,13 +183,17 @@ static func touch_portrait(hud) -> void:
 	# ADS, EMP; dock weapon + ammo by the movement thumb, as in the live mobile
 	# control reference. In portrait this leaves the hero and aiming lane clear.
 	# FIRE x218..378/y646..806; ADS x282..378/y538..634;
-	# EMP x282..378/y432..528; weapon x20..124/y456..560.
+	# EMP x282..378/y432..528. An actual held-ADS screenshot exposed the
+	# first bottom-left weapon dock covering the helmet. Dock the infrequent
+	# swap action BELOW Start but ABOVE the hero instead, with ammo alongside.
 	_place_button(hud, hud._fire_button, 12.0, 38.0, 160.0, 160.0)
 	_place_button(hud, hud._aim_button, 12.0, 210.0, 96.0, 96.0)
 	_place_button(hud, hud._skill_button, 12.0, 316.0, 96.0, 96.0)
-	var dock_bottom_px: float = minf(398.0, hud._physical_size.y - 284.0)
-	_place_weapon_dock(hud, hud._touch_ammo_chip, 12.0, dock_bottom_px, 112.0, 54.0)
-	_place_weapon_dock(hud, hud._weapon_button, 20.0, dock_bottom_px - 114.0, 104.0, 104.0)
+	var dock_top: float = action_top + hud._to_layout(64.0)
+	_place_weapon_dock(hud, hud._weapon_button, 12.0, dock_top, 104.0, 104.0)
+	_place_weapon_dock(
+		hud, hud._touch_ammo_chip, 128.0, dock_top + hud._to_layout(18.0), 112.0, 54.0
+	)
 	_place(
 		hud._skill_ring,
 		1,
@@ -308,7 +312,8 @@ static func touch_landscape(hud) -> void:
 	_place_button(hud, hud._aim_button, 12.0, 173.0, 94.0, 94.0)
 	_place_button(hud, hud._skill_button, 170.0, 56.0, 94.0, 94.0)
 	_place_button(hud, hud._weapon_button, 120.0, 173.0, 94.0, 94.0)
-	_place_button(hud, hud._touch_ammo_chip, 226.0, 182.0, 112.0, 54.0)
+	# y164..218: below the top Armory chip (which ends at y160).
+	_place_button(hud, hud._touch_ammo_chip, 226.0, 172.0, 112.0, 54.0)
 	# Cooldown ring remains centred around the actual EMP face.
 	_place(
 		hud._skill_ring,
@@ -354,9 +359,8 @@ static func touch_landscape(hud) -> void:
 			hud._to_layout(64.0)
 		)
 	)
-	# Optional help fits between the top system buttons and the thumb controls.
-	# A 300 px plate beside a 294 px objective overflowed their shared rail on
-	# narrow landscape screens, and the old y offset covered the armory action.
+	# Retain an anchor for the help panel across rotations, but never show it
+	# over the enlarged action row on a 390px-high landscape playfield.
 	_place(
 		hud._help_panel,
 		1,
@@ -370,6 +374,7 @@ static func touch_landscape(hud) -> void:
 			hud._help_block_height(2)
 		)
 	)
+	hud._help_panel.visible = false
 
 
 ## Portrait menus are bottom sheets above the gesture area; wide layouts use
@@ -480,16 +485,15 @@ static func _place_button(
 ## Weapon + ammo live opposite the firing thumb in portrait. Mirroring both
 ## docks together preserves the handedness option without mirroring the art.
 static func _place_weapon_dock(
-	hud, control: Control, side_px: float, bottom_px: float, w_px: float, h_px: float
+	hud, control: Control, side_px: float, top: float, w_px: float, h_px: float
 ) -> void:
 	var side: float = hud._to_layout(side_px)
-	var bottom: float = hud._to_layout(bottom_px)
 	var width: float = hud._to_layout(w_px)
 	var height: float = hud._to_layout(h_px)
 	if hud._left_handed:
-		_place(control, 1, 1, 1, 1, Rect2(-side - width, -bottom - height, width, height))
+		_place(control, 1, 0, 1, 0, Rect2(-side - width, top, width, height))
 	else:
-		_place(control, 0, 1, 0, 1, Rect2(side, -bottom - height, width, height))
+		_place(control, 0, 0, 0, 0, Rect2(side, top, width, height))
 	control.custom_minimum_size = Vector2(width, height)
 
 

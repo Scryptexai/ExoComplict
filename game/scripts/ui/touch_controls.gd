@@ -356,7 +356,7 @@ func show_help() -> void:
 		return
 	_help_remaining = HELP_VISIBLE_SECONDS
 	_help_panel.modulate.a = 1.0
-	_help_panel.visible = true
+	_help_panel.visible = not (_touch_mode and _narrow and not _portrait)
 
 
 ## Switches the HUD between thumb controls and a keyboard/mouse legend. Public
