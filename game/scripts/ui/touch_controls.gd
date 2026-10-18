@@ -43,9 +43,11 @@ const COMPACT_LINES: int = 4
 const DESKTOP_HINT := "WASD MOVE · DRAG/RMB LOOK · LMB FIRE · " + "B DEFENSE · U ARMORY · ESC PAUSE"
 const DESKTOP_HINT_SHORT := "WASD MOVE · B DEFENSE · U ARMORY · ESC PAUSE"
 const HELP_TEXT := (
-	"MOVE WASD / LEFT STICK · LOOK DRAG RIGHT / RMB · FIRE LMB / HOLD FIRE\n"
-	+ "B DEFENSE · U ARMORY · G RELOAD · E/Q SWAP · F EMP · ESC PAUSE"
+	"WASD MOVE · DRAG/RMB LOOK · LMB FIRE / HOLD FIRE\n"
+	+ "B DEFENSE · U ARMORY · G RELOAD · E/Q SWAP\n"
+	+ "F EMP · ESC PAUSE"
 )
+const DESKTOP_HELP_LANDSCAPE := "WASD MOVE · MOUSE LOOK\nLMB FIRE · F EMP · ESC PAUSE"
 const MOBILE_HELP_TEXT := "LEFT STICK MOVE · DRAG RIGHT LOOK\nFIRE · HOLD AIM · EMP · SWAP"
 const MOBILE_HELP_LANDSCAPE := "STICK MOVE · DRAG LOOK\nFIRE · AIM · EMP · SWAP"
 const HELP_FADE_SECONDS: float = 1.5
@@ -127,7 +129,12 @@ var _pause_settings_button: AegisButton
 var _settings_menu: AegisSettingsMenu
 var _hud_editor: AegisHudEditor
 var _results_summary: Label
+var _results_eyebrow: Label
 var _results_title: Label
+var _results_reward_label: Label
+var _results_goal_label: Label
+var _results_goal_progress_label: Label
+var _results_goal_bar: ProgressBar
 var _desktop_weapon_name: Label
 var _desktop_weapon_meta: Label
 var _ads_label: Label
@@ -626,23 +633,25 @@ func show_results(
 	bp_earned: int,
 	wallet_bp: int,
 	best_score: int,
+	unlocked_ids: Dictionary,
+	was_defeated: bool,
 ) -> void:
 	if not is_instance_valid(_results_panel):
 		return
 	_clear_touch_state()
-	_results_title.text = "WAVE %02d" % maxi(wave_reached, 0)
-	_results_summary.text = (
-		"\n"
-		. join(
-			[
-				"WAVE REACHED      %d" % wave_reached,
-				"SURVIVAL TIME     %s" % survival_time,
-				"ELIMINATIONS      %d" % eliminations,
-				"RUN SCORE         %s" % _format_number(run_score),
-				"BP BANKED         +%d" % bp_earned,
-				"BP WALLET         %d" % wallet_bp,
-				"BEST SCORE        %s" % _format_number(best_score),
-			]
+	(
+		HudMenuUi
+		. update_results(
+			self,
+			wave_reached,
+			survival_time,
+			eliminations,
+			run_score,
+			bp_earned,
+			wallet_bp,
+			best_score,
+			unlocked_ids,
+			was_defeated,
 		)
 	)
 	_results_panel.visible = true
@@ -1006,7 +1015,7 @@ func _layout_controls(
 		_help_label.text = (
 			(MOBILE_HELP_TEXT if _portrait else MOBILE_HELP_LANDSCAPE)
 			if _touch_mode and physical_width < 1024.0
-			else HELP_TEXT
+			else (DESKTOP_HELP_LANDSCAPE if _narrow and not _portrait else HELP_TEXT)
 		)
 
 	_refresh_card_styles()

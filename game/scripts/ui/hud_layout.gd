@@ -123,7 +123,13 @@ static func desktop(hud) -> void:
 	hud._score_chip.visible = true
 	hud._sound_button.visible = true
 	hud._wave_icon.visible = true
-	_place_help(hud, inset, hud._top_inset + 64.0 * unit + 8.0 * unit, 560.0 * unit, 64.0 * unit)
+	_place_help(
+		hud,
+		inset,
+		hud._top_inset + 64.0 * unit + 8.0 * unit,
+		560.0 * unit,
+		hud._help_block_height(3)
+	)
 	_place_compact(hud, inset, 0.0, false)
 
 
@@ -387,6 +393,7 @@ static func overlays(hud) -> void:
 	hud._results_retry_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	hud._results_explore_button.custom_minimum_size = hud._results_retry_button.custom_minimum_size
 	hud._results_explore_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	hud._results_goal_bar.custom_minimum_size.y = hud._to_layout(8.0)
 
 	var pause_width: float = minf(
 		hud._to_layout(390.0 if sheet else 400.0), hud.size.x * (0.94 if sheet else 0.88)

@@ -119,8 +119,8 @@ func _run_smoke_test() -> void:
 	)
 	test_passed = (
 		_expect(
-			results_retry_button.visible and results_retry_button.text == "RETRY",
-			"results panel exposes a retry action",
+			results_retry_button.visible and results_retry_button.text == "RETRY EXPLORE",
+			"Explore defeat offers an explicit recovery, not an unsolicited Defense run",
 		)
 		and test_passed
 	)

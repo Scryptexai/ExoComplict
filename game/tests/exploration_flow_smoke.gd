@@ -122,7 +122,9 @@ func _run() -> void:
 			and results.visible
 			and wave.call("get_active_enemies").is_empty()
 			and int(main.get_node("ProgressionService").get("balance")) == 25
-			and (hud.get("_results_summary") as Label).text.contains("BP BANKED")
+			and (hud.get("_results_reward_label") as Label).text == "+25 BP BANKED"
+			and (hud.get("_results_goal_progress_label") as Label).text.contains("95 TO GO")
+			and is_equal_approx((hud.get("_results_goal_bar") as ProgressBar).value, 25.0)
 		),
 		"FINISH RUN opens Results, banks earned BP and stops enemies",
 	)

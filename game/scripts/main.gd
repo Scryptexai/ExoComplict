@@ -381,6 +381,8 @@ func _on_wave_session_ended(wave_index: int, _total_defeated: int) -> void:
 			run_bp,
 			progression_service.balance,
 			progression_service.best_score,
+			progression_service.unlocked_ids,
+			player.is_defeated(),
 		)
 	)
 	_update_status()

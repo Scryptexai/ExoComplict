@@ -183,7 +183,11 @@ static func build_help_panel(hud, help_text: String) -> void:
 	hud._help_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(hud._help_panel)
 	hud._help_label = hud._label(help_text, "caption", AegisTokens.INK_2, 1.0, true)
-	hud._help_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# All help variants supply explicit, width-checked line breaks. Autowrap in
+	# a PanelContainer can compute an enormous minimum height while its hidden
+	# label temporarily has zero width, making the optional plate cover FIRE.
+	hud._help_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	hud._help_label.clip_text = true
 	hud._help_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	hud._help_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hud._help_label.mouse_filter = Control.MOUSE_FILTER_IGNORE

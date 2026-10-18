@@ -301,7 +301,8 @@ func _run_smoke_test() -> void:
 	var armory_entry := controls.get("_armory_button") as Control
 	_expect(
 		(
-			not help_plate.get_global_rect().intersects(wave_card.get_global_rect())
+			help_plate.get_global_rect().size.y * 0.541667 < 65.0
+			and not help_plate.get_global_rect().intersects(wave_card.get_global_rect())
 			and not help_plate.get_global_rect().intersects(armory_entry.get_global_rect())
 			and not help_plate.get_global_rect().intersects(weapon_button.get_global_rect())
 			and not (controls.get("_wave_state_label") as Label).visible
@@ -310,7 +311,7 @@ func _run_smoke_test() -> void:
 		(
 			(
 				"landscape objective/help clear armory and SWAP: canvas=%s objective=%s "
-				+ "help=%s armory=%s swap=%s state=%s"
+				+ "help=%s armory=%s swap=%s font=%d text=%s state=%s"
 			)
 			% [
 				controls.size,
@@ -318,6 +319,8 @@ func _run_smoke_test() -> void:
 				help_plate.get_global_rect(),
 				armory_entry.get_global_rect(),
 				weapon_button.get_global_rect(),
+				help_label.get_theme_font_size("font_size"),
+				help_label.text,
 				(controls.get("_wave_state_label") as Label).visible,
 			]
 		),
