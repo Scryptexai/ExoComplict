@@ -144,13 +144,13 @@ static func apply_fonts(hud) -> void:
 		if is_instance_valid(button):
 			var button_icon_px := icon_px
 			if button == hud._fire_button:
-				button_icon_px = roundi(hud._to_layout(140.0 if hud._portrait else 120.0))
+				button_icon_px = roundi(hud._to_layout(152.0 if hud._portrait else 140.0))
 			elif button == hud._aim_button:
-				button_icon_px = roundi(hud._to_layout(92.0 if hud._portrait else 80.0))
+				button_icon_px = roundi(hud._to_layout(92.0 if hud._portrait else 90.0))
 			elif button == hud._skill_button:
-				button_icon_px = roundi(hud._to_layout(86.0 if hud._portrait else 78.0))
+				button_icon_px = roundi(hud._to_layout(86.0 if hud._portrait else 88.0))
 			elif button == hud._weapon_button:
-				button_icon_px = roundi(hud._to_layout(90.0 if hud._portrait else 78.0))
+				button_icon_px = roundi(hud._to_layout(98.0 if hud._portrait else 88.0))
 			elif button == hud._pause_button:
 				button_icon_px = roundi(hud._to_layout(40.0))
 			elif button == hud._sound_button:

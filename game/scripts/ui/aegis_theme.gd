@@ -112,7 +112,10 @@ static func icon(icon_name: String, filled: bool = false) -> Texture2D:
 	var key := "%s/%s" % [folder, icon_name]
 	if _icons.has(key):
 		return _icons[key]
-	var path := "%s/%s/%s.svg" % [ICON_ROOT, folder, icon_name]
+	# The SHOOT artwork is an authored alpha silhouette; keep its transparent
+	# source at 256 px instead of rasterizing tiny SVG weapon details at runtime.
+	var extension := "png" if icon_name == "shot-burst" else "svg"
+	var path := "%s/%s/%s.%s" % [ICON_ROOT, folder, icon_name, extension]
 	var texture: Texture2D = null
 	if ResourceLoader.exists(path):
 		texture = load(path) as Texture2D

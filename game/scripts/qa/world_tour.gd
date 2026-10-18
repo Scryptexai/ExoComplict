@@ -11,7 +11,8 @@ extends Node3D
 ##
 ##   F10        toggle the review camera (simulation pauses while touring)
 ##   1 – 8      jump to a vantage point
-##   F9         hide/show only imported FBX visuals, for same-camera A/B proof
+##   F9         hide/show only imported FBX visuals during tour; in the normal
+##              player camera too, but ONLY with ?qa_fbx=1 on the Web preview
 ##   Esc / 0    restore all imports and hand the view back to the player
 ##   F8         only with ?qa_effect: arm ONE real shot, freeze after it fires;
 ##              press F8 again to resume. Never spawns an effect or a fake shot.
@@ -74,6 +75,7 @@ var _camera: Camera3D
 var _active := false
 var _vantage := 0
 var _uploaded_fbx_visible := true
+var _gameplay_fbx_review_enabled := false
 var _effect_review_enabled := false
 var _freeze_next_shot := false
 var _shot_frozen := false
@@ -94,6 +96,9 @@ func _ready() -> void:
 	if OS.has_feature("web"):
 		_effect_review_enabled = bool(
 			JavaScriptBridge.eval("new URLSearchParams(location.search).has('qa_effect')")
+		)
+		_gameplay_fbx_review_enabled = bool(
+			JavaScriptBridge.eval("new URLSearchParams(location.search).has('qa_fbx')")
 		)
 	if _effect_review_enabled:
 		var player := get_parent().get_node_or_null("Player")
@@ -133,11 +138,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			_apply()
 		get_viewport().set_input_as_handled()
 		return
-	if not _active:
-		return
-	if key == KEY_F9:
+	# Opt-in A/B under the *playable* shoulder camera. The normal game never
+	# exposes this key; the same FBX group/physics remain untouched by the toggle.
+	if key == KEY_F9 and (_active or _gameplay_fbx_review_enabled):
 		_set_uploaded_fbx_visible(not _uploaded_fbx_visible)
 		get_viewport().set_input_as_handled()
+		return
+	if not _active:
 		return
 	if key >= KEY_1 and key <= KEY_8:
 		_vantage = key - KEY_1

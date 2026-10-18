@@ -178,18 +178,18 @@ static func touch_portrait(hud) -> void:
 		hud._system_row, 1, 0, 1, 0, Rect2(-system_width, 0, system_width, bar_height)
 	)
 
-	# 390x844: FIRE x230..378/y658..806 (148²), ADS x282..378/y552..648,
-	# EMP x176..272/y446..542, ARMORY x282..378/y446..542. The initial
-	# stage33 placement of EMP at y552..648 overlaid the hero's *held rifle*
-	# in a real ADS screenshot; it is moved to the upper row, outside the
-	# weapon silhouette. Rectangles retain >=10px gaps and the look lane.
-	_place_button(hud, hud._fire_button, 12.0, 38.0, 148.0, 148.0)
-	_place_button(hud, hud._aim_button, 12.0, 196.0, 96.0, 96.0)
-	_place_button(hud, hud._skill_button, 118.0, 302.0, 96.0, 96.0)
-	_place_button(hud, hud._weapon_button, 12.0, 302.0, 96.0, 96.0)
-	# The old left ammo chip crossed the hero's hip/arm in the 390x844 ADS
-	# screenshot. Attach weapon data ABOVE the right-hand weapon action.
-	_place_button(hud, hud._touch_ammo_chip, 12.0, 408.0, 112.0, 54.0)
+	# Actual 390x844 WebGL review: the four plates crowded the right side and
+	# SHOOT looked like a toy despite a large bbox. Reserve that thumb for FIRE,
+	# ADS, EMP; dock weapon + ammo by the movement thumb, as in the live mobile
+	# control reference. In portrait this leaves the hero and aiming lane clear.
+	# FIRE x218..378/y646..806; ADS x282..378/y538..634;
+	# EMP x282..378/y432..528; weapon x20..124/y456..560.
+	_place_button(hud, hud._fire_button, 12.0, 38.0, 160.0, 160.0)
+	_place_button(hud, hud._aim_button, 12.0, 210.0, 96.0, 96.0)
+	_place_button(hud, hud._skill_button, 12.0, 316.0, 96.0, 96.0)
+	var dock_bottom_px: float = minf(398.0, hud._physical_size.y - 284.0)
+	_place_weapon_dock(hud, hud._touch_ammo_chip, 12.0, dock_bottom_px, 112.0, 54.0)
+	_place_weapon_dock(hud, hud._weapon_button, 20.0, dock_bottom_px - 114.0, 104.0, 104.0)
 	_place(
 		hud._skill_ring,
 		1,
@@ -197,8 +197,8 @@ static func touch_portrait(hud) -> void:
 		1,
 		1,
 		Rect2(
-			-hud._to_layout(218.0),
-			-hud._to_layout(402.0),
+			-hud._to_layout(112.0),
+			-hud._to_layout(416.0),
 			hud._to_layout(104.0),
 			hud._to_layout(104.0)
 		)
@@ -300,17 +300,16 @@ static func touch_landscape(hud) -> void:
 		)
 	)
 
-	# 844x390: FIRE x704..832/y249..377 (128²); ADS x748..832/y155..239;
-	# EMP x610..694/y250..334; WEAPON x650..734/y155..239. Minimum
-	# 10px face gap; only actions, not hit slivers or labels, own this corner.
-	_place_button(hud, hud._fire_button, 12.0, 13.0, 128.0, 128.0)
-	_place_button(hud, hud._aim_button, 12.0, 151.0, 84.0, 84.0)
-	_place_button(hud, hud._skill_button, 150.0, 56.0, 84.0, 84.0)
-	_place_button(hud, hud._weapon_button, 110.0, 151.0, 84.0, 84.0)
-	# Pair ammo with its swap action, not a detached chip near the hero.
-	# At 844x390 this is x524..636/y154..208, 14px left of SWAP.
-	_place_button(hud, hud._touch_ammo_chip, 208.0, 182.0, 112.0, 54.0)
-	# 844x390: cooldown ring x606..698/y246..338, centred on EMP.
+	# 844x390: keep a 12+ px separation while giving the primary action a
+	# real 148px face. Ammo stays attached to swap, not floating by the hero.
+	# FIRE x684..832/y229..377; ADS x738..832/y123..217;
+	# EMP x580..674/y240..334; WEAPON x630..724/y123..217.
+	_place_button(hud, hud._fire_button, 12.0, 13.0, 148.0, 148.0)
+	_place_button(hud, hud._aim_button, 12.0, 173.0, 94.0, 94.0)
+	_place_button(hud, hud._skill_button, 170.0, 56.0, 94.0, 94.0)
+	_place_button(hud, hud._weapon_button, 120.0, 173.0, 94.0, 94.0)
+	_place_button(hud, hud._touch_ammo_chip, 226.0, 182.0, 112.0, 54.0)
+	# Cooldown ring remains centred around the actual EMP face.
 	_place(
 		hud._skill_ring,
 		1,
@@ -318,10 +317,10 @@ static func touch_landscape(hud) -> void:
 		1,
 		1,
 		Rect2(
-			-hud._to_layout(238.0),
-			-hud._to_layout(144.0),
-			hud._to_layout(92.0),
-			hud._to_layout(92.0)
+			-hud._to_layout(268.0),
+			-hud._to_layout(154.0),
+			hud._to_layout(102.0),
+			hud._to_layout(102.0)
 		)
 	)
 
@@ -476,6 +475,22 @@ static func _place_button(
 	else:
 		_place(button, 1, 1, 1, 1, Rect2(-right - width, -bottom - height, width, height))
 	button.custom_minimum_size = Vector2(width, height)
+
+
+## Weapon + ammo live opposite the firing thumb in portrait. Mirroring both
+## docks together preserves the handedness option without mirroring the art.
+static func _place_weapon_dock(
+	hud, control: Control, side_px: float, bottom_px: float, w_px: float, h_px: float
+) -> void:
+	var side: float = hud._to_layout(side_px)
+	var bottom: float = hud._to_layout(bottom_px)
+	var width: float = hud._to_layout(w_px)
+	var height: float = hud._to_layout(h_px)
+	if hud._left_handed:
+		_place(control, 1, 1, 1, 1, Rect2(-side - width, -bottom - height, width, height))
+	else:
+		_place(control, 0, 1, 0, 1, Rect2(side, -bottom - height, width, height))
+	control.custom_minimum_size = Vector2(width, height)
 
 
 static func _mirror_skill_ring(hud) -> void:

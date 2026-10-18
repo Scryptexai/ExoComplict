@@ -832,7 +832,7 @@ func _build_combat_feedback() -> void:
 
 func _build_touch_buttons() -> void:
 	_fire_button = _combat_button(
-		"shot", "FireButton", "combat_fire", "Hold to fire", AegisTokens.ACCENT
+		"shot-burst", "FireButton", "combat_fire", "Hold to fire", AegisTokens.ACCENT
 	)
 	_fire_button.button_down.connect(_on_fire_down)
 	_fire_button.button_up.connect(_on_fire_up)
