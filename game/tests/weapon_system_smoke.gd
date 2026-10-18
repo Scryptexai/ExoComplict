@@ -2,6 +2,7 @@ extends SceneTree
 
 const MainScene = preload("res://scenes/main.tscn")
 const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
+const NovaShockwaveScript = preload("res://scripts/effects/nova_shockwave.gd")
 
 
 class DamageReceiver:
@@ -339,6 +340,27 @@ func _run_smoke_test() -> void:
 			nova_spark = true
 	test_passed = (
 		_expect(nova_spark, "a real Nova detonation emits a distinct spark burst") and test_passed
+	)
+	var shock_found := false
+	for candidate in get_nodes_in_group(NovaShockwaveScript.GROUP):
+		var shock := candidate as Node3D
+		if shock == null or shock.global_position.distance_to(nova_direct.global_position) > 0.6:
+			continue
+		var surface := shock.get_node_or_null("ImpactSurface") as Node3D
+		var band := shock.get_node_or_null("ImpactSurface/BlastFront") as MeshInstance3D
+		shock_found = (
+			surface != null
+			and band != null
+			and band.mesh is ArrayMesh
+			and shock.get("blast_radius") == 4.0
+			and surface.global_position.y >= 0.12
+		)
+	test_passed = (
+		_expect(
+			shock_found,
+			"a real Nova direct/splash hit grounds a radius-4 shockfront above the FBX floor",
+		)
+		and test_passed
 	)
 	test_passed = (
 		_expect(

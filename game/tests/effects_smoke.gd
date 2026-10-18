@@ -10,6 +10,7 @@ extends SceneTree
 const MainScene = preload("res://scenes/main.tscn")
 const PulseScene = preload("res://scenes/weapons/pulse_projectile.tscn")
 const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
+const NovaShockwaveScript = preload("res://scripts/effects/nova_shockwave.gd")
 const ModelFitterScript = preload("res://scripts/visual/model_fitter.gd")
 
 
@@ -174,11 +175,41 @@ func _run_smoke_test() -> void:
 		_expect(during == before + 1, "the burst joins the impact group for inspection")
 		and test_passed
 	)
-	# The burst frees itself; leaked bursts would poison the frame time in a wave.
+	var before_shock := get_nodes_in_group(NovaShockwaveScript.GROUP).size()
+	var shock := NovaShockwaveScript.spawn(
+		main_scene, Vector3(0.0, 1.0, -6.0), Vector3(0.0, 0.14, -6.0), Vector3.UP, 4.0, true, true
+	)
+	var band := shock.get_node_or_null("ImpactSurface/BlastFront") as MeshInstance3D
+	var core := shock.get_node_or_null("ImpactCore") as MeshInstance3D
+	var bounce := shock.get_node_or_null("BlastBounce") as OmniLight3D
+	test_passed = (
+		_expect(
+			(
+				shock != null
+				and band != null
+				and band.scale.x >= 3.9
+				and core != null
+				and not core.visible
+				and bounce != null
+				and is_zero_approx(bounce.light_energy)
+				and get_nodes_in_group(NovaShockwaveScript.GROUP).size() == before_shock + 1
+			),
+			"reduced-motion Nova keeps a static radius cue without the bright core or bounce",
+		)
+		and test_passed
+	)
+	# Neither effect may leak after its final rendered frame and lifetime.
 	await create_timer(ImpactBurstScript.CLEANUP_DELAY + 0.5).timeout
 	var after := get_nodes_in_group(ImpactBurstScript.BURST_GROUP).size()
 	test_passed = (
 		_expect(after == before, "the burst frees itself after its particles die") and test_passed
+	)
+	test_passed = (
+		_expect(
+			get_nodes_in_group(NovaShockwaveScript.GROUP).size() == before_shock,
+			"the Nova radius cue frees itself after the impact instead of piling up",
+		)
+		and test_passed
 	)
 
 	main_scene.queue_free()
