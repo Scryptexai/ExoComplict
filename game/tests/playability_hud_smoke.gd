@@ -250,6 +250,16 @@ func _run_smoke_test() -> void:
 		"portrait objective and start action stack below vitals without overlap",
 	)
 	var portrait_gap := float(controls.call("_to_layout", 5.9))
+	var feedback_panel := controls.get("_feedback_panel") as Control
+	var ammo_panel := controls.get("_touch_ammo_chip") as Control
+	_expect(
+		(
+			not feedback_panel.get_global_rect().intersects(weapon_button.get_global_rect())
+			and not feedback_panel.get_global_rect().intersects(ammo_panel.get_global_rect())
+			and feedback_panel.get_global_rect().end.y < skill_button.get_global_rect().position.y
+		),
+		"portrait Explore feedback does not hide the SWAP/ammo dock or EMP",
+	)
 	var portrait_skill_ring := controls.get("_skill_ring") as Control
 	_expect(
 		(
@@ -322,6 +332,16 @@ func _run_smoke_test() -> void:
 			]
 		),
 	)
+	controls.call("_set_play_phase", "defense")
+	_expect(
+		(
+			not feedback_panel.get_global_rect().intersects(wave_card.get_global_rect())
+			and not feedback_panel.get_global_rect().intersects(weapon_button.get_global_rect())
+			and feedback_panel.get_global_rect().end.y < weapon_button.get_global_rect().position.y
+		),
+		"portrait Defense feedback moves into the vacated START row, clear of SWAP",
+	)
+	controls.call("_set_play_phase", "explore")
 	# The browser's canvas_items layout spans 844 / .541667 logical units,
 	# not the headless runner's default 1280. Resize the HUD rect as well as
 	# overriding physical pixels so the right rail can actually fit on-screen.
@@ -362,6 +382,13 @@ func _run_smoke_test() -> void:
 			and help_label.text.contains("EMP")
 			and help_label.text.contains("SWAP")
 			and not help_plate.visible
+			and not feedback_panel.get_global_rect().intersects(
+				(controls.get("_health_card") as Control).get_global_rect()
+			)
+			and not feedback_panel.get_global_rect().intersects(
+				(controls.get("_system_row") as Control).get_global_rect()
+			)
+			and not feedback_panel.get_global_rect().intersects(weapon_button.get_global_rect())
 			and not ammo_chip.get_global_rect().grow(landscape_gap).intersects(
 				skill_button.get_global_rect()
 			)

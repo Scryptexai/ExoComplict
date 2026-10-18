@@ -58,17 +58,20 @@ func layout_for(hud) -> void:
 	)
 	var width: float = minf(hud._to_layout(272.0), hud.size.x - hud._to_layout(24.0))
 	if hud._touch_mode:
-		# The old centred toast crossed the hero and was *under* the enlarged
-		# EMP plate in a real 390x844 tap frame. The action row ends near y226;
-		# place brief feedback below it, to the left of the actor and controls.
 		var left: float = hud._to_layout(12.0)
-		var top: float = hud._top_inset + hud._to_layout(196.0)
-		if not hud._portrait:
-			# 844x390: the left stick occupies x56..184/y236..364, so a
-			# below-START toast hid its upper half. Use the small clear slot
-			# above the right actions (sound/pause end ~y98, weapon starts y155).
-			left = hud.size.x - hud._to_layout(12.0) - width
-			top = hud._top_inset + hud._to_layout(64.0)
+		var top: float = hud._top_inset + hud._to_layout(304.0)
+		if hud._portrait:
+			# Explore: below the new weapon/ammo dock, above the hero. Defense:
+			# START/ARMORY are hidden, so the free row beneath the objective can
+			# carry feedback without hiding an approaching target or the rifle.
+			if hud._play_phase == "defense":
+				top = hud._top_inset + hud._to_layout(130.0)
+		else:
+			# Landscape: use the free top-bar lane between health and the
+			# pause/sound group. The old top-right position covered ADS/WEAPON.
+			width = minf(width, maxf(hud._to_layout(156.0), hud.size.x - hud._to_layout(464.0)))
+			left = (hud.size.x - width) * 0.5
+			top = hud._top_inset + hud._to_layout(8.0)
 		HudLayout.place(
 			hud, self, 0.0, 0.0, 0.0, 0.0, Rect2(left, top, width, hud._to_layout(40.0))
 		)

@@ -74,6 +74,10 @@ static func apply_context(hud) -> void:
 		)
 	if is_instance_valid(hud._pause_stats_label) and exploring:
 		hud._pause_stats_label.text = "SAFE ZONE · NO WAVES UNTIL YOU START"
+	# The short status chip shares START's slot only after Defense begins.
+	# Re-anchor when the encounter changes phase, not only on window resize.
+	if is_instance_valid(hud._feedback_panel):
+		hud._feedback_panel.layout_for(hud)
 
 
 static func build_objective(hud) -> void:

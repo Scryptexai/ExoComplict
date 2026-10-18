@@ -68,7 +68,11 @@ static func _draw_ticks(
 static func joystick(
 	host: CanvasItem, center: Vector2, radius: float, knob: Vector2, stroke: float
 ) -> void:
-	host.draw_arc(center, radius, 0.0, TAU, 48, Color(AegisTokens.LINE_HI, 0.55), stroke, true)
+	# The uploaded FBX deck is now lighter and UV-detailed. A transparent ring
+	# disappeared over its highlights; this quiet dark footing preserves thumb
+	# contrast without painting a solid control plate over the arena.
+	host.draw_circle(center, radius, Color(AegisTokens.PANEL, 0.28))
+	host.draw_arc(center, radius, 0.0, TAU, 48, Color(AegisTokens.INK_2, 0.78), stroke, true)
 	host.draw_arc(
 		center, radius * 0.59, 0.0, TAU, 36, Color(AegisTokens.LINE_HI, 0.32), stroke, true
 	)
