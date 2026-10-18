@@ -288,7 +288,7 @@
 		</noscript>
 
 		<div id="shell-ui" class="hidden">
-			<div class="shell-bar" id="shell-bar" data-collapsed="false">
+			<div class="shell-bar" id="shell-bar" data-collapsed="true">
 				<button id="shell-bar-toggle" class="shell-button" type="button" title="Show or hide the browser chrome">UI</button>
 				<span class="shell-chip">Project Overdrive · <b>Web Preview</b></span>
 				<span class="shell-chip build">Single-thread WebGL 2 build</span>
@@ -323,7 +323,7 @@
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":12334228,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":12334884,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
@@ -503,7 +503,9 @@ const engine = new Engine(GODOT_CONFIG);
 			statusProgressLabel.textContent = 'starting…';
 			setStatusMode('hidden');
 			shellUi.classList.remove('hidden');
-			scheduleChromeCollapse(5000);
+			// Keep diagnostics behind one small toggle as soon as gameplay starts.
+			// The Godot HUD no longer reserves two rows of browser chrome.
+			document.getElementById('shell-bar').dataset.collapsed = 'true';
 			document.getElementById('canvas').focus();
 		}, displayFailureNotice);
 	}
