@@ -100,10 +100,12 @@ func _run_smoke_test() -> void:
 	_expect(has_collapse_bones, "the Blender death pose has head, hip, and both foot bones")
 	var idle_head_height := 0.0
 	var idle_foot_height := 0.0
+	var idle_left_foot := Vector3.ZERO
 	if has_collapse_bones:
 		idle_head_height = _bone_world(skeleton, head_index).y
+		idle_left_foot = _bone_world(skeleton, left_foot_index)
 		idle_foot_height = minf(
-			_bone_world(skeleton, left_foot_index).y,
+			idle_left_foot.y,
 			_bone_world(skeleton, right_foot_index).y,
 		)
 
@@ -159,22 +161,43 @@ func _run_smoke_test() -> void:
 		"moving aim blends walking legs with aimed upper body instead of sliding",
 	)
 	if anim_player != null:
+		for _tick in range(6):
+			anim_player.advance(0.04)
 		anim_player.seek(0.4, true)
+		anim_player.advance(0.01)
 	visual.call("_process", 0.3)
 	_expect(
 		_barrel(muzzle).dot(forward) > 0.96,
 		"aim-walk keeps the barrel level at mid-stride",
 	)
+	if has_collapse_bones:
+		var walk_stride := _bone_world(skeleton, left_foot_index).distance_to(idle_left_foot)
+		_expect(
+			walk_stride > 0.25,
+			(
+				"aim-walk moves a real boot bone, not just the AnimationPlayer label (%.2f m)"
+				% walk_stride
+			),
+		)
 	visual.call("update_pose", Vector3(6.0, 0.0, 0.0), true, 0.016)
 	visual.call("_process", 0.016)
 	_expect(str(visual.call("current_clip")) == "aim_run", "sprint aim has a moving-leg clip")
 	if anim_player != null:
+		for _tick in range(6):
+			anim_player.advance(0.04)
 		anim_player.seek(0.3, true)
+		anim_player.advance(0.01)
 	visual.call("_process", 0.3)
 	_expect(
 		_barrel(muzzle).dot(forward) > 0.96,
 		"aim-run does not tip the barrel away from the reticle at mid-stride",
 	)
+	if has_collapse_bones:
+		var run_stride := _bone_world(skeleton, left_foot_index).distance_to(idle_left_foot)
+		_expect(
+			run_stride > 0.28,
+			"aim-run drives the Blender sprint legs in the game (%.2f m from idle)" % run_stride,
+		)
 	visual.call("update_pose", Vector3.ZERO, true, 0.016)
 	visual.call("_process", 0.016)
 	_expect(str(visual.call("current_clip")) == "aim", "stopping returns to stationary aim")
