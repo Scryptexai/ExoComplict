@@ -272,6 +272,9 @@ static func set_button_variant(button: Button, variant: String) -> void:
 	button.add_theme_color_override("font_color", font_color)
 	button.add_theme_color_override("font_hover_color", font_color)
 	button.add_theme_color_override("font_pressed_color", font_color)
+	# Godot's default focus colour is white. Without an explicit override the
+	# focused RESUME/BUY text turns white on amber and loses contrast.
+	button.add_theme_color_override("font_focus_color", font_color)
 	tint_icon(button, font_color)
 	button.add_theme_color_override(
 		"font_disabled_color", Color(AegisTokens.INK_3, AegisTokens.DISABLED_ALPHA)

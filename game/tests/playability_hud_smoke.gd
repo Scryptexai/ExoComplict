@@ -194,6 +194,13 @@ func _run_smoke_test() -> void:
 	await process_frame
 	var portrait_font := float(pause_button.get_theme_font_size("font_size")) * 0.3047
 	var portrait_body_font := float(wave_enemy_label.get_theme_font_size("font_size")) * 0.3047
+	# Opening/refreshing the armory must not reset its action text to Godot's
+	# unscaled 13-unit default (~4 physical px on a portrait WASM canvas).
+	var armory := controls.get("_armory_panel") as Control
+	armory.call("refresh_profile", 0, ["pulse_rifle"], "pulse_rifle")
+	var buy_button := armory.get("_weapon_buttons")[1] as Button
+	var buy_font := float(buy_button.get_theme_font_size("font_size")) * 0.3047
+	_expect(buy_font >= 14.5, "portrait armory UNLOCK/EQUIP text stays >=15 physical px")
 	var vitals_card := controls.get("_health_card") as Control
 	var wave_card := controls.get("_wave_card") as Control
 	var system_row := controls.get("_system_row") as Control
@@ -287,12 +294,16 @@ func _run_smoke_test() -> void:
 		"landscape FIRE 104, AIM/EMP 64, SWAP 60 px; ring frames EMP",
 	)
 	var help_plate := controls.get("_help_panel") as Control
+	var armory_entry := controls.get("_armory_button") as Control
 	_expect(
 		(
 			not help_plate.get_global_rect().intersects(wave_card.get_global_rect())
+			and not help_plate.get_global_rect().intersects(armory_entry.get_global_rect())
+			and not help_plate.get_global_rect().intersects(weapon_button.get_global_rect())
+			and not (controls.get("_wave_state_label") as Label).visible
 			and not controls.get("_run_card").visible
 		),
-		"landscape optional help stays clear of the objective; run data stays in pause",
+		"landscape objective text is readable; optional help clears armory, SWAP and objective",
 	)
 	controls.call("apply_layout_for_size", Vector2(1280.0, 720.0), 1.0)
 	_expect(

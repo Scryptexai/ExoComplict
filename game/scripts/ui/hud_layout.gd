@@ -315,8 +315,12 @@ static func touch_landscape(hud) -> void:
 	hud._joystick_radius = hud._to_layout(64.0)
 
 	hud._show_top_wave_details(true)
+	# On a 390 px-high display the optional state badge steals the objective's
+	# width and squeezes its description into the corner. The title/remaining
+	# count already communicate the state; leave the description its own row.
+	hud._wave_state_label.visible = false
 	hud._sound_button.visible = true
-	hud._wave_icon.visible = true
+	hud._wave_icon.visible = false
 	hud._compact_card.visible = false
 	hud._run_card.visible = true
 	hud._score_chip.visible = false
@@ -333,8 +337,9 @@ static func touch_landscape(hud) -> void:
 			hud._to_layout(64.0)
 		)
 	)
-	# Optional controls help sits in the right rail, never on the left objective
-	# or over the look/crosshair zone. Normal gameplay leaves it hidden.
+	# Optional help fits between the top system buttons and the thumb controls.
+	# A 300 px plate beside a 294 px objective overflowed their shared rail on
+	# narrow landscape screens, and the old y offset covered the armory action.
 	_place(
 		hud._help_panel,
 		1,
@@ -342,10 +347,10 @@ static func touch_landscape(hud) -> void:
 		1,
 		0,
 		Rect2(
-			-edge - hud._to_layout(300.0),
-			hud._top_inset + objective_top,
-			hud._to_layout(300.0),
-			hud._to_layout(60.0)
+			-edge - hud._to_layout(220.0),
+			hud._top_inset + bar_height + hud._to_layout(2.0),
+			hud._to_layout(220.0),
+			hud._help_block_height(2)
 		)
 	)
 

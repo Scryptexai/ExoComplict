@@ -59,16 +59,23 @@ func refresh_profile(
 		var id: StringName = ORDER[index]
 		var name: String = SHORT_NAMES[index]
 		var button := _weapon_buttons[index]
+		var variant := "round"
 		if String(id) == String(equipped):
 			button.text = "%s · EQUIPPED" % name
-			AegisTheme.set_button_variant(button, "round")
 		elif unlocked_ids.has(String(id)):
 			button.text = "%s · EQUIP" % name
-			AegisTheme.set_button_variant(button, "round")
 		else:
 			var cost: int = int(ProgressionService.COSTS[String(id)])
 			button.text = "%s · UNLOCK %d BP" % [name, cost]
-			AegisTheme.set_button_variant(button, "primary" if balance >= cost else "round")
+			variant = "primary" if balance >= cost else "round"
+		# set_button_variant() resets typography to 13 *logical* pixels. On a
+		# portrait WASM canvas that becomes ~4 physical pixels, making every
+		# purchase/equip action appear broken. Preserve the scaled HUD font.
+		if button.get_meta("armory_variant", "") != variant:
+			var scaled_font := button.get_theme_font_size("font_size")
+			AegisTheme.set_button_variant(button, variant)
+			AegisTheme.resize_button_font(button, "title", scaled_font)
+			button.set_meta("armory_variant", variant)
 
 
 func show_hint(text: String) -> void:

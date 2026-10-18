@@ -347,9 +347,13 @@ func _on_wave_enemy_spawned(enemy: Node3D) -> void:
 
 
 func _on_wave_session_ended(wave_index: int, _total_defeated: int) -> void:
-	if session_mode != SessionMode.DEFENSE:
+	var was_defense := session_mode == SessionMode.DEFENSE
+	# Explore never spawns an automatic wave, but a test/manual damage event
+	# can still defeat the hero. Show recoverable Results instead of stranding
+	# a dead character with no session to finish or rewards to claim.
+	if not was_defense and not player.is_defeated():
 		return
-	_retry_defense = true
+	_retry_defense = was_defense
 	session_mode = SessionMode.RESULTS
 	touch_controls._set_play_phase("results")
 	if not player.is_defeated():
@@ -359,13 +363,14 @@ func _on_wave_session_ended(wave_index: int, _total_defeated: int) -> void:
 	var run_kos := run_stats.eliminations
 	var run_score := run_stats.run_score
 	var run_bp := run_stats.bp_earned
-	progression_service.bank_run(run_score, run_bp)
-	print(
-		(
-			"Progression: banked +%d BP · wallet %d · best %d"
-			% [run_bp, progression_service.balance, progression_service.best_score]
+	if was_defense:
+		progression_service.bank_run(run_score, run_bp)
+		print(
+			(
+				"Progression: banked +%d BP · wallet %d · best %d"
+				% [run_bp, progression_service.balance, progression_service.best_score]
+			)
 		)
-	)
 	(
 		touch_controls
 		. show_results(

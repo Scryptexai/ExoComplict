@@ -81,6 +81,9 @@ func _run() -> void:
 	)
 	var escape := hud.get("_pause_restart_button") as Button
 	main.call("_toggle_pause")
+	# Container/overlay rects are settled on the next frame. Tapping the old
+	# rect immediately after opening Pause misses the actual button in headless.
+	await process_frame
 	_expect(paused and escape.text == "CANCEL DEFENSE", "preparation can be cancelled")
 	_tap(hud, escape)
 	_expect(
@@ -108,6 +111,7 @@ func _run() -> void:
 	# Simulated earned BP represents the reward granted by real wave/kill signals.
 	main.get_node("RunStats").call("award_battle_points", 25)
 	main.call("_toggle_pause")
+	await process_frame
 	_expect(paused and escape.text == "FINISH RUN · RESULTS", "Defense offers a cash-out")
 	_tap(hud, escape)
 	var results := hud.get("_results_panel") as Control

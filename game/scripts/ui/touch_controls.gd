@@ -47,6 +47,7 @@ const HELP_TEXT := (
 	+ "B DEFENSE · U ARMORY · G RELOAD · E/Q SWAP · F EMP · ESC PAUSE"
 )
 const MOBILE_HELP_TEXT := "LEFT STICK MOVE · DRAG RIGHT LOOK\nFIRE · HOLD AIM · EMP · SWAP"
+const MOBILE_HELP_LANDSCAPE := "STICK MOVE · DRAG LOOK\nFIRE · AIM · EMP · SWAP"
 const HELP_FADE_SECONDS: float = 1.5
 ## The browser shell (game/web_shell/index.html) draws chips along the top of
 ## the page; the HUD keeps clear of them instead of overlapping.
@@ -998,13 +999,15 @@ func _layout_controls(
 	_ui_scale = clampf(minf(physical_width, physical_height) / 720.0, 0.64, 1.0)
 	_top_inset = _resolve_top_inset()
 	_narrow = physical_width < NARROW_WIDTH
+	_portrait = physical_height > physical_width
 	if is_instance_valid(_desktop_hint):
 		_desktop_hint.text = DESKTOP_HINT_SHORT if _narrow else DESKTOP_HINT
 	if is_instance_valid(_help_label):
 		_help_label.text = (
-			MOBILE_HELP_TEXT if _touch_mode and physical_width < 1024.0 else HELP_TEXT
+			(MOBILE_HELP_TEXT if _portrait else MOBILE_HELP_LANDSCAPE)
+			if _touch_mode and physical_width < 1024.0
+			else HELP_TEXT
 		)
-	_portrait = physical_height > physical_width
 
 	_refresh_card_styles()
 	_apply_font_scale()
