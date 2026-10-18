@@ -56,7 +56,7 @@
       "tail": [
         0.04356,
         -0.0387,
-        0.52171
+        0.52172
       ]
     },
     {
@@ -168,7 +168,7 @@
       "tail": [
         0.10352,
         -0.02148,
-        0.30273
+        0.30274
       ]
     },
     {
@@ -177,7 +177,7 @@
       "head": [
         0.10352,
         -0.02148,
-        0.30273
+        0.30274
       ],
       "tail": [
         0.12695,
@@ -359,7 +359,7 @@
       "head": [
         0.00195,
         -0.00195,
-        0.83398
+        0.83399
       ],
       "tail": [
         0.00195,
@@ -586,7 +586,7 @@
         0.45847
       ],
       "tail": [
-        0.19974,
+        0.19973,
         -0.04258,
         0.43837
       ]
@@ -658,7 +658,7 @@
       "tail": [
         0.17315,
         -0.06009,
-        0.41307
+        0.41308
       ]
     },
     {
@@ -742,7 +742,7 @@
       "tail": [
         0.15953,
         -0.0776,
-        0.45717
+        0.45718
       ]
     },
     {
@@ -854,7 +854,7 @@
       "tail": [
         -0.21395,
         -0.04879,
-        0.46054
+        0.46055
       ]
     },
     {
@@ -875,7 +875,7 @@
       "name": "R_Ring1",
       "parent": "R_Hand",
       "head": [
-        -0.20569,
+        -0.2057,
         -0.04072,
         0.45836
       ],
@@ -917,7 +917,7 @@
       "name": "R_Mid1",
       "parent": "R_Hand",
       "head": [
-        -0.20569,
+        -0.2057,
         -0.05387,
         0.46128
       ],
@@ -1043,7 +1043,7 @@
       "name": "R_Pinky1",
       "parent": "R_Hand",
       "head": [
-        -0.20569,
+        -0.2057,
         -0.02756,
         0.45909
       ],
@@ -1125,6 +1125,10 @@
     }
   ],
   "original_actions": {
+    "fire": [
+      0.0,
+      15.0
+    ],
     "aim": [
       0.0,
       60.0
@@ -1133,17 +1137,13 @@
       0.0,
       70.0
     ],
-    "run": [
-      0.0,
-      37.0
-    ],
-    "fire": [
-      0.0,
-      15.0
-    ],
     "idle": [
       0.0,
       460.0
+    ],
+    "run": [
+      0.0,
+      37.0
     ]
   },
   "rifle": {
@@ -1180,6 +1180,7 @@
     "Runtime hero is scaled from a 1-unit source to 1.78 m.",
     "Rifle is one combined mesh: no detachable magazine or authored bolt mechanism.",
     "Reload is a keyframed handling cue, not simulated finger articulation.",
+    "Death ends in a braced knee-down pose, not a floor ragdoll.",
     "Headless Blender inspection + automated Godot QA do not replace human motion review."
   ],
   "exported_actions": [
@@ -1194,6 +1195,6 @@
     "run",
     "walk"
   ],
-  "exported_hero_bytes": 3062532,
-  "blend_bytes": 5250455
+  "exported_hero_bytes": 3062592,
+  "blend_bytes": 5253483
 }
