@@ -178,14 +178,14 @@ static func touch_portrait(hud) -> void:
 		hud._system_row, 1, 0, 1, 0, Rect2(-system_width, 0, system_width, bar_height)
 	)
 
-	# 390x844 actual screen target: FIRE x230..378/y658..806 (148²), ADS
-	# x282..378/y552..648, EMP x176..272/y552..648, ARMORY x282..378/
-	# y446..542. All target rectangles have >=10px gaps, leaving the left
-	# stick and the centre look lane free. The *painted glyph* is measured from
-	# the exported WebGL screenshot after layout, not assumed from these values.
+	# 390x844: FIRE x230..378/y658..806 (148²), ADS x282..378/y552..648,
+	# EMP x176..272/y446..542, ARMORY x282..378/y446..542. The initial
+	# stage33 placement of EMP at y552..648 overlaid the hero's *held rifle*
+	# in a real ADS screenshot; it is moved to the upper row, outside the
+	# weapon silhouette. Rectangles retain >=10px gaps and the look lane.
 	_place_button(hud, hud._fire_button, 12.0, 38.0, 148.0, 148.0)
 	_place_button(hud, hud._aim_button, 12.0, 196.0, 96.0, 96.0)
-	_place_button(hud, hud._skill_button, 118.0, 196.0, 96.0, 96.0)
+	_place_button(hud, hud._skill_button, 118.0, 302.0, 96.0, 96.0)
 	_place_button(hud, hud._weapon_button, 12.0, 302.0, 96.0, 96.0)
 	_place_button(hud, hud._touch_ammo_chip, 266.0, 236.0, 112.0, 54.0)
 	_place(
@@ -196,7 +196,7 @@ static func touch_portrait(hud) -> void:
 		1,
 		Rect2(
 			-hud._to_layout(218.0),
-			-hud._to_layout(296.0),
+			-hud._to_layout(402.0),
 			hud._to_layout(104.0),
 			hud._to_layout(104.0)
 		)

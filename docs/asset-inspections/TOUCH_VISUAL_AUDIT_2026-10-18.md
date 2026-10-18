@@ -52,11 +52,28 @@ Sumber `ad8ca2c` / payload `88cfebe`: [screenshot portrait 390×844](qa-frames/t
 
 Sumber `4a54d34`, payload `7e6eced`, CI `39149062434` sukses. **Baca gambar WebGL** [portrait 390×844](qa-frames/touch-after-glyph-stage28-portrait.png) dan [landscape 844×390](qa-frames/touch-after-glyph-stage28-landscape.png), bukan status boot: empat glyph putih portrait yang disegmentasi di dalam target kini FIRE **103×98 / 120×120**, ADS **68×67 / 80×80**, EMP **74×70 / 80×80**, WEAPON **63×53 / 76×72**. Bbox tidak termasuk border/tab; threshold RGB >190 dan kanal tidak berselisih >70, margin crop 3px. Pada FIRE lebar piksel tampak naik dari **43** (awal) → **78** → **82** (iterasi tile ditolak) → **103**; ukurannya bukan lagi glyph mungil. Akan tetapi pistol putih masih tampak seperti ikon mainan dan bidang pekat cukup berat; ukuran besar saja **tidak menyelesaikan kualitas desain**. Sumber `bbed675`, payload `58e0e0e`: [portrait dark-glass stage29](qa-frames/touch-glass-stage29-portrait.png) · [landscape](qa-frames/touch-glass-stage29-landscape.png). Dibanding stage28, opasitas tile 0,95–0,98→0,82–0,84 hanya mengubah bidang beberapa tingkat pada foto ini. **Ini bukan redesign visual besar**; status belum diberi sign-off. Jangan menyebut perbedaan kode alpha sebagai perbaikan estetika yang telah dibuktikan.
 
+### Stage33: perubahan **terlihat** pada WebGL, tetapi ADS menangkap masalah baru
+
+Sumber `4153328`, payload `2dc01b1`, CI `39152666436` sukses. Review gambar asli: [Explore portrait 390×844](qa-frames/touch-stage33-portrait.png) · [landscape 844×390](qa-frames/touch-stage33-landscape.png) · [ADS saat ditekan](qa-frames/touch-stage33-ads-overlap.png) · [FIRE saat ditekan, ammo 22/24](qa-frames/touch-stage33-fire-held.png). Bidang kini **chamfer bersudut**, bukan empat kotak hitam bulat, FIRE 148×148 di bawah jempol kanan dan ikon lebih dominan; tiga aksi sekunder 96×96 dengan sela fisik ~10px pada portrait. Bentuk ikon masih kasar seperti senjata mainan; ini **bukan** klaim tampilan sudah setara game referensi.
+
+Ukur piksel putih **yang benar-benar dirender di dalam tile** (ambang RGB >190, selisih kanal <70, margin crop 2px) dibanding build sebelumnya:
+
+| Portrait | Sebelum stage29 (glyph / target) | Stage33 (glyph / target) |
+|---|---:|---:|
+| FIRE | 103×98 / 120×120 | **129×121 / 148×148** |
+| ADS | 68×67 / 80×80 | **82×82 / 96×96** |
+| EMP | 74×70 / 80×80 | **86×82 / 96×96** |
+| WEAPON | 63×54 / 76×72 | **82×71 / 96×96** |
+
+Tetapi [frame ADS](qa-frames/touch-stage33-ads-overlap.png) membuktikan **EMP di x176..272/y552..648 menutupi sebagian senapan yang sedang dipegang hero**; foto ini menolak penempatan tersebut walau semua tes input lulus. Stage34 memindahkan EMP ke baris atas x176..272/y446..542 dan ring cooldown ikut pindah. Ini harus dibuktikan lagi dengan frame ADS **build stage34** dan tap EMP baru. Screenshot freeze tembakan stage32 juga masih hanya glint pendek di bahu, belum kualitas VFX yang diminta.
+
 ## Stage 22: pembuktian asset FBX di dunia yang benar-benar dirender
 
 Source `db0e483`, payload `4fab8da`, CI `39144895197` sukses (Godot 19/19, static, ekspor Web). **Bukti di sini adalah gambar permainan, bukan hasil test.** Dalam build WebGL root yang sama, F10 mengaktifkan kamera review dan membekukan simulasi; tombol 1 memilih arena atau 4 memilih extraction; F9 hanya membalik visibility root dari instance GLB konversi *FBX unggahan* (grup `uploaded_fbx_visual`, **310 instance**), sementara kamera, objek prosedural, pencahayaan dan collision tidak diganti. Tombol F9 kedua mengembalikan semuanya; keluar tur juga selalu memulihkan semuanya.
 
-[**Lihat bukti A/B arena dalam satu gambar berlabel**](qa-frames/fbx-arena-comparison-stage22.png). Kedua sisi adalah frame WebGL asli pada kamera/bingkai yang sama; header/footer hanya anotasi perbandingan, bukan pengubahan adegan.
+[**Lihat A/B pada payload WebGL TERBARU `2dc01b1`**](qa-frames/fbx-current-stage33-on-off.png). Kamera dan HUD sama, F9 menyembunyikan/memulihkan 310 visual instance yang dibangun dari FBX unggahan; screenshot ON sesudah pemulihan pixel-identical dengan screenshot ON pertama. Perbedaan terukur **253.628 piksel arena** dan **77.594 piksel extraction** pada 1280×720, tetapi jumlah piksel bukan ukuran mutu desain. Di OFF panel lantai, rib/pilar, bukaan gerbang dan cladding menghilang; reaktor/deck dasar/prosedural tetap, jadi world masih campuran, **bukan seluruhnya aset FBX**. Header/footer komposit adalah anotasi, frame game di bawahnya tidak diedit. Pasangan historis stage22 tetap tersedia di bawah.
+
+[Arsip A/B stage22](qa-frames/fbx-arena-comparison-stage22.png) juga memakai foto WebGL dari kamera/bingkai sama.
 
 | Sudut kamera dalam build game | FBX impor terlihat (normal) | FBX impor disembunyikan sementara |
 |---|---|---|
