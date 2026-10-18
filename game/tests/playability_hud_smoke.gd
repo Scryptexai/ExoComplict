@@ -87,7 +87,8 @@ func _run_smoke_test() -> void:
 		(
 			help_label.autowrap_mode != TextServer.AUTOWRAP_OFF
 			and help_label.text.contains("LEFT STICK")
-			and help_label.text.contains("B START DEFENSE")
+			and help_label.text.contains("B DEFENSE")
+			and help_label.text.contains("U ARMORY")
 			and help_label.text.contains("EMP")
 			and help_label.text.contains("WASD")
 		),

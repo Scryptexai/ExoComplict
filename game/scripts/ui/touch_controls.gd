@@ -40,13 +40,11 @@ const MIN_PHYSICAL_FONT_PX: float = AegisTokens.MIN_PHYSICAL_FONT_PX
 ## Lines the narrow-screen data strip must fit: the enemy line plus the wrapped
 ## run summary. Four gives the wrapped summary one line of slack.
 const COMPACT_LINES: int = 4
-const DESKTOP_HINT := (
-	"WASD MOVE · DRAG/RMB LOOK · LMB FIRE · " + "B START DEFENSE · ESC PAUSE / CONTROLS"
-)
-const DESKTOP_HINT_SHORT := "WASD MOVE · B DEFENSE · ESC CONTROLS"
+const DESKTOP_HINT := "WASD MOVE · DRAG/RMB LOOK · LMB FIRE · " + "B DEFENSE · U ARMORY · ESC PAUSE"
+const DESKTOP_HINT_SHORT := "WASD MOVE · B DEFENSE · U ARMORY · ESC PAUSE"
 const HELP_TEXT := (
 	"MOVE WASD / LEFT STICK · LOOK DRAG RIGHT / RMB · FIRE LMB / HOLD FIRE\n"
-	+ "B START DEFENSE · G RELOAD · E/Q SWAP · F EMP · ESC PAUSE / CONTROLS"
+	+ "B DEFENSE · U ARMORY · G RELOAD · E/Q SWAP · F EMP · ESC PAUSE"
 )
 const MOBILE_HELP_TEXT := "LEFT STICK MOVE · DRAG RIGHT LOOK\nFIRE · HOLD AIM · EMP · SWAP"
 const HELP_FADE_SECONDS: float = 1.5
@@ -241,14 +239,16 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and not event.echo:
 		if event.is_action_pressed("ui_cancel") and get_tree().paused:
 			# ESC closes a submenu first; only the next press resumes the run.
-			if is_instance_valid(_hud_editor) and _hud_editor.visible:
+			if is_instance_valid(_armory_panel) and _armory_panel.visible:
+				armory_close_requested.emit()
+			elif is_instance_valid(_hud_editor) and _hud_editor.visible:
 				HudEditorBridge.close(self)
 			elif is_instance_valid(_settings_menu) and _settings_menu.visible:
 				_settings_menu.close()
 			else:
 				_on_pause_pressed()
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_R and get_tree().paused:
+		elif event.keycode == KEY_R and get_tree().paused and _pause_panel.visible:
 			retry_requested.emit()
 			get_viewport().set_input_as_handled()
 
@@ -472,7 +472,10 @@ func set_weapon_label(display_name: String) -> void:
 func _update_weapon_ammo(remaining: int, capacity: int, reloading: bool) -> void:
 	var text := "RELOADING" if reloading else "%d/%d" % [remaining, capacity]
 	if is_instance_valid(_desktop_weapon_meta):
-		_desktop_weapon_meta.text = "%s · G RELOAD · E/Q SWAP" % text
+		_desktop_weapon_meta.text = (
+			"%s · G RELOAD · %s"
+			% [text, "E/Q SWAP" if _available_weapon_count > 1 else "U ARMORY TO UNLOCK"]
+		)
 	if is_instance_valid(_touch_ammo_chip):
 		_touch_ammo_chip.set_ammo(remaining, capacity, reloading)
 

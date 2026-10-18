@@ -52,6 +52,11 @@ func _run() -> void:
 		if binding is InputEventKey and binding.physical_keycode == KEY_B:
 			binding_found = true
 	_expect(binding_found, "B has a discoverable keyboard action for Defense")
+	var armory_key := false
+	for binding in InputMap.action_get_events("open_armory"):
+		if binding is InputEventKey and binding.physical_keycode == KEY_U:
+			armory_key = true
+	_expect(armory_key, "U opens the wallet and armory on desktop")
 
 	# Exercise the actual mobile touch dispatcher, not just the signal handler.
 	hud.call("set_touch_mode", true)

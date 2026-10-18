@@ -31,6 +31,10 @@ start_defense={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"physical_keycode":66)]
 }
+open_armory={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"physical_keycode":85)]
+}
 move_left={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"physical_keycode":65)]

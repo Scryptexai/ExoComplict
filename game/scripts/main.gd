@@ -85,6 +85,12 @@ func _ready() -> void:
 	touch_controls._set_play_phase("explore")
 	_update_status()
 	print("Encounter: Explore safe; activate Start Defense when ready")
+	print(
+		(
+			"Progression: wallet %d BP · %d weapon(s) owned"
+			% [progression_service.balance, progression_service.unlocked_ids.size()]
+		)
+	)
 	# One line per session so the browser console proves audio came up in the
 	# exported build, not only in the editor.
 	print(Sfx.describe())
@@ -107,6 +113,8 @@ func _process(delta: float) -> void:
 			touch_controls._set_play_phase("preparing", ceili(_preparation_remaining))
 	if Input.is_action_just_pressed("start_defense"):
 		_request_defense()
+	if Input.is_action_just_pressed("open_armory"):
+		_open_armory()
 	if Input.is_action_just_pressed("reset_session"):
 		_reset_session()
 	if Input.is_action_just_pressed("toggle_sound"):
@@ -154,6 +162,11 @@ func _on_profile_changed() -> void:
 		player.weapon_controller.get_current_definition().weapon_id
 	)
 	touch_controls.set_weapon_label(player.get_current_weapon_name())
+	touch_controls._update_weapon_ammo(
+		player.weapon_controller.get_current_ammo(),
+		player.weapon_controller.get_current_magazine_size(),
+		player.weapon_controller.is_reloading()
+	)
 
 
 func _on_weapon_equipped(_display_name: String) -> void:
@@ -191,6 +204,7 @@ func _on_armory_weapon_action(weapon_id: StringName) -> void:
 	var weapon_name := player.weapon_controller.weapon_definitions[weapon_index].display_name
 	if progression_service.is_unlocked(weapon_id):
 		player.select_weapon(weapon_index)
+		print("Armory: equipped " + String(weapon_id))
 		touch_controls._armory_panel.show_hint(
 			"%s EQUIPPED · READY TO PLAY" % weapon_name.to_upper()
 		)
@@ -201,6 +215,7 @@ func _on_armory_weapon_action(weapon_id: StringName) -> void:
 		return
 	if progression_service.unlock_weapon(weapon_id):
 		player.select_weapon(weapon_index)
+		print("Armory: unlocked " + String(weapon_id))
 		Sfx.play_ui(&"session_clear")
 		touch_controls._armory_panel.show_hint("%s UNLOCKED & EQUIPPED" % weapon_name.to_upper())
 
@@ -345,6 +360,12 @@ func _on_wave_session_ended(wave_index: int, _total_defeated: int) -> void:
 	var run_score := run_stats.run_score
 	var run_bp := run_stats.bp_earned
 	progression_service.bank_run(run_score, run_bp)
+	print(
+		(
+			"Progression: banked +%d BP · wallet %d · best %d"
+			% [run_bp, progression_service.balance, progression_service.best_score]
+		)
+	)
 	(
 		touch_controls
 		. show_results(

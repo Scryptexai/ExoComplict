@@ -22,7 +22,7 @@ static func build_pause(hud) -> void:
 	hud._pause_swipe_handle.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	content.add_child(hud._pause_swipe_handle)
 
-	var eyebrow := hud._label("RUN SUSPENDED", "label", AegisTokens.ACCENT)
+	var eyebrow: Label = hud._label("RUN SUSPENDED", "label", AegisTokens.ACCENT)
 	content.add_child(eyebrow)
 	hud._pause_label = hud._label("PAUSED", "display_l", AegisTokens.INK)
 	content.add_child(hud._pause_label)
@@ -68,7 +68,7 @@ static func build_pause(hud) -> void:
 	content.add_child(hud._pause_settings_button)
 	hud._touch_buttons.append(hud._pause_settings_button)
 
-	var hint := hud._label("SETTINGS → CONTROLS · ESC RESUME", "label_s", AegisTokens.INK_3)
+	var hint: Label = hud._label("SETTINGS → CONTROLS · ESC RESUME", "label_s", AegisTokens.INK_3)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(hint)
 
