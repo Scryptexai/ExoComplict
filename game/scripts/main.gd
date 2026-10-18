@@ -75,6 +75,7 @@ func _ready() -> void:
 	wave_director.spawn_blocked.connect(_on_wave_spawn_blocked)
 	touch_controls._set_play_phase("explore")
 	_update_status()
+	print("Encounter: Explore safe; activate Start Defense when ready")
 	# One line per session so the browser console proves audio came up in the
 	# exported build, not only in the editor.
 	print(Sfx.describe())
@@ -91,6 +92,7 @@ func _process(delta: float) -> void:
 		if _preparation_remaining <= 0.0:
 			session_mode = SessionMode.DEFENSE
 			touch_controls._set_play_phase("defense")
+			print("Encounter: Defense started")
 			wave_director.start_session()
 		elif ceili(_preparation_remaining) != before:
 			touch_controls._set_play_phase("preparing", ceili(_preparation_remaining))
@@ -152,6 +154,7 @@ func _request_defense() -> void:
 	_preparation_remaining = defense_preparation_seconds
 	touch_controls.hide_help()
 	touch_controls._set_play_phase("preparing", ceili(_preparation_remaining))
+	print("Encounter: Preparing Defense (%d s)" % ceili(_preparation_remaining))
 	_update_status()
 
 
@@ -185,6 +188,7 @@ func _return_to_explore() -> void:
 	touch_controls.set_paused(false)
 	touch_controls._set_play_phase("explore")
 	_update_status()
+	print("Encounter: Returned to Explore")
 
 
 func _on_shot_fired() -> void:
@@ -249,6 +253,7 @@ func _on_wave_session_ended(wave_index: int, _total_defeated: int) -> void:
 	var run_bp := run_stats.bp_earned
 	touch_controls.show_results(wave_index, run_time, run_kos, run_score, run_bp)
 	_update_status()
+	print("Encounter: Results after wave %d" % wave_index)
 
 
 func _on_wave_spawn_blocked(reason: String) -> void:

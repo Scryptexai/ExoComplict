@@ -82,7 +82,7 @@ func _physics_process(delta: float) -> void:
 	if desktop_fire or _touch_fire_pressed:
 		if weapon_controller.try_fire(self, muzzle, aim_point):
 			if is_instance_valid(muzzle_flash):
-				muzzle_flash.flash()
+				muzzle_flash.flash(_current_recoil_strength(), _current_flash_color())
 			shot_fired.emit()
 			visual_root.play_recoil(_current_recoil_strength())
 			camera_rig.add_recoil_kick(_current_recoil_strength())
@@ -130,6 +130,19 @@ func is_aiming() -> bool:
 func _current_recoil_strength() -> float:
 	var kick_by_weapon := [0.7, 1.4, 0.95]
 	return kick_by_weapon[clampi(weapon_controller.get_current_weapon_index(), 0, 2)]
+
+
+func _current_flash_color() -> Color:
+	var definition := weapon_controller.get_current_definition()
+	if definition != null:
+		match definition.weapon_id:
+			&"pulse_rifle":
+				return Color(0.28, 0.86, 1.0)
+			&"nova_launcher":
+				return Color(1.0, 0.46, 0.16)
+			&"arc_shooter":
+				return Color(0.64, 0.7, 1.0)
+	return Color(1.0, 0.74, 0.4)
 
 
 ## The HUD AIM button holds aiming for as long as it is held; desktop right

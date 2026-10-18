@@ -16,6 +16,8 @@
  *   node tools/web_qa.mjs --menus --settings --editor # HUD tab/editor screenshot
  *   node tools/web_qa.mjs --menus --swipe --viewport 390x844 # portrait sheet gesture
  *   node tools/web_qa.mjs --tour          # world review camera: F10 + keys 1-8
+ *   node tools/web_qa.mjs --encounter --explore-wait 8000
+ *       # screenshot safe Explore, press B intentionally, capture Defense
  *
  * `--hold` exists because the touch HUD lives inside the WebGL canvas: the AIM
  * button cannot be found with a DOM selector, so its canvas coordinates (read
@@ -75,6 +77,8 @@ const givenUrl = flag('--url', '');
 // pick a district. Screenshots come from the real build, not a separate scene.
 const tourMode = has('--tour');
 const tourWaitMs = Number(flag('--tour-wait', '900'));
+const encounterMode = has('--encounter');
+const exploreWaitMs = Number(flag('--explore-wait', '8000'));
 const port = Number(flag('--port', '8126'));
 
 let chromium;
@@ -294,6 +298,37 @@ async function checkPage(target, viewport) {
     }
   }
 
+  /* ---------- explicit Explore → Preparing → Defense check ---------- */
+  const encounterFrames = [];
+  let safeBeforeActivation = false;
+  if (booted && encounterMode) {
+    await new Promise((r) => setTimeout(r, exploreWaitMs));
+    const transitions = consoleLines.filter((line) => line.includes('Encounter:'));
+    safeBeforeActivation = transitions.some((line) => line.includes('Explore safe'))
+      && !transitions.some((line) => line.includes('Defense started'));
+    const exploreFrame = path.join(outDir, `${slug}-${viewport.spec}-explore-idle.png`);
+    await page.screenshot({ path: exploreFrame });
+    encounterFrames.push(path.relative(ROOT, exploreFrame));
+    const centre = await page.evaluate(() => {
+      const rect = document.querySelector('canvas')?.getBoundingClientRect();
+      return rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 } : null;
+    });
+    if (centre) {
+      await page.mouse.click(centre.x, centre.y);
+      await page.keyboard.press('KeyB');
+      await new Promise((r) => setTimeout(r, 450));
+      const preparingFrame = path.join(outDir, `${slug}-${viewport.spec}-defense-preparing.png`);
+      await page.screenshot({ path: preparingFrame });
+      encounterFrames.push(path.relative(ROOT, preparingFrame));
+      // Godot's countdown advances in simulation time; SwiftShader screenshots
+      // can be very slow, so log transition order is the deterministic check.
+      await new Promise((r) => setTimeout(r, 7000));
+      const defenseFrame = path.join(outDir, `${slug}-${viewport.spec}-defense-started.png`);
+      await page.screenshot({ path: defenseFrame });
+      encounterFrames.push(path.relative(ROOT, defenseFrame));
+    }
+  }
+
   /* ---------- optional play pass ---------- */
   const frames = [];
   if (booted && playSeconds > 0) {
@@ -390,6 +425,15 @@ async function checkPage(target, viewport) {
   if (tourMode) {
     checks.push(['world tour captured frames', tourFrames.length === 8]);
   }
+  if (encounterMode) {
+    const encounterLines = consoleLines.filter((line) => line.includes('Encounter:'));
+    const preparationAt = encounterLines.findIndex((line) => line.includes('Preparing Defense'));
+    const defenseAt = encounterLines.findIndex((line) => line.includes('Defense started'));
+    checks.push(['Explore remained safe before explicit activation', safeBeforeActivation]);
+    checks.push(['B requested a visible Defense preparation', preparationAt >= 0]);
+    checks.push(['Defense began only after the preparation countdown', defenseAt > preparationAt]);
+    checks.push(['Explore and Defense frames captured', encounterFrames.length === 3]);
+  }
   if (has('--menus')) {
     checks.push(['pause menu captured a frame', menuFrames.length >= 1]);
     checks.push(['ESC opened the pause state', menuLines.some((line) => line.includes('HUD: paused'))]);
@@ -447,6 +491,9 @@ async function checkPage(target, viewport) {
     accessBottomFrame,
     frames,
     tourFrames,
+    encounterFrames,
+    safeBeforeActivation,
+    encounterTransitions: consoleLines.filter((line) => line.includes('Encounter:')),
     audio: audioLines,
     menuTransitions: menuLines,
     scriptErrors,
@@ -480,6 +527,8 @@ try {
       if (result.menuTransitions?.length) console.log(`  menu state: ${result.menuTransitions.join(' | ')}`);
       if (result.frames?.length) console.log(`  play frames: ${result.frames.join(', ')}`);
       if (result.tourFrames?.length) console.log(`  tour frames: ${result.tourFrames.length} in ${path.relative(ROOT, outDir)}`);
+      if (result.encounterFrames?.length) console.log(`  encounter frames: ${result.encounterFrames.join(', ')}`);
+      if (result.encounterTransitions?.length) console.log(`  encounter: ${result.encounterTransitions.join(' | ')}`);
       if (result.audio?.length) console.log(`  audio: ${result.audio.join(' | ')}`);
     }
     }

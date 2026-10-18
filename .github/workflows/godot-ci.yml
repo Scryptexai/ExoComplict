@@ -271,7 +271,22 @@ jobs:
           git commit -m "Refresh the committed web payload and templates [skip ci]" \
             -m "Exported by the web-preview job of run ${GITHUB_RUN_ID} from ${GITHUB_SHA:0:7}." \
             -m "Generated output only; no source changes belong here."
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          for attempt in 1 2 3; do
+            git fetch origin "$GITHUB_REF_NAME"
+            # Parallel CI runs must not replace a newer source build with a
+            # stale PCK. Only bot-generated payload commits may be rebased over.
+            if [[ -n "$(git log --format=%H "${GITHUB_SHA}..origin/${GITHUB_REF_NAME}" \
+              -- . ':(exclude)web' ':(exclude)engine/web_templates' | head -n 1)" ]]; then
+              echo "::notice title=Stale preview skipped::A newer source commit needs its own Web export"
+              exit 0
+            fi
+            if git rebase "origin/${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
+            sleep 4
+          done
+          echo "::error title=Preview push failed::source branch moved during export"
+          exit 1
 
       - name: Publish web preview summary
         if: always()

@@ -211,7 +211,7 @@
 	</head>
 	<body>
 		<!-- Kanvas milik halaman ini; engine Godot mengambil elemen ini. -->
-		<canvas id="canvas" tabindex="-1" aria-label="Project Overdrive. Kontrol: WASD bergerak, tahan klik kanan untuk membidik, klik kiri menembak, E ganti senjata, Esc pause, R reset."></canvas>
+		<canvas id="canvas" tabindex="-1" aria-label="Project Overdrive. Jelajahi dengan aman, tekan B untuk memulai Defense. WASD bergerak, klik kanan membidik, klik kiri menembak, E ganti senjata, Esc pause, R retry."></canvas>
 
 		<div class="overlay" id="shell-ui">
 			<div class="chips" id="chips" data-collapsed="false">
@@ -225,8 +225,9 @@
 			</div>
 
 			<div class="panel" id="controls-panel" hidden>
-				<p><b>Keyboard:</b> WASD bergerak · tahan klik kanan untuk membidik · klik kiri menembak · <b>E</b> ganti senjata · <b>Esc</b> pause · <b>R</b> reset run.</p>
-				<p><b>Sentuh:</b> joystick ibu jari kiri untuk bergerak · geser sisi kanan untuk membidik · tombol FIRE · WEAPON / EMP · PAUSE.</p>
+				<p><b>Explore aman:</b> tidak ada wave otomatis. Tekan <b>B</b> / START DEFENSE bila sudah siap; countdown mendahului musuh.</p>
+				<p><b>Keyboard:</b> WASD bergerak · klik kanan membidik · klik kiri menembak · <b>E</b> ganti senjata · <b>Esc</b> pause · <b>R</b> retry.</p>
+				<p><b>Sentuh:</b> joystick kiri · drag kanan untuk aim · FIRE · WEAPON / EMP · PAUSE. Hasil run menyediakan RETRY DEFENSE atau EXPLORE.</p>
 				<p class="warn">Build ini memakai renderer Compatibility (WebGL 2) dan mode single-thread. Angka FPS di browser bukan ukuran performa Android — lihat ANDROID_BASELINE.md.</p>
 			</div>
 		</div>

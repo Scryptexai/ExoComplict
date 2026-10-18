@@ -37,6 +37,19 @@ func _run_smoke_test() -> void:
 			)
 			and test_passed
 		)
+		var cone := muzzle_flash.get_node_or_null("FlashCone") as MeshInstance3D
+		test_passed = (
+			_expect(
+				(
+					cone != null
+					and cone.mesh is CylinderMesh
+					and cone.position.z < -0.1
+					and muzzle_flash.get_node_or_null("FlashSpark_3") != null
+				),
+				"the barrel flash projects forward with short radial sparks, not a glowing ball",
+			)
+			and test_passed
+		)
 
 	# --- tracer -------------------------------------------------------------
 	# Built outside the tree on purpose: a projectile handed to the scene starts
@@ -111,7 +124,7 @@ func _run_smoke_test() -> void:
 					burst.is_inside_tree()
 					and burst.emitting
 					and burst.amount > 0
-					and burst.mesh != null
+					and burst.mesh is CylinderMesh
 				),
 				"the burst is emitting with a mesh to draw",
 			)

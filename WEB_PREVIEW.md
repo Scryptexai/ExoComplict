@@ -4,7 +4,9 @@
 >
 > **Ini bukan perubahan target platform.** Android tetap target rilis; pipeline produksi tetap Godot + Blender di mesin dev. Web hanya dipakai sebagai jendela review UI/UX + gameplay supaya iterasi tidak menunggu instalasi toolchain.
 >
-> **Status verifikasi:** seluruh wiring statis sudah diperiksa (`tools/web_preset.py check`, `tools/project_doctor.py` → 0 FAIL, 22 unit test). Ekspor Web nyata sudah berhasil di CI (run `38919299364`, job `web-preview` hijau). Hasil terukur:
+> **18 Okt 2026:** instruksi server dan `index.html` di root tetap berlaku. Tabel ukuran dan screenshot di bagian bawah adalah **bukti historis**; mode Explore/HUD/relight/world baru harus diuji pada payload CI terbaru, bukan dianggap otomatis lolos hanya karena HTML dan engine boot.
+>
+> **Status verifikasi (baseline lama):** seluruh wiring statis sudah diperiksa (`tools/web_preset.py check`, `tools/project_doctor.py` → 0 FAIL, 22 unit test). Ekspor Web nyata sudah berhasil di CI (run `38919299364`, job `web-preview` hijau). Hasil terukur:
 
 | Bagian | Ukuran | Content-Type dari `python -m http.server` |
 |---|---|---|
@@ -62,11 +64,13 @@ npm ci --prefix tools          # sekali; mengunduh Chromium headless (paket @spa
 node tools/web_qa.mjs          # menyajikan repo sendiri, membuka / dan /web/index.html
 node tools/web_qa.mjs --json   # laporan terstruktur untuk skrip/CI
 node tools/web_qa.mjs --play 80 --play-shot-every 25   # main sungguhan + foto berseri
+node tools/web_qa.mjs --encounter --explore-wait 8000 --viewport 390x844
+# eksplorasi aman, tekan B secara sengaja, cek urutan preparing/defense + frame
 ```
 
 `tools/web_qa.mjs` membuka halaman sungguhan di Chromium headless dan gagal (exit 1) bila engine tidak boot, tidak ada WebGL 2, kanvas tetap 300×150, ada permintaan 4xx/5xx, atau kartu error tampil. Tangkapan layarnya ditulis ke `exports/web-qa/`. Ini gate yang sama yang dijalankan job CI `web-preview`.
 
-**Mode `--play <detik>`** menambahkan uji main: klik kanvas (sekaligus gesture yang dibutuhkan browser sebelum audio boleh berbunyi), lalu berjalan, berbelok, berganti senjata, dan menembak dengan event input sungguhan sambil menulis rangkaian foto `<halaman>-<viewport>-play-<t>s.png`. Ia juga memeriksa baris log `Audio:` — termasuk `Audio: first voice played (...)`, bukti audio benar-benar terpakai di browser, bukan sekadar ter-import. Di tengah sesi play, gate menekan tombol `M` dan memastikan baris `Audio: muted` muncul, jadi jalur HUD → audio ikut terbukti. Pemeriksaan itu sengaja eksak: baris boot berakhir `muted=no`, sehingga pencocokan longgar akan lulus tanpa tombolnya benar-benar sampai.
+**Mode `--play <detik>`** menguji input gerak/tembak di mode saat ini (**Explore aman**, kecuali `--encounter` juga diberikan). Klik kanvas sekaligus menjadi gesture yang dibutuhkan browser sebelum audio boleh berbunyi; kemudian skrip berjalan, berbelok, berganti senjata, dan menembak dengan event input sungguhan sambil menulis rangkaian foto `<halaman>-<viewport>-play-<t>s.png`. Ia juga memeriksa baris log `Audio:` — termasuk `Audio: first voice played (...)`, bukti audio benar-benar terpakai di browser, bukan sekadar ter-import. Di tengah sesi play, gate menekan tombol `M` dan memastikan baris `Audio: muted` muncul, jadi jalur HUD → audio ikut terbukti. Pemeriksaan itu sengaja eksak: baris boot berakhir `muted=no`, sehingga pencocokan longgar akan lulus tanpa tombolnya benar-benar sampai.
 
 Bukti terakhir (Chromium headless, software rendering): ada dua set, keduanya di-commit karena `exports/` di-git-ignore — `qa-evidence/enemies-and-audio/` (Runner menempel di jarak melee, VITALS turun 100 → 84 → 60, senjata berganti mengikuti tombol `E`, baris `Audio: first voice played`) dan `qa-evidence/hud-mobile/` (layout 390×844 vs 844×390, dan tombol berubah `SOUND` → `MUTED` setelah gate menekan `M`). Karena renderer-nya SwiftShader (tanpa GPU), laju frame di run ini **tidak** mewakili browser sungguhan; satu tangkapan layar pun butuh belasan detik di sana, jadi pakai `--play-shot-every` yang longgar.
 
@@ -146,10 +150,11 @@ Artinya build Android tetap memakai renderer `mobile` (sesuai `PROJECT_DECISIONS
 | Menembak | tahan klik kiri | tahan tombol FIRE |
 | Ganti senjata | E atau tombol WEAPON | tombol WEAPON |
 | Skill EMP | klik tombol EMP | tombol EMP |
+| Mulai Defense | B setelah menjelajah | tombol START DEFENSE (countdown sebelum wave) |
 | Pause / Resume | Esc | tombol PAUSE / RESUME |
-| Reset run | R | tombol RETRY setelah defeat |
+| Retry / kembali ke Explore | R untuk retry, setelah hasil pilih kembali | tombol RETRY DEFENSE atau EXPLORE pada hasil |
 
-Tombol **HIDE UI** di shell hanya menyembunyikan lapisan HTML (chip/panel kontrol), bukan HUD di dalam game.
+**Tidak ada wave otomatis saat boot**. Menembak training target di Explore tidak memulai Defense. Tombol **HIDE UI** di shell hanya menyembunyikan lapisan HTML (chip/panel kontrol), bukan HUD di dalam game.
 
 ## 6. Batas yang harus diingat (jujur)
 
@@ -158,7 +163,7 @@ Tombol **HIDE UI** di shell hanya menyembunyikan lapisan HTML (chip/panel kontro
 - **Single-thread.** Build ini tidak memakai `Thread` Godot; jangan menilai audio latency atau paralelisme dari preview.
 - **Ukuran unduhan.** WebAssembly engine + pack biasanya beberapa puluh MB; muat pertama lambat, berikutnya ter-cache.
 - **Bukan jalur distribusi.** Ini alat review. Publikasi tetap: Godot → GLB/PCK → Android (APK/AAB).
-- **Belum diuji di browser sungguhan dari sandbox ini.** Yang sudah diuji: pembuatan preset, pengecekan shell, verifier build (dengan build tiruan), unit test, dan penyajian statis halaman landing. Job CI `web-preview` yang akan membuktikan ekspor + delivery nyata.
+- **Boot browser pernah diuji, penerimaan build baru belum otomatis.** Chromium/WebGL dan export CI pada baseline lama sudah dijalankan, tetapi relight, alur Defense, hasil, serta gerakan baru harus diuji lagi dengan `--encounter` dan inspeksi frame; QA Android nyata tetap terpisah.
 
 ## 7. Troubleshooting
 

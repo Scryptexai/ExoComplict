@@ -45,8 +45,13 @@ func _ready() -> void:
 	add_to_group(BURST_GROUP)
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
-	var spark := BoxMesh.new()
-	spark.size = Vector3(0.045, 0.045, 0.045)
+	# Thin tapering metal/energy splinters read as sparks, not voxel confetti.
+	# Their one-shot CPU simulation remains available to the Web renderer.
+	var spark := CylinderMesh.new()
+	spark.top_radius = 0.004
+	spark.bottom_radius = 0.022
+	spark.height = 0.16
+	spark.radial_segments = 5
 	mesh = spark
 	material_override = _spark_material(tint)
 
