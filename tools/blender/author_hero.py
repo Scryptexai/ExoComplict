@@ -219,6 +219,7 @@ def main():
         "limitations": ["Runtime hero is scaled from a 1-unit source to 1.78 m.",
                         "Rifle is one combined mesh: no detachable magazine or authored bolt mechanism.",
                         "Reload is a keyframed handling cue, not simulated finger articulation.",
+                        "Death ends in a braced knee-down pose, not a floor ragdoll.",
                         "Headless Blender inspection + automated Godot QA do not replace human motion review."],
     }
 
@@ -264,15 +265,19 @@ def main():
         (19, {"rotate": {"Spine01": ((1, 0, 0), 55), "Spine02": ((1, 0, 0), 19),
                         "L_Thigh": ((1, 0, 0), -39), "R_Thigh": ((1, 0, 0), -35),
                         "L_Calf": ((1, 0, 0), 62), "R_Calf": ((1, 0, 0), 66)},
-              "move": {"Hip": (0, -0.23, 0)}}),
-        (32, {"rotate": {"Spine01": ((1, 0, 0), 72), "Spine02": ((1, 0, 0), 27),
+              "move": {"Hip": (0, -0.06, 0)}}),
+        # The previous -0.38 Hip translation sank both feet 30–38 cm below
+        # the ground in the *exported GLB*. Raise the hip ~0.50 m so the
+        # planted foot bone rests around 0.12 m above the floor (boot sole at
+        # zero), rather than hiding clipping behind the Results overlay.
+        (32, {"rotate": {"Spine01": ((1, 0, 0), 105), "Spine02": ((1, 0, 0), 27),
                         "L_Thigh": ((1, 0, 0), -49), "R_Thigh": ((1, 0, 0), -42),
                         "L_Calf": ((1, 0, 0), 73), "R_Calf": ((1, 0, 0), 76)},
-              "move": {"Hip": (0, -0.38, 0)}}),
-        (46, {"rotate": {"Spine01": ((1, 0, 0), 72), "Spine02": ((1, 0, 0), 27),
+              "move": {"Hip": (0, -0.10, 0)}}),
+        (46, {"rotate": {"Spine01": ((1, 0, 0), 105), "Spine02": ((1, 0, 0), 27),
                         "L_Thigh": ((1, 0, 0), -49), "R_Thigh": ((1, 0, 0), -42),
                         "L_Calf": ((1, 0, 0), 73), "R_Calf": ((1, 0, 0), 76)},
-              "move": {"Hip": (0, -0.38, 0)}}),
+              "move": {"Hip": (0, -0.10, 0)}}),
     ])
     # Show the aim pose when opening the .blend, with reference rifle hidden but
     # available for direct viewport inspection. Keep all new actions in file.
