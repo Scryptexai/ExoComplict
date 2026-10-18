@@ -219,7 +219,7 @@ def main():
         "limitations": ["Runtime hero is scaled from a 1-unit source to 1.78 m.",
                         "Rifle is one combined mesh: no detachable magazine or authored bolt mechanism.",
                         "Reload is a keyframed handling cue, not simulated finger articulation.",
-                        "Death ends in a braced knee-down pose, not a floor ragdoll.",
+                        "Death uses a keyframed side fall; it is not a physics ragdoll.",
                         "Headless Blender inspection + automated Godot QA do not replace human motion review."],
     }
 
@@ -259,25 +259,32 @@ def main():
         (10, {"rotate": {"Spine01": ((1, 0, 0), 4), "Spine02": ((0, 0, 1), -3)}}),
         (17, {}),
     ])
+    # Stage a readable sideways collapse around the measured BoneRoot pivot
+    # (~1 m above the floor), not a fold of Spine01 while sinking Hip through
+    # the deck. BoneRoot's local (.95,-.05,.30) axis maps to viewer +Z and a
+    # -90-degree roll leaves the rifle hand above the body. Offsets are in the
+    # *bone's pose space*: [-.12,-.17,+.36] drops the world-space hip ~0.74 m.
+    # The intermediate lean keeps the boots on the floor while weight shifts;
+    # the end pose lies on its left side. This is authored motion, not a ragdoll.
+    roll_axis = (0.95, -0.05, 0.30)
+    death_mid = {"rotate": {"BoneRoot": (roll_axis, -42),
+                            "Spine01": ((1, 0, 0), -8),
+                            "L_Thigh": ((1, 0, 0), -14),
+                            "R_Thigh": ((1, 0, 0), -8)},
+                 "move": {"BoneRoot": (-0.035, -0.048, 0.102)}}
+    death_rest = {"rotate": {"BoneRoot": (roll_axis, -90),
+                             "Spine01": ((1, 0, 0), -15),
+                             "L_Thigh": ((1, 0, 0), -24),
+                             "L_Calf": ((1, 0, 0), 30),
+                             "R_Thigh": ((1, 0, 0), -10),
+                             "R_Calf": ((1, 0, 0), 15)},
+                  "move": {"BoneRoot": (-0.124, -0.169, 0.359)}}
     keyframed_reaction(arm, actions["idle"], "death", [
-        (1, {}), (8, {"rotate": {"Spine01": ((1, 0, 0), 21),
-                               "R_Thigh": ((1, 0, 0), -17)}}),
-        (19, {"rotate": {"Spine01": ((1, 0, 0), 55), "Spine02": ((1, 0, 0), 19),
-                        "L_Thigh": ((1, 0, 0), -39), "R_Thigh": ((1, 0, 0), -35),
-                        "L_Calf": ((1, 0, 0), 62), "R_Calf": ((1, 0, 0), 66)},
-              "move": {"Hip": (0, -0.06, 0)}}),
-        # The previous -0.38 Hip translation sank both feet 30–38 cm below
-        # the ground in the *exported GLB*. Raise the hip ~0.50 m so the
-        # planted foot bone rests around 0.12 m above the floor (boot sole at
-        # zero), rather than hiding clipping behind the Results overlay.
-        (32, {"rotate": {"Spine01": ((1, 0, 0), 105), "Spine02": ((1, 0, 0), 27),
-                        "L_Thigh": ((1, 0, 0), -49), "R_Thigh": ((1, 0, 0), -42),
-                        "L_Calf": ((1, 0, 0), 73), "R_Calf": ((1, 0, 0), 76)},
-              "move": {"Hip": (0, -0.10, 0)}}),
-        (46, {"rotate": {"Spine01": ((1, 0, 0), 105), "Spine02": ((1, 0, 0), 27),
-                        "L_Thigh": ((1, 0, 0), -49), "R_Thigh": ((1, 0, 0), -42),
-                        "L_Calf": ((1, 0, 0), 73), "R_Calf": ((1, 0, 0), 76)},
-              "move": {"Hip": (0, -0.10, 0)}}),
+        (1, {}),
+        (8, {"rotate": {"BoneRoot": (roll_axis, -9)}}),
+        (19, death_mid),
+        (32, death_rest),
+        (46, death_rest),
     ])
     # Show the aim pose when opening the .blend, with reference rifle hidden but
     # available for direct viewport inspection. Keep all new actions in file.
