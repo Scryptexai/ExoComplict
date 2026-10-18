@@ -203,10 +203,16 @@ async function checkPage(target, viewport) {
     const gl = canvas ? canvas.getContext('webgl2') || canvas.getContext('webgl') : null;
     const failure = document.getElementById('failure');
     const chip = document.getElementById('build-label');
+    const bounds = canvas?.getBoundingClientRect();
+    const hitTarget = bounds
+      ? document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)
+      : null;
     return {
       title: document.title,
       hasCanvas: !!canvas,
       canvasSize: canvas ? `${canvas.width}x${canvas.height}` : null,
+      canvasHittable: hitTarget === canvas,
+      hitTarget: hitTarget?.id || hitTarget?.tagName || null,
       glContext: !!gl,
       glLost: gl ? gl.isContextLost() : null,
       failureVisible: failure ? !failure.hidden : false,
@@ -364,7 +370,7 @@ async function checkPage(target, viewport) {
 
   /* ---------- optional play pass ---------- */
   const frames = [];
-  if (booted && playSeconds > 0) {
+  if (booted && playSeconds > 0 && state.canvasHittable) {
     const centre = await page.evaluate(() => {
       const canvas = document.querySelector('canvas');
       if (!canvas) return null;
@@ -468,6 +474,7 @@ async function checkPage(target, viewport) {
     ['no HTTP 4xx/5xx for page assets', badResponses.length === 0],
     ['a canvas exists', state.hasCanvas],
     ['canvas is not the 300x150 default', state.canvasSize !== '300x150'],
+    ['canvas accepts pointer input (no transparent loading overlay)', state.canvasHittable === true],
     ['WebGL context alive', state.glContext === true && state.glLost === false],
     ['no failure card shown', state.failureVisible === false],
   ];
@@ -572,6 +579,7 @@ try {
       console.log(`\n${target} @ ${viewport.spec} → ${result.failed.length ? 'FAIL' : 'PASS'} (${(result.ms / 1000).toFixed(1)}s)`);
       if (result.engine) console.log(`  engine: ${result.engine}`);
       console.log(`  canvas: ${result.state.canvasSize} | WebGL: ${result.state.glContext ? 'yes' : 'no'} | touch: ${result.touchDevice ? 'yes' : 'no'} | chip: ${result.state.chip ?? '-'}`);
+      if (!result.state.canvasHittable) console.log(`  canvas blocked by DOM element: ${result.state.hitTarget ?? 'none'}`);
       for (const c of result.checks) console.log(`  ${c.ok ? 'ok  ' : 'FAIL'} ${c.name}`);
       if (result.pageErrors.length) console.log(`  page errors: ${result.pageErrors.join(' | ')}`);
       if (result.badResponses.length) console.log(`  bad responses: ${result.badResponses.join(' | ')}`);

@@ -83,6 +83,7 @@
 			#status.loaded {
 				opacity: 0;
 				visibility: hidden;
+				pointer-events: none;
 				transition: opacity 260ms ease-out;
 			}
 
@@ -340,6 +341,10 @@ const engine = new Engine(GODOT_CONFIG);
 			return;
 		}
 		if (mode === 'hidden') {
+			// Loading set an inline visibility:visible. Clear it before relying
+			// on #status.loaded, otherwise the transparent splash still captures
+			// every pointer click and leaves the Godot canvas unfocused.
+			statusOverlay.style.removeProperty('visibility');
 			statusOverlay.classList.add('loaded');
 			initializing = false;
 			return;
