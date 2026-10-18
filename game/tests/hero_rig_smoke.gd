@@ -244,12 +244,11 @@ func _run_smoke_test() -> void:
 	visual.call("_process", 1.6)
 	_expect(str(visual.call("current_clip")) == "death", "death pose remains until reset")
 	if has_collapse_bones and anim_player != null:
-		anim_player.seek(1.2, true)
-		# The visual's _process was advanced by hand above, but the separate
-		# AnimationPlayer has only received a few fast headless engine frames.
-		# Finish its 0.18 s blend from hit/aim into death before measuring the
-		# skeleton; otherwise a seek changes clip time while blend weight stays 0.
-		anim_player.advance(0.22)
+		# Simulate 1.2 seconds of actual mixer frames, *not* seek(1.2) while
+		# aim→death is still crossfading. Seeking before a blend completes can
+		# move the clip clock without advancing the old pose's fade-out weight.
+		for _tick in range(30):
+			anim_player.advance(0.04)
 		skeleton.force_update_all_bone_transforms()
 		var fallen_hip := _bone_world(skeleton, hip_index)
 		var fallen_head := _bone_world(skeleton, head_index)
