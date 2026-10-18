@@ -2,9 +2,10 @@
 /*
  * tools/render/pose_shot.mjs — offline pose screenshots of the hero rig.
  *
- * There is no Blender and no GPU in this sandbox, so the only way to actually
- * look at a baked clip is a software-rendered browser. This starts the pinned
- * Chromium from @sparticuz/chromium (SwiftShader), serves the repo, loads
+ * The shipped hero is now authored in Blender on CI; this sandbox has no
+ * Blender viewport or GPU. These software-rendered browser frames allow human
+ * inspection of the exported motion poses. This starts pinned Chromium
+ * (SwiftShader), serves the repo, loads
  * hero.glb + rifle.glb in three.js, repeats the same weapon attachment the game
  * does (hand bone + hero_rig.json), and writes PNGs.
  *
@@ -60,6 +61,11 @@ const shots = has('--clip')
       { name: 'run-side', clip: 'run', time: 0.3, az: 90, el: 6, dist: 3.0, targetY: 0.95 },
       { name: 'walk-side', clip: 'walk', time: 0.4, az: 90, el: 6, dist: 3.0, targetY: 0.95 },
       { name: 'fire-peak', clip: 'fire', time: 0.07, az: 35, el: 10, dist: 3.0, targetY: 0.95 },
+      { name: 'aim-walk-side', clip: 'aim_walk', time: 0.4, az: 90, el: 6, dist: 3.0, targetY: 0.95 },
+      { name: 'aim-run-quarter', clip: 'aim_run', time: 0.3, az: 35, el: 8, dist: 3.0, targetY: 0.95 },
+      { name: 'reload-handling', clip: 'reload', time: 0.55, az: 35, el: 6, dist: 2.6, targetY: 0.95 },
+      { name: 'hit-peak', clip: 'hit', time: 0.13, az: 35, el: 6, dist: 3.0, targetY: 0.95 },
+      { name: 'death-settle', clip: 'death', time: 1.2, az: 35, el: 6, dist: 3.0, targetY: 0.95 },
       { name: 'aim-close', clip: 'aim', time: 0.0, az: 28, el: 4, dist: 1.5, targetY: 1.05 },
     ];
 

@@ -112,7 +112,8 @@ window.setup = async (opts) => {
 };
 
 function socketFor(clip) {
-  const key = (clip === 'aim' || clip === 'fire') ? 'aim_rotation_xyzw' : 'carry_rotation_xyzw';
+  const usesAimSocket = ['aim', 'aim_walk', 'aim_run', 'fire', 'reload', 'hit'].includes(clip);
+  const key = usesAimSocket ? 'aim_rotation_xyzw' : 'carry_rotation_xyzw';
   return rig.weapon_socket[key];
 }
 

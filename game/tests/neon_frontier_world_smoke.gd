@@ -51,9 +51,14 @@ func _run_smoke_test() -> void:
 	if graded:
 		graded = (
 			env_node.environment.tonemap_mode == Environment.TONE_MAPPER_ACES
-			and env_node.environment.ambient_light_energy < 0.36
+			and env_node.environment.ambient_light_source == Environment.AMBIENT_SOURCE_COLOR
+			and (
+				env_node.environment.ambient_light_color.b
+				> env_node.environment.ambient_light_color.r
+			)
 			and sun != null
-			and sun.light_energy < 0.72
+			and sun.light_color.b > sun.light_color.r
+			and sun.light_energy < 1.1
 		)
 	test_passed = (
 		_expect(
@@ -96,6 +101,14 @@ func _run_smoke_test() -> void:
 			world.find_children("KayKit*", "Node3D", true, false).is_empty(),
 			"the playable world no longer instantiates KayKit assets",
 		)
+		and test_passed
+	)
+	var kit_pylons := 0
+	for candidate in world.find_children("SciFiReactorPylon_*", "Node3D", true, false):
+		if not candidate.find_children("*", "MeshInstance3D", true, false).is_empty():
+			kit_pylons += 1
+	test_passed = (
+		_expect(kit_pylons == 4, "the central reactor's pylons use uploaded FBX geometry")
 		and test_passed
 	)
 	for district in ["Outpost", "Landing", "Extraction", "Boss", "Wreck"]:

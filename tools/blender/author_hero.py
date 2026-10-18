@@ -33,6 +33,7 @@ RIFLE = ROOT / "game/assets/weapons/futuristic_rifle/rifle.glb"
 BLEND = ROOT / "source-assets/characters/hero/hero_source.blend"
 REPORT = ROOT / "docs/asset-inspections/hero-blender.json"
 REQUIRED = {"idle", "walk", "run", "aim", "fire"}
+AUTHORED = {"aim_walk", "aim_run", "reload", "hit", "death"}
 REQUIRED_BONES = {
     "BoneRoot", "Hip", "Pelvis", "Waist", "Spine01", "Spine02",
     "L_Upperarm", "L_Forearm", "L_Hand", "R_Upperarm", "R_Forearm", "R_Hand",
@@ -162,6 +163,17 @@ def main():
     if not REQUIRED_BONES <= bones:
         raise RuntimeError(f"Hero bone names changed: {sorted(REQUIRED_BONES - bones)} missing")
     actions = inspect_actions(arm)
+    arm.animation_data.action = actions["aim"]
+    # The input is also the *previous* export on subsequent authoring runs.
+    # Remove its generated clips before baking replacements: Blender would
+    # otherwise rename the new actions with .001 and silently keep the old
+    # animation under the name Godot plays. Imported actions may also carry
+    # the armature suffix, depending on Blender's glTF importer version.
+    stale = [action for action in bpy.data.actions
+             if any(action.name == clip or action.name.startswith(f"{clip}_")
+                    or action.name.startswith(f"{clip}.") for clip in AUTHORED)]
+    for action in stale:
+        bpy.data.actions.remove(action)
     hero_bounds = bounds(hero_objects)
     skeleton = [{"name": bone.name, "parent": bone.parent.name if bone.parent else None,
                  "head": [round(v, 5) for v in bone.head_local],

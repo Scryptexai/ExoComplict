@@ -54,8 +54,22 @@ func _run_smoke_test() -> void:
 	var clips: PackedStringArray = (
 		anim_player.get_animation_list() if anim_player != null else PackedStringArray()
 	)
-	for clip in ["idle", "run", "walk", "aim", "fire"]:
-		_expect(clips.has(clip), "hero.glb provides the '%s' clip" % clip)
+	for clip in [
+		"idle", "run", "walk", "aim", "aim_walk", "aim_run", "fire", "reload", "hit", "death"
+	]:
+		_expect(clips.has(clip), "Blender-authored hero.glb provides the '%s' clip" % clip)
+	for clip in ["walk", "run", "aim_walk", "aim_run"]:
+		if anim_player != null and anim_player.has_animation(clip):
+			_expect(
+				anim_player.get_animation(clip).loop_mode == Animation.LOOP_LINEAR,
+				"moving '%s' loops rather than freezing after one cycle" % clip,
+			)
+	for clip in ["fire", "reload", "hit", "death"]:
+		if anim_player != null and anim_player.has_animation(clip):
+			_expect(
+				anim_player.get_animation(clip).loop_mode == Animation.LOOP_NONE,
+				"one-shot '%s' does not loop" % clip,
+			)
 
 	# --- the rifle is in the hand ------------------------------------------
 	var skeleton := _find_skeleton(visual)
@@ -122,6 +136,18 @@ func _run_smoke_test() -> void:
 	_expect(
 		aim_changed < 0.92, "the rifle changes angle between carry and aim (dot %.2f)" % aim_changed
 	)
+	visual.call("update_pose", Vector3(2.5, 0.0, 0.0), true, 0.016)
+	visual.call("_process", 0.016)
+	_expect(
+		str(visual.call("current_clip")) == "aim_walk",
+		"moving aim blends walking legs with aimed upper body instead of sliding",
+	)
+	visual.call("update_pose", Vector3(6.0, 0.0, 0.0), true, 0.016)
+	visual.call("_process", 0.016)
+	_expect(str(visual.call("current_clip")) == "aim_run", "sprint aim has a moving-leg clip")
+	visual.call("update_pose", Vector3.ZERO, true, 0.016)
+	visual.call("_process", 0.016)
+	_expect(str(visual.call("current_clip")) == "aim", "stopping returns to stationary aim")
 
 	# --- a shot leaves from the barrel -------------------------------------
 	var children_before := main_scene.get_child_count()
@@ -153,6 +179,25 @@ func _run_smoke_test() -> void:
 	# fire clip, so waiting for real time would take thousands of iterations.
 	visual.call("_process", 0.5)
 	_expect(str(visual.call("current_clip")) == "aim", "the fire clip returns to the aim pose")
+
+	var requested_reload: bool = bool(weapon_controller.call("request_reload"))
+	_expect(requested_reload, "spent magazine can start a measured reload")
+	_expect(
+		str(visual.call("current_clip")) == "reload",
+		"the real ammo reload signal starts the Blender handling action",
+	)
+	weapon_controller.call("reset_ammo")
+	_expect(str(visual.call("current_clip")) == "aim", "refilled magazine ends the reload action")
+	player.call("apply_damage", 8.0)
+	_expect(str(visual.call("current_clip")) == "hit", "nonfatal damage plays hit reaction")
+	visual.call("_process", 0.32)
+	_expect(str(visual.call("current_clip")) == "aim", "hit reaction returns to aimed stance")
+	player.call("apply_damage", 1000.0)
+	_expect(str(visual.call("current_clip")) == "death", "fatal damage plays death motion")
+	visual.call("_process", 1.6)
+	_expect(str(visual.call("current_clip")) == "death", "death pose remains until reset")
+	player.call("reset_player")
+	_expect(str(visual.call("current_clip")) == "idle", "reset exits death into neutral idle")
 
 	_finish(main_scene)
 

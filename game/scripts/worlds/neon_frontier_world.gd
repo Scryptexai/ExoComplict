@@ -56,9 +56,9 @@ func _ready() -> void:
 
 func _create_materials() -> void:
 	_materials = {
-		"ground": _make_material(Color(0.17, 0.23, 0.29), 0.04, 0.9),
-		"ground_light": _make_material(Color(0.26, 0.32, 0.37), 0.06, 0.84),
-		"ground_rose": _make_material(Color(0.22, 0.25, 0.33), 0.05, 0.88),
+		"ground": _make_material(Color(0.32, 0.39, 0.46), 0.04, 0.9),
+		"ground_light": _make_material(Color(0.4, 0.47, 0.54), 0.06, 0.84),
+		"ground_rose": _make_material(Color(0.33, 0.36, 0.46), 0.05, 0.88),
 		"silver": _make_material(Color(0.43, 0.52, 0.59), 0.56, 0.43),
 		"pearl": _make_material(Color(0.68, 0.77, 0.82), 0.15, 0.5),
 		"ceramic": _make_material(Color(0.52, 0.64, 0.73), 0.23, 0.5),
@@ -1330,8 +1330,8 @@ func _build_lighting_and_atmosphere() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "FrontierDaylightSun"
 	sun.rotation_degrees = Vector3(-39.0, -31.0, 0.0)
-	sun.light_color = Color(0.67, 0.79, 0.92)
-	sun.light_energy = 0.62
+	sun.light_color = Color(0.82, 0.9, 1.0)
+	sun.light_energy = 0.92
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 115.0
 	sun.shadow_bias = 0.04
@@ -1345,21 +1345,25 @@ func _build_lighting_and_atmosphere() -> void:
 	# broad key light give the armor a silhouette; small amber/cyan fixtures
 	# mark traversable paths and interactable structures. Web Compatibility has
 	# no dependable real-time GI or volumetric fog, so keep the base legible.
-	sky_material.sky_top_color = Color(0.02, 0.055, 0.12)
-	sky_material.sky_horizon_color = Color(0.18, 0.29, 0.36)
-	sky_material.ground_bottom_color = Color(0.07, 0.11, 0.17)
-	sky_material.ground_horizon_color = Color(0.19, 0.27, 0.31)
+	sky_material.sky_top_color = Color(0.06, 0.13, 0.23)
+	sky_material.sky_horizon_color = Color(0.29, 0.4, 0.49)
+	sky_material.ground_bottom_color = Color(0.16, 0.23, 0.3)
+	sky_material.ground_horizon_color = Color(0.27, 0.36, 0.42)
 	sky_material.sun_angle_max = 10.0
 	sky_material.sun_curve = 0.14
 	sky.sky_material = sky_material
 	environment.sky = sky
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	environment.ambient_light_energy = 0.29
+	# Compatibility can leave SKY-sourced ambient nearly black when the
+	# procedural sky is dark. An authored slate-blue fill keeps shade lanes and
+	# the player silhouette readable without restoring the old white washout.
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	environment.ambient_light_color = Color(0.45, 0.57, 0.7)
+	environment.ambient_light_energy = 0.62
 	environment.reflected_light_source = Environment.REFLECTION_SOURCE_BG
 	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
-	environment.tonemap_exposure = 0.9
+	environment.tonemap_exposure = 1.05
 	environment.adjustment_enabled = true
-	environment.adjustment_brightness = 0.88
+	environment.adjustment_brightness = 0.97
 	environment.adjustment_contrast = 1.08
 	environment.adjustment_saturation = 1.04
 	environment.glow_enabled = true

@@ -305,11 +305,25 @@ func _build_reactor_core() -> void:
 				0.7,
 				_materials["copper"]
 			)
-			_box(
+			# Keep the old mesh as an editable structural fallback, but dress the
+			# visible load-bearing pylon with the user's imported FBX column.
+			var blockout_pylon := _box(
 				"ReactorPylon_%s_%s" % [str(x_sign), str(z_sign)],
 				Vector3(pylon_x, 4.55, pylon_z),
 				Vector3(0.72, 7.2, 0.72),
 				_materials["pearl"]
+			)
+			blockout_pylon.visible = false
+			ScifiBayBuilder.place(
+				self,
+				"column",
+				"SciFiReactorPylon_%s_%s" % [str(x_sign), str(z_sign)],
+				Vector3(pylon_x, 0.95, pylon_z),
+				0.0,
+				1.0,
+				true,
+				true,
+				Vector3(0.2, 1.8, 1.6)
 			)
 			_box(
 				"ReactorPylonLight_%s_%s" % [str(x_sign), str(z_sign)],

@@ -99,11 +99,11 @@ const SIZE := {
 ## cyan energy fixtures. Model-aware policy retains the user's FBX silhouettes.
 const COLORS := {
 	"orange": Color(0.95, 0.38, 0.13),
-	"steel": Color(0.37, 0.45, 0.51),
-	"steel_light": Color(0.48, 0.56, 0.61),
-	"panel": Color(0.23, 0.29, 0.35),
-	"trim": Color(0.11, 0.15, 0.21),
-	"floor": Color(0.22, 0.28, 0.34),
+	"steel": Color(0.46, 0.53, 0.6),
+	"steel_light": Color(0.58, 0.64, 0.69),
+	"panel": Color(0.3, 0.37, 0.44),
+	"trim": Color(0.16, 0.21, 0.27),
+	"floor": Color(0.31, 0.38, 0.45),
 	"glass": Color(0.35, 0.78, 0.92),
 	"light": Color(0.62, 0.93, 1.0),
 }

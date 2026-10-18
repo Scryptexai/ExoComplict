@@ -6,12 +6,11 @@ extends Node3D
 ## The gameplay body is a CharacterBody3D with a capsule collider; everything the
 ## camera sees lives under this node. Two kinds of model can be attached here:
 ##
-## * a **rigged** GLB with a Skeleton3D and an AnimationPlayer — the Tripo hero in
-##   `assets/characters/hero/hero.glb`. Its own clips (idle / run / walk, plus the
-##   baked aim / fire clips) drive the limbs, the rifle is parented to the
-##   `R_Hand` bone through a BoneAttachment3D, and the shot origin is read from the
-##   rifle's own `MuzzlePoint` node. That is what makes the muzzle flash come out
-##   of the barrel instead of an offset someone guessed.
+## * a **rigged** Blender-exported GLB with a Skeleton3D and AnimationPlayer in
+##   `assets/characters/hero/hero.glb`. Its locomotion, aim locomotion, combat,
+##   hit and death clips drive the limbs. The rifle follows the `R_Hand` bone
+##   through a BoneAttachment3D, and the shot origin is read from the rifle's
+##   measured `MuzzlePoint`, not a guessed offset.
 ## * a **static** kit model (the Kenney astronaut fallback). No skeleton, so
 ##   motion stays procedural: walking bob, strafe lean, run pitch and recoil are
 ##   driven here from the controller's velocity.
@@ -70,6 +69,9 @@ var _anim_player: AnimationPlayer = null
 var _attachment: BoneAttachment3D = null
 var _current_clip: String = ""
 var _fire_remaining: float = 0.0
+var _reload_remaining: float = 0.0
+var _hit_remaining: float = 0.0
+var _defeated: bool = false
 var _socket_aiming: bool = false
 var _socket_weight: float = 0.0
 var _socket_aim_basis: Basis = Basis()
@@ -91,6 +93,10 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if _fire_remaining > 0.0:
 		_fire_remaining = maxf(_fire_remaining - delta, 0.0)
+	if _reload_remaining > 0.0:
+		_reload_remaining = maxf(_reload_remaining - delta, 0.0)
+	if _hit_remaining > 0.0:
+		_hit_remaining = maxf(_hit_remaining - delta, 0.0)
 	if is_rigged():
 		_update_locomotion(_last_speed_ratio)
 		_blend_socket(delta)
@@ -132,6 +138,50 @@ func set_aiming(value: bool) -> void:
 	_aiming = value
 	if is_rigged():
 		_update_locomotion(_last_speed_ratio)
+
+
+## WeaponController owns the ammo timer. This presentation layer stretches its
+## imported reload action to the *current weapon's* measured reload duration.
+func play_reload(seconds: float) -> void:
+	if _defeated or seconds <= 0.0:
+		return
+	_reload_remaining = seconds
+	_fire_remaining = 0.0
+	if is_rigged():
+		_update_locomotion(_last_speed_ratio)
+
+
+func finish_reload() -> void:
+	_reload_remaining = 0.0
+	if is_rigged():
+		_update_locomotion(_last_speed_ratio)
+
+
+func play_hit() -> void:
+	if _defeated:
+		return
+	_hit_remaining = 0.28
+	if is_rigged():
+		_update_locomotion(_last_speed_ratio)
+
+
+func play_death() -> void:
+	_defeated = true
+	_fire_remaining = 0.0
+	_reload_remaining = 0.0
+	_hit_remaining = 0.0
+	if is_rigged():
+		_update_locomotion(0.0)
+
+
+func reset_action_state() -> void:
+	_defeated = false
+	_fire_remaining = 0.0
+	_reload_remaining = 0.0
+	_hit_remaining = 0.0
+	_aiming = false
+	if is_rigged():
+		_update_locomotion(0.0)
 
 
 func play_recoil(strength: float = 1.0, duration: float = 0.16) -> void:
@@ -315,8 +365,19 @@ func _setup_rig() -> void:
 	_socket_carry_basis = Basis(_quat(socket.get("carry_rotation_xyzw", [0, 0, 0, 1])))
 	_socket_offset = _vec3(socket.get("offset", [0, 0, 0]))
 
-	for clip in ["idle", "run", "walk", "aim", "fire"]:
+	# GLB export does not guarantee Godot's loop import flags. Without an
+	# explicit loop, a long walk freezes on its last frame; reactions should
+	# never loop, and death must remain in its final pose until reset.
+	for clip in [
+		"idle", "run", "walk", "aim", "aim_walk", "aim_run", "fire", "reload", "hit", "death"
+	]:
 		if _anim_player.has_animation(clip):
+			var animation := _anim_player.get_animation(clip)
+			animation.loop_mode = (
+				Animation.LOOP_LINEAR
+				if clip in ["idle", "run", "walk", "aim", "aim_walk", "aim_run"]
+				else Animation.LOOP_NONE
+			)
 			_anim_player.set_blend_time(clip, "aim", 0.12)
 			_anim_player.set_blend_time("aim", clip, 0.12)
 	_play("idle", 0.0)
@@ -336,31 +397,43 @@ func _has_clip(clip: String) -> bool:
 	return _anim_player != null and _anim_player.has_animation(clip)
 
 
-func _play(clip: String, blend: float = 0.18) -> void:
+func _play(clip: String, blend: float = 0.18, speed: float = 1.0) -> void:
 	if not _has_clip(clip) or clip == _current_clip:
 		return
 	_current_clip = clip
-	_anim_player.play(clip, blend)
+	_anim_player.play(clip, blend, speed)
 
 
 func _update_locomotion(speed_ratio: float) -> void:
 	if not is_rigged():
 		return
-	# Aiming wins over locomotion on purpose: the barrel must point where the
-	# crosshair points, or the tracer would leave a rifle that is aimed at the
-	# floor. The cost is foot sliding when aiming while moving — an
-	# AnimationTree upper/lower-body split is the follow-up, not a reason to
-	# ship a shot that visibly leaves a lowered gun.
+	# Blender-authored composite clips keep the moving lower body instead of
+	# pinning the legs to a standing aim pose. The weapon socket remains in aim
+	# orientation through aim locomotion, fire, reload and the hit reaction.
 	var desired := "idle"
-	if _fire_remaining > 0.0 and _aiming:
+	if _defeated and _has_clip("death"):
+		desired = "death"
+	elif _hit_remaining > 0.0 and _has_clip("hit"):
+		desired = "hit"
+	elif _reload_remaining > 0.0 and _has_clip("reload"):
+		desired = "reload"
+	elif _fire_remaining > 0.0 and _aiming:
 		desired = "fire"
+	elif _aiming and speed_ratio > RUN_THRESHOLD and _has_clip("aim_run"):
+		desired = "aim_run"
+	elif _aiming and speed_ratio > WALK_THRESHOLD and _has_clip("aim_walk"):
+		desired = "aim_walk"
 	elif _aiming:
 		desired = "aim"
 	elif speed_ratio > RUN_THRESHOLD:
 		desired = "run"
 	elif speed_ratio > WALK_THRESHOLD:
 		desired = "walk"
-	_play(desired)
+	var clip_speed := 1.0
+	if desired == "reload":
+		var clip_length := _anim_player.get_animation("reload").length
+		clip_speed = clip_length / maxf(_reload_remaining, 0.01)
+	_play(desired, 0.18, clip_speed)
 
 
 ## Blend the weapon socket between the aim and carry rotations and follow the
@@ -370,7 +443,9 @@ func _update_locomotion(speed_ratio: float) -> void:
 func _blend_socket(delta: float) -> void:
 	if not is_instance_valid(_weapon_socket) or not is_instance_valid(_attachment):
 		return
-	var target := 1.0 if (_current_clip == "aim" or _current_clip == "fire") else 0.0
+	var target := (
+		1.0 if _current_clip in ["aim", "aim_walk", "aim_run", "fire", "reload", "hit"] else 0.0
+	)
 	var step := delta / maxf(weapon_socket_blend_seconds, 0.01)
 	_socket_weight = move_toward(_socket_weight, target, step)
 	var basis := _socket_carry_basis.slerp(_socket_aim_basis, _socket_weight)

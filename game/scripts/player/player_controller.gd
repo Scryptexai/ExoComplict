@@ -34,6 +34,7 @@ var _touch_fire_pressed: bool = false
 var _aiming: bool = false
 var _touch_aim_hold: bool = false
 var _walk_time: float = 0.0
+var _reload_was_active: bool = false
 
 @onready var camera_rig: ThirdPersonCameraRigScript = $CameraRig
 @onready var aim_camera: Camera3D = $CameraRig/YawPivot/PitchPivot/SpringArm3D/Camera3D
@@ -46,6 +47,7 @@ var _walk_time: float = 0.0
 func _ready() -> void:
 	current_health = max_health
 	weapon_controller.weapon_changed.connect(_on_weapon_changed)
+	weapon_controller.ammo_changed.connect(_on_ammo_changed)
 	health_changed.emit(current_health, max_health)
 
 
@@ -203,6 +205,16 @@ func _on_weapon_changed(display_name: String) -> void:
 	weapon_changed.emit(display_name)
 
 
+func _on_ammo_changed(_remaining: int, _capacity: int, reloading: bool) -> void:
+	if reloading and not _reload_was_active:
+		var definition := weapon_controller.get_current_definition()
+		if definition != null:
+			visual_root.play_reload(definition.reload_seconds)
+	elif not reloading and _reload_was_active:
+		visual_root.finish_reload()
+	_reload_was_active = reloading
+
+
 func can_take_damage() -> bool:
 	return not _is_defeated
 
@@ -217,10 +229,13 @@ func apply_damage(amount: float, _source: Node = null) -> void:
 	health_changed.emit(current_health, max_health)
 	if current_health <= 0.0:
 		_is_defeated = true
+		visual_root.play_death()
 		Sfx.play_ui(&"player_hurt")
 		_touch_fire_pressed = false
 		_touch_movement = Vector2.ZERO
 		defeated.emit()
+	else:
+		visual_root.play_hit()
 
 
 func is_defeated() -> bool:
@@ -237,6 +252,8 @@ func reset_player() -> void:
 	_touch_movement = Vector2.ZERO
 	_touch_fire_pressed = false
 	weapon_controller.reset_ammo()
+	_reload_was_active = false
+	visual_root.reset_action_state()
 	health_changed.emit(current_health, max_health)
 	skill_cooldown_changed.emit(0.0, emp_pulse_cooldown)
 
