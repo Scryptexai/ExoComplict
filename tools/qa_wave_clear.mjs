@@ -19,6 +19,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'exports', 'qa-wave-clear');
+const EFFECTS = process.argv.includes('--effects');
 const URL = process.argv.find(arg => arg.startsWith('--url='))?.slice(6) || 'http://127.0.0.1:800/';
 const LIB_DIR = path.join(ROOT, 'tools', '.cache', 'al2023-lib', 'lib');
 if (!fs.existsSync(path.join(LIB_DIR, 'libnss3.so'))) {
@@ -44,9 +45,12 @@ try {
   await page.setViewport({ width: 390, height: 844, hasTouch: true, isMobile: true, deviceScaleFactor: 1 });
   const lines = [];
   const errors = [];
+  const replayFrames = [];
+  let impactAt = 0;
   page.on('console', message => {
     const line = message.text();
     lines.push(line);
+    if (/^Effects QA: Nova impact=.+ damaged=[1-9]/.test(line) && !impactAt) impactAt = Date.now();
     if (/Encounter:|Progression:|Armory:/.test(line)) console.log(line);
     if (/SCRIPT ERROR:|Parse Error:/.test(line)) errors.push(line);
   });
@@ -86,7 +90,8 @@ try {
     await page.touchscreen.touchEnd();
     await delay(190);
   };
-  await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
+  const preview = EFFECTS ? `${URL}${URL.includes('?') ? '&' : '?'}qa_effects` : URL;
+  await page.goto(preview, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await waitFor('Encounter: Explore safe', 90000);
   await shot('00-explore');
   await tap(130, 247);
@@ -132,11 +137,46 @@ try {
   await delay(700);
   await tap(130, 247); // START DEFENSE with unlocked Nova equipped
   await waitForCount('Encounter: Defense started', 2, 300000);
+  let cdp;
+  if (EFFECTS) {
+    // Save compositor frames continuously: page.screenshot() can arrive only
+    // after a sub-second impact has vanished on software-rendered WebGL.
+    cdp = await page.createCDPSession();
+    await cdp.send('Page.enable');
+    cdp.on('Page.screencastFrame', ({ data, sessionId }) => {
+      if (replayFrames.length < 80) replayFrames.push({ data, time: Date.now() });
+      cdp.send('Page.screencastFrameAck', { sessionId }).catch(error => errors.push(String(error)));
+    });
+    await cdp.send('Page.startScreencast', { format: 'png', everyNthFrame: 1 });
+    await delay(5000); // wait for the actual replay Runner, not an empty floor
+  }
   await shot('05-nova-replay');
-  await fire(1700);
+  await fire(EFFECTS ? 5000 : 1700);
   await shot('06-nova-fired');
+  if (EFFECTS) {
+    const damagingImpact = () => lines.find(line =>
+      /^Effects QA: Nova impact=.+ damaged=[1-9]/.test(line)) || '';
+    for (let index = 0; index < 9 && !damagingImpact(); index++) {
+      await swipe(345, 395, 260, index % 3 === 2 ? 425 : 395);
+      await fire(2300);
+      if (index % 2 === 0) await shot(`nova-search-${index}`);
+    }
+    const impact = damagingImpact();
+    if (!impact) throw new Error('Nova rounds left the barrel, but none hit a real target; impact art not verified');
+    console.log('TARGET IMPACT', impact);
+    await delay(3000); // give the compositor a chance to present post-impact frames
+    await shot('07-nova-target-impact');
+    await cdp.send('Page.stopScreencast');
+    for (const [index, frame] of replayFrames.entries()) {
+      const name = `nova-replay-compositor-${String(index).padStart(2, '0')}.png`;
+      fs.writeFileSync(path.join(OUT, name), Buffer.from(frame.data, 'base64'));
+      console.log(`CAPTURE ${name} ${frame.time - impactAt}ms from target impact`);
+    }
+    if (replayFrames.length < 2) throw new Error('Too few WebGL compositor frames to inspect the impact');
+  }
   if (errors.length) throw new Error(errors.join('\n'));
-  console.log('PASS: 2 Runner KOs + 100 clear -> 120 banked -> Nova unlocked/equipped -> replay FIRE');
+  console.log('PASS: 2 Runner KOs + 100 clear -> 120 banked -> Nova unlocked/equipped -> replay FIRE'
+    + (EFFECTS ? ' -> damaging Nova impact' : ''));
 
 } finally {
   await browser.close();

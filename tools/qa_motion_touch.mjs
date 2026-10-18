@@ -4,10 +4,13 @@
  * Start the project-root server first:
  *   python -m http.server 800 --bind 0.0.0.0
  * Then: npm ci --prefix tools && node tools/qa_motion_touch.mjs
+ * Optional: add --record for an ignored diagnostic WebM of the canvas.
  *
  * Capture the actual Blender hero under movement, ADS and firing in safe Explore.
  * Keyboard movement is used to keep the right thumb available for FIRE/ADS;
  * these screenshots and clip logs are NOT acceptance of animation quality.
+ * Headless SwiftShader may render far below the requested video frame rate:
+ * do not use --record footage to grade timing or claim device performance.
  */
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
@@ -19,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'exports', 'qa-motion-touch');
+const RECORD = process.argv.includes('--record');
 const URL = process.argv.find(arg => arg.startsWith('--url='))?.slice(6) || 'http://127.0.0.1:800/';
 const LIB_DIR = path.join(ROOT, 'tools', '.cache', 'al2023-lib', 'lib');
 if (!fs.existsSync(path.join(LIB_DIR, 'libnss3.so'))) {
@@ -74,6 +78,24 @@ try {
   const preview = URL.includes('?') ? URL + '&qa_camera' : URL + '?qa_camera';
   await page.goto(preview, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await waitFor('Encounter: Explore safe', 90000);
+  if (RECORD) {
+    const started = await page.evaluate(() => {
+      const canvas = document.querySelector('#canvas');
+      const mime = 'video/webm;codecs=vp8';
+      if (!canvas?.captureStream || !window.MediaRecorder?.isTypeSupported(mime)) return false;
+      window.__motionChunks = [];
+      window.__motionStarted = performance.now();
+      window.__motionRecorder = new MediaRecorder(canvas.captureStream(16), {
+        mimeType: mime, videoBitsPerSecond: 1400000,
+      });
+      window.__motionRecorder.ondataavailable = event => {
+        if (event.data.size > 0) window.__motionChunks.push(event.data);
+      };
+      window.__motionRecorder.start(2000);
+      return true;
+    });
+    if (!started) throw new Error('This browser cannot record canvas VP8/WebM; try without --record');
+  }
   await shot('01-idle');
   await page.touchscreen.touchStart(334, 640); // ADS icon, not FIRE
   await delay(900);
@@ -91,15 +113,37 @@ try {
   await shot('05-move-fire-held');
   await page.touchscreen.touchEnd();
   await page.keyboard.up('KeyW');
+  await page.keyboard.press('KeyG'); // actual reload input after spending Pulse rounds
+  await waitFor('clip=reload', 30000);
+  await shot('06-reload');
+  if (RECORD) {
+    const recording = await page.evaluate(async () => {
+      const recorder = window.__motionRecorder;
+      const blob = await new Promise(resolve => {
+        recorder.onstop = () => resolve(new Blob(window.__motionChunks, { type: recorder.mimeType }));
+        recorder.stop();
+      });
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      let binary = '';
+      for (let offset = 0; offset < bytes.length; offset += 32768) {
+        binary += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
+      }
+      return { base64: btoa(binary), seconds: (performance.now() - window.__motionStarted) / 1000 };
+    });
+    const filename = path.join(OUT, 'hero-motion.webm');
+    fs.writeFileSync(filename, Buffer.from(recording.base64, 'base64'));
+    console.log(`RECORDED ${filename} (${recording.seconds.toFixed(1)}s wall time; actual encoded FPS may be much lower than 16)`);
+  }
   const traces = lines.filter(line => line.startsWith('Camera QA:'));
   console.log('CLIP TRACE', traces.slice(-15).join('\n'));
   if (errors.length) throw new Error(errors.join('\n'));
   if (!traces.some(line => line.includes('aim=true'))
       || !traces.some(line => line.includes('fire=true'))
-      || !traces.some(line => line.includes('clip=aim_run'))) {
-    throw new Error('Camera trace never observed ADS, held FIRE and Blender aim_run in gameplay');
+      || !traces.some(line => line.includes('clip=aim_run'))
+      || !traces.some(line => line.includes('clip=reload'))) {
+    throw new Error('Camera trace never observed ADS, FIRE, aim_run and reload in gameplay');
   }
-  console.log('PASS: actual Explore inputs and camera/clip traces captured; human motion/VFX review remains OPEN');
+  console.log('PASS: actual Explore ADS/FIRE/run/reload inputs and clip traces; human motion/VFX review remains OPEN');
 
 } finally {
   await browser.close();
