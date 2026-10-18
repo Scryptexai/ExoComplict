@@ -132,15 +132,23 @@ func _run_smoke_test() -> void:
 		fire_button.visible and aim_button.visible and skill_button.visible,
 		"touch mode restores the thumb controls",
 	)
+	var weapon_readout := controls.get("_touch_ammo_chip").get("weapon_label") as Label
 	_expect(
 		(
-			fire_button.text == "FIRE"
-			and weapon_button.text == "ARMORY · PULSE"
-			and skill_button.text.contains("READY")
+			fire_button.text.is_empty()
+			and fire_button.icon != null
+			and weapon_button.text.is_empty()
+			and weapon_button.icon != null
+			and String(weapon_button.get_meta("aegis_state", "")) == "armory"
+			and weapon_readout.text == "PULSE"
+			and skill_button.text.is_empty()
+			and skill_button.icon != null
 			and not skill_button.disabled
+			and pause_button.text.is_empty()
+			and pause_button.icon != null
 			and String(pause_button.get_meta("aegis_state", "")) == "pause"
 		),
-		"fire, armory entry, EMP skill, and pause buttons are visible and labeled",
+		"combat actions use distinct icons; weapon/ammo data are outside their hit targets",
 	)
 	# Quick mute and the settings screen must share the same live audio state.
 	_expect(
@@ -231,12 +239,31 @@ func _run_smoke_test() -> void:
 		"portrait objective and start action stack below vitals without overlap",
 	)
 	var portrait_gap := float(controls.call("_to_layout", 5.9))
+	var portrait_skill_ring := controls.get("_skill_ring") as Control
+	_expect(
+		(
+			portrait_skill_ring.visible
+			and (
+				(
+					portrait_skill_ring.get_global_rect().get_center().distance_to(
+						skill_button.get_global_rect().get_center()
+					)
+					* 0.3047
+				)
+				< 2.0
+			)
+		),
+		"portrait EMP cooldown ring stays visibly centred around its icon",
+	)
 	_expect(
 		(
 			weapon_button.get_global_rect().size.y * 0.3047 >= 59.0
 			and fire_button.get_global_rect().size.x * 0.3047 >= 110.0
+			and fire_button.get_theme_constant("icon_max_width") * 0.3047 >= 47.0
 			and aim_button.get_global_rect().size.x * 0.3047 >= 70.0
+			and aim_button.get_theme_constant("icon_max_width") * 0.3047 >= 30.0
 			and skill_button.get_global_rect().size.x * 0.3047 >= 70.0
+			and skill_button.get_theme_constant("icon_max_width") * 0.3047 >= 30.0
 			and pause_button.get_global_rect().size.x * 0.3047 >= 86.0
 			and not weapon_button.get_global_rect().grow(portrait_gap).intersects(
 				aim_button.get_global_rect()
@@ -259,8 +286,8 @@ func _run_smoke_test() -> void:
 			# phone renders every logical pixel at ~0.3x.
 			and portrait_font >= 12.5
 			and portrait_body_font >= 12.5
-			and fire_button.get_theme_font_size("font_size") * 0.3047 >= 17.5
-			and weapon_button.get_theme_font_size("font_size") * 0.3047 >= 13.5
+			and weapon_button.get_theme_constant("icon_max_width") * 0.3047 >= 34.0
+			and pause_button.get_theme_constant("icon_max_width") * 0.3047 >= 27.0
 			and wave_card.size.y >= wave_enemy_label.get_combined_minimum_size().y
 			and defense_button.get_global_rect().size.y * 0.3047 >= 59.0
 		),
@@ -378,8 +405,13 @@ func _run_smoke_test() -> void:
 		"player avatar is a fitted GLB model, not the fallback capsule",
 	)
 	_expect(
-		is_instance_valid(aim_button) and aim_button.text == "AIM",
-		"aim-down-sights button is present for touch aiming",
+		(
+			is_instance_valid(aim_button)
+			and aim_button.text.is_empty()
+			and aim_button.icon != null
+			and aim_button.tooltip_text.contains("aim down sights")
+		),
+		"ADS uses an optic glyph and retains a discoverable help description",
 	)
 
 	var rest_fov := player_camera.fov
@@ -427,6 +459,7 @@ func _run_smoke_test() -> void:
 	)
 
 	var shots_before_touch_fire := int(main_scene.get("_shots_fired"))
+	var camera_before_fire := player_camera.global_position
 	_send_screen_touch(controls, 70, fire_button.get_global_rect().get_center(), true)
 	for _frame in 2:
 		await physics_frame
@@ -436,6 +469,13 @@ func _run_smoke_test() -> void:
 			and int(main_scene.get("_shots_fired")) > shots_before_touch_fire
 		),
 		"screen touch on FIRE reaches the player and spawns a combat shot",
+	)
+	_expect(
+		(
+			not bool(player.call("is_aiming"))
+			and player_camera.global_position.distance_to(camera_before_fire) < 0.4
+		),
+		"hip-fire recoil never teleports the SpringArm camera into the hero",
 	)
 	_send_screen_touch(controls, 70, fire_button.get_global_rect().get_center(), false)
 	_expect(
@@ -458,14 +498,17 @@ func _run_smoke_test() -> void:
 	var progression := main_scene.get_node("ProgressionService") as ProgressionService
 	progression.balance = 120
 	_expect(progression.unlock_weapon(&"nova_launcher"), "earning BP enables a Nova unlock")
-	_expect(weapon_button.text == "SWAP · PULSE", "the new weapon enables touch SWAP")
-	_tap_screen_button(controls, weapon_button, 73)
 	_expect(
 		(
-			player.call("get_current_weapon_name") == "Nova Launcher"
-			and weapon_button.text == "SWAP · NOVA"
+			String(weapon_button.get_meta("aegis_state", "")) == "swap"
+			and weapon_button.tooltip_text.contains("Tap to swap")
 		),
-		"touching the weapon button cycles the active weapon and HUD label",
+		"unlock changes the weapon glyph from Armory to SWAP",
+	)
+	_tap_screen_button(controls, weapon_button, 73)
+	_expect(
+		player.call("get_current_weapon_name") == "Nova Launcher" and weapon_readout.text == "NOVA",
+		"touching SWAP changes the actual weapon and adjacent readout",
 	)
 
 	var skill_enemy := RunnerScene.instantiate() as Node3D
@@ -486,7 +529,11 @@ func _run_smoke_test() -> void:
 		(
 			float(player.get("_skill_cooldown_remaining")) > 0.0
 			and skill_button.disabled
-			and skill_button.text.contains("HIT")
+			and skill_button.text.is_empty()
+			and (controls.get("_skill_cooldown_label") as Label).text.ends_with("s")
+			and (controls.get("_feedback_panel").get("_message_label") as Label).text.contains(
+				"1 TARGET"
+			)
 		),
 		"skill activation starts its cooldown and shows target-hit feedback",
 	)
@@ -699,7 +746,8 @@ func _run_smoke_test() -> void:
 			not bool(player.call("is_defeated"))
 			and is_equal_approx(health_bar.value, 100.0)
 			and not results_panel.visible
-			and skill_button.text.contains("READY")
+			and skill_button.text.is_empty()
+			and not (controls.get("_skill_cooldown_label") as Label).visible
 			and not skill_button.disabled
 		),
 		"touching results RETRY restores the player and returns to the HUD",

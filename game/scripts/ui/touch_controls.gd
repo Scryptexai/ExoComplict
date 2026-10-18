@@ -148,6 +148,7 @@ var _aim_button: AegisButton
 var _results_retry_button: AegisButton
 var _results_explore_button: AegisButton
 var _skill_ring: CooldownRing
+var _skill_cooldown_label: Label
 var _touch_ammo_chip: AegisAmmoChip
 var _results_panel: AegisPanel
 
@@ -397,7 +398,7 @@ func _apply_input_mode() -> void:
 	if is_instance_valid(_desktop_hint):
 		_desktop_hint.visible = not _touch_mode and gameplay_visible and not get_tree().paused
 	if is_instance_valid(_skill_ring):
-		_skill_ring.visible = _touch_mode and not _narrow and gameplay_visible
+		_skill_ring.visible = _touch_mode and gameplay_visible
 	if is_instance_valid(_touch_ammo_chip):
 		_touch_ammo_chip.visible = _touch_mode and gameplay_visible
 	if is_instance_valid(_sound_button):
@@ -456,23 +457,15 @@ func _refresh_compact_label(source: String = "") -> void:
 
 func set_weapon_label(display_name: String) -> void:
 	if is_instance_valid(_weapon_button):
-		# On touch, show the *action* and a short current weapon name; a bare
-		# "NOVA LAUNCHER" chip never explained that it could be tapped to swap.
-		_weapon_button.text = (
-			"%s · %s"
-			% [
-				"SWAP" if _available_weapon_count > 1 else "ARMORY",
-				display_name.get_slice(" ", 0).to_upper(),
-			]
-		)
+		var can_swap := _available_weapon_count > 1
+		_weapon_button.text = ""
+		_weapon_button.icon = AegisTheme.icon("swap" if can_swap else "rifle")
+		_weapon_button.set_meta("aegis_state", "swap" if can_swap else "armory")
 		_weapon_button.tooltip_text = (
-			(
-				"Tap to swap · Equipped: "
-				if _available_weapon_count > 1
-				else "Open Armory · Equipped: "
-			)
-			+ display_name
+			("Tap to swap · Equipped: " if can_swap else "Open Armory · Equipped: ") + display_name
 		)
+	if is_instance_valid(_touch_ammo_chip):
+		_touch_ammo_chip.set_weapon(display_name.get_slice(" ", 0).to_upper())
 	if is_instance_valid(_desktop_weapon_name):
 		_desktop_weapon_name.text = display_name.to_upper()
 
@@ -500,7 +493,7 @@ func show_skill_feedback(targets_hit: int) -> void:
 	if not is_instance_valid(_skill_button):
 		return
 	_skill_feedback_remaining = 1.1
-	_skill_button.text = "EMP\n%d HIT" % targets_hit if targets_hit > 0 else "EMP\nNO HIT"
+	_skill_button.text = ""
 	_skill_button.disabled = (_player_down or get_tree().paused or _skill_cooldown_remaining > 0.0)
 	_emp_chip.text = ("EMP · %d HIT" % targets_hit if targets_hit > 0 else "EMP · NO HIT")
 	_feedback_panel.show_message(
@@ -518,12 +511,20 @@ func _refresh_skill_button() -> void:
 	var fraction := 0.0
 	if _skill_cooldown_total > 0.0:
 		fraction = clampf(_skill_cooldown_remaining / _skill_cooldown_total, 0.0, 1.0)
-	if _skill_feedback_remaining <= 0.0:
-		if _skill_cooldown_remaining > 0.0:
-			_skill_button.text = "EMP\n%d s" % ceili(_skill_cooldown_remaining)
+	_skill_button.text = ""
+	if _skill_cooldown_remaining > 0.0:
+		_skill_cooldown_label.text = "%ds" % ceili(_skill_cooldown_remaining)
+		_skill_cooldown_label.visible = true
+		_skill_button.tooltip_text = (
+			"EMP Pulse · %d s until ready" % ceili(_skill_cooldown_remaining)
+		)
+		if _skill_feedback_remaining <= 0.0:
 			_emp_chip.text = "EMP · %d s" % ceili(_skill_cooldown_remaining)
-		else:
-			_skill_button.text = "EMP\nREADY"
+	else:
+		_skill_cooldown_label.text = ""
+		_skill_cooldown_label.visible = false
+		_skill_button.tooltip_text = "EMP Pulse · ready · damages nearby enemies"
+		if _skill_feedback_remaining <= 0.0:
 			_emp_chip.text = "EMP · READY"
 	_skill_button.disabled = (_player_down or get_tree().paused or _skill_cooldown_remaining > 0.0)
 	if is_instance_valid(_emp_chip):
@@ -549,12 +550,16 @@ func set_aim_state(aiming: bool) -> void:
 func _apply_aim_visual(aiming: bool) -> void:
 	if not is_instance_valid(_aim_button):
 		return
-	AegisTheme.set_button_variant(_aim_button, "round")
-	_aim_button.add_theme_color_override(
-		"font_color", AegisTokens.ACCENT_INK if aiming else AegisTokens.INK
-	)
-	AegisTheme.tint_icon(_aim_button, AegisTokens.ACCENT_INK if aiming else AegisTokens.INK)
-	_aim_button.icon = AegisTheme.icon("crosshair", aiming)
+	AegisTheme.set_button_variant(_aim_button, "combat_aim")
+	if aiming:
+		_aim_button.add_theme_stylebox_override(
+			"normal",
+			AegisTheme.button_style(
+				Color(AegisTokens.INFO, 0.20), AegisTokens.INFO, 2, 999.0, 4.0, 4.0
+			)
+		)
+	AegisTheme.tint_icon(_aim_button, AegisTokens.INFO if aiming else AegisTokens.INK)
+	_aim_button.icon = AegisTheme.icon("optic")
 	_aim_button.set_meta("aegis_state", "active" if aiming else "idle")
 
 
@@ -568,7 +573,7 @@ func set_paused(paused: bool) -> void:
 		_top_bar.visible = true
 	if is_instance_valid(_pause_button):
 		_pause_button.icon = AegisTheme.icon("play" if paused else "pause", paused)
-		_pause_button.text = "RESUME" if paused else "PAUSE"
+		_pause_button.text = ""
 		_pause_button.set_meta("aegis_state", "resume" if paused else "pause")
 		_pause_button.tooltip_text = "Resume (Esc)" if paused else "Pause (Esc)"
 		_pause_button.disabled = false
@@ -611,7 +616,7 @@ func set_player_down(down: bool) -> void:
 			"arrow-counter-clockwise" if down else ("play" if get_tree().paused else "pause")
 		)
 		_pause_button.set_meta("aegis_state", "retry" if down else "pause")
-		_pause_button.text = "RETRY" if down else "PAUSE"
+		_pause_button.text = ""
 		_pause_button.tooltip_text = "Retry the run" if down else "Pause (Esc)"
 	if is_instance_valid(_fire_button):
 		_fire_button.disabled = down or get_tree().paused
@@ -809,27 +814,42 @@ func _build_combat_feedback() -> void:
 
 
 func _build_touch_buttons() -> void:
-	_fire_button = _text_button("FIRE", "FireButton", "fire", "crosshair", "Hold to fire")
-	_fire_button.add_theme_constant_override("icon_max_width", 22)
+	_fire_button = _combat_button(
+		"shot", "FireButton", "combat_fire", "Hold to fire", AegisTokens.ACCENT
+	)
 	_fire_button.button_down.connect(_on_fire_down)
 	_fire_button.button_up.connect(_on_fire_up)
 
-	_weapon_button = _text_button(
-		"PULSE RIFLE", "WeaponSwitchButton", "round", "", "Tap to cycle weapons"
+	_weapon_button = _combat_button(
+		"rifle", "WeaponSwitchButton", "combat_weapon", "Open Armory", AegisTokens.INFO
 	)
-	_weapon_button.set_meta("aegis_state", "idle")
+	_weapon_button.set_meta("aegis_state", "armory")
 	_weapon_button.pressed.connect(_on_weapon_switch_pressed)
 
-	_aim_button = _text_button("AIM", "AimButton", "round", "crosshair", "Hold to aim down sights")
-	_aim_button.add_theme_constant_override("icon_max_width", 16)
+	_aim_button = _combat_button(
+		"optic", "AimButton", "combat_aim", "Hold to aim down sights", AegisTokens.INFO
+	)
 	_aim_button.button_down.connect(_on_aim_down)
 	_aim_button.button_up.connect(_on_aim_up)
 
-	_skill_button = _text_button(
-		"EMP\nREADY", "SkillButton", "ability", "", "EMP Pulse: damage nearby enemies"
+	_skill_button = _combat_button(
+		"pulse",
+		"SkillButton",
+		"combat_ability",
+		"EMP Pulse: damage nearby enemies",
+		AegisTokens.ABILITY
 	)
 	_skill_button.pressed.connect(_on_skill_pressed)
 	_skill_button.set_meta("aegis_state", "ready")
+	_skill_cooldown_label = _label("", "mono_s", AegisTokens.ABILITY)
+	_skill_cooldown_label.name = "EmpSeconds"
+	_skill_cooldown_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_skill_cooldown_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_skill_button.add_child(_skill_cooldown_label)
+	_skill_cooldown_label.anchor_right = 1.0
+	_skill_cooldown_label.anchor_top = 1.0
+	_skill_cooldown_label.anchor_bottom = 1.0
+	_skill_cooldown_label.visible = false
 
 	_skill_ring = CooldownRing.new()
 	_skill_ring.name = "SkillCooldownRing"
@@ -939,17 +959,15 @@ func _register_type(control: Control, role: String, _color: Color, multiplier: f
 func _icon_button(button_name: String, icon_name: String, tooltip: String) -> AegisButton:
 	var button := AegisButton.new()
 	button.name = button_name
-	# A glyph alone is not an instruction on a phone. SOUND stays icon-only
-	# where there is room; the always-visible system action names itself.
-	button.text = "PAUSE" if button_name == "PauseButton" else ""
+	# An unmistakable pause/play glyph avoids another micro-label in combat.
+	# The pause menu and the first-use Help still name the action in text.
+	button.text = ""
 	button.tooltip_text = tooltip
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
 	button.icon = AegisTheme.icon(icon_name, true)
 	button.expand_icon = false
-	button.icon_alignment = (
-		HORIZONTAL_ALIGNMENT_LEFT if button_name == "PauseButton" else HORIZONTAL_ALIGNMENT_CENTER
-	)
+	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	button.add_theme_constant_override("icon_max_width", 20)
 	button.add_theme_font_size_override("font_size", 11)
 	AegisTheme.set_button_variant(button, "icon")
@@ -960,6 +978,27 @@ func _icon_button(button_name: String, icon_name: String, tooltip: String) -> Ae
 	# The caller reparents the button into `_system_row`; adding it to the HUD
 	# first and then calling add_child() again fails in Godot, which left the
 	# pause and sound buttons floating at the top-left corner of the screen.
+	_touch_buttons.append(button)
+	return button
+
+
+## Text remains for deliberate mode/menu choices. Thumb combat controls have
+## original silhouette glyphs and a separate ammo/readiness display instead.
+func _combat_button(
+	icon_name: String, button_name: String, variant: String, tooltip: String, accent: Color
+) -> CombatTouchButton:
+	var button := CombatTouchButton.new()
+	button.name = button_name
+	button.text = ""
+	button.tooltip_text = tooltip
+	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_filter = Control.MOUSE_FILTER_STOP
+	button.icon = AegisTheme.icon(icon_name)
+	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.accent = accent
+	button.set_meta("aegis_state", "idle")
+	AegisTheme.set_button_variant(button, variant)
+	add_child(button)
 	_touch_buttons.append(button)
 	return button
 

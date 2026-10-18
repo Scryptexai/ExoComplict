@@ -181,7 +181,7 @@ static func touch_portrait(hud) -> void:
 	_place_button(hud, hud._aim_button, 20.0, 168.0, 72.0, 72.0)
 	_place_button(hud, hud._skill_button, 136.0, 104.0, 72.0, 72.0)
 	_place_button(hud, hud._weapon_button, 110.0, 236.0, 144.0, 60.0)
-	_place_button(hud, hud._touch_ammo_chip, 266.0, 236.0, 52.0, 36.0)
+	_place_button(hud, hud._touch_ammo_chip, 266.0, 236.0, 112.0, 54.0)
 	_place(
 		hud._skill_ring,
 		1,
@@ -296,7 +296,7 @@ static func touch_landscape(hud) -> void:
 	_place_button(hud, hud._aim_button, 18.0, 140.0, 64.0, 64.0)
 	_place_button(hud, hud._skill_button, 134.0, 46.0, 64.0, 64.0)
 	_place_button(hud, hud._weapon_button, 104.0, 170.0, 152.0, 60.0)
-	_place_button(hud, hud._touch_ammo_chip, 272.0, 182.0, 68.0, 36.0)
+	_place_button(hud, hud._touch_ammo_chip, 272.0, 182.0, 112.0, 54.0)
 	# Formerly the EMP cooldown ring was misplaced over FIRE. It now frames the
 	# actual ability button: x(646–710), y(280–344) on an 844×390 display.
 	_place(

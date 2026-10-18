@@ -250,6 +250,34 @@ static func set_button_variant(button: Button, variant: String) -> void:
 			radius = 999.0
 			pad_h = 4.0
 			pad_v = 4.0
+		"combat_fire":
+			fill = Color(AegisTokens.PANEL, 0.84)
+			border = Color(AegisTokens.ACCENT, 0.78)
+			font_color = AegisTokens.ACCENT
+			radius = 999.0
+			pad_h = 4.0
+			pad_v = 4.0
+		"combat_aim":
+			fill = Color(AegisTokens.PANEL, 0.82)
+			border = Color(AegisTokens.INFO, 0.60)
+			font_color = AegisTokens.INK
+			radius = 999.0
+			pad_h = 4.0
+			pad_v = 4.0
+		"combat_ability":
+			fill = Color(AegisTokens.PANEL, 0.84)
+			border = Color(AegisTokens.ABILITY, 0.75)
+			font_color = AegisTokens.ABILITY
+			radius = 999.0
+			pad_h = 4.0
+			pad_v = 4.0
+		"combat_weapon":
+			fill = Color(AegisTokens.PANEL, 0.84)
+			border = Color(AegisTokens.LINE_HI, 0.88)
+			font_color = AegisTokens.INK
+			radius = 999.0
+			pad_h = 4.0
+			pad_v = 4.0
 		_:
 			pass
 	button.add_theme_stylebox_override(
@@ -260,7 +288,14 @@ static func set_button_variant(button: Button, variant: String) -> void:
 	)
 	button.add_theme_stylebox_override(
 		"pressed",
-		button_style(fill.darkened(0.10), border.lightened(0.05), 2, radius, pad_h, pad_v)
+		button_style(
+			Color(border, 0.24) if variant.begins_with("combat_") else fill.darkened(0.10),
+			border.lightened(0.05),
+			2,
+			radius,
+			pad_h,
+			pad_v
+		)
 	)
 	button.add_theme_stylebox_override(
 		"disabled",
@@ -276,6 +311,11 @@ static func set_button_variant(button: Button, variant: String) -> void:
 	# focused RESUME/BUY text turns white on amber and loses contrast.
 	button.add_theme_color_override("font_focus_color", font_color)
 	tint_icon(button, font_color)
+	if variant.begins_with("combat_"):
+		button.add_theme_color_override("icon_pressed_color", AegisTokens.INK)
+		button.add_theme_color_override(
+			"icon_disabled_color", Color(AegisTokens.INK_3, AegisTokens.DISABLED_ALPHA)
+		)
 	button.add_theme_color_override(
 		"font_disabled_color", Color(AegisTokens.INK_3, AegisTokens.DISABLED_ALPHA)
 	)

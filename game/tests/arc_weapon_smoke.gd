@@ -30,6 +30,10 @@ func _run_smoke_test() -> void:
 	var weapon_controller: Node = player.get_node("WeaponController")
 	var muzzle: Marker3D = player.get_node("VisualRoot/WeaponSocket/Muzzle")
 	var weapon_button := main_scene.get_node("HUD/TouchControls").get("_weapon_button") as Button
+	var touch_weapon_name := (
+		main_scene.get_node("HUD/TouchControls").get("_touch_ammo_chip").get("weapon_label")
+		as Label
+	)
 	var test_passed := true
 
 	test_passed = (
@@ -43,7 +47,9 @@ func _run_smoke_test() -> void:
 		_expect(
 			(
 				weapon_controller.call("get_current_weapon_name") == "Arc Shooter"
-				and weapon_button.text == "SWAP · ARC"
+				and weapon_button.text.is_empty()
+				and String(weapon_button.get_meta("aegis_state", "")) == "swap"
+				and touch_weapon_name.text == "ARC"
 			),
 			"Arc selection updates the mobile weapon label",
 		)

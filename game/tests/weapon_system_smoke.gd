@@ -34,6 +34,7 @@ func _run_smoke_test() -> void:
 	var weapon_button := controls.get("_weapon_button") as Button
 	var weapon_meta := controls.get("_desktop_weapon_meta") as Label
 	var ammo_chip := controls.get("_touch_ammo_chip") as Control
+	var weapon_name := ammo_chip.get("weapon_label") as Label
 	var touch_ammo := ammo_chip.get("value_label") as Label
 	var test_passed := true
 	test_passed = (
@@ -77,7 +78,15 @@ func _run_smoke_test() -> void:
 		and test_passed
 	)
 	test_passed = (
-		_expect(weapon_button.text == "SWAP · PULSE", "touch button shows the selected weapon")
+		_expect(
+			(
+				weapon_button.text.is_empty()
+				and weapon_button.icon != null
+				and String(weapon_button.get_meta("aegis_state", "")) == "swap"
+				and weapon_name.text == "PULSE"
+			),
+			"icon-only SWAP keeps weapon identity in the adjacent ammo readout",
+		)
 		and test_passed
 	)
 
@@ -86,7 +95,7 @@ func _run_smoke_test() -> void:
 		_expect(
 			(
 				weapon_controller.call("get_current_weapon_name") == "Nova Launcher"
-				and weapon_button.text == "SWAP · NOVA"
+				and weapon_name.text == "NOVA"
 				and touch_ammo.text == "6/6"
 			),
 			"mobile weapon button selects Nova and updates its label",
@@ -98,7 +107,7 @@ func _run_smoke_test() -> void:
 		_expect(
 			(
 				weapon_controller.call("get_current_weapon_name") == "Arc Shooter"
-				and weapon_button.text == "SWAP · ARC"
+				and weapon_name.text == "ARC"
 				and touch_ammo.text == "12/12"
 			),
 			"mobile weapon button reaches Arc Shooter and updates its label",

@@ -122,8 +122,8 @@ static func apply_fonts(hud) -> void:
 			AegisTheme.resize_button_font(button, "title", maxi(roundi(15.0 * unit), floor_size))
 	if is_instance_valid(hud._health_bar):
 		hud._health_bar.custom_minimum_size.y = maxf(hud._to_layout(6.0), 3.0)
-	# Icons are raster assets; size them in physical pixels so a 20 px glyph on
-	# desktop is still 20 px on a phone instead of shrinking with the canvas.
+	# Icon-led combat targets need an unmistakable glyph at the *physical*
+	# pixel scale, not a 6 px SVG beside a large text label on a WASM phone.
 	var icon_px := maxi(roundi(hud._to_layout(20.0)), 12)
 	var icon_button_px := maxf(hud._to_layout(56.0), 32.0)
 	for icon_button in [hud._pause_button, hud._sound_button]:
@@ -146,7 +146,20 @@ static func apply_fonts(hud) -> void:
 		if is_instance_valid(button):
 			var button_icon_px := icon_px
 			if button == hud._fire_button:
-				button_icon_px = roundi(hud._to_layout(26.0))
-			elif button == hud._pause_button or button == hud._sound_button:
+				button_icon_px = roundi(hud._to_layout(48.0))
+			elif button == hud._aim_button or button == hud._skill_button:
+				button_icon_px = roundi(hud._to_layout(31.0))
+			elif button == hud._weapon_button:
+				button_icon_px = roundi(hud._to_layout(36.0))
+			elif button == hud._pause_button:
+				button_icon_px = roundi(hud._to_layout(28.0))
+			elif button == hud._sound_button:
 				button_icon_px = roundi(hud._to_layout(24.0))
 			button.add_theme_constant_override("icon_max_width", button_icon_px)
+	if is_instance_valid(hud._skill_ring):
+		hud._skill_ring.stroke = hud._to_layout(2.2)
+	if is_instance_valid(hud._skill_cooldown_label):
+		hud._skill_cooldown_label.offset_left = hud._to_layout(2.0)
+		hud._skill_cooldown_label.offset_right = -hud._to_layout(2.0)
+		hud._skill_cooldown_label.offset_top = -hud._to_layout(21.0)
+		hud._skill_cooldown_label.offset_bottom = -hud._to_layout(2.0)

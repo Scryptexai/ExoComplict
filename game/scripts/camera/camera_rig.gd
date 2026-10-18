@@ -9,15 +9,17 @@ extends Node3D
 ## Hold-to-aim (desktop right mouse) or the HUD AIM toggle calls set_aiming(true);
 ## the rig then eases the arm in, raises the shoulder offset and narrows the FOV
 ## instead of snapping, which is what makes aiming readable on a phone screen.
+## Recoil must NEVER write Camera3D.position: SpringArm3D owns its child
+## displacement, and resetting it to zero puts the lens inside the avatar.
 
 @export var look_sensitivity: float = 0.0035
 @export_range(-80.0, 0.0, 1.0) var min_pitch_degrees: float = -55.0
 @export_range(0.0, 80.0, 1.0) var max_pitch_degrees: float = 38.0
 @export_group("Framing")
 @export_range(1.5, 9.0, 0.05) var rest_spring_length: float = 4.2
-@export_range(0.8, 6.0, 0.05) var aim_spring_length: float = 2.5
+@export_range(0.8, 6.0, 0.05) var aim_spring_length: float = 3.0
 @export var rest_shoulder_offset: Vector3 = Vector3(0.55, 0.14, 0.0)
-@export var aim_shoulder_offset: Vector3 = Vector3(0.64, 0.22, 0.0)
+@export var aim_shoulder_offset: Vector3 = Vector3(0.50, 0.22, 0.0)
 @export var rest_pivot_height: float = 1.58
 @export var aim_pivot_height: float = 1.58
 @export_range(30.0, 110.0, 0.5) var rest_fov: float = 66.0
@@ -107,7 +109,8 @@ func set_reduced_motion(enabled: bool) -> void:
 	if enabled:
 		_kick = 0.0
 		spring_camera.rotation = Vector3.ZERO
-		spring_camera.position.z = 0.0
+		# Never reset Camera3D.position here: that is the SpringArm3D's output.
+		spring_arm.position.z = rest_shoulder_offset.lerp(aim_shoulder_offset, _aim_blend).z
 		spring_camera.h_offset = 0.0
 		spring_camera.v_offset = 0.0
 
@@ -198,4 +201,10 @@ func _apply_kick() -> void:
 	spring_camera.rotation = Vector3(
 		deg_to_rad(-_kick_offset.x * 6.0), deg_to_rad(_kick_offset.y * 6.0), 0.0
 	)
-	spring_camera.position.z = decayed * kick_push
+	# The SpringArm3D writes Camera3D.position to place it behind the player.
+	# Overwriting that local transform with a tiny recoil value teleports the
+	# camera to the shoulder during continuous fire (observed: z 14.01→7.98 m
+	# while spring_length stayed 6.09 m). Shift the arm's *origin* instead.
+	spring_arm.position.z = (
+		rest_shoulder_offset.lerp(aim_shoulder_offset, _aim_blend).z + decayed * kick_push
+	)

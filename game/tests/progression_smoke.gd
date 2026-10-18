@@ -58,7 +58,8 @@ func _run() -> void:
 	_expect(
 		(
 			player.get_current_weapon_name() == "Arc Shooter"
-			and (hud.get("_weapon_button") as Button).text == "SWAP · ARC"
+			and (hud.get("_weapon_button") as Button).text.is_empty()
+			and (hud.get("_touch_ammo_chip").get("weapon_label") as Label).text == "ARC"
 		),
 		"armory equips Arc; the shooter and SWAP HUD use the same selection",
 	)
