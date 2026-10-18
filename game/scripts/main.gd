@@ -290,6 +290,7 @@ func _finish_run() -> void:
 
 func _on_shot_fired() -> void:
 	_shots_fired += 1
+	touch_controls._show_shot_feedback()
 	_update_status()
 
 

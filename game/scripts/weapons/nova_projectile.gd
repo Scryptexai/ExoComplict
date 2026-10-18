@@ -61,7 +61,7 @@ func _physics_process(delta: float) -> void:
 	if not hit.is_empty():
 		var collider: Object = hit.get("collider")
 		var hit_position: Vector3 = hit.get("position", next_position)
-		_detonate(hit_position, collider)
+		_detonate(hit_position, collider, hit.get("normal", Vector3.UP))
 		return
 
 	global_position = next_position
@@ -78,13 +78,17 @@ func _set_visuals_visible(value: bool) -> void:
 			mesh.visible = value
 
 
-func _detonate(impact_position: Vector3, direct_target: Object) -> void:
+func _detonate(
+	impact_position: Vector3, direct_target: Object, normal: Vector3 = Vector3.UP
+) -> void:
 	global_position = impact_position
 	var damaged_targets: Dictionary = {}
 	_apply_damage_once(direct_target, _damage, damaged_targets)
 	if _splash_damage > 0.0 and _splash_radius > 0.0:
 		_apply_splash_damage(impact_position, damaged_targets)
-	var burst := ImpactBurstScript.spawn(get_parent(), impact_position, Color(1.0, 0.46, 0.16))
+	var burst := ImpactBurstScript.spawn(
+		get_parent(), impact_position, Color(1.0, 0.46, 0.16), normal
+	)
 	if burst != null:
 		# More debris velocity distinguishes an area blast from Pulse's pinprick.
 		burst.amount = 28

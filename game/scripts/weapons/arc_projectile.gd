@@ -79,7 +79,9 @@ func _resolve_shot() -> void:
 		return
 
 	var hit_position: Vector3 = hit.get("position", ray_end)
-	ImpactBurstScript.spawn(get_parent(), hit_position, Color(0.64, 0.7, 1.0))
+	ImpactBurstScript.spawn(
+		get_parent(), hit_position, Color(0.64, 0.7, 1.0), hit.get("normal", Vector3.UP)
+	)
 	Sfx.play_3d(&"chain_zap", hit_position)
 	_visual_points.append(hit_position)
 	var first_target := hit.get("collider") as CollisionObject3D

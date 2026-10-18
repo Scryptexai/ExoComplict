@@ -466,7 +466,9 @@ func _run_smoke_test() -> void:
 	_expect(
 		(
 			bool(player.get("_touch_fire_pressed"))
+			and bool(fire_button.get("_held"))
 			and int(main_scene.get("_shots_fired")) > shots_before_touch_fire
+			and float(controls.get("_fire_flash_remaining")) > 0.0
 		),
 		"screen touch on FIRE reaches the player and spawns a combat shot",
 	)
@@ -479,8 +481,8 @@ func _run_smoke_test() -> void:
 	)
 	_send_screen_touch(controls, 70, fire_button.get_global_rect().get_center(), false)
 	_expect(
-		not bool(player.get("_touch_fire_pressed")),
-		"screen touch release on FIRE clears the player input state",
+		not bool(player.get("_touch_fire_pressed")) and not bool(fire_button.get("_held")),
+		"screen touch release on FIRE clears input and the pressed glyph rim",
 	)
 
 	player.call("apply_damage", 27.0)

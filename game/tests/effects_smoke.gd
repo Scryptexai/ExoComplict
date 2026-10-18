@@ -57,6 +57,7 @@ func _run_smoke_test() -> void:
 	var projectile := PulseScene.instantiate() as Node3D
 	projectile.call("_stretch_tracer")
 	var tracer := projectile.get_node_or_null("Tracer") as MeshInstance3D
+	var glow := projectile.get_node_or_null("TracerGlow") as MeshInstance3D
 	var tracer_length := 0.0
 	var capsule := tracer.mesh as CapsuleMesh if tracer != null else null
 	if capsule != null:
@@ -65,14 +66,31 @@ func _run_smoke_test() -> void:
 		_expect(
 			(
 				tracer != null
+				and glow != null
 				and tracer_length >= 0.8
 				and absf(tracer.rotation.x - deg_to_rad(90.0)) < 0.01
 				and tracer.position.z > 0.2
+				and glow.material_override is StandardMaterial3D
 			),
 			"a pulse bolt carries a tracer behind it, along its travel axis",
 		)
 		and test_passed
 	)
+	projectile.call("_stretch_tracer", 2.6)
+	var independent_projectile := PulseScene.instantiate() as Node3D
+	var untouched_tracer := independent_projectile.get_node("Tracer") as MeshInstance3D
+	test_passed = (
+		_expect(
+			(
+				is_equal_approx((tracer.mesh as CapsuleMesh).height, 2.6)
+				and is_equal_approx((glow.mesh as CapsuleMesh).height, 2.6)
+				and (untouched_tracer.mesh as CapsuleMesh).height < 1.5
+			),
+			"the bright core and halo stretch with one real bolt, never all shared projectiles",
+		)
+		and test_passed
+	)
+	independent_projectile.free()
 	projectile.free()
 
 	# --- muzzle flash on a real shot ----------------------------------------
@@ -115,7 +133,9 @@ func _run_smoke_test() -> void:
 
 	# --- impact burst -------------------------------------------------------
 	var before := get_nodes_in_group(ImpactBurstScript.BURST_GROUP).size()
-	var burst := ImpactBurstScript.spawn(main_scene, Vector3(0.0, 1.0, -6.0))
+	var burst := ImpactBurstScript.spawn(
+		main_scene, Vector3(0.0, 1.0, -6.0), Color(0.28, 0.86, 1.0), Vector3.RIGHT
+	)
 	test_passed = (_expect(burst != null, "an impact spawns a spark burst") and test_passed)
 	if burst != null:
 		test_passed = (
@@ -123,8 +143,10 @@ func _run_smoke_test() -> void:
 				(
 					burst.is_inside_tree()
 					and burst.emitting
-					and burst.amount > 0
+					and burst.amount >= 20
 					and burst.mesh is CylinderMesh
+					and burst.direction.is_equal_approx(Vector3.RIGHT)
+					and burst.get_node_or_null("ImpactBounce") is OmniLight3D
 				),
 				"the burst is emitting with a mesh to draw",
 			)

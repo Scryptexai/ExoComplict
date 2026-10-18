@@ -426,6 +426,14 @@ func show_hit_confirmed() -> void:
 	queue_redraw()
 
 
+## Reticle bloom is keyed to a *real* round leaving the muzzle, not just to
+## holding FIRE against an empty magazine or a wall. Small and brief so the
+## target stays visible through repeated fire (Destiny's legibility lesson).
+func _show_shot_feedback() -> void:
+	_fire_flash_remaining = 0.15 if not _reduce_motion else 0.0
+	queue_redraw()
+
+
 func show_damage_received() -> void:
 	_damage_flash_remaining = (
 		0.0 if _reduce_flash else (0.1 if _reduce_motion else DAMAGE_FLASH_DURATION)
@@ -1228,10 +1236,10 @@ func _begin_touch(touch_id: int, position: Vector2) -> void:
 			and _fire_touch_id == -1
 		):
 			_fire_touch_id = touch_id
-			hide_help()
-			_fire_flash_remaining = 0.0 if _reduce_motion else 1.0
-			fire_changed.emit(true)
-			queue_redraw()
+			# Synthetic screen touches do not pass through Godot's Button GUI once
+			# handled here. Forward both edges so the glyph rim and actual shot stay
+			# synchronized with native mouse/controller button_down/button_up.
+			touched_button.emit_signal("button_down")
 		else:
 			_pressed_touch_buttons[touch_id] = touched_button
 			if not touched_button.disabled:
@@ -1287,7 +1295,7 @@ func _update_touch(touch_id: int, position: Vector2, relative: Vector2) -> void:
 func _end_touch(touch_id: int, position: Vector2) -> void:
 	if touch_id == _fire_touch_id:
 		_fire_touch_id = -1
-		fire_changed.emit(false)
+		_fire_button.emit_signal("button_up")
 		get_viewport().set_input_as_handled()
 		return
 	if _pressed_touch_buttons.has(touch_id):
@@ -1312,6 +1320,14 @@ func _end_touch(touch_id: int, position: Vector2) -> void:
 
 
 func _clear_touch_state() -> void:
+	# Blur/pause can arrive without a matching finger release. Restore both the
+	# gameplay input and the visual button-down states instead of stranding AIM
+	# or the fire rim in an active state after returning to the field.
+	if _fire_touch_id != -1 and is_instance_valid(_fire_button):
+		_fire_button.emit_signal("button_up")
+	for held_button in _pressed_touch_buttons.values():
+		if is_instance_valid(held_button):
+			held_button.emit_signal("button_up")
 	_move_touch_id = -1
 	_look_touch_id = -1
 	_fire_touch_id = -1
@@ -1404,7 +1420,7 @@ func _draw() -> void:
 	if _results_visible() or (is_instance_valid(_scrim) and _scrim.visible and _player_down):
 		return
 	if not _player_down and not get_tree().paused:
-		var spread := 5.0 + _fire_flash_remaining * 46.0
+		var spread := 5.0 + (_fire_flash_remaining / 0.15) * 6.0
 		if _move_touch_id != -1:
 			spread += 4.0
 		if _aiming:
@@ -1442,8 +1458,6 @@ func _on_sound_pressed() -> void:
 func _on_fire_down() -> void:
 	if not _player_down and not get_tree().paused:
 		hide_help()
-		_fire_flash_remaining = 0.0 if _reduce_motion else 1.0
-		queue_redraw()
 		fire_changed.emit(true)
 
 

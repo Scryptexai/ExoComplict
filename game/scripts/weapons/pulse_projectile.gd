@@ -2,9 +2,11 @@ class_name PulseProjectile
 extends Node3D
 
 const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
+const MAX_TRAIL_LENGTH: float = 3.2
 
 @export var collision_mask: int = 3
 
+var _start_position: Vector3 = Vector3.ZERO
 var _direction: Vector3 = Vector3.FORWARD
 var _damage: float = 18.0
 var _speed: float = 42.0
@@ -20,6 +22,7 @@ func launch(
 ) -> void:
 	collision_mask = definition.collision_mask
 	global_position = start_position
+	_start_position = start_position
 	_direction = aim_point - start_position
 	if _direction.length_squared() < 0.0001:
 		_direction = -global_basis.z
@@ -32,15 +35,24 @@ func launch(
 	_stretch_tracer()
 
 
-## A 0.1 m sphere at 42 m/s crosses its own diameter every frame, so on a phone
-## it reads as a dot that teleports. The capsule is rotated onto the travel axis
-## and pushed behind the bolt to become a streak.
-func _stretch_tracer() -> void:
-	var tracer := get_node_or_null("Tracer") as MeshInstance3D
-	if tracer == null:
-		return
-	tracer.rotation.x = deg_to_rad(90.0)
-	tracer.position = Vector3(0.0, 0.0, 0.45)
+## The moving capsule covers the path *already travelled* by the live bolt,
+## capped at 3.2 m so it stays legible on a 390 px WebGL phone without drawing
+## a fraudulent instant beam through cover. Duplicate each mesh resource: a
+## shared .tscn CapsuleMesh must never stretch other live projectiles.
+func _stretch_tracer(length: float = 1.2) -> void:
+	for part_name in ["Tracer", "TracerGlow"]:
+		var part := get_node_or_null(part_name) as MeshInstance3D
+		if part == null:
+			continue
+		if not part.has_meta("unique_trail_mesh"):
+			part.mesh = part.mesh.duplicate(true) as Mesh
+			part.set_meta("unique_trail_mesh", true)
+		var capsule := part.mesh as CapsuleMesh
+		if capsule == null:
+			continue
+		capsule.height = maxf(length, capsule.radius * 2.0 + 0.01)
+		part.rotation.x = deg_to_rad(90.0)
+		part.position = Vector3(0.0, 0.0, capsule.height * 0.5)
 
 
 func _physics_process(delta: float) -> void:
@@ -67,10 +79,13 @@ func _physics_process(delta: float) -> void:
 		# Spawn at the collision point, not the projectile origin. The muzzle
 		# effect and impact must be driven by the *actual* fired round, never by
 		# a cosmetic keyframe or a standalone smoke-test helper.
-		ImpactBurstScript.spawn(get_parent(), hit_position, Color(0.28, 0.86, 1.0))
+		ImpactBurstScript.spawn(
+			get_parent(), hit_position, Color(0.28, 0.86, 1.0), hit.get("normal", Vector3.UP)
+		)
 		Sfx.play_3d(&"impact", hit_position)
 		queue_free()
 		return
 
 	global_position = next_position
+	_stretch_tracer(minf(_start_position.distance_to(next_position), MAX_TRAIL_LENGTH))
 	_remaining_range -= step_distance

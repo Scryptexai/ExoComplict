@@ -6,9 +6,9 @@ extends Node3D
 ## round "glowing ball" silhouette without covering the sight line. Every mesh
 ## is transient and the accompanying light has a bounded range for mobile/Web.
 
-@export_range(0.02, 0.4, 0.005) var duration: float = 0.09
-@export_range(0.0, 12.0, 0.1) var flash_energy: float = 3.1
-@export_range(0.02, 2.0, 0.01) var flash_scale: float = 0.34
+@export_range(0.02, 0.4, 0.005) var duration: float = 0.14
+@export_range(0.0, 12.0, 0.1) var flash_energy: float = 3.6
+@export_range(0.02, 2.0, 0.01) var flash_scale: float = 0.42
 @export var flash_color: Color = Color(1.0, 0.74, 0.4, 1.0)
 
 var _mesh: MeshInstance3D
@@ -33,12 +33,12 @@ func _ready() -> void:
 
 	var cone := CylinderMesh.new()
 	cone.top_radius = 0.007
-	cone.bottom_radius = 0.14
-	cone.height = 0.48
+	cone.bottom_radius = 0.18
+	cone.height = 0.68
 	cone.radial_segments = 9
 	_mesh = _add_shape("FlashCone", cone)
 	_mesh.rotation.x = -PI * 0.5
-	_mesh.position.z = -0.18
+	_mesh.position.z = -0.26
 
 	var core_mesh := SphereMesh.new()
 	core_mesh.radius = 0.09
@@ -49,11 +49,11 @@ func _ready() -> void:
 	_core.position.z = -0.025
 
 	var streak_mesh := BoxMesh.new()
-	streak_mesh.size = Vector3(0.025, 0.20, 0.05)
+	streak_mesh.size = Vector3(0.026, 0.30, 0.05)
 	for index in range(4):
 		var streak := _add_shape("FlashSpark_%d" % index, streak_mesh)
 		var angle := TAU * float(index) / 4.0
-		streak.position = Vector3(sin(angle), cos(angle), -0.12) * Vector3(0.10, 0.10, 1.0)
+		streak.position = Vector3(sin(angle), cos(angle), -0.16) * Vector3(0.14, 0.14, 1.0)
 		streak.rotation.z = -angle
 		_streaks.append(streak)
 
