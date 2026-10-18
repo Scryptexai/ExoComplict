@@ -106,6 +106,24 @@ func _run_smoke_test() -> void:
 		and test_passed
 	)
 
+	# An occluded shooter must eventually find an angle instead of remaining a
+	# stationary turret behind the same cover for the entire wave.
+	var second_wall := _add_box_body(test_root, Vector3(0.0, 1.5, 2.0), Vector3(2.0, 3.0, 0.5))
+	shooter.global_position = Vector3(0.0, 0.0, -4.0)
+	shooter.set("_attack_cooldown", 0.0)
+	var farthest_lateral := 0.0
+	for _frame in 170:
+		await physics_frame
+		farthest_lateral = maxf(farthest_lateral, absf(shooter.global_position.x))
+	test_passed = (
+		_expect(
+			farthest_lateral > 1.2,
+			"a Shooter blocked by cover repositions laterally instead of freezing",
+		)
+		and test_passed
+	)
+	second_wall.queue_free()
+
 	shooter.call("apply_damage", 1000.0)
 	shooter.call("apply_damage", 1000.0)
 	test_passed = (

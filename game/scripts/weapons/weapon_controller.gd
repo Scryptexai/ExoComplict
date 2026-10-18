@@ -3,12 +3,15 @@ extends Node
 
 signal weapon_changed(display_name: String)
 signal shot_fired(weapon_id: StringName)
+signal ammo_changed(remaining: int, capacity: int, reloading: bool)
 
 @export var weapon_definitions: Array[WeaponDefinition] = []
 @export_range(0, 5, 1) var initial_weapon_index: int = 0
 
 var _current_weapon_index: int = 0
 var _cooldowns: Array[float] = []
+var _magazines: Array[int] = []
+var _reload_remaining: Array[float] = []
 
 
 func _ready() -> void:
@@ -17,16 +20,29 @@ func _ready() -> void:
 		return
 	_cooldowns.resize(weapon_definitions.size())
 	_cooldowns.fill(0.0)
+	_magazines.resize(weapon_definitions.size())
+	_reload_remaining.resize(weapon_definitions.size())
+	_reload_remaining.fill(0.0)
 	for index in range(weapon_definitions.size()):
 		var definition: WeaponDefinition = weapon_definitions[index]
 		if definition == null or not definition.is_valid_definition():
 			push_error("WeaponController has an invalid definition at index %d." % index)
+		else:
+			_magazines[index] = definition.magazine_size
 	_current_weapon_index = clampi(initial_weapon_index, 0, weapon_definitions.size() - 1)
+	_emit_ammo()
 
 
 func _process(delta: float) -> void:
 	for index in range(_cooldowns.size()):
 		_cooldowns[index] = maxf(_cooldowns[index] - delta, 0.0)
+		if _reload_remaining[index] <= 0.0:
+			continue
+		_reload_remaining[index] = maxf(_reload_remaining[index] - delta, 0.0)
+		if _reload_remaining[index] <= 0.0:
+			_magazines[index] = weapon_definitions[index].magazine_size
+			if index == _current_weapon_index:
+				_emit_ammo()
 
 
 func get_current_weapon_index() -> int:
@@ -44,6 +60,46 @@ func get_current_definition() -> WeaponDefinition:
 	return weapon_definitions[_current_weapon_index]
 
 
+func get_current_ammo() -> int:
+	return _magazines[_current_weapon_index] if _current_weapon_index < _magazines.size() else 0
+
+
+func get_current_magazine_size() -> int:
+	var definition := get_current_definition()
+	return definition.magazine_size if definition != null else 0
+
+
+func is_reloading() -> bool:
+	return (
+		_current_weapon_index < _reload_remaining.size()
+		and _reload_remaining[_current_weapon_index] > 0.0
+	)
+
+
+## A fixed magazine provides the reload rhythm without a finite reserve that
+## could strand a survival run. Touch players auto-reload at zero; G reloads early.
+func request_reload() -> bool:
+	var definition := get_current_definition()
+	if definition == null or is_reloading() or get_current_ammo() >= definition.magazine_size:
+		return false
+	_reload_remaining[_current_weapon_index] = definition.reload_seconds
+	_emit_ammo()
+	return true
+
+
+func reset_ammo() -> void:
+	for index in range(_magazines.size()):
+		var definition: WeaponDefinition = weapon_definitions[index]
+		_magazines[index] = definition.magazine_size if definition != null else 0
+		_cooldowns[index] = 0.0
+		_reload_remaining[index] = 0.0
+	_emit_ammo()
+
+
+func _emit_ammo() -> void:
+	ammo_changed.emit(get_current_ammo(), get_current_magazine_size(), is_reloading())
+
+
 func select_weapon(index: int) -> bool:
 	if index < 0 or index >= weapon_definitions.size():
 		return false
@@ -52,6 +108,7 @@ func select_weapon(index: int) -> bool:
 		return false
 	_current_weapon_index = index
 	weapon_changed.emit(definition.display_name)
+	_emit_ammo()
 	return true
 
 
@@ -74,9 +131,13 @@ func try_fire(shooter: CollisionObject3D, muzzle: Marker3D, aim_point: Vector3) 
 		definition == null
 		or not definition.is_valid_definition()
 		or _cooldowns[_current_weapon_index] > 0.0
+		or is_reloading()
 		or not is_instance_valid(shooter)
 		or not is_instance_valid(muzzle)
 	):
+		return false
+	if get_current_ammo() <= 0:
+		request_reload()
 		return false
 	var projectile := definition.projectile_scene.instantiate() as Node3D
 	if projectile == null or not projectile.has_method("launch"):
@@ -97,6 +158,11 @@ func try_fire(shooter: CollisionObject3D, muzzle: Marker3D, aim_point: Vector3) 
 	projectile_parent.add_child(projectile)
 	projectile.call("launch", muzzle.global_position, aim_point, shooter, definition)
 	_cooldowns[_current_weapon_index] = 1.0 / definition.fire_rate
+	_magazines[_current_weapon_index] -= 1
+	if _magazines[_current_weapon_index] == 0:
+		request_reload()
+	else:
+		_emit_ammo()
 	Sfx.play_shot(definition.weapon_id, muzzle.global_position)
 	shot_fired.emit(definition.weapon_id)
 	return true

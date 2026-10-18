@@ -31,9 +31,15 @@ func _ready() -> void:
 	touch_controls.sound_mute_requested.connect(_on_sound_mute_requested)
 	touch_controls.set_sound_muted(Sfx.is_muted())
 	player.weapon_changed.connect(touch_controls.set_weapon_label)
+	player.weapon_controller.ammo_changed.connect(touch_controls._update_weapon_ammo)
 	player.skill_cooldown_changed.connect(touch_controls.set_skill_cooldown)
 	player.skill_used.connect(_on_skill_used)
 	touch_controls.set_weapon_label(player.get_current_weapon_name())
+	touch_controls._update_weapon_ammo(
+		player.weapon_controller.get_current_ammo(),
+		player.weapon_controller.get_current_magazine_size(),
+		player.weapon_controller.is_reloading()
+	)
 	touch_controls.set_skill_cooldown(0.0, player.emp_pulse_cooldown)
 	touch_controls.retry_requested.connect(_reset_session)
 	player.aim_changed.connect(touch_controls.set_aim_state)
@@ -96,6 +102,7 @@ func _toggle_pause() -> void:
 	_is_paused = not _is_paused
 	get_tree().paused = _is_paused
 	touch_controls.set_paused(_is_paused)
+	print("HUD: paused" if _is_paused else "HUD: resumed")
 
 
 func _reset_session() -> void:

@@ -26,7 +26,17 @@ func _run_smoke_test() -> void:
 	var muzzle: Marker3D = player.get_node("VisualRoot/WeaponSocket/Muzzle")
 	var controls: Node = main_scene.get_node("HUD/TouchControls")
 	var weapon_button := controls.get("_weapon_button") as Button
+	var weapon_meta := controls.get("_desktop_weapon_meta") as Label
+	var ammo_chip := controls.get("_touch_ammo_chip") as Control
+	var touch_ammo := ammo_chip.get("value_label") as Label
 	var test_passed := true
+	test_passed = (
+		_expect(
+			weapon_meta.text.contains("24/24") and touch_ammo.text == "24/24",
+			"desktop and touch HUD start with a full Pulse magazine",
+		)
+		and test_passed
+	)
 
 	test_passed = (
 		_expect(
@@ -65,6 +75,7 @@ func _run_smoke_test() -> void:
 			(
 				weapon_controller.call("get_current_weapon_name") == "Nova Launcher"
 				and weapon_button.text == "NOVA LAUNCHER"
+				and touch_ammo.text == "6/6"
 			),
 			"mobile weapon button selects Nova and updates its label",
 		)
@@ -76,6 +87,7 @@ func _run_smoke_test() -> void:
 			(
 				weapon_controller.call("get_current_weapon_name") == "Arc Shooter"
 				and weapon_button.text == "ARC SHOOTER"
+				and touch_ammo.text == "12/12"
 			),
 			"mobile weapon button reaches Arc Shooter and updates its label",
 		)
@@ -162,6 +174,17 @@ func _run_smoke_test() -> void:
 	test_passed = (
 		_expect(
 			(
+				int(weapon_controller.call("get_current_ammo")) == 22
+				and touch_ammo.text == "22/24"
+				and weapon_meta.text.contains("22/24")
+			),
+			"each successful Pulse shot spends a round and updates both HUDs",
+		)
+		and test_passed
+	)
+	test_passed = (
+		_expect(
+			(
 				pulse_target.damage_calls.size() == 1
 				and is_equal_approx(pulse_target.damage_calls[0], 18.0)
 			),
@@ -228,6 +251,73 @@ func _run_smoke_test() -> void:
 		_expect(
 			nova_outside.damage_calls.is_empty(),
 			"Nova explosion does not damage targets outside its radius",
+		)
+		and test_passed
+	)
+	test_passed = (
+		_expect(
+			int(weapon_controller.call("get_current_ammo")) == 5 and touch_ammo.text == "5/6",
+			"Nova has its own live six-round magazine",
+		)
+		and test_passed
+	)
+	# Drive the last-round transition without firing five slow explosives just
+	# to reach it. All earlier shots used the real projectile/cooldown path.
+	var magazines: Array = weapon_controller.get("_magazines")
+	var cooldowns: Array = weapon_controller.get("_cooldowns")
+	magazines[1] = 1
+	cooldowns[1] = 0.0
+	var final_round: bool = weapon_controller.call(
+		"try_fire", player, muzzle, nova_direct.global_position
+	)
+	var rejected_during_reload: bool = weapon_controller.call(
+		"try_fire", player, muzzle, nova_direct.global_position
+	)
+	test_passed = (
+		_expect(
+			(
+				final_round
+				and not rejected_during_reload
+				and weapon_controller.call("is_reloading")
+				and touch_ammo.text == "RELOAD"
+				and weapon_meta.text.contains("RELOADING")
+			),
+			"empty magazine auto-reloads and locks fire in both HUDs",
+		)
+		and test_passed
+	)
+	for _frame in 145:
+		await physics_frame
+	test_passed = (
+		_expect(
+			(
+				not weapon_controller.call("is_reloading")
+				and int(weapon_controller.call("get_current_ammo")) == 6
+				and touch_ammo.text == "6/6"
+			),
+			"reload restores the magazine and its fixed-width ammo label",
+		)
+		and test_passed
+	)
+	var next_round: bool = weapon_controller.call(
+		"try_fire", player, muzzle, nova_direct.global_position
+	)
+	var manual_reload: bool = weapon_controller.call("request_reload")
+	test_passed = (
+		_expect(
+			next_round and manual_reload and not weapon_controller.call("request_reload"),
+			"G can reload early, but a duplicate request does not restart its timer",
+		)
+		and test_passed
+	)
+	weapon_controller.call("reset_ammo")
+	test_passed = (
+		_expect(
+			(
+				not weapon_controller.call("is_reloading")
+				and int(weapon_controller.call("get_current_ammo")) == 6
+			),
+			"a fresh run refills all magazines and cancels reloading",
 		)
 		and test_passed
 	)

@@ -99,6 +99,7 @@ static func touch_portrait(hud) -> void:
 	_place_button(hud, hud._skill_button, 130.0, 116.0, 56.0, 56.0)
 	# Keep the weapon action at least 44 px high and 12 px away from AIM.
 	_place_button(hud, hud._weapon_button, 112.0, 218.0, 120.0, 48.0)
+	_place_button(hud, hud._touch_ammo_chip, 244.0, 226.0, 52.0, 32.0)
 	_place(
 		hud._skill_ring,
 		1,
@@ -177,6 +178,7 @@ static func touch_landscape(hud) -> void:
 	# Below the run card at 844x390, but horizontally clear of AIM and vertically
 	# clear of EMP. A 36 px row was not a usable touch target.
 	_place_button(hud, hud._weapon_button, 120.0, 168.0, 132.0, 48.0)
+	_place_button(hud, hud._touch_ammo_chip, 264.0, 176.0, 68.0, 32.0)
 	_place(
 		hud._skill_ring,
 		1,
@@ -213,12 +215,22 @@ static func touch_landscape(hud) -> void:
 			hud._to_layout(64.0)
 		)
 	)
-	_place_help(
-		hud,
-		edge,
-		hud._top_inset + bar_height + hud._to_layout(8.0),
-		hud._to_layout(560.0),
-		hud._to_layout(60.0)
+	# The run card occupies the right rail at the same height. A centered 560px
+	# help plate overlaps it at 844x390; pin a short hint into the left gap.
+	var run_left: float = hud.size.x - edge - hud._to_layout(236.0)
+	var help_width: float = minf(hud._to_layout(440.0), run_left - edge - hud._to_layout(8.0))
+	_place(
+		hud._help_panel,
+		0,
+		0,
+		0,
+		0,
+		Rect2(
+			edge,
+			hud._top_inset + bar_height + hud._to_layout(8.0),
+			maxf(help_width, hud._to_layout(160.0)),
+			hud._to_layout(60.0)
+		)
 	)
 
 

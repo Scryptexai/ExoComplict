@@ -257,6 +257,12 @@ func _run_smoke_test() -> void:
 		),
 		"landscape SWAP is at least 44px high and clear of AIM and EMP",
 	)
+	var run_card := controls.get("_run_card") as Control
+	var help_plate := controls.get("_help_panel") as Control
+	_expect(
+		not help_plate.get_global_rect().intersects(run_card.get_global_rect()),
+		"landscape hint never covers the run-data card",
+	)
 	controls.call("apply_layout_for_size", Vector2(1280.0, 720.0), 1.0)
 	_expect(
 		not compact_card.visible and controls.get("_run_card").visible and wave_enemy_label.visible,
@@ -562,6 +568,16 @@ func _run_smoke_test() -> void:
 			and String(pause_button.get_meta("aegis_state", "")) == "pause"
 		),
 		"touching RESUME returns to play and closes the pause menu",
+	)
+	_tap_screen_button(controls, pause_button, 95)
+	var escape_key := InputEventKey.new()
+	escape_key.keycode = KEY_ESCAPE
+	escape_key.physical_keycode = KEY_ESCAPE
+	escape_key.pressed = true
+	controls.call("_input", escape_key)
+	_expect(
+		not paused and not pause_panel.visible,
+		"ESC resumes from a paused tree even when the gameplay node is inactive",
 	)
 
 	var run_stats: Node = main_scene.get_node("RunStats")

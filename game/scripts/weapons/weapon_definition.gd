@@ -6,6 +6,8 @@ extends Resource
 @export_multiline var role_description: String = ""
 @export var projectile_scene: PackedScene
 @export_range(0.1, 20.0, 0.1) var fire_rate: float = 5.0
+@export_range(1, 100, 1) var magazine_size: int = 24
+@export_range(0.2, 5.0, 0.05) var reload_seconds: float = 1.35
 @export_range(1.0, 500.0, 1.0) var damage: float = 18.0
 @export_range(0.0, 100.0, 1.0) var projectile_speed: float = 42.0
 @export_range(1.0, 100.0, 1.0) var max_range: float = 45.0
@@ -23,6 +25,8 @@ func is_valid_definition() -> bool:
 		and not display_name.strip_edges().is_empty()
 		and is_instance_valid(projectile_scene)
 		and fire_rate > 0.0
+		and magazine_size > 0
+		and reload_seconds > 0.0
 		and damage > 0.0
 		and projectile_speed >= 0.0
 		and max_range > 0.0

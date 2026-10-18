@@ -35,15 +35,17 @@ const MIN_PHYSICAL_FONT_PX: float = AegisTokens.MIN_PHYSICAL_FONT_PX
 const COMPACT_LINES: int = 4
 const DESKTOP_HINT := (
 	"WASD MOVE · SHIFT SPRINT · SPACE JUMP · RMB ADS · LMB FIRE · 1-3 WEAPON"
-	+ " · F EMP · ESC PAUSE"
+	+ " · F EMP · G RELOAD · ESC PAUSE"
 )
-const DESKTOP_HINT_SHORT := "WASD · SHIFT · SPACE · RMB ADS · LMB FIRE · 1-3 · F EMP · ESC"
+const DESKTOP_HINT_SHORT := "WASD · SHIFT · SPACE · RMB ADS · LMB FIRE · 1-3 · F · G · ESC"
 const HELP_TEXT := (
 	"TOUCH: 360° joystick moves · drag right to aim · hold FIRE / AIM · EMP is the skill\n"
 	+ "DESKTOP: WASD moves · Shift sprint · Space jump · RMB aims · hold LMB to fire\n"
-	+ "E / Q or 1-3 switch weapons · F EMP · R retries · Esc pauses"
+	+ "E / Q or 1-3 switch weapons · F EMP · G reload · R retries · Esc pauses"
 )
-const MOBILE_HELP_TEXT := "JOYSTICK MOVE · DRAG RIGHT AIM\nFIRE · HOLD AIM · EMP · SWAP"
+const MOBILE_HELP_TEXT := (
+	"JOYSTICK MOVE · DRAG RIGHT AIM\n" + "FIRE · HOLD AIM · EMP · SWAP · AUTO RELOAD"
+)
 const HELP_FADE_SECONDS: float = 1.5
 ## The browser shell (game/web_shell/index.html) draws chips along the top of
 ## the page; the HUD keeps clear of them instead of overlapping.
@@ -117,6 +119,7 @@ var _sound_button: AegisButton
 var _aim_button: AegisButton
 var _results_retry_button: AegisButton
 var _skill_ring: CooldownRing
+var _touch_ammo_chip: AegisAmmoChip
 var _results_panel: AegisPanel
 
 var _touch_buttons: Array[Button] = []
@@ -195,15 +198,15 @@ func _input(event: InputEvent) -> void:
 			_end_touch(event.index, event.position)
 	elif event is InputEventScreenDrag:
 		_update_touch(event.index, event.position, event.relative)
-	elif (
-		event is InputEventKey
-		and event.pressed
-		and not event.echo
-		and event.keycode == KEY_R
-		and get_tree().paused
-	):
-		retry_requested.emit()
-		get_viewport().set_input_as_handled()
+	elif event is InputEventKey and event.pressed and not event.echo:
+		if event.is_action_pressed("ui_cancel") and get_tree().paused:
+			# The gameplay node is paused, so its _unhandled_input cannot reliably
+			# see ESC again. This HUD runs ALWAYS and owns the resume keystroke.
+			_on_pause_pressed()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_R and get_tree().paused:
+			retry_requested.emit()
+			get_viewport().set_input_as_handled()
 
 
 # --------------------------------------------------------------------------- #
@@ -334,6 +337,8 @@ func _apply_input_mode() -> void:
 		_desktop_hint.visible = not _touch_mode and gameplay_visible and not get_tree().paused
 	if is_instance_valid(_skill_ring):
 		_skill_ring.visible = _touch_mode and not _narrow and gameplay_visible
+	if is_instance_valid(_touch_ammo_chip):
+		_touch_ammo_chip.visible = _touch_mode and gameplay_visible
 	if is_instance_valid(_sound_button):
 		_sound_button.visible = not _narrow and gameplay_visible
 	if is_instance_valid(_pause_button):
@@ -388,6 +393,14 @@ func set_weapon_label(display_name: String) -> void:
 		_weapon_button.text = display_name.to_upper()
 	if is_instance_valid(_desktop_weapon_name):
 		_desktop_weapon_name.text = display_name.to_upper()
+
+
+func _update_weapon_ammo(remaining: int, capacity: int, reloading: bool) -> void:
+	var text := "RELOADING" if reloading else "%d/%d" % [remaining, capacity]
+	if is_instance_valid(_desktop_weapon_meta):
+		_desktop_weapon_meta.text = "%s · G RELOAD · E/Q SWAP" % text
+	if is_instance_valid(_touch_ammo_chip):
+		_touch_ammo_chip.set_ammo(remaining, capacity, reloading)
 
 
 func set_skill_cooldown(remaining_seconds: float, total_seconds: float) -> void:
@@ -554,6 +567,7 @@ func show_results(
 		_emp_chip,
 		_ads_chip,
 		_skill_ring,
+		_touch_ammo_chip,
 	]:
 		if is_instance_valid(control):
 			control.visible = false
@@ -788,6 +802,9 @@ func _build_touch_buttons() -> void:
 	_skill_ring = CooldownRing.new()
 	_skill_ring.name = "SkillCooldownRing"
 	add_child(_skill_ring)
+	_touch_ammo_chip = AegisAmmoChip.new()
+	_touch_ammo_chip.name = "TouchAmmoChip"
+	add_child(_touch_ammo_chip)
 
 
 func _build_desktop_chips() -> void:
@@ -1041,7 +1058,9 @@ func _layout_controls(
 	if is_instance_valid(_desktop_hint):
 		_desktop_hint.text = DESKTOP_HINT_SHORT if _narrow else DESKTOP_HINT
 	if is_instance_valid(_help_label):
-		_help_label.text = MOBILE_HELP_TEXT if _narrow and _touch_mode else HELP_TEXT
+		_help_label.text = (
+			MOBILE_HELP_TEXT if _touch_mode and physical_width < 1024.0 else HELP_TEXT
+		)
 	_portrait = physical_height > physical_width
 
 	_refresh_card_styles()
@@ -1435,6 +1454,7 @@ func _is_over_hud(position: Vector2) -> bool:
 		_weapon_button,
 		_skill_button,
 		_aim_button,
+		_touch_ammo_chip,
 		_pause_panel,
 		_results_panel,
 		_run_card,

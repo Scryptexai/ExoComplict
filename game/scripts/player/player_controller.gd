@@ -68,6 +68,8 @@ func _physics_process(delta: float) -> void:
 	for slot in range(slots.size()):
 		if Input.is_action_just_pressed(slots[slot]):
 			select_weapon(slot)
+	if Input.is_action_just_pressed("reload"):
+		weapon_controller.request_reload()
 	_update_aiming()
 	var aim_point := _get_aim_point()
 	camera_rig.set_aiming(_aiming)
@@ -221,6 +223,7 @@ func reset_player() -> void:
 	velocity = Vector3.ZERO
 	_touch_movement = Vector2.ZERO
 	_touch_fire_pressed = false
+	weapon_controller.reset_ammo()
 	health_changed.emit(current_health, max_health)
 	skill_cooldown_changed.emit(0.0, emp_pulse_cooldown)
 

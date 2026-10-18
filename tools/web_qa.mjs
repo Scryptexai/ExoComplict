@@ -202,6 +202,7 @@ async function checkPage(target, viewport) {
       await page.screenshot({ path: pauseFrame });
       menuFrames.push(path.relative(ROOT, pauseFrame));
       await page.keyboard.press('Escape');
+      await new Promise((r) => setTimeout(r, 350));
     }
   }
 
@@ -297,6 +298,7 @@ async function checkPage(target, viewport) {
   }
 
   const audioLines = consoleLines.filter((line) => line.includes('Audio:'));
+  const menuLines = consoleLines.filter((line) => line.includes('HUD: '));
   const scriptErrors = consoleLines.filter((line) => /SCRIPT ERROR:|Parse Error:/.test(line));
   await page.close();
 
@@ -316,6 +318,8 @@ async function checkPage(target, viewport) {
   }
   if (has('--menus')) {
     checks.push(['pause menu captured a frame', menuFrames.length === 1]);
+    checks.push(['ESC opened the pause state', menuLines.some((line) => line.includes('HUD: paused'))]);
+    checks.push(['ESC resumed the game', menuLines.some((line) => line.includes('HUD: resumed'))]);
   }
   if (playSeconds > 0) {
     checks.push(['scripted play captured frames', frames.length > 0]);
@@ -348,6 +352,7 @@ async function checkPage(target, viewport) {
     frames,
     tourFrames,
     audio: audioLines,
+    menuTransitions: menuLines,
     scriptErrors,
     console: consoleLines,
     pageErrors,
@@ -374,6 +379,7 @@ try {
       if (result.scriptErrors.length) console.log(`  script errors: ${result.scriptErrors.join(' | ')}`);
       console.log(`  screenshot: ${result.screenshot}`);
       if (result.menuFrames?.length) console.log(`  menu frames: ${result.menuFrames.join(', ')}`);
+      if (result.menuTransitions?.length) console.log(`  menu state: ${result.menuTransitions.join(' | ')}`);
       if (result.frames?.length) console.log(`  play frames: ${result.frames.join(', ')}`);
       if (result.tourFrames?.length) console.log(`  tour frames: ${result.tourFrames.length} in ${path.relative(ROOT, outDir)}`);
       if (result.audio?.length) console.log(`  audio: ${result.audio.join(' | ')}`);
