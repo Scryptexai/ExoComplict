@@ -312,8 +312,8 @@ static func touch_landscape(hud) -> void:
 	_place_button(hud, hud._aim_button, 12.0, 173.0, 94.0, 94.0)
 	_place_button(hud, hud._skill_button, 170.0, 56.0, 94.0, 94.0)
 	_place_button(hud, hud._weapon_button, 120.0, 173.0, 94.0, 94.0)
-	# y164..218: below the top Armory chip (which ends at y160).
-	_place_button(hud, hud._touch_ammo_chip, 226.0, 172.0, 112.0, 54.0)
+	# y174..228: a real 14px gap below Armory and 12px before EMP.
+	_place_button(hud, hud._touch_ammo_chip, 226.0, 162.0, 112.0, 54.0)
 	# Cooldown ring remains centred around the actual EMP face.
 	_place(
 		hud._skill_ring,

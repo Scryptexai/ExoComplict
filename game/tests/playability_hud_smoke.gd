@@ -353,6 +353,7 @@ func _run_smoke_test() -> void:
 	)
 	var help_plate := controls.get("_help_panel") as Control
 	var armory_entry := controls.get("_armory_button") as Control
+	var ammo_chip := controls.get("_touch_ammo_chip") as Control
 	_expect(
 		(
 			help_plate.get_global_rect().size.y * 0.541667 < 65.0
@@ -361,8 +362,15 @@ func _run_smoke_test() -> void:
 			and help_label.text.contains("EMP")
 			and help_label.text.contains("SWAP")
 			and not help_plate.visible
-			and not (controls.get("_touch_ammo_chip") as Control).get_global_rect().intersects(
-				armory_entry.get_global_rect()
+			and not ammo_chip.get_global_rect().grow(landscape_gap).intersects(
+				skill_button.get_global_rect()
+			)
+			and (
+				(
+					(ammo_chip.get_global_rect().position.y - armory_entry.get_global_rect().end.y)
+					* 0.541667
+				)
+				>= 10.0
 			)
 			and not (controls.get("_wave_state_label") as Label).visible
 			and not controls.get("_run_card").visible

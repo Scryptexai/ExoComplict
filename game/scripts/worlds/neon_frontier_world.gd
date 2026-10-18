@@ -1444,6 +1444,12 @@ func _build_spawn_beacons() -> void:
 	for marker in spawn_points.get_children():
 		if not marker is Marker3D:
 			continue
+		# The player spawns at z=8 and the follow camera sits beside the south
+		# marker at z=12. Its decorative orange/cyan puck filled the lower-left
+		# 375px playfield and joystick; keep the *spawn marker* for combat but
+		# omit only this too-near cosmetic mesh and orb.
+		if marker.name == "SpawnSouth":
+			continue
 		var beacon := MeshInstance3D.new()
 		beacon.name = "%s_Beacon" % marker.name
 		var mesh := CylinderMesh.new()
