@@ -217,13 +217,33 @@ def main():
 
     locomotion_aim(arm, actions["walk"], actions["aim"], "aim_walk")
     locomotion_aim(arm, actions["run"], actions["aim"], "aim_run")
+    # Recharge gesture: keep the trigger hand on the weapon, withdraw the
+    # support hand from the fore-end toward the receiver, press the integrated
+    # energy-cell latch, then bring it back. The rifle is a *single* mesh: do
+    # not pretend a detachable magazine or bolt is actually being animated.
+    # On the inspected armature, the former -19-degree Z forearm twist moved
+    # the support hand *up* 8 cm and nowhere near the receiver. An X bend
+    # brings the hand back along the weapon and positive Z lowers it.
     keyframed_reaction(arm, actions["aim"], "reload", [
-        (1, {}), (6, {"rotate": {"R_Hand": ((1, 0, 0), 9), "Spine02": ((1, 0, 0), -4)}}),
-        (17, {"rotate": {"L_Forearm": ((0, 0, 1), -19), "L_Hand": ((1, 0, 0), 24),
-                        "R_Hand": ((1, 0, 0), 12)}}),
-        (27, {"rotate": {"L_Forearm": ((0, 0, 1), -12), "L_Hand": ((1, 0, 0), 12),
-                        "R_Hand": ((1, 0, 0), 6)}}),
-        (41, {}),
+        (1, {}),
+        (6, {"rotate": {"R_Hand": ((1, 0, 0), 5), "Spine02": ((1, 0, 0), -3)}}),
+        (12, {"rotate": {"L_Upperarm": ((1, 0, 0), 12),
+                         "L_Forearm": ((1, 0, 0), -21),
+                         "L_Hand": ((1, 0, 0), 16),
+                         "R_Hand": ((1, 0, 0), 11)}}),
+        (19, {"rotate": {"L_Upperarm": ((1, 0, 0), 19),
+                         "L_Forearm": ((-0.88, 0, 0.48), 33),
+                         "L_Hand": ((1, 0, 0), 34),
+                         "R_Hand": ((1, 0, 0), 13)}}),
+        (26, {"rotate": {"L_Upperarm": ((1, 0, 0), 14),
+                         "L_Forearm": ((-0.88, 0, 0.48), 28),
+                         "L_Hand": ((1, 0, 0), 26),
+                         "R_Hand": ((1, 0, 0), 10)}}),
+        (33, {"rotate": {"L_Upperarm": ((1, 0, 0), 7),
+                         "L_Forearm": ((-0.88, 0, 0.48), 13),
+                         "L_Hand": ((1, 0, 0), 12),
+                         "R_Hand": ((1, 0, 0), 5)}}),
+        (43, {}),
     ])
     keyframed_reaction(arm, actions["aim"], "hit", [
         (1, {}), (4, {"rotate": {"Spine01": ((1, 0, 0), -11),

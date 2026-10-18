@@ -186,11 +186,22 @@ func _run_smoke_test() -> void:
 		str(visual.call("current_clip")) == "reload",
 		"the real ammo reload signal starts the Blender handling action",
 	)
+	weapon_controller.call("_process", 0.5)
+	var remaining: float = float(weapon_controller.call("current_reload_remaining"))
+	_expect(remaining > 0.0 and remaining < 1.35, "ammo timer advances during reload")
+	weapon_controller.call("select_weapon", 1)
+	_expect(str(visual.call("current_clip")) == "aim", "changing weapons hides the old reload")
+	weapon_controller.call("select_weapon", 0)
+	_expect(str(visual.call("current_clip")) == "reload", "switching back resumes a live reload")
+	_expect(
+		is_equal_approx(float(visual.get("_reload_remaining")), remaining),
+		"reload pose only lasts as long as the remaining ammo timer",
+	)
 	weapon_controller.call("reset_ammo")
 	_expect(str(visual.call("current_clip")) == "aim", "refilled magazine ends the reload action")
 	player.call("apply_damage", 8.0)
 	_expect(str(visual.call("current_clip")) == "hit", "nonfatal damage plays hit reaction")
-	visual.call("_process", 0.32)
+	visual.call("_process", 0.6)
 	_expect(str(visual.call("current_clip")) == "aim", "hit reaction returns to aimed stance")
 	player.call("apply_damage", 1000.0)
 	_expect(str(visual.call("current_clip")) == "death", "fatal damage plays death motion")

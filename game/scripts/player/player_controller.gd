@@ -207,9 +207,7 @@ func _on_weapon_changed(display_name: String) -> void:
 
 func _on_ammo_changed(_remaining: int, _capacity: int, reloading: bool) -> void:
 	if reloading and not _reload_was_active:
-		var definition := weapon_controller.get_current_definition()
-		if definition != null:
-			visual_root.play_reload(definition.reload_seconds)
+		visual_root.play_reload(weapon_controller.current_reload_remaining())
 	elif not reloading and _reload_was_active:
 		visual_root.finish_reload()
 	_reload_was_active = reloading

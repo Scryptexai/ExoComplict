@@ -16,8 +16,10 @@
  *   node tools/web_qa.mjs --menus --settings --editor # HUD tab/editor screenshot
  *   node tools/web_qa.mjs --menus --swipe --viewport 390x844 # portrait sheet gesture
  *   node tools/web_qa.mjs --tour          # world review camera: F10 + keys 1-8
+ *   node tools/web_qa.mjs --encounter-prep --explore-wait 8000
+ *       # safe Explore + deliberate B + preparation; Defense is NOT claimed
  *   node tools/web_qa.mjs --encounter --explore-wait 8000
- *       # screenshot safe Explore, press B intentionally, capture Defense
+ *       # strict: also require a real Defense transition in this browser
  *
  * `--hold` exists because the touch HUD lives inside the WebGL canvas: the AIM
  * button cannot be found with a DOM selector, so its canvas coordinates (read
@@ -77,7 +79,8 @@ const givenUrl = flag('--url', '');
 // pick a district. Screenshots come from the real build, not a separate scene.
 const tourMode = has('--tour');
 const tourWaitMs = Number(flag('--tour-wait', '900'));
-const encounterMode = has('--encounter');
+const requireDefense = has('--encounter');
+const encounterMode = requireDefense || has('--encounter-prep');
 const exploreWaitMs = Number(flag('--explore-wait', '8000'));
 const port = Number(flag('--port', '8126'));
 
@@ -320,12 +323,15 @@ async function checkPage(target, viewport) {
       const preparingFrame = path.join(outDir, `${slug}-${viewport.spec}-defense-preparing.png`);
       await page.screenshot({ path: preparingFrame });
       encounterFrames.push(path.relative(ROOT, preparingFrame));
-      // Godot's countdown advances in simulation time; SwiftShader screenshots
-      // can be very slow, so log transition order is the deterministic check.
+      // Godot's countdown advances in simulation time. SwiftShader may render
+      // a fraction of a second of Godot time per several wall-clock seconds;
+      // never label a frame 'Defense started' merely because a timer elapsed.
       await new Promise((r) => setTimeout(r, 7000));
-      const defenseFrame = path.join(outDir, `${slug}-${viewport.spec}-defense-started.png`);
-      await page.screenshot({ path: defenseFrame });
-      encounterFrames.push(path.relative(ROOT, defenseFrame));
+      const defenseStarted = consoleLines.some((line) => line.includes('Encounter: Defense started'));
+      const phase = defenseStarted ? 'defense-started' : 'preparing-progress';
+      const phaseFrame = path.join(outDir, `${slug}-${viewport.spec}-${phase}.png`);
+      await page.screenshot({ path: phaseFrame });
+      encounterFrames.push(path.relative(ROOT, phaseFrame));
     }
   }
 
@@ -431,8 +437,14 @@ async function checkPage(target, viewport) {
     const defenseAt = encounterLines.findIndex((line) => line.includes('Defense started'));
     checks.push(['Explore remained safe before explicit activation', safeBeforeActivation]);
     checks.push(['B requested a visible Defense preparation', preparationAt >= 0]);
-    checks.push(['Defense began only after the preparation countdown', defenseAt > preparationAt]);
-    checks.push(['Explore and Defense frames captured', encounterFrames.length === 3]);
+    checks.push(['Explore and preparation frames captured', encounterFrames.length === 3]);
+    if (requireDefense) {
+      checks.push(['Defense began only after the preparation countdown', defenseAt > preparationAt]);
+      checks.push([
+        'browser screenshot shows actual Defense',
+        encounterFrames.some((frame) => frame.includes('defense-started.png')),
+      ]);
+    }
   }
   if (has('--menus')) {
     checks.push(['pause menu captured a frame', menuFrames.length >= 1]);
@@ -493,6 +505,7 @@ async function checkPage(target, viewport) {
     tourFrames,
     encounterFrames,
     safeBeforeActivation,
+    defenseObserved: consoleLines.some((line) => line.includes('Encounter: Defense started')),
     encounterTransitions: consoleLines.filter((line) => line.includes('Encounter:')),
     audio: audioLines,
     menuTransitions: menuLines,
@@ -529,6 +542,9 @@ try {
       if (result.tourFrames?.length) console.log(`  tour frames: ${result.tourFrames.length} in ${path.relative(ROOT, outDir)}`);
       if (result.encounterFrames?.length) console.log(`  encounter frames: ${result.encounterFrames.join(', ')}`);
       if (result.encounterTransitions?.length) console.log(`  encounter: ${result.encounterTransitions.join(' | ')}`);
+      if (encounterMode && !result.defenseObserved) {
+        console.log('  browser Defense: NOT OBSERVED (SwiftShader simulation may lag; Godot smoke is a separate test)');
+      }
       if (result.audio?.length) console.log(`  audio: ${result.audio.join(' | ')}`);
     }
     }
@@ -545,7 +561,7 @@ if (asJson) {
   console.log(JSON.stringify(report, null, 2));
 } else {
   console.log(
-    `\nSummary: ${report.pages.length - failed.length}/${report.pages.length} page/viewport combination(s) booted into the engine.`,
+    `\nSummary: ${report.pages.length - failed.length}/${report.pages.length} page/viewport combination(s) passed all requested checks.`,
   );
   if (failed.length) {
     console.log(`FAILED: ${failed.map((p) => `${p.target}@${p.viewport}`).join(', ')}`);

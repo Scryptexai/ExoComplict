@@ -77,6 +77,7 @@ func _create_materials() -> void:
 		"deep_blue": _make_material(Color(0.025, 0.09, 0.21), 0.5, 0.44),
 		"cyan": _make_emissive(Color(0.02, 0.69, 0.9), 1.1),
 		"turquoise": _make_emissive(Color(0.015, 0.76, 0.67), 0.9),
+		"reactor_core": _make_emissive(Color(0.025, 0.46, 0.55), 0.38),
 		"emerald": _make_emissive(Color(0.1, 0.72, 0.39), 0.9),
 		"yellow": _make_emissive(Color(1.0, 0.66, 0.035), 0.55),
 		"orange": _make_emissive(Color(1.0, 0.27, 0.035), 0.95),
@@ -85,7 +86,7 @@ func _create_materials() -> void:
 		"rock": _make_material(Color(0.59, 0.43, 0.34), 0.02, 0.93),
 		"rock_light": _make_material(Color(0.76, 0.58, 0.42), 0.02, 0.88),
 		"rock_rose": _make_material(Color(0.64, 0.39, 0.37), 0.03, 0.9),
-		"glass": _make_translucent(Color(0.12, 0.78, 0.94, 0.32), 0.25, 0.17),
+		"glass": _make_translucent(Color(0.12, 0.78, 0.94, 0.23), 0.25, 0.17),
 		"flora": _make_material(Color(0.19, 0.64, 0.35), 0.0, 0.72),
 		"flora_lime": _make_emissive(Color(0.51, 0.87, 0.17), 0.25),
 		"flora_teal": _make_material(Color(0.04, 0.58, 0.54), 0.05, 0.52),
@@ -359,11 +360,13 @@ func _build_reactor_core() -> void:
 		Vector3.ZERO,
 		24
 	)
+	# Focus the emissive focal point inside the larger FBX-framed structure:
+	# the earlier overexposed cyan orb filled the portrait camera's horizon.
 	_sphere(
 		"SuspendedReactorSeed",
 		Vector3(0.0, 7.0, 0.0),
-		Vector3(1.75, 2.15, 1.75),
-		_materials["turquoise"]
+		Vector3(1.32, 1.63, 1.32),
+		_materials["reactor_core"]
 	)
 	_ring("ContainmentLowerHalo", Vector3.ZERO, 3.1, 4.1, 0.3, _materials["cyan"], 24)
 	_ring("ContainmentUpperHalo", Vector3.ZERO, 3.1, 9.9, 0.3, _materials["cyan"], 24)

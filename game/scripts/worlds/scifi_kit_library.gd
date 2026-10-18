@@ -99,11 +99,12 @@ const SIZE := {
 ## cyan energy fixtures. Model-aware policy retains the user's FBX silhouettes.
 const COLORS := {
 	"orange": Color(0.95, 0.38, 0.13),
-	"steel": Color(0.46, 0.53, 0.6),
-	"steel_light": Color(0.58, 0.64, 0.69),
-	"panel": Color(0.3, 0.37, 0.44),
+	"steel": Color(0.42, 0.49, 0.55),
+	"steel_light": Color(0.52, 0.58, 0.63),
+	"panel": Color(0.27, 0.34, 0.41),
 	"trim": Color(0.16, 0.21, 0.27),
-	"floor": Color(0.31, 0.38, 0.45),
+	"floor": Color(0.27, 0.32, 0.38),
+	"floor_alt": Color(0.22, 0.26, 0.32),
 	"glass": Color(0.35, 0.78, 0.92),
 	"light": Color(0.62, 0.93, 1.0),
 }
@@ -114,7 +115,7 @@ const COLORS := {
 ## so the *model* decides what its "Orange" surface means.
 const POLICY := {
 	"floor": {"all": "floor"},
-	"floor_alt": {"all": "floor"},
+	"floor_alt": {"all": "floor_alt"},
 	"floor_grate": {"all": "steel_light"},
 	"wall": {"Orange": "orange"},
 	"wall_b": {"Orange": "orange"},
@@ -207,8 +208,8 @@ static func material(color_key: String) -> StandardMaterial3D:
 			material.albedo_color = COLORS.orange
 			material.metallic = 0.05
 			material.roughness = 0.55
-		"floor":
-			material.albedo_color = COLORS.floor
+		"floor", "floor_alt":
+			material.albedo_color = COLORS[color_key]
 			material.metallic = 0.02
 			material.roughness = 0.72
 		_:

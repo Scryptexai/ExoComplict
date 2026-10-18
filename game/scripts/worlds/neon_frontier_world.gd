@@ -56,9 +56,9 @@ func _ready() -> void:
 
 func _create_materials() -> void:
 	_materials = {
-		"ground": _make_material(Color(0.32, 0.39, 0.46), 0.04, 0.9),
-		"ground_light": _make_material(Color(0.4, 0.47, 0.54), 0.06, 0.84),
-		"ground_rose": _make_material(Color(0.33, 0.36, 0.46), 0.05, 0.88),
+		"ground": _make_material(Color(0.29, 0.34, 0.4), 0.04, 0.9),
+		"ground_light": _make_material(Color(0.37, 0.43, 0.49), 0.06, 0.84),
+		"ground_rose": _make_material(Color(0.31, 0.33, 0.41), 0.05, 0.88),
 		"silver": _make_material(Color(0.43, 0.52, 0.59), 0.56, 0.43),
 		"pearl": _make_material(Color(0.68, 0.77, 0.82), 0.15, 0.5),
 		"ceramic": _make_material(Color(0.52, 0.64, 0.73), 0.23, 0.5),

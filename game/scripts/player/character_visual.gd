@@ -160,7 +160,7 @@ func finish_reload() -> void:
 func play_hit() -> void:
 	if _defeated:
 		return
-	_hit_remaining = 0.28
+	_hit_remaining = _anim_player.get_animation("hit").length if _has_clip("hit") else 0.28
 	if is_rigged():
 		_update_locomotion(_last_speed_ratio)
 
@@ -180,6 +180,7 @@ func reset_action_state() -> void:
 	_reload_remaining = 0.0
 	_hit_remaining = 0.0
 	_aiming = false
+	_last_speed_ratio = 0.0
 	if is_rigged():
 		_update_locomotion(0.0)
 

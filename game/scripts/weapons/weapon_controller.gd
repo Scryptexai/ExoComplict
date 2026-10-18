@@ -76,6 +76,12 @@ func is_reloading() -> bool:
 	)
 
 
+func current_reload_remaining() -> float:
+	if _current_weapon_index < 0 or _current_weapon_index >= _reload_remaining.size():
+		return 0.0
+	return _reload_remaining[_current_weapon_index]
+
+
 ## A fixed magazine provides the reload rhythm without a finite reserve that
 ## could strand a survival run. Touch players auto-reload at zero; G reloads early.
 func request_reload() -> bool:

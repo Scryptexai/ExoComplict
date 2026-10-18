@@ -157,6 +157,19 @@ window.measure = () => {
   const muzzleNode = rifle && rifle.getObjectByName('MuzzlePoint');
   const out = {};
   if (hand) out.hand = hand.getWorldPosition(new THREE.Vector3()).toArray();
+  const supportHand = bone(hero, 'L_Hand');
+  if (supportHand) out.supportHand = supportHand.getWorldPosition(new THREE.Vector3()).toArray();
+  for (const name of ['L_Upperarm', 'L_Forearm', 'L_Hand']) {
+    const joint = bone(hero, name);
+    if (joint) {
+      out[name] = {
+        pos: joint.getWorldPosition(new THREE.Vector3()).toArray(),
+        rot: joint.getWorldQuaternion(new THREE.Quaternion()).toArray(),
+      };
+    }
+  }
+  const gripNode = rifle && rifle.getObjectByName('GripPoint');
+  if (gripNode) out.grip = gripNode.getWorldPosition(new THREE.Vector3()).toArray();
   if (muzzleNode) {
     out.muzzle = muzzleNode.getWorldPosition(new THREE.Vector3()).toArray();
     out.muzzleDir = new THREE.Vector3(0, 0, -1)

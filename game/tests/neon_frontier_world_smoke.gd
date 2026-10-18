@@ -72,9 +72,9 @@ func _run_smoke_test() -> void:
 		and test_passed
 	)
 
-	# All visible exterior art now comes from the uploaded converted FBX pack.
-	# The older KayKit pack may still exist in the repository but cannot appear
-	# in the playable scene or silently return via a component fallback.
+	# Architectural cladding comes from the uploaded converted FBX pack. The
+	# terrain/foundations are still procedural; never mistake this model check
+	# for proof that every visible surface is an imported FBX. KayKit is gone.
 	var kit_models: Array[String] = [
 		"SciFiEquipmentDepotFacade",
 		"SciFiEquipmentSupply_00",
