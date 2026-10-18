@@ -16,6 +16,8 @@ extends Node3D
 ##   Esc / 0    restore all imports and hand the view back to the player
 ##   F8         only with ?qa_effect: arm ONE real shot, freeze after it fires;
 ##              press F8 again to resume. Never spawns an effect or a fake shot.
+##   F7         only with ?qa_effect: arm ONE real reload, freeze after about
+##              half a second of the actual imported clip; F7 resumes.
 ##
 ## It is deliberately not part of the HUD: no touch player will ever press F10,
 ## and nothing in the combat code reads it.
@@ -79,6 +81,9 @@ var _gameplay_fbx_review_enabled := false
 var _effect_review_enabled := false
 var _freeze_next_shot := false
 var _shot_frozen := false
+var _freeze_next_reload := false
+var _reload_frozen := false
+var _reload_review_elapsed := 0.0
 
 
 func _ready() -> void:
@@ -93,6 +98,8 @@ func _ready() -> void:
 	_camera.current = false
 	add_child(_camera)
 	set_process_unhandled_input(true)
+	# Poll the reload pose only while an explicit WebGL QA capture is armed.
+	set_process(false)
 	if OS.has_feature("web"):
 		_effect_review_enabled = bool(
 			JavaScriptBridge.eval("new URLSearchParams(location.search).has('qa_effect')")
@@ -118,6 +125,20 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey) or not event.pressed or event.echo:
 		return
 	var key := (event as InputEventKey).keycode
+	if key == KEY_F7 and _effect_review_enabled:
+		if _reload_frozen:
+			_reload_frozen = false
+			get_tree().paused = false
+			print("Reload QA: resumed gameplay")
+		elif not _active and not _shot_frozen:
+			_freeze_next_reload = not _freeze_next_reload
+			_reload_review_elapsed = 0.0
+			set_process(_freeze_next_reload)
+			print(
+				"Reload QA: %s next real reload" % ("armed" if _freeze_next_reload else "disarmed")
+			)
+		get_viewport().set_input_as_handled()
+		return
 	if key == KEY_F8 and _effect_review_enabled:
 		if _shot_frozen:
 			_shot_frozen = false
@@ -129,10 +150,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if key == KEY_F10:
-		if _shot_frozen:
+		if _shot_frozen or _reload_frozen:
 			_shot_frozen = false
+			_reload_frozen = false
 			get_tree().paused = false
 		_freeze_next_shot = false
+		_freeze_next_reload = false
+		set_process(false)
 		_set_active(not _active)
 		if _active:
 			_apply()
@@ -170,6 +194,26 @@ func _freeze_live_shot() -> void:
 		print("Shot QA: real shot frozen muzzle=%s screen=%s" % [muzzle.global_position, screen])
 	else:
 		print("Shot QA: real shot frozen but barrel or camera missing")
+	get_tree().paused = true
+
+
+## F7 does not play a clip or alter the ammo timer. It merely pauses after a
+## real reload request has advanced the Blender animation in the player camera,
+## making a sub-second pose inspectable on a slow headless WebGL compositor.
+func _process(delta: float) -> void:
+	if not _freeze_next_reload or _active or _shot_frozen:
+		return
+	var visual := get_parent().get_node_or_null("Player/VisualRoot")
+	if visual == null or str(visual.call("current_clip")) != "reload":
+		_reload_review_elapsed = 0.0
+		return
+	_reload_review_elapsed += delta
+	if _reload_review_elapsed < 0.45:
+		return
+	_freeze_next_reload = false
+	_reload_frozen = true
+	set_process(false)
+	print("Reload QA: real imported reload frozen at %.2fs" % _reload_review_elapsed)
 	get_tree().paused = true
 
 
