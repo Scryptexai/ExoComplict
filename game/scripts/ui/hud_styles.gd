@@ -122,9 +122,9 @@ static func apply_fonts(hud) -> void:
 			AegisTheme.resize_button_font(button, "title", maxi(roundi(15.0 * unit), floor_size))
 	if is_instance_valid(hud._health_bar):
 		hud._health_bar.custom_minimum_size.y = maxf(hud._to_layout(6.0), 3.0)
-	# These are the *texture* ceilings in physical pixels, not the coloured
-	# bounds. A screenshot showed the old FIRE 48 ceiling produced only a 43x32
-	# glyph inside 112x112. Keep the silhouette dominant at the real viewport.
+	# Texture ceilings, not coloured glyph dimensions. The stage-21 WebGL
+	# screenshot measured FIRE only 78x59 inside a 120x120 target. The icon's
+	# new diagonal drawing and this ceiling must BOTH be checked in pixels.
 	var icon_px := maxi(roundi(hud._to_layout(20.0)), 12)
 	var icon_button_px := maxf(hud._to_layout(56.0), 32.0)
 	for icon_button in [hud._pause_button, hud._sound_button]:
@@ -144,13 +144,13 @@ static func apply_fonts(hud) -> void:
 		if is_instance_valid(button):
 			var button_icon_px := icon_px
 			if button == hud._fire_button:
-				button_icon_px = roundi(hud._to_layout(88.0 if hud._portrait else 80.0))
+				button_icon_px = roundi(hud._to_layout(104.0 if hud._portrait else 96.0))
 			elif button == hud._aim_button or button == hud._skill_button:
-				button_icon_px = roundi(hud._to_layout(56.0 if hud._portrait else 50.0))
+				button_icon_px = roundi(hud._to_layout(70.0 if hud._portrait else 64.0))
 			elif button == hud._weapon_button:
-				button_icon_px = roundi(hud._to_layout(60.0 if hud._portrait else 52.0))
+				button_icon_px = roundi(hud._to_layout(68.0 if hud._portrait else 60.0))
 			elif button == hud._pause_button:
-				button_icon_px = roundi(hud._to_layout(36.0))
+				button_icon_px = roundi(hud._to_layout(40.0))
 			elif button == hud._sound_button:
 				button_icon_px = roundi(hud._to_layout(24.0))
 			button.add_theme_constant_override("icon_max_width", button_icon_px)

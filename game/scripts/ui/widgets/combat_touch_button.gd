@@ -1,6 +1,6 @@
-## Large, icon-led combat target. Its matte backing and pronounced rim survive
-## both the bright FBX deck and the dark reactor, while the entire Button rect
-## remains the same accessible touch / mouse / controller target.
+## Combat actions use full, opaque finger targets; the image inside must do the
+## explaining. No ornamental ring around a tiny pictogram: inspect the rendered
+## 390x844 canvas before accepting the sizes or claiming it is comfortable.
 class_name CombatTouchButton
 extends AegisButton
 
@@ -29,15 +29,17 @@ func _set_held(value: bool) -> void:
 
 func _draw() -> void:
 	super._draw()
-	if size.x < 24.0 or size.y < 24.0:
+	if not is_primary or size.x < 24.0 or size.y < 24.0:
 		return
-	var center := size * 0.5
-	var radius := minf(size.x, size.y) * 0.445
-	# The old hairline was ~1 px on a 390 px Web canvas. Scale the stroke
-	# with the target so it stays visible after Godot's canvas stretch.
-	var line := maxf(radius * (0.052 if is_primary else 0.046), 1.0)
-	var rim := Color(accent, 1.0 if _held else (0.92 if is_primary else 0.76))
-	for arc in [Vector2(-2.35, -1.25), Vector2(-0.40, 0.68), Vector2(1.48, 2.34)]:
-		draw_arc(center, radius, arc.x, arc.y, 28, rim, line, true)
-	if _held:
-		draw_arc(center, radius * 0.84, -PI, PI, 64, Color(accent, 0.53), line * 0.8, true)
+	# Short amber tab, not a circular gauge: FIRE is the primary action even
+	# when the player has not touched it. Pressing expands the tab in-place.
+	var inset := size.x * (0.16 if _held else 0.31)
+	var y := size.y - maxf(size.y * 0.045, 3.0)
+	var thickness := maxf(size.y * 0.035, 2.0)
+	draw_line(
+		Vector2(inset, y),
+		Vector2(size.x - inset, y),
+		Color(accent, 1.0 if _held else 0.82),
+		thickness,
+		true
+	)

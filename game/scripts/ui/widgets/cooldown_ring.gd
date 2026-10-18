@@ -1,8 +1,7 @@
-## 270° cooldown ring used around the EMP touch button.
-##
-## The ring is drawn outside the button so the touch target can stay 56 px while
-## the ring reads at 66 px. `remaining` is the fraction of the cooldown left: a
-## full arc right after use, shrinking clockwise until the skill is ready.
+## 270° countdown outside the EMP touch button; no ring when ready.
+## `remaining` is the fraction of the cooldown left: a full arc right after
+## use, shrinking clockwise until the skill is ready. The actual hit target is
+## the 80 px button, not the decorative ring.
 class_name CooldownRing
 extends Control
 
@@ -30,14 +29,14 @@ func _ready() -> void:
 
 
 func _draw() -> void:
+	# The bold ability icon/keyline already says READY. Only show the ring when
+	# a cooldown is actually counting down, not a third concentric bezel.
+	if available or remaining <= 0.001:
+		return
 	var center := size * 0.5
 	var radius := maxf(minf(size.x, size.y) * 0.5 - stroke, 1.0)
 	draw_arc(center, radius, START_ANGLE, START_ANGLE + SWEEP, 40, track_color, stroke, true)
-	if available:
-		draw_arc(
-			center, radius, START_ANGLE, START_ANGLE + SWEEP, 40, ring_color, stroke + 0.5, true
-		)
-	elif remaining > 0.001:
+	if remaining > 0.001:
 		draw_arc(
 			center,
 			radius,

@@ -259,35 +259,35 @@ static func set_button_variant(button: Button, variant: String) -> void:
 			pad_h = 4.0
 			pad_v = 4.0
 		"combat_fire":
-			# A solid-looking matte lens separates the large shooter silhouette
-			# from the FBX floor; a transparent disk made the icon look smaller.
-			fill = Color(AegisTokens.PANEL, 0.97)
-			border = Color(AegisTokens.ACCENT, 0.96)
-			font_color = AegisTokens.ACCENT
-			radius = 999.0
-			pad_h = 4.0
-			pad_v = 4.0
+			# One quiet, solid touch tile and ONE bright silhouette. The previous
+			# concentric circular bezels made a 78x59 glyph look smaller still.
+			fill = Color(AegisTokens.PANEL, 0.98)
+			border = Color(AegisTokens.ACCENT, 0.84)
+			font_color = AegisTokens.INK
+			radius = 22.0
+			pad_h = 3.0
+			pad_v = 3.0
 		"combat_aim":
-			fill = Color(AegisTokens.PANEL, 0.94)
-			border = Color(AegisTokens.INFO, 0.84)
-			font_color = AegisTokens.INK
-			radius = 999.0
-			pad_h = 4.0
-			pad_v = 4.0
-		"combat_ability":
 			fill = Color(AegisTokens.PANEL, 0.95)
-			border = Color(AegisTokens.ABILITY, 0.9)
-			font_color = AegisTokens.ABILITY
-			radius = 999.0
-			pad_h = 4.0
-			pad_v = 4.0
-		"combat_weapon":
-			fill = Color(AegisTokens.PANEL, 0.94)
-			border = Color(AegisTokens.INFO, 0.78)
+			border = Color(AegisTokens.INFO, 0.58)
 			font_color = AegisTokens.INK
-			radius = 999.0
-			pad_h = 4.0
-			pad_v = 4.0
+			radius = 18.0
+			pad_h = 3.0
+			pad_v = 3.0
+		"combat_ability":
+			fill = Color(AegisTokens.PANEL, 0.96)
+			border = Color(AegisTokens.ABILITY, 0.64)
+			font_color = AegisTokens.INK
+			radius = 18.0
+			pad_h = 3.0
+			pad_v = 3.0
+		"combat_weapon":
+			fill = Color(AegisTokens.PANEL, 0.95)
+			border = Color(AegisTokens.INFO, 0.48)
+			font_color = AegisTokens.INK
+			radius = 18.0
+			pad_h = 3.0
+			pad_v = 3.0
 		_:
 			pass
 	button.add_theme_stylebox_override(

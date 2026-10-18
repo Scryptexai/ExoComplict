@@ -571,7 +571,7 @@ func _apply_aim_visual(aiming: bool) -> void:
 		_aim_button.add_theme_stylebox_override(
 			"normal",
 			AegisTheme.button_style(
-				Color(AegisTokens.INFO, 0.20), AegisTokens.INFO, 2, 999.0, 4.0, 4.0
+				Color(AegisTokens.INFO, 0.20), AegisTokens.INFO, 2, 18.0, 3.0, 3.0
 			)
 		)
 	AegisTheme.tint_icon(_aim_button, AegisTokens.INFO if aiming else AegisTokens.INK)

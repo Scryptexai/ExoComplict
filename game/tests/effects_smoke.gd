@@ -46,7 +46,7 @@ func _run_smoke_test() -> void:
 					and cone.mesh is CylinderMesh
 					and cone.position.z < -0.1
 					and (cone.mesh as CylinderMesh).height < 0.5
-					and muzzle_flash.get_node_or_null("FlashSpark_3") != null
+					and muzzle_flash.get_node_or_null("FlashSpark_1") != null
 				),
 				"the barrel flash projects forward but never eclipses the player",
 			)

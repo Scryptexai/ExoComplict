@@ -34,9 +34,10 @@ func _ready() -> void:
 	_material.emission_energy_multiplier = flash_energy
 	_hot_core_material = _material.duplicate() as StandardMaterial3D
 
-	# The former 0.17 m spokes were almost wholly occluded by the hero's
-	# shoulder in portrait. A brighter small centre plus wider, *short* fins
-	# reads as a discharge rather than increasing the global ground wash.
+	# The weapon's muzzle projects across the right shoulder in portrait.
+	# Keep a compact hot centre; only two slim forward fins reach beyond the
+	# silhouette. A symmetric cross looked like a floating UI bar through the
+	# soldier's helmet in an actual frozen WebGL shot, so it was rejected.
 	var cone := CylinderMesh.new()
 	cone.top_radius = 0.004
 	cone.bottom_radius = 0.115
@@ -56,12 +57,12 @@ func _ready() -> void:
 	_core.material_override = _hot_core_material
 
 	var streak_mesh := BoxMesh.new()
-	streak_mesh.size = Vector3(0.022, 0.28, 0.033)
-	for index in range(4):
+	streak_mesh.size = Vector3(0.025, 0.09, 0.26)
+	for index in range(2):
 		var streak := _add_shape("FlashSpark_%d" % index, streak_mesh)
-		var angle := TAU * float(index) / 4.0
-		streak.position = Vector3(sin(angle) * 0.13, cos(angle) * 0.13, -0.11)
-		streak.rotation.z = -angle
+		streak.position = Vector3(0.115 + 0.025 * index, 0.055 - 0.12 * index, -0.22)
+		streak.rotation.x = 0.20 if index == 0 else -0.18
+		streak.rotation.y = -0.39 if index == 0 else -0.25
 		_streaks.append(streak)
 
 	_light = OmniLight3D.new()
@@ -136,8 +137,8 @@ func flash(strength: float = 1.0, tint: Color = Color(0.0, 0.0, 0.0, 0.0)) -> vo
 	_core.scale = Vector3.ONE * size
 	for index in range(_streaks.size()):
 		var streak := _streaks[index]
-		streak.scale = Vector3.ONE * size * (0.85 if index % 2 else 1.0)
-		streak.rotation.z += randf_range(-0.09, 0.09)
+		streak.scale = Vector3.ONE * size * (0.85 if index else 1.0)
+		streak.rotation.y = (-0.39 if index == 0 else -0.25) + randf_range(-0.04, 0.04)
 
 
 func is_flashing() -> bool:
