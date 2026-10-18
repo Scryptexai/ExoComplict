@@ -236,29 +236,32 @@ def main():
     # left the support palm isolated ~30 px from the rifle; it was visually
     # unreadable as an actual reload. Keep the X forearm bend that moves the
     # left hand along the weapon, using a restrained spine *bone-local Y*
-    # turn to expose the gesture instead. Neither root motion nor a detachable
-    # magazine is fabricated. The right trigger hand still drives the actual
-    # weapon socket, and this action is retimed by Godot to ammo reload time.
-    # 1=ready, 8=withdraw, 17-25=receiver hold, 35=regrip, 46=ready.
+    # turn to expose the gesture instead. Browser F7 at the positive turn had
+    # muzzle x=-0.105 m (CSS≈140 px, behind the helmet): use the opposite turn
+    # so the actual rifle has a chance to silhouette on the player's right.
+    # Neither root motion nor a detachable magazine is fabricated. The right
+    # trigger hand still drives the actual weapon socket, and Godot retimes
+    # the clip to the ammo reload time. 1=ready, 8=withdraw, 17-25=receiver
+    # hold, 35=regrip, 46=ready. Recheck the in-game camera before accepting.
     keyframed_reaction(arm, actions["aim"], "reload", [
         (1, {}),
-        (8, {"rotate": {"Spine01": ((0, 1, 0), 7),
+        (8, {"rotate": {"Spine01": ((0, 1, 0), -7),
                         "R_Hand": ((1, 0, 0), 8),
                         "L_Upperarm": ((1, 0, 0), 9),
                         "L_Forearm": ((1, 0, 0), -18)}}),
-        (17, {"rotate": {"Spine01": ((0, 1, 0), 20),
+        (17, {"rotate": {"Spine01": ((0, 1, 0), -20),
                          "Spine02": ((0, 0, 1), 4),
                          "R_Hand": ((1, 0, 0), 24),
                          "L_Upperarm": ((1, 0, 0), 16),
                          "L_Forearm": ((-0.97, 0, 0.25), 39),
                          "L_Hand": ((1, 0, 0), 34)}}),
-        (25, {"rotate": {"Spine01": ((0, 1, 0), 20),
+        (25, {"rotate": {"Spine01": ((0, 1, 0), -20),
                          "Spine02": ((0, 0, 1), 4),
                          "R_Hand": ((1, 0, 0), 22),
                          "L_Upperarm": ((1, 0, 0), 15),
                          "L_Forearm": ((-0.97, 0, 0.25), 38),
                          "L_Hand": ((1, 0, 0), 30)}}),
-        (35, {"rotate": {"Spine01": ((0, 1, 0), 8),
+        (35, {"rotate": {"Spine01": ((0, 1, 0), -8),
                          "R_Hand": ((1, 0, 0), 9),
                          "L_Upperarm": ((1, 0, 0), 7),
                          "L_Forearm": ((-0.97, 0, 0.25), 14),
