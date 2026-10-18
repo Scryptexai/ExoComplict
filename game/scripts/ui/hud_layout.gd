@@ -178,14 +178,15 @@ static func touch_portrait(hud) -> void:
 		hud._system_row, 1, 0, 1, 0, Rect2(-system_width, 0, system_width, bar_height)
 	)
 
-	# 390x844 reference: FIRE x258..378/y686..806, ADS x290..370/y596..676,
-	# EMP x164..244/y632..712, ARMORY/SWAP x294..370/y500..572.
-	# The glyph is larger as well as the hit rect; no button covers the hero or
-	# the center look lane. The joystick and EMP no longer touch each other.
-	_place_button(hud, hud._fire_button, 12.0, 38.0, 120.0, 120.0)
-	_place_button(hud, hud._aim_button, 20.0, 168.0, 80.0, 80.0)
-	_place_button(hud, hud._skill_button, 146.0, 132.0, 80.0, 80.0)
-	_place_button(hud, hud._weapon_button, 20.0, 272.0, 76.0, 72.0)
+	# 390x844 actual screen target: FIRE x230..378/y658..806 (148²), ADS
+	# x282..378/y552..648, EMP x176..272/y552..648, ARMORY x282..378/
+	# y446..542. All target rectangles have >=10px gaps, leaving the left
+	# stick and the centre look lane free. The *painted glyph* is measured from
+	# the exported WebGL screenshot after layout, not assumed from these values.
+	_place_button(hud, hud._fire_button, 12.0, 38.0, 148.0, 148.0)
+	_place_button(hud, hud._aim_button, 12.0, 196.0, 96.0, 96.0)
+	_place_button(hud, hud._skill_button, 118.0, 196.0, 96.0, 96.0)
+	_place_button(hud, hud._weapon_button, 12.0, 302.0, 96.0, 96.0)
 	_place_button(hud, hud._touch_ammo_chip, 266.0, 236.0, 112.0, 54.0)
 	_place(
 		hud._skill_ring,
@@ -194,10 +195,10 @@ static func touch_portrait(hud) -> void:
 		1,
 		1,
 		Rect2(
-			-hud._to_layout(232.0),
 			-hud._to_layout(218.0),
-			hud._to_layout(92.0),
-			hud._to_layout(92.0)
+			-hud._to_layout(296.0),
+			hud._to_layout(104.0),
+			hud._to_layout(104.0)
 		)
 	)
 	_place(
@@ -297,14 +298,15 @@ static func touch_landscape(hud) -> void:
 		)
 	)
 
-	# Keep a broad central camera swipe lane: no 152 px-wide icon-only bar.
-	# All four actions have >=64 px hit height and separate thumb targets.
-	_place_button(hud, hud._fire_button, 18.0, 24.0, 112.0, 112.0)
-	_place_button(hud, hud._aim_button, 18.0, 145.0, 72.0, 72.0)
-	_place_button(hud, hud._skill_button, 142.0, 72.0, 72.0, 72.0)
-	_place_button(hud, hud._weapon_button, 108.0, 166.0, 76.0, 64.0)
+	# 844x390: FIRE x704..832/y249..377 (128²); ADS x748..832/y155..239;
+	# EMP x610..694/y250..334; WEAPON x650..734/y155..239. Minimum
+	# 10px face gap; only actions, not hit slivers or labels, own this corner.
+	_place_button(hud, hud._fire_button, 12.0, 13.0, 128.0, 128.0)
+	_place_button(hud, hud._aim_button, 12.0, 151.0, 84.0, 84.0)
+	_place_button(hud, hud._skill_button, 150.0, 56.0, 84.0, 84.0)
+	_place_button(hud, hud._weapon_button, 110.0, 151.0, 84.0, 84.0)
 	_place_button(hud, hud._touch_ammo_chip, 272.0, 182.0, 112.0, 54.0)
-	# 844x390: ring x624..708/y240..324, centred on EMP x630..702/y246..318.
+	# 844x390: cooldown ring x606..698/y246..338, centred on EMP.
 	_place(
 		hud._skill_ring,
 		1,
@@ -312,10 +314,10 @@ static func touch_landscape(hud) -> void:
 		1,
 		1,
 		Rect2(
-			-hud._to_layout(220.0),
-			-hud._to_layout(150.0),
-			hud._to_layout(84.0),
-			hud._to_layout(84.0)
+			-hud._to_layout(238.0),
+			-hud._to_layout(144.0),
+			hud._to_layout(92.0),
+			hud._to_layout(92.0)
 		)
 	)
 

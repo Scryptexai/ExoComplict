@@ -12,6 +12,7 @@ const ICON_ROOT := "res://assets/ui/icons"
 static var _fonts: Dictionary = {}
 static var _tracked: Dictionary = {}
 static var _icons: Dictionary = {}
+static var _touch_tiles: Dictionary = {}
 
 
 static func font(family: String) -> Font:
@@ -183,6 +184,25 @@ static func button_style(
 	return style
 
 
+## A real silhouette, not a square filled StyleBoxFlat: each semantic action
+## uses the same cut-corner plate with a restrained status-colored rim. The
+## texture is only the face; Godot's Button still owns its entire hit rectangle.
+static func combat_tile_style(variant: String, state: String) -> StyleBoxTexture:
+	if not _touch_tiles.has(variant):
+		_touch_tiles[variant] = load("res://assets/ui/touch_tiles/%s.svg" % variant) as Texture2D
+	var style := StyleBoxTexture.new()
+	style.texture = _touch_tiles[variant] as Texture2D
+	style.content_margin_left = 3.0
+	style.content_margin_right = 3.0
+	style.content_margin_top = 3.0
+	style.content_margin_bottom = 3.0
+	if state == "disabled":
+		style.modulate_color = Color(0.60, 0.66, 0.72, 0.56)
+	elif state == "hover" or state == "pressed":
+		style.modulate_color = Color(1.0, 1.0, 1.0, 1.0)
+	return style
+
+
 ## Focus ring: 2 px amber border offset 2 px outside the button, visible for
 ## keyboard and gamepad navigation (spec §6). It is a stylebox rather than a
 ## draw pass so `Button` shows it around the correct variant automatically.
@@ -313,6 +333,9 @@ static func set_button_variant(button: Button, variant: String) -> void:
 			Color(AegisTokens.PANEL, 0.62), Color(AegisTokens.LINE, 0.55), 1, radius, pad_h, pad_v
 		)
 	)
+	if variant.begins_with("combat_"):
+		for state in ["normal", "hover", "pressed", "disabled"]:
+			button.add_theme_stylebox_override(state, combat_tile_style(variant, state))
 	if variant == "tactical_start":
 		var normal_box := button.get_theme_stylebox("normal") as StyleBoxFlat
 		var hover_box := button.get_theme_stylebox("hover") as StyleBoxFlat
