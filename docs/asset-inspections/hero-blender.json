@@ -79,7 +79,7 @@
       "head": [
         0.10352,
         -0.02148,
-        0.30273
+        0.30274
       ],
       "tail": [
         0.11716,
@@ -476,7 +476,7 @@
       "tail": [
         0.191,
         -0.00213,
-        0.58069
+        0.58068
       ]
     },
     {
@@ -595,7 +595,7 @@
       "name": "L_Ring2",
       "parent": "L_Ring1",
       "head": [
-        0.19974,
+        0.19973,
         -0.04258,
         0.43837
       ],
@@ -656,9 +656,9 @@
         0.4254
       ],
       "tail": [
-        0.17315,
+        0.17314,
         -0.06009,
-        0.41308
+        0.41307
       ]
     },
     {
@@ -742,7 +742,7 @@
       "tail": [
         0.15953,
         -0.0776,
-        0.45718
+        0.45717
       ]
     },
     {
@@ -1129,6 +1129,10 @@
       0.0,
       15.0
     ],
+    "idle": [
+      0.0,
+      460.0
+    ],
     "aim": [
       0.0,
       60.0
@@ -1136,10 +1140,6 @@
     "walk": [
       0.0,
       70.0
-    ],
-    "idle": [
-      0.0,
-      460.0
     ],
     "run": [
       0.0,
@@ -1180,7 +1180,7 @@
     "Runtime hero is scaled from a 1-unit source to 1.78 m.",
     "Rifle is one combined mesh: no detachable magazine or authored bolt mechanism.",
     "Reload is a keyframed handling cue, not simulated finger articulation.",
-    "Death ends in a braced knee-down pose, not a floor ragdoll.",
+    "Death uses a keyframed side fall; it is not a physics ragdoll.",
     "Headless Blender inspection + automated Godot QA do not replace human motion review."
   ],
   "exported_actions": [
@@ -1195,6 +1195,6 @@
     "run",
     "walk"
   ],
-  "exported_hero_bytes": 3062592,
-  "blend_bytes": 5253483
+  "exported_hero_bytes": 3062168,
+  "blend_bytes": 5252169
 }
