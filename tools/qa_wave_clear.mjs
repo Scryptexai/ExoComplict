@@ -151,12 +151,21 @@ try {
     await delay(5000); // wait for the actual replay Runner, not an empty floor
   }
   await shot('05-nova-replay');
+  if (EFFECTS) {
+    // Results now restores the authored horizon instead of inheriting the
+    // steep floor-facing camera from the first wave. Use a deliberate thumb
+    // look toward the front-right Runner's approach and the floor near it;
+    // a centered blind shot into the horizon cannot demonstrate splash art.
+    await swipe(280, 390, 360, 465);
+    await shot('05b-nova-aimed-lane');
+  }
   await fire(EFFECTS ? 5000 : 1700);
   await shot('06-nova-fired');
   if (EFFECTS) {
     const damagingImpact = () => lines.find(line =>
       /^Effects QA: Nova impact=.+ damaged=[1-9]/.test(line)) || '';
-    for (let index = 0; index < 9 && !damagingImpact(); index++) {
+    for (let index = 0; index < 9 && !damagingImpact()
+      && lines.filter(line => line.includes('Encounter: Results after wave')).length < 2; index++) {
       await swipe(345, 395, 260, index % 3 === 2 ? 425 : 395);
       await fire(2300);
       if (index % 2 === 0) await shot(`nova-search-${index}`);
