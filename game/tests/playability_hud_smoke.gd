@@ -82,17 +82,25 @@ func _run_smoke_test() -> void:
 		help_top >= defense_bottom + 7.0 and not compact_card.visible,
 		"portrait help sits below the start action; the run-data strip stays hidden",
 	)
+	_expect(
+		(
+			help_label.text.contains("LEFT STICK")
+			and help_label.text.contains("HOLD AIM")
+			and help_label.text.contains("EMP")
+			and help_label.text.contains("SWAP")
+		),
+		"portrait help explains the mobile controls",
+	)
 	controls.call("apply_layout_for_size", Vector2(1280.0, 720.0), 1.0)
 	_expect(
 		(
-			help_label.autowrap_mode != TextServer.AUTOWRAP_OFF
-			and help_label.text.contains("LEFT STICK")
+			help_label.autowrap_mode == TextServer.AUTOWRAP_OFF
+			and help_label.clip_text
 			and help_label.text.contains("B DEFENSE")
 			and help_label.text.contains("U ARMORY")
-			and help_label.text.contains("EMP")
 			and help_label.text.contains("WASD")
 		),
-		"wrapped help explains mobile and desktop controls",
+		"wide help explains desktop bindings without growing over controls",
 	)
 	# Desktop sessions must not keep the thumb cluster on screen: it covered the
 	# play area and swallowed clicks.
@@ -302,6 +310,10 @@ func _run_smoke_test() -> void:
 	_expect(
 		(
 			help_plate.get_global_rect().size.y * 0.541667 < 65.0
+			and help_label.text.contains("STICK MOVE")
+			and help_label.text.contains("AIM")
+			and help_label.text.contains("EMP")
+			and help_label.text.contains("SWAP")
 			and not help_plate.get_global_rect().intersects(wave_card.get_global_rect())
 			and not help_plate.get_global_rect().intersects(armory_entry.get_global_rect())
 			and not help_plate.get_global_rect().intersects(weapon_button.get_global_rect())
