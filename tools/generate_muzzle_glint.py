@@ -30,11 +30,14 @@ def main() -> None:
     for y in range(SIZE):
         for x in range(SIZE):
             u, v = x - 64.0, y - 64.0
-            core = 0.95 * exp(-0.5 * (hypot(u, v) / 9.0) ** 2)
-            glow = 0.20 * exp(-0.5 * (hypot(u, v) / 26.0) ** 2)
-            lead = 0.66 * ray(u, v, (0.73, -0.68), 4.1, 49.0)
-            upper = 0.40 * ray(u, v, (0.92, -0.39), 3.0, 30.0)
-            lower = 0.26 * ray(u, v, (0.32, -0.95), 2.8, 24.0)
+            # A large soft disk became an opaque white cloud across the hero's
+            # shoulder on a *real* 390px WebGL shot. Bias the alpha into a
+            # compact hot centre and slender forward rays, not a radial fog.
+            core = 0.82 * exp(-0.5 * (hypot(u, v) / 5.8) ** 2)
+            glow = 0.08 * exp(-0.5 * (hypot(u, v) / 13.0) ** 2)
+            lead = 0.78 * ray(u, v, (0.73, -0.68), 2.5, 51.0)
+            upper = 0.30 * ray(u, v, (0.92, -0.39), 1.9, 29.0)
+            lower = 0.18 * ray(u, v, (0.32, -0.95), 1.8, 23.0)
             alpha = int(255 * min(1.0, core + glow + lead + upper + lower))
             pixels[x, y] = (255, 255, 255, alpha if alpha > 2 else 0)
     OUT.parent.mkdir(parents=True, exist_ok=True)

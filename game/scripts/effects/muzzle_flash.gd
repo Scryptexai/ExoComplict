@@ -77,14 +77,14 @@ func _ready() -> void:
 	_glint_material.albedo_color = Color(1.0, 1.0, 1.0, 0.95)
 	_glint_material.emission_enabled = true
 	_glint_material.emission = Color.WHITE
-	_glint_material.emission_energy_multiplier = 2.3
+	_glint_material.emission_energy_multiplier = 1.4
 	var glint_quad := QuadMesh.new()
-	# At 390px the alpha mask's hot core was only a handful of visible pixels:
-	# enlarge the *feathered image*, not the hard opaque cone that became a
-	# shield in stage28. Keep its centre forward of the calibrated muzzle.
-	glint_quad.size = Vector2(0.62, 0.62)
+	# The broad stage39 mask on a 0.62m quad made a white cloud over the hero.
+	# A narrower alpha-painted streak sits in front of the barrel, not across
+	# the rifle/helmet. Only a real shot screenshot can accept this treatment.
+	glint_quad.size = Vector2(0.58, 0.58)
 	_glint = _add_shape("FlashGlint", glint_quad)
-	_glint.position.z = -0.42
+	_glint.position.z = -0.48
 	_glint.material_override = _glint_material
 
 	var streak_mesh := BoxMesh.new()
