@@ -458,6 +458,34 @@ func _run_smoke_test() -> void:
 		"releasing AIM returns the camera to its follow framing",
 	)
 
+	# The first wave's slim Runner can sit ~18 physical pixels off the reticle;
+	# a real thumb covers that offset. Touch assist must use a visible collider,
+	# must never select the training dummy, and must stop on release.
+	var screen_center := player_camera.get_viewport().get_visible_rect().size * 0.5
+	var visible_target := player_camera.project_position(screen_center + Vector2(18.0, 0.0), 5.5)
+	var soft_lock_runner := RunnerScene.instantiate() as Node3D
+	soft_lock_runner.set("target_path", NodePath("../../Player"))
+	soft_lock_runner.position = visible_target - Vector3.UP
+	main_scene.get_node("WaveEnemies").add_child(soft_lock_runner)
+	await physics_frame
+	player.call("set_touch_fire_pressed", true)
+	var soft_lock_point: Vector3 = player.call("_touch_assisted_aim_point", screen_center)
+	_expect(
+		(
+			soft_lock_point.distance_to(soft_lock_runner.global_position + Vector3.UP) < 0.3
+			and bool(controls.get("_soft_lock"))
+		),
+		"nearby visible Runner gets a small touch-only shot correction and cyan reticle",
+	)
+	player.call("set_touch_fire_pressed", false)
+	controls.set("_soft_lock", false)
+	_expect(
+		player.call("_touch_assisted_aim_point", screen_center) == Vector3.ZERO,
+		"releasing FIRE removes soft lock; idle exploration never magnetizes shots",
+	)
+	soft_lock_runner.queue_free()
+	await physics_frame
+
 	var shots_before_touch_fire := int(main_scene.get("_shots_fired"))
 	var camera_before_fire := player_camera.global_position
 	_send_screen_touch(controls, 70, fire_button.get_global_rect().get_center(), true)

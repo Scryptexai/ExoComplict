@@ -25,6 +25,10 @@ const WeaponControllerScript = preload("res://scripts/weapons/weapon_controller.
 @export_range(6.0, 30.0, 0.5) var emp_pulse_cooldown: float = 12.0
 @export_range(4.0, 20.0, 0.5) var emp_pulse_radius: float = 9.0
 @export_range(1.0, 100.0, 1.0) var emp_pulse_damage: float = 18.0
+## Small mobile-only cone: an actual finger covers more than 20 physical px.
+## Never auto-fires, never selects a target behind cover, and leaves desktop
+## precision untouched. The world line-of-sight and muzzle-cover checks remain.
+@export_range(8.0, 48.0, 1.0) var touch_soft_lock_pixels: float = 32.0
 
 var current_health: float = 0.0
 var _skill_cooldown_remaining: float = 0.0
@@ -335,7 +339,68 @@ func _get_aim_point() -> Vector3:
 	var excluded_rids: Array[RID] = [get_rid()]
 	var query := PhysicsRayQueryParameters3D.create(ray_origin, ray_end, 3, excluded_rids)
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	var collider := hit.get("collider") as CollisionObject3D
+	if (
+		collider != null
+		and (collider.is_in_group("runner_enemies") or collider.is_in_group("shooter_enemies"))
+	):
+		if _touch_fire_pressed or _touch_aim_hold:
+			var hud := get_parent().get_node_or_null("HUD/TouchControls")
+			if hud != null and bool(hud.call("is_touch_mode")):
+				hud.set("_soft_lock", true)
+		return hit.get("position", ray_end)
+	# In a 390 px viewport the avatar and thumb obscure precise sight alignment.
+	# A Runner may be 18 px from the centre even while visually under the optic;
+	# snap the *shot direction* a few pixels only when FIRE/ADS is held on touch.
+	var assisted := _touch_assisted_aim_point(screen_center)
+	if assisted != Vector3.ZERO:
+		return assisted
 	if not hit.is_empty():
 		var hit_position: Vector3 = hit.get("position", ray_end)
 		return hit_position
 	return ray_end
+
+
+func _touch_assisted_aim_point(screen_center: Vector2) -> Vector3:
+	if not (_touch_fire_pressed or _touch_aim_hold):
+		return Vector3.ZERO
+	var hud := get_parent().get_node_or_null("HUD/TouchControls")
+	if hud == null or not bool(hud.call("is_touch_mode")):
+		return Vector3.ZERO
+	var viewport_size := aim_camera.get_viewport().get_visible_rect().size
+	var physical_width := float(get_window().size.x)
+	var scale := physical_width / maxf(viewport_size.x, 1.0)
+	if physical_width < 200.0:
+		scale = 1.0  # a 64 px headless dummy window is not a phone
+	var radius := touch_soft_lock_pixels / maxf(scale, 0.01)
+	var max_squared := radius * radius
+	var chosen := Vector3.ZERO
+	for candidate in get_tree().get_nodes_in_group("enemies"):
+		var enemy := candidate as CollisionObject3D
+		if (
+			enemy == null
+			or (
+				not enemy.is_in_group("runner_enemies") and not enemy.is_in_group("shooter_enemies")
+			)
+		):
+			continue
+		if enemy.has_method("is_defeated") and bool(enemy.call("is_defeated")):
+			continue
+		var point := enemy.global_position + Vector3.UP
+		if aim_camera.is_position_behind(point):
+			continue
+		var squared := aim_camera.unproject_position(point).distance_squared_to(screen_center)
+		if squared > max_squared:
+			continue
+		# Use a visibility ray to reject enemies hidden by the user's FBX world,
+		# and don't permit a soft lock on a target behind the avatar or another
+		# enemy. WeaponController still validates the barrel's own cover ray.
+		var from := aim_camera.project_ray_origin(screen_center)
+		var query := PhysicsRayQueryParameters3D.create(from, point, 3, [get_rid()])
+		var visible := get_world_3d().direct_space_state.intersect_ray(query)
+		if visible.get("collider") != enemy:
+			continue
+		max_squared = squared
+		chosen = point
+	hud.set("_soft_lock", chosen != Vector3.ZERO)
+	return chosen

@@ -1,13 +1,8 @@
 class_name TouchControls
 extends Control
 
-## Runtime HUD for Project Overdrive, built on the AEGIS design language
-## (docs/UI_UX_REDESIGN_SPEC.md).
-##
-## The script keeps its historical name and signal surface because main.gd and
-## the smoke tests drive it directly. Inside, it has three layout branches:
-## desktop, touch portrait and touch landscape. All three share the same widgets
-## and tokens so the interface never drifts between platforms.
+## Shared signal-driven HUD for desktop, touch portrait and touch landscape.
+## Uses the AEGIS tokens from docs/UI_UX_REDESIGN_SPEC.md.
 
 signal movement_changed(value: Vector2)
 signal look_delta(value: Vector2)
@@ -166,6 +161,12 @@ var _skill_cooldown_total: float = 12.0
 var _skill_feedback_remaining: float = 0.0
 var _aiming: bool = false
 var _fire_flash_remaining: float = 0.0
+var _soft_lock: bool = false:
+	set(value):
+		if _soft_lock == value:
+			return
+		_soft_lock = value
+		queue_redraw()
 var _hostile_camera: Camera3D
 var _hostile_source: Node
 var _help_remaining: float = HELP_VISIBLE_SECONDS
@@ -1341,6 +1342,7 @@ func _clear_touch_state() -> void:
 	_pressed_touch_buttons.clear()
 	_move_origin = Vector2.ZERO
 	_move_position = Vector2.ZERO
+	_soft_lock = false
 	movement_changed.emit(Vector2.ZERO)
 	fire_changed.emit(false)
 	queue_redraw()
@@ -1456,7 +1458,8 @@ func _draw() -> void:
 			AegisTokens.INK,
 			Color(AegisTokens.VOID, 0.7),
 			_hit_confirm_remaining > 0.0,
-			maxf(_to_layout(1.0), 0.75)
+			maxf(_to_layout(1.0), 0.75),
+			_soft_lock
 		)
 	if _touch_mode or _move_touch_id != -1:
 		HudRenderer.joystick(
@@ -1485,6 +1488,8 @@ func _on_fire_down() -> void:
 
 func _on_fire_up() -> void:
 	fire_changed.emit(false)
+	if not _aiming:
+		_soft_lock = false
 
 
 func _on_aim_down() -> void:
@@ -1499,6 +1504,8 @@ func _on_aim_down() -> void:
 func _on_aim_up() -> void:
 	_aiming = false
 	_apply_aim_visual(false)
+	if _fire_touch_id == -1:
+		_soft_lock = false
 	queue_redraw()
 	aim_changed.emit(false)
 

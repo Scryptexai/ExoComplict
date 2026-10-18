@@ -34,13 +34,17 @@ static func crosshair(
 	color: Color,
 	outline: Color,
 	hit: bool,
-	outline_offset: float
+	outline_offset: float,
+	soft_lock: bool = false
 ) -> void:
 	var resolved_gap := maxf(gap, tick + 2.0)
 	var resolved_color := color
 	if hit:
 		resolved_color = AegisTokens.ACCENT
 		resolved_gap *= 1.25
+	elif soft_lock:
+		resolved_color = AegisTokens.INFO
+		resolved_gap *= 0.85
 	for offset in [Vector2(1.0, 0.0), Vector2(-1.0, 0.0), Vector2(0.0, 1.0), Vector2(0.0, -1.0)]:
 		_draw_ticks(
 			host, center + offset * outline_offset, resolved_gap, tick, thickness + 1.0, outline
