@@ -467,6 +467,9 @@ func _run_smoke_test() -> void:
 	soft_lock_runner.set("target_path", NodePath("../../Player"))
 	soft_lock_runner.position = visible_target - Vector3.UP
 	main_scene.get_node("WaveEnemies").add_child(soft_lock_runner)
+	# The fixture checks targeting geometry, not melee. Keep its collider alive
+	# but freeze AI so it cannot change the baseline health assertion below.
+	soft_lock_runner.set_physics_process(false)
 	await physics_frame
 	player.call("set_touch_fire_pressed", true)
 	var soft_lock_point: Vector3 = player.call("_touch_assisted_aim_point", screen_center)
