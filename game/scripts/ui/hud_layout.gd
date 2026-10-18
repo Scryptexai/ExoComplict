@@ -139,51 +139,53 @@ static func touch_portrait(hud) -> void:
 	_place_top_bar(hud, edge, hud._top_inset, bar_height)
 	_place_in_top_bar(hud._health_card, 0, 0, 0, 0, Rect2(0, 0, hud._to_layout(184.0), bar_height))
 	var objective_top: float = bar_height + hud._to_layout(8.0)
-	var objective_width: float = minf(hud._to_layout(354.0), hud.size.x - edge * 2.0)
+	# The old 354 px objective plus two vertically stacked 234 px actions hid
+	# the first third of the bay. Keep the readout legible, then share one row
+	# between the deliberate Defense start and the Explore-only Armory choice.
+	var objective_width: float = minf(hud._to_layout(270.0), hud.size.x - edge * 2.0)
 	_place_in_top_bar(
-		hud._wave_card, 0, 0, 0, 0, Rect2(0, objective_top, objective_width, hud._to_layout(64.0))
+		hud._wave_card, 0, 0, 0, 0, Rect2(0, objective_top, objective_width, hud._to_layout(56.0))
 	)
+	var action_top: float = hud._top_inset + objective_top + hud._to_layout(64.0)
+	var available_px: float = hud._physical_size.x - 24.0
+	var start_px: float = minf(208.0, available_px * 0.615)
+	var armory_px: float = minf(148.0, available_px - start_px - 8.0)
 	_place(
 		hud._defense_button,
 		0,
 		0,
 		0,
 		0,
-		Rect2(
-			edge,
-			hud._top_inset + objective_top + hud._to_layout(72.0),
-			hud._to_layout(234.0),
-			hud._to_layout(60.0)
-		)
+		Rect2(edge, action_top, hud._to_layout(start_px), hud._to_layout(56.0))
 	)
 	_place(
 		hud._armory_button,
+		1,
 		0,
-		0,
-		0,
+		1,
 		0,
 		Rect2(
-			edge,
-			hud._top_inset + objective_top + hud._to_layout(140.0),
-			hud._to_layout(234.0),
+			-edge - hud._to_layout(armory_px),
+			action_top,
+			hud._to_layout(armory_px),
 			hud._to_layout(56.0)
 		)
 	)
-	# A 56 px pause target is deliberate, not just the minimum 44 px chip.
-	var system_width: float = hud._to_layout(88.0 if hud._narrow else 152.0)
+	# Match the pause glyph to its target instead of a tiny symbol in a 88 px
+	# wide empty rectangle. 56 px remains a finger-sized hit area.
+	var system_width: float = hud._to_layout(56.0 if hud._narrow else 112.0)
 	_place_in_top_bar(
 		hud._system_row, 1, 0, 1, 0, Rect2(-system_width, 0, system_width, bar_height)
 	)
 
-	# Physical pixels, not logical Godot canvas units. One large firing target;
-	# secondary actions sit in their own 64–72 px lanes with finger gaps.
-	_place_button(hud, hud._fire_button, 12.0, 38.0, 112.0, 112.0)
-	_place_button(hud, hud._aim_button, 20.0, 168.0, 72.0, 72.0)
-	_place_button(hud, hud._skill_button, 136.0, 104.0, 72.0, 72.0)
-	# SWAP used to span x136–280 at 390 px, covering the Blender hero and
-	# rifle silhouette. Keep its 60 px hit height but stack it above ADS on the
-	# right thumb rail, with a 32 px gap and the centre aiming lane unobstructed.
-	_place_button(hud, hud._weapon_button, 20.0, 272.0, 72.0, 60.0)
+	# 390x844 reference: FIRE x258..378/y686..806, ADS x290..370/y596..676,
+	# EMP x164..244/y632..712, ARMORY/SWAP x294..370/y500..572.
+	# The glyph is larger as well as the hit rect; no button covers the hero or
+	# the center look lane. The joystick and EMP no longer touch each other.
+	_place_button(hud, hud._fire_button, 12.0, 38.0, 120.0, 120.0)
+	_place_button(hud, hud._aim_button, 20.0, 168.0, 80.0, 80.0)
+	_place_button(hud, hud._skill_button, 146.0, 132.0, 80.0, 80.0)
+	_place_button(hud, hud._weapon_button, 20.0, 272.0, 76.0, 72.0)
 	_place_button(hud, hud._touch_ammo_chip, 266.0, 236.0, 112.0, 54.0)
 	_place(
 		hud._skill_ring,
@@ -192,10 +194,10 @@ static func touch_portrait(hud) -> void:
 		1,
 		1,
 		Rect2(
-			-hud._to_layout(214.0),
-			-hud._to_layout(182.0),
-			hud._to_layout(84.0),
-			hud._to_layout(84.0)
+			-hud._to_layout(232.0),
+			-hud._to_layout(218.0),
+			hud._to_layout(92.0),
+			hud._to_layout(92.0)
 		)
 	)
 	_place(
@@ -231,7 +233,7 @@ static func touch_portrait(hud) -> void:
 	_place_help(
 		hud,
 		edge,
-		hud._top_inset + objective_top + hud._to_layout(204.0),
+		hud._top_inset + objective_top + hud._to_layout(128.0),
 		minf(hud._to_layout(342.0), hud.size.x - edge * 2.0),
 		hud._help_block_height(2)
 	)
@@ -295,13 +297,14 @@ static func touch_landscape(hud) -> void:
 		)
 	)
 
-	_place_button(hud, hud._fire_button, 18.0, 24.0, 104.0, 104.0)
-	_place_button(hud, hud._aim_button, 18.0, 140.0, 64.0, 64.0)
-	_place_button(hud, hud._skill_button, 134.0, 46.0, 64.0, 64.0)
-	_place_button(hud, hud._weapon_button, 104.0, 170.0, 152.0, 60.0)
+	# Keep a broad central camera swipe lane: no 152 px-wide icon-only bar.
+	# All four actions have >=64 px hit height and separate thumb targets.
+	_place_button(hud, hud._fire_button, 18.0, 24.0, 112.0, 112.0)
+	_place_button(hud, hud._aim_button, 18.0, 145.0, 72.0, 72.0)
+	_place_button(hud, hud._skill_button, 142.0, 72.0, 72.0, 72.0)
+	_place_button(hud, hud._weapon_button, 108.0, 166.0, 76.0, 64.0)
 	_place_button(hud, hud._touch_ammo_chip, 272.0, 182.0, 112.0, 54.0)
-	# Formerly the EMP cooldown ring was misplaced over FIRE. It now frames the
-	# actual ability button: x(646–710), y(280–344) on an 844×390 display.
+	# 844x390: ring x624..708/y240..324, centred on EMP x630..702/y246..318.
 	_place(
 		hud._skill_ring,
 		1,
@@ -309,10 +312,10 @@ static func touch_landscape(hud) -> void:
 		1,
 		1,
 		Rect2(
-			-hud._to_layout(204.0),
-			-hud._to_layout(116.0),
-			hud._to_layout(76.0),
-			hud._to_layout(76.0)
+			-hud._to_layout(220.0),
+			-hud._to_layout(150.0),
+			hud._to_layout(84.0),
+			hud._to_layout(84.0)
 		)
 	)
 

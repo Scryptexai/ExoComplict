@@ -259,29 +259,31 @@ static func set_button_variant(button: Button, variant: String) -> void:
 			pad_h = 4.0
 			pad_v = 4.0
 		"combat_fire":
-			fill = Color(AegisTokens.PANEL, 0.84)
-			border = Color(AegisTokens.ACCENT, 0.78)
+			# A solid-looking matte lens separates the large shooter silhouette
+			# from the FBX floor; a transparent disk made the icon look smaller.
+			fill = Color(AegisTokens.PANEL, 0.97)
+			border = Color(AegisTokens.ACCENT, 0.96)
 			font_color = AegisTokens.ACCENT
 			radius = 999.0
 			pad_h = 4.0
 			pad_v = 4.0
 		"combat_aim":
-			fill = Color(AegisTokens.PANEL, 0.82)
-			border = Color(AegisTokens.INFO, 0.60)
+			fill = Color(AegisTokens.PANEL, 0.94)
+			border = Color(AegisTokens.INFO, 0.84)
 			font_color = AegisTokens.INK
 			radius = 999.0
 			pad_h = 4.0
 			pad_v = 4.0
 		"combat_ability":
-			fill = Color(AegisTokens.PANEL, 0.84)
-			border = Color(AegisTokens.ABILITY, 0.75)
+			fill = Color(AegisTokens.PANEL, 0.95)
+			border = Color(AegisTokens.ABILITY, 0.9)
 			font_color = AegisTokens.ABILITY
 			radius = 999.0
 			pad_h = 4.0
 			pad_v = 4.0
 		"combat_weapon":
-			fill = Color(AegisTokens.PANEL, 0.84)
-			border = Color(AegisTokens.LINE_HI, 0.88)
+			fill = Color(AegisTokens.PANEL, 0.94)
+			border = Color(AegisTokens.INFO, 0.78)
 			font_color = AegisTokens.INK
 			radius = 999.0
 			pad_h = 4.0
@@ -297,7 +299,7 @@ static func set_button_variant(button: Button, variant: String) -> void:
 	button.add_theme_stylebox_override(
 		"pressed",
 		button_style(
-			Color(border, 0.24) if variant.begins_with("combat_") else fill.darkened(0.10),
+			fill.lightened(0.14) if variant.begins_with("combat_") else fill.darkened(0.10),
 			border.lightened(0.05),
 			2,
 			radius,

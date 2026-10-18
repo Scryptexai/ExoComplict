@@ -46,9 +46,9 @@ const DESKTOP_HELP_LANDSCAPE := "WASD MOVE · MOUSE LOOK\nLMB FIRE · F EMP · E
 const MOBILE_HELP_TEXT := "LEFT STICK MOVE · DRAG RIGHT LOOK\nFIRE · HOLD AIM · EMP · SWAP"
 const MOBILE_HELP_LANDSCAPE := "STICK MOVE · DRAG LOOK\nFIRE · AIM · EMP · SWAP"
 const HELP_FADE_SECONDS: float = 1.5
-## The browser shell (game/web_shell/index.html) draws chips along the top of
-## the page; the HUD keeps clear of them instead of overlapping.
-const WEB_TOP_INSET: float = 46.0
+## The browser toolbar now starts folded into a single chip. Keep the vitals
+## below that chip, not below two rows of controls hidden during gameplay.
+const WEB_TOP_INSET: float = 42.0
 const DAMAGE_FLASH_DURATION: float = AegisTokens.DAMAGE_VIGNETTE
 
 const DEFAULT_HEALTH_COLOR: Color = AegisTokens.OK
@@ -1011,7 +1011,10 @@ func _combat_button(
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
 	button.icon = AegisTheme.icon(icon_name)
 	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# Grow to the texture ceiling; only a browser screenshot proves glyph size.
+	button.expand_icon = true
 	button.accent = accent
+	button.is_primary = button_name == "FireButton"
 	button.set_meta("aegis_state", "idle")
 	AegisTheme.set_button_variant(button, variant)
 	add_child(button)
@@ -1081,6 +1084,7 @@ func _layout_controls(
 		HudLayout.touch_portrait(self)
 	else:
 		HudLayout.touch_landscape(self)
+	HudArmoryBridge.refresh_entry_label(self)
 
 	_layout_overlays()
 	_apply_input_mode()
@@ -1184,13 +1188,10 @@ func _minimum_font_size() -> int:
 
 ## Keep the HUD clear of notches and of the browser shell chrome.
 func _resolve_top_inset() -> float:
-	var physical := _physical_size if _physical_size != Vector2.ZERO else size
 	var inset := 20.0 if not _touch_mode else 12.0
 	if OS.has_feature("web"):
-		# Browser chips wrap onto two rows on a narrow screen; reserve for that.
-		inset = maxf(
-			inset, WEB_TOP_INSET + (WEB_TOP_INSET * 0.8 if physical.x < physical.y else 0.0)
-		)
+		# Only one browser toggle remains visible during gameplay.
+		inset = maxf(inset, WEB_TOP_INSET)
 	var safe_area := DisplayServer.get_display_safe_area()
 	if safe_area.position.y > 0:
 		inset = maxf(inset, float(safe_area.position.y))

@@ -122,16 +122,14 @@ static func apply_fonts(hud) -> void:
 			AegisTheme.resize_button_font(button, "title", maxi(roundi(15.0 * unit), floor_size))
 	if is_instance_valid(hud._health_bar):
 		hud._health_bar.custom_minimum_size.y = maxf(hud._to_layout(6.0), 3.0)
-	# Icon-led combat targets need an unmistakable glyph at the *physical*
-	# pixel scale, not a 6 px SVG beside a large text label on a WASM phone.
+	# These are the *texture* ceilings in physical pixels, not the coloured
+	# bounds. A screenshot showed the old FIRE 48 ceiling produced only a 43x32
+	# glyph inside 112x112. Keep the silhouette dominant at the real viewport.
 	var icon_px := maxi(roundi(hud._to_layout(20.0)), 12)
 	var icon_button_px := maxf(hud._to_layout(56.0), 32.0)
 	for icon_button in [hud._pause_button, hud._sound_button]:
 		if is_instance_valid(icon_button):
-			var width: float = (
-				hud._to_layout(88.0) if icon_button == hud._pause_button else icon_button_px
-			)
-			icon_button.custom_minimum_size = Vector2(width, icon_button_px)
+			icon_button.custom_minimum_size = Vector2(icon_button_px, icon_button_px)
 	for button in [
 		hud._defense_button,
 		hud._results_explore_button,
@@ -146,13 +144,13 @@ static func apply_fonts(hud) -> void:
 		if is_instance_valid(button):
 			var button_icon_px := icon_px
 			if button == hud._fire_button:
-				button_icon_px = roundi(hud._to_layout(48.0))
+				button_icon_px = roundi(hud._to_layout(88.0 if hud._portrait else 80.0))
 			elif button == hud._aim_button or button == hud._skill_button:
-				button_icon_px = roundi(hud._to_layout(31.0))
+				button_icon_px = roundi(hud._to_layout(56.0 if hud._portrait else 50.0))
 			elif button == hud._weapon_button:
-				button_icon_px = roundi(hud._to_layout(36.0))
+				button_icon_px = roundi(hud._to_layout(60.0 if hud._portrait else 52.0))
 			elif button == hud._pause_button:
-				button_icon_px = roundi(hud._to_layout(28.0))
+				button_icon_px = roundi(hud._to_layout(36.0))
 			elif button == hud._sound_button:
 				button_icon_px = roundi(hud._to_layout(24.0))
 			button.add_theme_constant_override("icon_max_width", button_icon_px)

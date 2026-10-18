@@ -286,7 +286,7 @@
 		</noscript>
 
 		<div id="shell-ui" class="hidden">
-			<div class="shell-bar" id="shell-bar" data-collapsed="false">
+			<div class="shell-bar" id="shell-bar" data-collapsed="true">
 				<button id="shell-bar-toggle" class="shell-button" type="button" title="Show or hide the browser chrome">UI</button>
 				<span class="shell-chip">Project Overdrive · <b>Web Preview</b></span>
 				<span class="shell-chip build">Single-thread WebGL 2 build</span>
@@ -501,7 +501,9 @@ const engine = new Engine(GODOT_CONFIG);
 			statusProgressLabel.textContent = 'starting…';
 			setStatusMode('hidden');
 			shellUi.classList.remove('hidden');
-			scheduleChromeCollapse(5000);
+			// Keep diagnostics behind one small toggle as soon as gameplay starts.
+			// The Godot HUD no longer reserves two rows of browser chrome.
+			document.getElementById('shell-bar').dataset.collapsed = 'true';
 			document.getElementById('canvas').focus();
 		}, displayFailureNotice);
 	}

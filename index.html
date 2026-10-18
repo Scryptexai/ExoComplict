@@ -214,7 +214,7 @@
 		<canvas id="canvas" tabindex="-1" aria-label="Project Overdrive. Jelajahi dengan aman, tekan B untuk memulai Defense. WASD bergerak, klik kanan membidik, klik kiri menembak, E ganti senjata, Esc pause, R retry."></canvas>
 
 		<div class="overlay" id="shell-ui">
-			<div class="chips" id="chips" data-collapsed="false">
+			<div class="chips" id="chips" data-collapsed="true">
 				<span class="chip" id="build-chip" data-state="warn"><i class="dot"></i><span id="build-label">memuat…</span></span>
 				<button class="chip" id="controls-chip" type="button">Kontrol</button>
 				<button class="chip" id="hide-ui" type="button">Hide UI</button>
@@ -381,7 +381,9 @@
 					setBuildChip('ok', `siap · ${threadsEnabled ? 'threaded' : 'single-thread'}`);
 					const canvas = document.getElementById('canvas');
 					if (config.focusCanvas !== false && canvas) canvas.focus();
-					scheduleChipsCollapse(6000);
+					// The game owns the sightline immediately after boot. Browser
+					// diagnostics remain one tap away via the small UI toggle.
+					chips.dataset.collapsed = 'true';
 				}, (error) => {
 					showFailure(
 						'Engine berhenti saat start',

@@ -268,16 +268,17 @@ func _run_smoke_test() -> void:
 	)
 	_expect(
 		(
-			weapon_button.get_global_rect().size.y * 0.3047 >= 59.0
-			and weapon_button.get_global_rect().size.x * 0.3047 >= 70.0
+			weapon_button.get_global_rect().size.y * 0.3047 >= 71.0
+			and weapon_button.get_global_rect().size.x * 0.3047 >= 75.0
 			and weapon_button.get_global_rect().get_center().x * 0.3047 > 290.0
-			and fire_button.get_global_rect().size.x * 0.3047 >= 110.0
-			and fire_button.get_theme_constant("icon_max_width") * 0.3047 >= 47.0
-			and aim_button.get_global_rect().size.x * 0.3047 >= 70.0
-			and aim_button.get_theme_constant("icon_max_width") * 0.3047 >= 30.0
-			and skill_button.get_global_rect().size.x * 0.3047 >= 70.0
-			and skill_button.get_theme_constant("icon_max_width") * 0.3047 >= 30.0
-			and pause_button.get_global_rect().size.x * 0.3047 >= 86.0
+			and fire_button.get_global_rect().size.x * 0.3047 >= 119.0
+			and fire_button.get_theme_constant("icon_max_width") * 0.3047 >= 87.0
+			and fire_button.expand_icon
+			and aim_button.get_global_rect().size.x * 0.3047 >= 79.0
+			and aim_button.get_theme_constant("icon_max_width") * 0.3047 >= 55.0
+			and skill_button.get_global_rect().size.x * 0.3047 >= 79.0
+			and skill_button.get_theme_constant("icon_max_width") * 0.3047 >= 55.0
+			and pause_button.get_global_rect().size.x * 0.3047 >= 55.0
 			and not weapon_button.get_global_rect().grow(portrait_gap).intersects(
 				aim_button.get_global_rect()
 			)
@@ -288,7 +289,7 @@ func _run_smoke_test() -> void:
 				skill_button.get_global_rect()
 			)
 		),
-		"portrait FIRE 112, AIM/EMP 72, SWAP 60, PAUSE 88 px with finger gaps",
+		"portrait FIRE 120/88 glyph ceiling, AIM/EMP 80/56, SWAP 76/60, PAUSE 56 px with gaps",
 	)
 	_expect(
 		(
@@ -299,10 +300,10 @@ func _run_smoke_test() -> void:
 			# phone renders every logical pixel at ~0.3x.
 			and portrait_font >= 12.5
 			and portrait_body_font >= 12.5
-			and weapon_button.get_theme_constant("icon_max_width") * 0.3047 >= 34.0
-			and pause_button.get_theme_constant("icon_max_width") * 0.3047 >= 27.0
+			and weapon_button.get_theme_constant("icon_max_width") * 0.3047 >= 59.0
+			and pause_button.get_theme_constant("icon_max_width") * 0.3047 >= 35.0
 			and wave_card.size.y >= wave_enemy_label.get_combined_minimum_size().y
-			and defense_button.get_global_rect().size.y * 0.3047 >= 59.0
+			and defense_button.get_global_rect().size.y * 0.3047 >= 55.0
 		),
 		(
 			(
@@ -328,10 +329,11 @@ func _run_smoke_test() -> void:
 	var ring := controls.get("_skill_ring") as Control
 	_expect(
 		(
-			weapon_button.get_global_rect().size.y * 0.541667 >= 59.0
-			and fire_button.get_global_rect().size.x * 0.541667 >= 102.0
-			and aim_button.get_global_rect().size.x * 0.541667 >= 62.0
-			and skill_button.get_global_rect().size.x * 0.541667 >= 62.0
+			weapon_button.get_global_rect().size.y * 0.541667 >= 63.0
+			and weapon_button.get_global_rect().size.x * 0.541667 >= 75.0
+			and fire_button.get_global_rect().size.x * 0.541667 >= 111.0
+			and aim_button.get_global_rect().size.x * 0.541667 >= 71.0
+			and skill_button.get_global_rect().size.x * 0.541667 >= 71.0
 			and emp_center.distance_to(ring.get_global_rect().get_center()) * 0.541667 < 2.0
 			and not weapon_button.get_global_rect().grow(landscape_gap).intersects(
 				aim_button.get_global_rect()
@@ -343,7 +345,7 @@ func _run_smoke_test() -> void:
 				aim_button.get_global_rect()
 			)
 		),
-		"landscape FIRE 104, AIM/EMP 64, SWAP 60 px; ring frames EMP",
+		"landscape FIRE 112, AIM/EMP 72, SWAP 76x64 px; ring frames EMP",
 	)
 	var help_plate := controls.get("_help_panel") as Control
 	var armory_entry := controls.get("_armory_button") as Control
