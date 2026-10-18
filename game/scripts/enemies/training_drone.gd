@@ -10,6 +10,7 @@ signal eliminated
 
 var current_health: float = 0.0
 var _is_downed: bool = false
+var _active: bool = true
 
 @onready var collision_shape: CollisionShape3D = $CollisionShape3D
 @onready var visuals: EnemyVisual = $Visuals
@@ -47,16 +48,30 @@ func apply_damage(amount: float, _source: Node = null) -> void:
 		visuals.play_hit_flash()
 
 
+## Practice dummy is an Explore affordance, never a Defense objective. Remove
+## both its collision and enemies-group membership when a real wave starts so
+## it cannot absorb shots or count as a misleading EMP target.
+func set_active(value: bool) -> void:
+	_active = value
+	visible = value
+	collision_layer = 2 if value else 0
+	collision_shape.set_deferred("disabled", not value)
+	if value and not is_in_group("enemies"):
+		add_to_group("enemies")
+	elif not value and is_in_group("enemies"):
+		remove_from_group("enemies")
+
+
 func reset() -> void:
 	_is_downed = false
 	current_health = max_health
 	visuals.reset_visual()
-	collision_shape.set_deferred("disabled", false)
-	set_deferred("collision_layer", 2)
+	collision_shape.set_deferred("disabled", not _active)
+	set_deferred("collision_layer", 2 if _active else 0)
 	health_changed.emit(current_health, max_health)
 
 
 func _respawn_after_delay() -> void:
 	await get_tree().create_timer(respawn_delay).timeout
-	if is_inside_tree() and _is_downed:
+	if is_inside_tree() and _is_downed and _active:
 		reset()

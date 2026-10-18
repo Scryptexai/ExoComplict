@@ -18,6 +18,7 @@ func _run() -> void:
 	await process_frame
 	var wave := main.get_node("WaveDirector")
 	var player := main.get_node("Player")
+	var drone := main.get_node("TrainingDrone")
 	var hud := main.get_node("HUD/TouchControls")
 	var start := hud.get("_defense_button") as Button
 	var objective := hud.get("_wave_title_label") as Label
@@ -106,6 +107,63 @@ func _run() -> void:
 		),
 		"the first wave begins only after an explicit start plus countdown",
 	)
+	_expect(
+		(
+			not drone.visible
+			and not drone.is_in_group("enemies")
+			and drone.collision_layer == 0
+			and int(wave.get("current_wave_enemy_count")) == 2
+		),
+		"Defense hides the practice dummy and introduces only two real Runners",
+	)
+	var camera := player.get_node("CameraRig/YawPivot/PitchPivot/SpringArm3D/Camera3D") as Camera3D
+	var threat := Node3D.new()
+	main.add_child(threat)
+	threat.global_position = player.global_position + Vector3(0.0, 0.0, 8.0)
+	var enemies: Array[Node3D] = [threat]
+	var portrait_bearings := HudHostileBearings.collect(
+		camera, enemies, Vector2(390.0, 844.0), true
+	)
+	var landscape_bearings := HudHostileBearings.collect(
+		camera, enemies, Vector2(844.0, 390.0), false
+	)
+	var portrait_marker: Vector2 = (
+		portrait_bearings[0]["position"] if not portrait_bearings.is_empty() else Vector2.ZERO
+	)
+	var landscape_marker: Vector2 = (
+		landscape_bearings[0]["position"] if not landscape_bearings.is_empty() else Vector2.ZERO
+	)
+	_expect(
+		(
+			portrait_bearings.size() == 1
+			and landscape_bearings.size() == 1
+			and portrait_marker.y > 480.0
+			and portrait_marker.y < 540.0
+			and landscape_marker.x > 280.0
+			and landscape_marker.x < 600.0
+			and landscape_marker.y < 285.0
+		),
+		"offscreen hostiles cue direction above thumb controls in both orientations",
+	)
+	threat.queue_free()
+	var valid_spawns: Array[Marker3D] = []
+	for child in main.get_node("SpawnPoints").get_children():
+		if child is Marker3D and wave.call("is_spawn_position_valid", child.global_position):
+			valid_spawns.append(child as Marker3D)
+	var intro_marker := wave.call("_choose_intro_marker", valid_spawns) as Marker3D
+	if intro_marker != null:
+		for _frame in 100:
+			if int(wave.get("active_enemy_count")) > 0:
+				break
+			await physics_frame
+		var spawned: Array[Node3D] = wave.call("get_active_enemies")
+		_expect(
+			(
+				not spawned.is_empty()
+				and spawned[0].global_position.distance_to(intro_marker.global_position) < 3.0
+			),
+			"the first Runner uses a visible front lane when a clear one exists",
+		)
 
 	# End a run using the visible pause action, not a test-only director call.
 	# Simulated earned BP represents the reward granted by real wave/kill signals.
@@ -148,8 +206,10 @@ func _run() -> void:
 			int(main.get("session_mode")) == 0
 			and not results.visible
 			and int(wave.get("current_wave")) == 0
+			and drone.visible
+			and drone.is_in_group("enemies")
 		),
-		"results RETURN TO EXPLORE never restarts combat",
+		"results RETURN TO EXPLORE restores the harmless practice target",
 	)
 
 	main.queue_free()

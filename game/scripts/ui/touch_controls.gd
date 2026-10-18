@@ -166,6 +166,8 @@ var _skill_cooldown_total: float = 12.0
 var _skill_feedback_remaining: float = 0.0
 var _aiming: bool = false
 var _fire_flash_remaining: float = 0.0
+var _hostile_camera: Camera3D
+var _hostile_source: Node
 var _help_remaining: float = HELP_VISIBLE_SECONDS
 var _run_score: int = 0
 var _run_bp: int = 0
@@ -218,7 +220,7 @@ func _process(delta: float) -> void:
 			_help_panel.modulate.a = clampf(_help_remaining / HELP_FADE_SECONDS, 0.0, 1.0)
 		if _help_remaining <= 0.0 and _hud_preset != "ADVANCED":
 			_help_panel.visible = false
-	if _aiming and not get_tree().paused:
+	if (_aiming or _play_phase == "defense") and not get_tree().paused:
 		needs_redraw = true
 	if needs_redraw:
 		queue_redraw()
@@ -432,6 +434,11 @@ func show_hit_confirmed() -> void:
 func _show_shot_feedback() -> void:
 	_fire_flash_remaining = 0.15 if not _reduce_motion else 0.0
 	queue_redraw()
+
+
+func _set_hostile_source(camera: Camera3D, source: Node) -> void:
+	_hostile_camera = camera
+	_hostile_source = source
 
 
 func show_damage_received() -> void:
@@ -1419,6 +1426,21 @@ func _draw() -> void:
 		)
 	if _results_visible() or (is_instance_valid(_scrim) and _scrim.visible and _player_down):
 		return
+	if (
+		_play_phase == "defense"
+		and not get_tree().paused
+		and is_instance_valid(_hostile_camera)
+		and is_instance_valid(_hostile_source)
+	):
+		var bearings := HudHostileBearings.collect(
+			_hostile_camera,
+			_hostile_source.call("get_active_enemies"),
+			size,
+			_portrait,
+			_to_layout(1.0)
+		)
+		for bearing in bearings:
+			HudHostileBearings.draw_marker(self, bearing, _to_layout(1.0))
 	if not _player_down and not get_tree().paused:
 		var spread := 5.0 + (_fire_flash_remaining / 0.15) * 6.0
 		if _move_touch_id != -1:

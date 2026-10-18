@@ -18,6 +18,9 @@ func _run_smoke_test() -> void:
 	main_scene.set("start_wave_session_on_ready", false)
 	var wave_director: Node = main_scene.get_node("WaveDirector")
 	wave_director.set("base_enemies_per_wave", 3)
+	# This fixture exercises varied flanking spawns. The shipped two-Runner
+	# introductory wave uses a separate front-facing, clear-lane preference.
+	wave_director.set("intro_front_spawn", false)
 	wave_director.set("enemies_added_per_wave", 1)
 	wave_director.set("max_enemies_per_wave", 5)
 	wave_director.set("max_active_enemies", 2)

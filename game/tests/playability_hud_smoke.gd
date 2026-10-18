@@ -493,7 +493,7 @@ func _run_smoke_test() -> void:
 
 	wave_director.call("start_session")
 	_expect(
-		wave_title.text == "WAVE 01" and wave_enemy_label.text.contains("3 LEFT · 0 KO · +0 BP"),
+		wave_title.text == "WAVE 01" and wave_enemy_label.text.contains("2 LEFT · 0 KO · +0 BP"),
 		"starting a wave shows the objective and earned BP while fighting",
 	)
 

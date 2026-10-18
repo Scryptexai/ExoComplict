@@ -43,6 +43,7 @@ func _ready() -> void:
 	touch_controls.skill_requested.connect(player.activate_skill)
 	touch_controls.pause_requested.connect(_toggle_pause)
 	touch_controls.sound_mute_requested.connect(_on_sound_mute_requested)
+	touch_controls._set_hostile_source(player.aim_camera, wave_director)
 	_base_look_sensitivity = player.camera_rig.look_sensitivity
 	if not FileAccess.file_exists(AegisPreferences.PATH):
 		touch_controls._settings_menu.set_mute_from_game(Sfx.is_muted())
@@ -263,6 +264,7 @@ func _return_to_explore() -> void:
 	_retry_defense = false
 	wave_director.reset_session()
 	player.reset_player()
+	training_drone.set_active(true)
 	training_drone.reset()
 	_shots_fired = 0
 	run_stats.reset_run()
@@ -323,6 +325,9 @@ func _on_combatant_health_changed(_current: float, _maximum: float) -> void:
 
 func _on_wave_started(_wave_index: int, _enemy_count: int) -> void:
 	# Also covers smoke fixtures that call WaveDirector.start_session() directly.
+	# The fixed practice drone is for safe Explore only; in Defense it blocked
+	# real targets and stole EMP damage without ever awarding wave BP.
+	training_drone.set_active(false)
 	session_mode = SessionMode.DEFENSE
 	touch_controls._set_play_phase("defense")
 	Sfx.play_ui(&"wave_start")

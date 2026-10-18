@@ -61,7 +61,9 @@ func _ready() -> void:
 	_light.name = "FlashLight"
 	_light.light_color = flash_color
 	_light.light_energy = 0.0
-	_light.omni_range = 3.8
+	# Tight transient bounce around the weapon; broad cyan ground wash hid
+	# the FBX material contrast in the WebGL phone capture.
+	_light.omni_range = 2.8
 	_light.shadow_enabled = false
 	add_child(_light)
 
@@ -89,7 +91,7 @@ func _process(delta: float) -> void:
 		return
 	_remaining = maxf(_remaining - delta, 0.0)
 	var ratio := _remaining / maxf(duration, 0.0001)
-	_light.light_energy = flash_energy * ratio
+	_light.light_energy = flash_energy * 0.7 * ratio
 	_material.albedo_color.a = clampf(ratio * 1.6, 0.0, 1.0)
 	if _remaining <= 0.0:
 		_set_active(false)
@@ -107,7 +109,7 @@ func flash(strength: float = 1.0, tint: Color = Color(0.0, 0.0, 0.0, 0.0)) -> vo
 	_trigger_frame = Engine.get_process_frames()
 	_set_active(true)
 	_material.albedo_color.a = 1.0
-	_light.light_energy = flash_energy
+	_light.light_energy = flash_energy * 0.7
 	var size := flash_scale / 0.34 * randf_range(0.88, 1.12)
 	_mesh.scale = Vector3.ONE * size
 	_core.scale = Vector3.ONE * size
