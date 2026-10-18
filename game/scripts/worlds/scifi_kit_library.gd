@@ -103,8 +103,8 @@ const COLORS := {
 	"steel_light": Color(0.43, 0.49, 0.53),
 	"panel": Color(0.24, 0.3, 0.36),
 	"trim": Color(0.15, 0.2, 0.25),
-	"floor": Color(0.25, 0.29, 0.34),
-	"floor_alt": Color(0.21, 0.25, 0.3),
+	"floor": Color(0.285, 0.3, 0.315),
+	"floor_alt": Color(0.225, 0.25, 0.275),
 	"glass": Color(0.22, 0.59, 0.72),
 	"light": Color(0.34, 0.73, 0.84),
 }

@@ -47,6 +47,7 @@ func _run_smoke_test() -> void:
 
 	var env_node := world.get_node_or_null("ArenaEnvironment") as WorldEnvironment
 	var sun := world.get_node_or_null("FrontierDaylightSun") as DirectionalLight3D
+	var reactor_fill := world.get_node_or_null("ReactorCyanBounce") as OmniLight3D
 	var graded := env_node != null and env_node.environment != null
 	if graded:
 		graded = (
@@ -54,11 +55,16 @@ func _run_smoke_test() -> void:
 			and env_node.environment.ambient_light_source == Environment.AMBIENT_SOURCE_COLOR
 			and (
 				env_node.environment.ambient_light_color.b
-				> env_node.environment.ambient_light_color.r
+				>= env_node.environment.ambient_light_color.r
 			)
+			and env_node.environment.adjustment_saturation < 1.0
 			and sun != null
-			and sun.light_color.b > sun.light_color.r
+			and sun.light_color.r > sun.light_color.b
 			and sun.light_energy < 1.1
+			and sun.shadow_enabled
+			and reactor_fill != null
+			and reactor_fill.omni_range <= 13.0
+			and reactor_fill.light_energy < 0.8
 		)
 	test_passed = (
 		_expect(

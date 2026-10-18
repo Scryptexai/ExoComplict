@@ -1332,8 +1332,8 @@ func _build_lighting_and_atmosphere() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "FrontierDaylightSun"
 	sun.rotation_degrees = Vector3(-39.0, -31.0, 0.0)
-	sun.light_color = Color(0.82, 0.9, 1.0)
-	sun.light_energy = 0.92
+	sun.light_color = Color(0.96, 0.91, 0.83)
+	sun.light_energy = 0.88
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 115.0
 	sun.shadow_bias = 0.04
@@ -1355,21 +1355,21 @@ func _build_lighting_and_atmosphere() -> void:
 	sky_material.sun_curve = 0.14
 	sky.sky_material = sky_material
 	environment.sky = sky
-	# Compatibility can leave SKY-sourced ambient nearly black when the
-	# procedural sky is dark. An authored slate-blue fill keeps shade lanes and
-	# the player silhouette readable without restoring the old white washout.
+	# Compatibility can leave SKY-sourced ambient nearly black. A neutral
+	# slate fill keeps the FBX plating readable while the reactor owns the cyan
+	# accent; a blue global fill washed every floor plate into the same hue.
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color(0.45, 0.53, 0.63)
-	environment.ambient_light_energy = 0.62
+	environment.ambient_light_color = Color(0.5, 0.5, 0.53)
+	environment.ambient_light_energy = 0.56
 	environment.reflected_light_source = Environment.REFLECTION_SOURCE_BG
 	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
-	environment.tonemap_exposure = 1.05
+	environment.tonemap_exposure = 1.03
 	environment.adjustment_enabled = true
 	environment.adjustment_brightness = 0.97
-	environment.adjustment_contrast = 1.08
-	environment.adjustment_saturation = 1.04
+	environment.adjustment_contrast = 1.07
+	environment.adjustment_saturation = 0.9
 	environment.glow_enabled = true
-	environment.glow_intensity = 0.08
+	environment.glow_intensity = 0.06
 	environment.fog_enabled = true
 	environment.fog_light_color = Color(0.13, 0.22, 0.29)
 	environment.fog_density = 0.0055
@@ -1379,9 +1379,13 @@ func _build_lighting_and_atmosphere() -> void:
 	world_environment.environment = environment
 	add_child(world_environment)
 
-	_add_omni_light("ReactorCyanBounce", Vector3(0.0, 7.0, 0.0), Color(0.12, 0.68, 0.94), 1.0, 18.0)
+	# Local light, not a cyan wash across the whole 38 m bay. Warm navigation
+	# lamps retain their contrast against the now-neutral shared FBX floor.
 	_add_omni_light(
-		"ReactorEmeraldBounce", Vector3(-1.5, 7.0, 0.0), Color(0.08, 0.7, 0.48), 0.4, 9.0
+		"ReactorCyanBounce", Vector3(0.0, 7.0, 0.0), Color(0.22, 0.52, 0.72), 0.65, 13.0
+	)
+	_add_omni_light(
+		"ReactorEmeraldBounce", Vector3(-1.5, 7.0, 0.0), Color(0.13, 0.58, 0.43), 0.24, 7.5
 	)
 	_add_omni_light(
 		"ExtractionGreenBounce", Vector3(43.0, 6.0, -35.0), Color(0.1, 0.82, 0.64), 1.3, 19.0
