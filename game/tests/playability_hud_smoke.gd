@@ -269,6 +269,10 @@ func _run_smoke_test() -> void:
 			]
 		),
 	)
+	# The browser's canvas_items layout spans 844 / .541667 logical units,
+	# not the headless runner's default 1280. Resize the HUD rect as well as
+	# overriding physical pixels so the right rail can actually fit on-screen.
+	controls.size = Vector2(844.0 / 0.541667, 390.0 / 0.541667)
 	controls.call("apply_layout_for_size", Vector2(844.0, 390.0), 0.541667)
 	await process_frame
 	var landscape_gap := float(controls.call("_to_layout", 5.9))
@@ -303,8 +307,22 @@ func _run_smoke_test() -> void:
 			and not (controls.get("_wave_state_label") as Label).visible
 			and not controls.get("_run_card").visible
 		),
-		"landscape objective text is readable; optional help clears armory, SWAP and objective",
+		(
+			(
+				"landscape objective/help clear armory and SWAP: canvas=%s objective=%s "
+				+ "help=%s armory=%s swap=%s state=%s"
+			)
+			% [
+				controls.size,
+				wave_card.get_global_rect(),
+				help_plate.get_global_rect(),
+				armory_entry.get_global_rect(),
+				weapon_button.get_global_rect(),
+				(controls.get("_wave_state_label") as Label).visible,
+			]
+		),
 	)
+	controls.size = Vector2(1280.0, 720.0)
 	controls.call("apply_layout_for_size", Vector2(1280.0, 720.0), 1.0)
 	_expect(
 		(
