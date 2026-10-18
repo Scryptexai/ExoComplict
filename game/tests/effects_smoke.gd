@@ -30,6 +30,7 @@ func _run_smoke_test() -> void:
 		_expect(muzzle_flash != null, "the player weapon carries a muzzle flash node")
 		and test_passed
 	)
+	var glint: MeshInstance3D
 	if muzzle_flash != null:
 		test_passed = (
 			_expect(
@@ -39,7 +40,7 @@ func _run_smoke_test() -> void:
 			and test_passed
 		)
 		var cone := muzzle_flash.get_node_or_null("FlashCone") as MeshInstance3D
-		var glint := muzzle_flash.get_node_or_null("FlashGlint") as MeshInstance3D
+		glint = muzzle_flash.get_node_or_null("FlashGlint") as MeshInstance3D
 		test_passed = (
 			_expect(
 				(
@@ -157,7 +158,7 @@ func _run_smoke_test() -> void:
 					and bounce != null
 					and bounce.light_energy == 0.0
 				),
-				"Reduce Flash removes the radial rays and bright bounce, but keeps the shot",
+				"Reduce Flash removes outer streaks, glint, and bounce but keeps the hot core",
 			)
 			and test_passed
 		)

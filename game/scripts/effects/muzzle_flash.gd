@@ -62,12 +62,17 @@ func _ready() -> void:
 
 	# The face-on alpha flare supplies the pixels a nearly head-on barrel cone
 	# cannot provide at 390px, without a large opaque mesh crossing the helmet.
-	# It sits ahead of the measured muzzle and remains depth-tested by the world.
+	# It sits ahead of the measured muzzle. Keep-scale and two-sided are
+	# necessary for a visible small billboard; the brief glint is rendered on
+	# top of the shoulder rather than being fully occluded on a phone screen.
 	_glint_material = StandardMaterial3D.new()
 	_glint_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_glint_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_glint_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	_glint_material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	_glint_material.billboard_keep_scale = true
+	_glint_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_glint_material.no_depth_test = true
 	_glint_material.albedo_texture = GLINT_MASK
 	_glint_material.albedo_color = Color(1.0, 1.0, 1.0, 0.95)
 	_glint_material.emission_enabled = true
@@ -80,12 +85,12 @@ func _ready() -> void:
 	_glint.material_override = _glint_material
 
 	var streak_mesh := BoxMesh.new()
-	streak_mesh.size = Vector3(0.014, 0.024, 0.18)
+	streak_mesh.size = Vector3(0.018, 0.052, 0.21)
 	for index in range(2):
 		var streak := _add_shape("FlashSpark_%d" % index, streak_mesh)
-		streak.position = Vector3(0.07, 0.032 - 0.064 * index, -0.26)
-		streak.rotation.x = 0.12 if index == 0 else -0.10
-		streak.rotation.y = -0.20 if index == 0 else -0.12
+		streak.position = Vector3(0.095 + 0.018 * index, 0.05 - 0.1 * index, -0.24)
+		streak.rotation.x = 0.18 if index == 0 else -0.15
+		streak.rotation.y = -0.34 if index == 0 else -0.2
 		_streaks.append(streak)
 
 	_light = OmniLight3D.new()
@@ -167,7 +172,7 @@ func flash(strength: float = 1.0, tint: Color = Color(0.0, 0.0, 0.0, 0.0)) -> vo
 	for index in range(_streaks.size()):
 		var streak := _streaks[index]
 		streak.scale = Vector3.ONE * size * (0.85 if index else 1.0)
-		streak.rotation.y = (-0.39 if index == 0 else -0.25) + randf_range(-0.04, 0.04)
+		streak.rotation.y = (-0.34 if index == 0 else -0.20) + randf_range(-0.04, 0.04)
 
 
 func is_flashing() -> bool:
