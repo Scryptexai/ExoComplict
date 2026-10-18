@@ -40,6 +40,8 @@ var _kick_offset: Vector3 = Vector3.ZERO
 var _default_walk_bob: float = 0.0
 var _default_kick_rotation: float = 0.0
 var _default_kick_push: float = 0.0
+var _qa_camera_trace: bool = false
+var _qa_trace_elapsed: float = 0.0
 
 @onready var yaw_pivot: Node3D = $YawPivot
 @onready var pitch_pivot: Node3D = $YawPivot/PitchPivot
@@ -51,6 +53,13 @@ func _ready() -> void:
 	_default_walk_bob = walk_bob_scale
 	_default_kick_rotation = kick_rotation_degrees
 	_default_kick_push = kick_push
+	# Opt-in browser telemetry lets a real WebGL touch probe distinguish ADS,
+	# spring-arm obstruction and weapon motion without turning QA into a cheat.
+	# Normal players pay no per-frame diagnostic cost.
+	if OS.has_feature("web"):
+		_qa_camera_trace = bool(
+			JavaScriptBridge.eval("new URLSearchParams(location.search).has('qa_camera')")
+		)
 	_apply_blend(0.0)
 	pitch_pivot.rotation.x = clampf(
 		pitch_pivot.rotation.x, deg_to_rad(min_pitch_degrees), deg_to_rad(max_pitch_degrees)
@@ -66,6 +75,27 @@ func _process(delta: float) -> void:
 		if _kick < 0.001:
 			_kick = 0.0
 		_apply_kick()
+	if _qa_camera_trace:
+		_qa_trace_elapsed += delta
+		if _qa_trace_elapsed >= 0.5:
+			_qa_trace_elapsed = 0.0
+			var avatar := get_parent().get_node_or_null("VisualRoot")
+			print(
+				(
+					"Camera QA: aim=%s blend=%.2f fov=%.1f arm=%.2f hit=%.2f cam=%s player=%s fire=%s clip=%s"
+					% [
+						_aiming,
+						_aim_blend,
+						spring_camera.fov,
+						spring_arm.spring_length,
+						spring_arm.get_hit_length(),
+						spring_camera.global_position,
+						get_parent().global_position,
+						get_parent().get("_touch_fire_pressed"),
+						avatar.call("current_clip") if is_instance_valid(avatar) else "none",
+					]
+				)
+			)
 
 
 ## Accessibility: preserve authored kick/bob values so toggling the option in
