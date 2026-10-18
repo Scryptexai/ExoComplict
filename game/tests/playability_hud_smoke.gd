@@ -599,10 +599,10 @@ func _run_smoke_test() -> void:
 			pause_panel.is_visible_in_tree()
 			and resume_button.is_visible_in_tree()
 			and restart_button.is_visible_in_tree()
-			and restart_button.text == "RETURN TO EXPLORE"
+			and restart_button.text == "FINISH RUN · RESULTS"
 			and (controls.get("_pause_stats_label") as Label).text.contains("SCORE")
 		),
-		"Defense pause shows score, RESUME, and an explicit exit to Explore",
+		"Defense pause shows score, RESUME, and an explicit Finish Run to Results",
 	)
 	_expect(resume_button.has_focus(), "pause focuses RESUME by default")
 	_tap_screen_button(controls, resume_button, 76)
@@ -667,7 +667,7 @@ func _run_smoke_test() -> void:
 			and wave_title.text == "EXPLORE THE FRONTIER"
 			and int(wave_director.get("current_wave")) == 0
 		),
-		"RETURN TO EXPLORE unpauses, removes the wave and restores the safe objective",
+		"CANCEL DEFENSE during preparation unpauses and restores safe Explore",
 	)
 	print("Playability/HUD smoke test: %d failure(s)" % _failures)
 	main_scene.queue_free()
