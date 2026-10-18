@@ -197,7 +197,7 @@ func _run_smoke_test() -> void:
 	# Opening/refreshing the armory must not reset its action text to Godot's
 	# unscaled 13-unit default (~4 physical px on a portrait WASM canvas).
 	var armory := controls.get("_armory_panel") as Control
-	armory.call("refresh_profile", 0, ["pulse_rifle"], "pulse_rifle")
+	armory.call("refresh_profile", 0, 0, {"pulse_rifle": true}, &"pulse_rifle")
 	var buy_button := armory.get("_weapon_buttons")[1] as Button
 	var buy_font := float(buy_button.get_theme_font_size("font_size")) * 0.3047
 	_expect(buy_font >= 14.5, "portrait armory UNLOCK/EQUIP text stays >=15 physical px")
