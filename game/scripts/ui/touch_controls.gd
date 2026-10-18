@@ -574,6 +574,7 @@ func _apply_aim_visual(aiming: bool) -> void:
 				Color(AegisTokens.INFO, 0.20), AegisTokens.INFO, 2, 18.0, 3.0, 3.0
 			)
 		)
+	HudStyles.combat_face(self, _aim_button)
 	AegisTheme.tint_icon(_aim_button, AegisTokens.INFO if aiming else AegisTokens.INK)
 	_aim_button.icon = AegisTheme.icon("optic")
 	_aim_button.set_meta("aegis_state", "active" if aiming else "idle")

@@ -44,6 +44,10 @@ FIRE mengisi **65% lebar**, **49% tinggi** bidang sentuh (sebelumnya 38%/29%); *
 
 **World bukan klaim otomatis:** tur F10 pada build yang sama di 1280×720 memperlihatkan lantai, gerbang, pylon dan distrik di dalam game, tetapi satu citra diam tidak bisa memastikan mana model FBX dan mana prosedural. Karena itu tahap berikutnya merekam A/B kamera yang sama dengan visual impor ON/OFF; lihat bagian di bawah.
 
+### Iterasi tile pertama **ditolak** setelah screenshot, bukan disahkan oleh test
+
+Sumber `ad8ca2c` / payload `88cfebe`: [screenshot portrait 390×844](qa-frames/touch-rejected-stage27-portrait.png) · [landscape 844×390](qa-frames/touch-rejected-stage27-landscape.png). CI `39148264914` dan browser boot 3/3 lulus, namun **gambar tidak lulus review**: tile menjadi kotak hitam biasa, FIRE masih berupa pistol mainan kecil, WEAPON tampak lebih kecil. Segmentasi piksel putih di dalam target (mengecualikan border) pada portrait memberi **FIRE 82×76 dari 120×120**, **ADS 62×62 dari 80×80**, **EMP 70×59 dari 80×80**, **WEAPON 48×44 dari 76×72**. Angka WEAPON bahkan turun dari lebar 54 pada gambar lama. Revisi berikut harus memperbesar *bentuk SVG-nya*, bukan hanya `icon_max_width`, dan memberi bidang sentuh corner/rim yang benar-benar terbaca pada ukuran fisik. Target sentuh masih dipisah, tetapi belum layak disebut UX final.
+
 ## Stage 22: pembuktian asset FBX di dunia yang benar-benar dirender
 
 Source `db0e483`, payload `4fab8da`, CI `39144895197` sukses (Godot 19/19, static, ekspor Web). **Bukti di sini adalah gambar permainan, bukan hasil test.** Dalam build WebGL root yang sama, F10 mengaktifkan kamera review dan membekukan simulasi; tombol 1 memilih arena atau 4 memilih extraction; F9 hanya membalik visibility root dari instance GLB konversi *FBX unggahan* (grup `uploaded_fbx_visual`, **310 instance**), sementara kamera, objek prosedural, pencahayaan dan collision tidak diganti. Tombol F9 kedua mengembalikan semuanya; keluar tur juga selalu memulihkan semuanya.

@@ -144,18 +144,36 @@ static func apply_fonts(hud) -> void:
 		if is_instance_valid(button):
 			var button_icon_px := icon_px
 			if button == hud._fire_button:
-				button_icon_px = roundi(hud._to_layout(104.0 if hud._portrait else 96.0))
-			elif button == hud._aim_button or button == hud._skill_button:
-				button_icon_px = roundi(hud._to_layout(70.0 if hud._portrait else 64.0))
+				button_icon_px = roundi(hud._to_layout(112.0 if hud._portrait else 104.0))
+			elif button == hud._aim_button:
+				button_icon_px = roundi(hud._to_layout(76.0 if hud._portrait else 70.0))
+			elif button == hud._skill_button:
+				button_icon_px = roundi(hud._to_layout(74.0 if hud._portrait else 68.0))
 			elif button == hud._weapon_button:
-				button_icon_px = roundi(hud._to_layout(68.0 if hud._portrait else 60.0))
+				button_icon_px = roundi(hud._to_layout(72.0 if hud._portrait else 64.0))
 			elif button == hud._pause_button:
 				button_icon_px = roundi(hud._to_layout(40.0))
 			elif button == hud._sound_button:
 				button_icon_px = roundi(hud._to_layout(24.0))
 			button.add_theme_constant_override("icon_max_width", button_icon_px)
+	for control in [hud._fire_button, hud._aim_button, hud._skill_button, hud._weapon_button]:
+		combat_face(hud, control)
 	if is_instance_valid(hud._skill_ring):
 		hud._skill_ring.stroke = hud._to_layout(2.2)
+
+
+## StyleBox radius/border are logical Godot units. Convert from observed
+## physical pixels: a raw radius of 18 became only ~5 px on a 390 px screen.
+static func combat_face(hud, button: Button) -> void:
+	if not is_instance_valid(button):
+		return
+	var corner := roundi(hud._to_layout(20.0 if button == hud._fire_button else 14.0))
+	var rim := maxi(roundi(hud._to_layout(1.5)), 1)
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		var box := button.get_theme_stylebox(state) as StyleBoxFlat
+		if box != null:
+			box.set_corner_radius_all(corner)
+			box.set_border_width_all(rim)
 	if is_instance_valid(hud._skill_cooldown_label):
 		hud._skill_cooldown_label.offset_left = hud._to_layout(2.0)
 		hud._skill_cooldown_label.offset_right = -hud._to_layout(2.0)
