@@ -98,6 +98,35 @@ func _process(delta: float) -> void:
 					]
 				)
 			)
+			# A clip name alone does not prove the imported Blender bones moved.
+			# This opt-in trace distinguishes a frozen AnimationPlayer from a
+			# compositor frame that missed the short collapse on slow WebGL.
+			if is_instance_valid(avatar) and avatar.call("current_clip") == "death":
+				var animation := avatar.get("_anim_player") as AnimationPlayer
+				var skeleton := avatar.get("_skeleton") as Skeleton3D
+				if animation != null and skeleton != null:
+					var head_index := skeleton.find_bone("Head")
+					var head_y := -1.0
+					if head_index >= 0:
+						head_y = (
+							(
+								skeleton.global_transform
+								* skeleton.get_bone_global_pose(head_index).origin
+							)
+							. y
+						)
+					print(
+						(
+							"Rig QA: death playing=%s active=%s t=%.2f/%.2f head_y=%.2f"
+							% [
+								animation.is_playing(),
+								animation.active,
+								animation.current_animation_position,
+								animation.current_animation_length,
+								head_y,
+							]
+						)
+					)
 
 
 ## Accessibility: preserve authored kick/bob values so toggling the option in
