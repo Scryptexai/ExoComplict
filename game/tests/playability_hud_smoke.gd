@@ -17,6 +17,7 @@ func _run_smoke_test() -> void:
 	Sfx.set_muted(false)
 	var main_scene := MainScene.instantiate()
 	main_scene.set("start_wave_session_on_ready", false)
+	main_scene.get_node("ProgressionService").set("profile_path", "")
 	root.add_child(main_scene)
 	await process_frame
 
@@ -125,12 +126,12 @@ func _run_smoke_test() -> void:
 	_expect(
 		(
 			fire_button.text == "FIRE"
-			and weapon_button.text == "SWAP · PULSE"
+			and weapon_button.text == "ARMORY · PULSE"
 			and skill_button.text.contains("READY")
 			and not skill_button.disabled
 			and String(pause_button.get_meta("aegis_state", "")) == "pause"
 		),
-		"fire, weapon-cycle, EMP skill, and pause buttons are visible and labeled",
+		"fire, armory entry, EMP skill, and pause buttons are visible and labeled",
 	)
 	# Quick mute and the settings screen must share the same live audio state.
 	_expect(
@@ -409,6 +410,10 @@ func _run_smoke_test() -> void:
 		"starting a wave shows the objective and earned BP while fighting",
 	)
 
+	var progression := main_scene.get_node("ProgressionService") as ProgressionService
+	progression.balance = 120
+	_expect(progression.unlock_weapon(&"nova_launcher"), "earning BP enables a Nova unlock")
+	_expect(weapon_button.text == "SWAP · PULSE", "the new weapon enables touch SWAP")
 	_tap_screen_button(controls, weapon_button, 73)
 	_expect(
 		(

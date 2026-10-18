@@ -13,6 +13,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var main := MainScene.instantiate()
+	main.get_node("ProgressionService").set("profile_path", "")
 	root.add_child(main)
 	await process_frame
 	var wave := main.get_node("WaveDirector")
@@ -99,6 +100,8 @@ func _run() -> void:
 	)
 
 	# End a run using the visible pause action, not a test-only director call.
+	# Simulated earned BP represents the reward granted by real wave/kill signals.
+	main.get_node("RunStats").call("award_battle_points", 25)
 	main.call("_toggle_pause")
 	_expect(paused and escape.text == "FINISH RUN · RESULTS", "Defense offers a cash-out")
 	_tap(hud, escape)
@@ -109,8 +112,10 @@ func _run() -> void:
 			and int(main.get("session_mode")) == 3
 			and results.visible
 			and wave.call("get_active_enemies").is_empty()
+			and int(main.get_node("ProgressionService").get("balance")) == 25
+			and (hud.get("_results_summary") as Label).text.contains("BP BANKED")
 		),
-		"FINISH RUN opens Results and stops enemies without losing the run",
+		"FINISH RUN opens Results, banks earned BP and stops enemies",
 	)
 	# Retry must prepare again; RETURN TO EXPLORE must not spawn.
 	var retry := hud.get("_results_retry_button") as Button

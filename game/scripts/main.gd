@@ -8,6 +8,7 @@ const WaveDirectorScript = preload("res://scripts/waves/wave_director.gd")
 const TouchControlsScript = preload("res://scripts/ui/touch_controls.gd")
 const RunStatsScript = preload("res://scripts/progression/run_stats.gd")
 const RewardServiceScript = preload("res://scripts/progression/reward_service.gd")
+const ProgressionServiceScript = preload("res://scripts/progression/progression_service.gd")
 
 ## Test/authoring override only. The shipped scene starts in safe Explore; the
 ## player must explicitly choose Defense before the WaveDirector can run.
@@ -26,6 +27,7 @@ var _base_look_sensitivity: float = 0.0
 @onready var wave_director: WaveDirectorScript = $WaveDirector
 @onready var run_stats: RunStatsScript = $RunStats
 @onready var reward_service: RewardServiceScript = $RewardService
+@onready var progression_service: ProgressionServiceScript = $ProgressionService
 @onready var touch_controls: TouchControlsScript = $HUD/TouchControls
 
 
@@ -34,7 +36,10 @@ func _ready() -> void:
 	touch_controls.look_delta.connect(player.apply_touch_look)
 	touch_controls.fire_changed.connect(player.set_touch_fire_pressed)
 	touch_controls.aim_changed.connect(player.set_touch_aim_held)
-	touch_controls.weapon_switch_requested.connect(player.select_next_weapon)
+	touch_controls.weapon_switch_requested.connect(_on_weapon_switch_requested)
+	touch_controls.armory_requested.connect(_open_armory)
+	touch_controls.armory_weapon_action_requested.connect(_on_armory_weapon_action)
+	touch_controls.armory_close_requested.connect(_close_armory)
 	touch_controls.skill_requested.connect(player.activate_skill)
 	touch_controls.pause_requested.connect(_toggle_pause)
 	touch_controls.sound_mute_requested.connect(_on_sound_mute_requested)
@@ -44,10 +49,12 @@ func _ready() -> void:
 	touch_controls.settings_changed.connect(_on_settings_changed)
 	touch_controls._apply_preferences(touch_controls._settings_menu.values)
 	player.weapon_changed.connect(touch_controls.set_weapon_label)
+	player.weapon_changed.connect(_on_weapon_equipped)
 	player.weapon_controller.ammo_changed.connect(touch_controls._update_weapon_ammo)
 	player.skill_cooldown_changed.connect(touch_controls.set_skill_cooldown)
 	player.skill_used.connect(_on_skill_used)
-	touch_controls.set_weapon_label(player.get_current_weapon_name())
+	progression_service.profile_changed.connect(_on_profile_changed)
+	_on_profile_changed()
 	touch_controls._update_weapon_ammo(
 		player.weapon_controller.get_current_ammo(),
 		player.weapon_controller.get_current_magazine_size(),
@@ -135,6 +142,67 @@ func _on_settings_changed(values: Dictionary) -> void:
 	if Sfx.is_muted() != muted:
 		Sfx.set_muted(muted)
 	touch_controls.set_sound_muted(muted)
+
+
+func _on_profile_changed() -> void:
+	player.weapon_controller.set_available_weapon_ids(progression_service.unlocked_ids)
+	HudArmoryBridge.refresh(
+		touch_controls,
+		progression_service.balance,
+		progression_service.best_score,
+		progression_service.unlocked_ids,
+		player.weapon_controller.get_current_definition().weapon_id
+	)
+	touch_controls.set_weapon_label(player.get_current_weapon_name())
+
+
+func _on_weapon_equipped(_display_name: String) -> void:
+	_on_profile_changed()
+
+
+func _on_weapon_switch_requested() -> void:
+	if player.weapon_controller.available_weapon_count() > 1:
+		player.select_next_weapon()
+	else:
+		_open_armory()
+
+
+func _open_armory() -> void:
+	if session_mode == SessionMode.RESULTS or player.is_defeated() or _is_paused:
+		return
+	_toggle_pause()
+	HudArmoryBridge.show_panel(touch_controls)
+
+
+func _close_armory() -> void:
+	HudArmoryBridge.hide_panel(touch_controls)
+	if _is_paused:
+		_toggle_pause()
+
+
+func _on_armory_weapon_action(weapon_id: StringName) -> void:
+	var weapon_index := -1
+	for index in range(player.weapon_controller.weapon_definitions.size()):
+		if player.weapon_controller.weapon_definitions[index].weapon_id == weapon_id:
+			weapon_index = index
+			break
+	if weapon_index < 0 or not touch_controls._armory_panel.visible:
+		return
+	var weapon_name := player.weapon_controller.weapon_definitions[weapon_index].display_name
+	if progression_service.is_unlocked(weapon_id):
+		player.select_weapon(weapon_index)
+		touch_controls._armory_panel.show_hint(
+			"%s EQUIPPED · READY TO PLAY" % weapon_name.to_upper()
+		)
+		return
+	var missing := progression_service.unlock_cost(weapon_id) - progression_service.balance
+	if missing > 0:
+		touch_controls._armory_panel.show_hint("NEED %d MORE BP · FIGHT WAVES" % missing)
+		return
+	if progression_service.unlock_weapon(weapon_id):
+		player.select_weapon(weapon_index)
+		Sfx.play_ui(&"session_clear")
+		touch_controls._armory_panel.show_hint("%s UNLOCKED & EQUIPPED" % weapon_name.to_upper())
 
 
 func _toggle_pause() -> void:
@@ -264,16 +332,31 @@ func _on_wave_enemy_spawned(enemy: Node3D) -> void:
 
 
 func _on_wave_session_ended(wave_index: int, _total_defeated: int) -> void:
-	_retry_defense = session_mode == SessionMode.DEFENSE
+	if session_mode != SessionMode.DEFENSE:
+		return
+	_retry_defense = true
 	session_mode = SessionMode.RESULTS
 	touch_controls._set_play_phase("results")
-	Sfx.play_ui(&"session_clear")
+	if not player.is_defeated():
+		Sfx.play_ui(&"session_clear")
 	run_stats.end_run()
 	var run_time := run_stats.get_survival_time_text()
 	var run_kos := run_stats.eliminations
 	var run_score := run_stats.run_score
 	var run_bp := run_stats.bp_earned
-	touch_controls.show_results(wave_index, run_time, run_kos, run_score, run_bp)
+	progression_service.bank_run(run_score, run_bp)
+	(
+		touch_controls
+		. show_results(
+			wave_index,
+			run_time,
+			run_kos,
+			run_score,
+			run_bp,
+			progression_service.balance,
+			progression_service.best_score,
+		)
+	)
 	_update_status()
 	print("Encounter: Results after wave %d" % wave_index)
 

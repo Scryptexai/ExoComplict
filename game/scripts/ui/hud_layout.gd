@@ -15,6 +15,8 @@ static func over_hud(hud, position: Vector2) -> bool:
 		hud._top_bar,
 		hud._wave_card,
 		hud._defense_button,
+		hud._armory_button,
+		hud._armory_panel,
 		hud._help_panel,
 		hud._fire_button,
 		hud._weapon_button,
@@ -59,6 +61,14 @@ static func desktop(hud) -> void:
 	)
 	_place_in_top_bar(
 		hud._system_row, 1, 0, 1, 0, Rect2(-152.0 * unit, 0, 152.0 * unit, 56.0 * unit)
+	)
+	_place(
+		hud._armory_button,
+		0,
+		0,
+		0,
+		0,
+		Rect2(inset + 320.0 * unit, hud._top_inset + 64.0 * unit, 186.0 * unit, 52.0 * unit)
 	)
 	_place(
 		hud._score_chip,
@@ -140,6 +150,19 @@ static func touch_portrait(hud) -> void:
 			hud._to_layout(60.0)
 		)
 	)
+	_place(
+		hud._armory_button,
+		0,
+		0,
+		0,
+		0,
+		Rect2(
+			edge,
+			hud._top_inset + objective_top + hud._to_layout(140.0),
+			hud._to_layout(234.0),
+			hud._to_layout(56.0)
+		)
+	)
 	# A 56 px pause target is deliberate, not just the minimum 44 px chip.
 	var system_width: float = hud._to_layout(88.0 if hud._narrow else 152.0)
 	_place_in_top_bar(
@@ -199,7 +222,7 @@ static func touch_portrait(hud) -> void:
 	_place_help(
 		hud,
 		edge,
-		hud._top_inset + objective_top + hud._to_layout(142.0),
+		hud._top_inset + objective_top + hud._to_layout(204.0),
 		minf(hud._to_layout(342.0), hud.size.x - edge * 2.0),
 		hud._help_block_height(2)
 	)
@@ -248,6 +271,19 @@ static func touch_landscape(hud) -> void:
 		1,
 		0,
 		Rect2(-hud._to_layout(152.0), 0, hud._to_layout(152.0), bar_height)
+	)
+	_place(
+		hud._armory_button,
+		0,
+		0,
+		0,
+		0,
+		Rect2(
+			edge + hud._to_layout(306.0),
+			hud._top_inset + objective_top,
+			hud._to_layout(186.0),
+			hud._to_layout(56.0)
+		)
 	)
 
 	_place_button(hud, hud._fire_button, 18.0, 24.0, 104.0, 104.0)

@@ -12,6 +12,9 @@ var _current_weapon_index: int = 0
 var _cooldowns: Array[float] = []
 var _magazines: Array[int] = []
 var _reload_remaining: Array[float] = []
+## Main supplies the validated profile on boot/unlock. Direct slot keys and
+## touch SWAP share this same gate, so a locked weapon cannot be fired via E/1-3.
+var _available_ids: Dictionary = {"pulse_rifle": true}
 
 
 func _ready() -> void:
@@ -106,11 +109,34 @@ func _emit_ammo() -> void:
 	ammo_changed.emit(get_current_ammo(), get_current_magazine_size(), is_reloading())
 
 
-func select_weapon(index: int) -> bool:
+func set_available_weapon_ids(ids: Dictionary) -> void:
+	_available_ids = ids.duplicate()
+	# Pulse is the starter even when a save was edited or partially written.
+	_available_ids["pulse_rifle"] = true
+	if not is_weapon_available(_current_weapon_index):
+		select_weapon(0)
+
+
+func is_weapon_available(index: int) -> bool:
 	if index < 0 or index >= weapon_definitions.size():
 		return false
 	var definition: WeaponDefinition = weapon_definitions[index]
-	if definition == null or not definition.is_valid_definition():
+	return definition != null and _available_ids.has(String(definition.weapon_id))
+
+
+func available_weapon_count() -> int:
+	var count := 0
+	for index in range(weapon_definitions.size()):
+		if is_weapon_available(index):
+			count += 1
+	return count
+
+
+func select_weapon(index: int) -> bool:
+	if not is_weapon_available(index):
+		return false
+	var definition: WeaponDefinition = weapon_definitions[index]
+	if not definition.is_valid_definition():
 		return false
 	_current_weapon_index = index
 	weapon_changed.emit(definition.display_name)
@@ -119,16 +145,19 @@ func select_weapon(index: int) -> bool:
 
 
 func select_next_weapon() -> bool:
-	if weapon_definitions.is_empty():
-		return false
-	return select_weapon((_current_weapon_index + 1) % weapon_definitions.size())
+	return _cycle_weapon(1)
 
 
 func select_previous_weapon() -> bool:
-	if weapon_definitions.is_empty():
-		return false
-	var previous_index := posmod(_current_weapon_index - 1, weapon_definitions.size())
-	return select_weapon(previous_index)
+	return _cycle_weapon(-1)
+
+
+func _cycle_weapon(direction: int) -> bool:
+	for offset in range(1, weapon_definitions.size() + 1):
+		var index := posmod(_current_weapon_index + offset * direction, weapon_definitions.size())
+		if is_weapon_available(index):
+			return select_weapon(index)
+	return false
 
 
 func try_fire(shooter: CollisionObject3D, muzzle: Marker3D, aim_point: Vector3) -> bool:

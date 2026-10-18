@@ -49,6 +49,8 @@ static func apply_context(hud) -> void:
 	var exploring: bool = hud._play_phase == "explore"
 	var preparing: bool = hud._play_phase == "preparing"
 	hud._defense_button.visible = active and (exploring or preparing)
+	if is_instance_valid(hud._armory_button):
+		hud._armory_button.visible = active and exploring
 	hud._defense_button.disabled = not exploring
 	hud._defense_button.text = (
 		"DEFENSE IN %d" % hud._preparation_seconds

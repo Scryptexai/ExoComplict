@@ -21,6 +21,9 @@ signal defense_start_requested
 signal return_to_explore_requested
 signal finish_run_requested
 signal sound_mute_requested
+signal armory_requested
+signal armory_weapon_action_requested(weapon_id: StringName)
+signal armory_close_requested
 signal settings_changed(values: Dictionary)
 
 const HIT_CONFIRM_DURATION: float = AegisTokens.HIT_MARKER
@@ -93,6 +96,8 @@ var _score_chip: AegisPanel
 var _compact_card: AegisPanel
 var _help_panel: AegisPanel
 var _feedback_panel: HudCombatFeedbackUi
+var _armory_panel: HudArmoryUi
+var _armory_button: AegisButton
 var _desktop_weapon_card: AegisPanel
 var _ads_chip: AegisPanel
 var _emp_chip: AegisButton
@@ -157,6 +162,8 @@ var _fire_flash_remaining: float = 0.0
 var _help_remaining: float = HELP_VISIBLE_SECONDS
 var _run_score: int = 0
 var _run_bp: int = 0
+var _wallet_bp: int = 0
+var _available_weapon_count: int = 1
 var _run_kos: int = 0
 var _run_time: String = "00:00"
 var _run_shots: int = 0
@@ -443,8 +450,21 @@ func set_weapon_label(display_name: String) -> void:
 	if is_instance_valid(_weapon_button):
 		# On touch, show the *action* and a short current weapon name; a bare
 		# "NOVA LAUNCHER" chip never explained that it could be tapped to swap.
-		_weapon_button.text = "SWAP · %s" % display_name.get_slice(" ", 0).to_upper()
-		_weapon_button.tooltip_text = "Tap to swap · Equipped: " + display_name
+		_weapon_button.text = (
+			"%s · %s"
+			% [
+				"SWAP" if _available_weapon_count > 1 else "ARMORY",
+				display_name.get_slice(" ", 0).to_upper(),
+			]
+		)
+		_weapon_button.tooltip_text = (
+			(
+				"Tap to swap · Equipped: "
+				if _available_weapon_count > 1
+				else "Open Armory · Equipped: "
+			)
+			+ display_name
+		)
 	if is_instance_valid(_desktop_weapon_name):
 		_desktop_weapon_name.text = display_name.to_upper()
 
@@ -600,6 +620,8 @@ func show_results(
 	eliminations: int,
 	run_score: int,
 	bp_earned: int,
+	wallet_bp: int,
+	best_score: int,
 ) -> void:
 	if not is_instance_valid(_results_panel):
 		return
@@ -613,8 +635,9 @@ func show_results(
 				"SURVIVAL TIME     %s" % survival_time,
 				"ELIMINATIONS      %d" % eliminations,
 				"RUN SCORE         %s" % _format_number(run_score),
-				"BATTLE POINTS     +%d" % bp_earned,
-				"SHOTS FIRED       %d" % _run_shots,
+				"BP BANKED         +%d" % bp_earned,
+				"BP WALLET         %d" % wallet_bp,
+				"BEST SCORE        %s" % _format_number(best_score),
 			]
 		)
 	)
@@ -630,6 +653,7 @@ func show_results(
 		_help_panel.visible = false
 	for control in [
 		_defense_button,
+		_armory_button,
 		_fire_button,
 		_weapon_button,
 		_skill_button,
@@ -700,7 +724,9 @@ func _build_ui() -> void:
 	_build_combat_feedback()
 	_build_touch_buttons()
 	_build_desktop_chips()
+	HudArmoryBridge.install_entry(self)
 	_build_overlays()
+	HudArmoryBridge.install_panel(self)
 
 
 func _build_health_card() -> void:
@@ -862,8 +888,8 @@ func _build_overlays() -> void:
 	_scrim.visible = false
 	add_child(_scrim)
 
-	_build_pause_menu()
-	_build_results_panel()
+	HudMenuUi.build_pause(self)
+	HudMenuUi.build_results(self)
 	_settings_menu = AegisSettingsMenu.new()
 	_settings_menu.name = "SettingsMenu"
 	_settings_menu.visible = false
@@ -875,124 +901,6 @@ func _build_overlays() -> void:
 
 ## Pause is a sibling of the results card: same panel language, same button
 ## hierarchy. RESUME is the first (and default) action, RESTART the second.
-func _build_pause_menu() -> void:
-	_pause_panel = AegisPanel.new()
-	_pause_panel.name = "PausePanel"
-	_pause_panel.interactive = true
-	_pause_panel.visible = false
-	add_child(_pause_panel)
-
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 12)
-	_pause_panel.add_child(content)
-
-	_pause_swipe_handle = ColorRect.new()
-	_pause_swipe_handle.name = "PauseSwipeHandle"
-	_pause_swipe_handle.color = AegisTokens.LINE_HI
-	_pause_swipe_handle.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_pause_swipe_handle.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	content.add_child(_pause_swipe_handle)
-
-	var eyebrow := _label("RUN SUSPENDED", "label", AegisTokens.ACCENT)
-	content.add_child(eyebrow)
-	_pause_label = _label("PAUSED", "display_l", AegisTokens.INK)
-	content.add_child(_pause_label)
-	_pause_stats_label = _label("SCORE 0  ·  00:00", "mono_m", AegisTokens.INK_2)
-	content.add_child(_pause_stats_label)
-
-	var rule := ColorRect.new()
-	rule.color = AegisTokens.LINE
-	rule.custom_minimum_size = Vector2(0.0, 1.0)
-	content.add_child(rule)
-
-	_pause_resume_button = AegisButton.new()
-	_pause_resume_button.name = "ResumeButton"
-	_pause_resume_button.text = "RESUME"
-	_pause_resume_button.focus_mode = Control.FOCUS_ALL
-	_pause_resume_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	_pause_resume_button.icon = AegisTheme.icon("play", true)
-	_pause_resume_button.add_theme_constant_override("icon_max_width", 18)
-	AegisTheme.set_button_variant(_pause_resume_button, "primary")
-	_pause_resume_button.pressed.connect(_on_pause_pressed)
-	content.add_child(_pause_resume_button)
-	_touch_buttons.append(_pause_resume_button)
-
-	_pause_restart_button = AegisButton.new()
-	_pause_restart_button.name = "RestartButton"
-	_pause_restart_button.text = "RESTART RUN"
-	_pause_restart_button.focus_mode = Control.FOCUS_ALL
-	_pause_restart_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	_pause_restart_button.icon = AegisTheme.icon("arrow-counter-clockwise")
-	_pause_restart_button.add_theme_constant_override("icon_max_width", 18)
-	AegisTheme.set_button_variant(_pause_restart_button, "ghost")
-	_pause_restart_button.pressed.connect(_on_restart_pressed)
-	content.add_child(_pause_restart_button)
-	_touch_buttons.append(_pause_restart_button)
-
-	_pause_settings_button = AegisButton.new()
-	_pause_settings_button.name = "SettingsButton"
-	_pause_settings_button.text = "SETTINGS"
-	_pause_settings_button.icon = AegisTheme.icon("gear-six")
-	_pause_settings_button.focus_mode = Control.FOCUS_ALL
-	AegisTheme.set_button_variant(_pause_settings_button, "ghost")
-	_pause_settings_button.pressed.connect(_open_settings)
-	content.add_child(_pause_settings_button)
-	_touch_buttons.append(_pause_settings_button)
-
-	var hint := _label("SETTINGS → CONTROLS · ESC RESUME", "label_s", AegisTokens.INK_3)
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	content.add_child(hint)
-
-
-func _build_results_panel() -> void:
-	_results_panel = AegisPanel.new()
-	_results_panel.name = "ResultsPanel"
-	_results_panel.interactive = true
-	_results_panel.visible = false
-	add_child(_results_panel)
-
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 12)
-	_results_panel.add_child(content)
-
-	content.add_child(_label("RUN COMPLETE", "label", AegisTokens.ACCENT))
-	_results_title = _label("RUN RESULTS", "display_xl", AegisTokens.INK)
-	content.add_child(_results_title)
-
-	var rule := ColorRect.new()
-	rule.color = AegisTokens.LINE
-	rule.custom_minimum_size = Vector2(0.0, 1.0)
-	content.add_child(rule)
-
-	_results_summary = _label("", "mono_m", AegisTokens.INK_2)
-	_results_summary.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_results_summary.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_child(_results_summary)
-
-	_results_retry_button = AegisButton.new()
-	_results_retry_button.name = "ResultsRetryButton"
-	_results_retry_button.text = "RETRY"
-	_results_retry_button.focus_mode = Control.FOCUS_ALL
-	_results_retry_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	_results_retry_button.icon = AegisTheme.icon("arrow-counter-clockwise")
-	_results_retry_button.add_theme_constant_override("icon_max_width", 18)
-	AegisTheme.set_button_variant(_results_retry_button, "primary")
-	_results_retry_button.pressed.connect(_on_results_retry_pressed)
-	content.add_child(_results_retry_button)
-	_touch_buttons.append(_results_retry_button)
-
-	_results_explore_button = AegisButton.new()
-	_results_explore_button.name = "ResultsExploreButton"
-	_results_explore_button.text = "RETURN TO EXPLORE"
-	_results_explore_button.focus_mode = Control.FOCUS_ALL
-	_results_explore_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	_results_explore_button.icon = AegisTheme.icon("caret-right")
-	AegisTheme.set_button_variant(_results_explore_button, "ghost")
-	_results_explore_button.pressed.connect(_on_return_to_explore_pressed)
-	content.add_child(_results_explore_button)
-	_touch_buttons.append(_results_explore_button)
-
-
 # --------------------------------------------------------------------------- #
 # Small factories
 # --------------------------------------------------------------------------- #
@@ -1133,6 +1041,8 @@ func _layout_overlays() -> void:
 	HudLayout.overlays(self)
 	if is_instance_valid(_feedback_panel):
 		_feedback_panel.layout_for(self)
+	if is_instance_valid(_armory_panel):
+		_armory_panel.layout_for(self)
 	HudPauseGesture.layout(self)
 	if is_instance_valid(_settings_menu):
 		var width := minf(_to_layout(700.0), size.x * 0.94)
@@ -1366,6 +1276,10 @@ func _find_touch_button(position: Vector2) -> Button:
 		candidates = []
 		for node in _settings_menu.find_children("*", "Button", true, false):
 			candidates.append(node as Button)
+	elif is_instance_valid(_armory_panel) and _armory_panel.visible:
+		candidates = []
+		for node in _armory_panel.find_children("*", "Button", true, false):
+			candidates.append(node as Button)
 	# Pick the smallest target containing the touch: the AIM button sits close to
 	# FIRE and an overlapping (larger) control must not steal the press.
 	var best: Button = null
@@ -1386,6 +1300,10 @@ func _find_touch_button(position: Vector2) -> Button:
 func _activate_touch_button(button: Button) -> void:
 	if button == _defense_button:
 		_on_defense_pressed()
+	elif button == _armory_button:
+		button.pressed.emit()
+	elif is_instance_valid(_armory_panel) and _armory_panel.is_ancestor_of(button):
+		button.pressed.emit()
 	elif button == _results_explore_button:
 		_on_return_to_explore_pressed()
 	elif button == _weapon_button:

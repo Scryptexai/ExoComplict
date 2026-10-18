@@ -32,9 +32,13 @@ func _run_smoke_test() -> void:
 	_expect(not rig.is_empty(), "hero_rig.json exists and parses")
 	var main_scene := MainScene.instantiate()
 	main_scene.set("start_wave_session_on_ready", false)
+	main_scene.get_node("ProgressionService").set("profile_path", "")
 	root.add_child(main_scene)
 	await process_frame
 	await process_frame
+	var progression := main_scene.get_node("ProgressionService") as ProgressionService
+	progression.balance = 120
+	_expect(progression.unlock_weapon(&"nova_launcher"), "test unlocks Nova for the reload pose")
 
 	var player: Node3D = main_scene.get_node("Player")
 	var visual: Node3D = player.get_node("VisualRoot")

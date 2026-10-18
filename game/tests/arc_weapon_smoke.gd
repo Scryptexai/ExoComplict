@@ -19,8 +19,12 @@ func _initialize() -> void:
 func _run_smoke_test() -> void:
 	var main_scene := MainScene.instantiate()
 	main_scene.set("start_wave_session_on_ready", false)
+	main_scene.get_node("ProgressionService").set("profile_path", "")
 	root.add_child(main_scene)
 	await process_frame
+	var progression := main_scene.get_node("ProgressionService") as ProgressionService
+	progression.balance = 250
+	var arc_unlocked := progression.unlock_weapon(&"arc_shooter")
 
 	var player: Node3D = main_scene.get_node("Player")
 	var weapon_controller: Node = player.get_node("WeaponController")
@@ -28,6 +32,9 @@ func _run_smoke_test() -> void:
 	var weapon_button := main_scene.get_node("HUD/TouchControls").get("_weapon_button") as Button
 	var test_passed := true
 
+	test_passed = (
+		_expect(arc_unlocked, "the fixture purchases Arc before slot selection") and test_passed
+	)
 	test_passed = (
 		_expect(bool(player.call("select_weapon", 2)), "Arc Shooter can be selected by slot")
 		and test_passed

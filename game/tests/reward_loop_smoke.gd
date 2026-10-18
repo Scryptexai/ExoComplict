@@ -10,6 +10,7 @@ func _initialize() -> void:
 func _run_smoke_test() -> void:
 	var main_scene := MainScene.instantiate()
 	main_scene.set("start_wave_session_on_ready", false)
+	main_scene.get_node("ProgressionService").set("profile_path", "")
 	var wave_director: Node = main_scene.get_node("WaveDirector")
 	wave_director.set("base_enemies_per_wave", 1)
 	wave_director.set("enemies_added_per_wave", 0)
@@ -24,6 +25,7 @@ func _run_smoke_test() -> void:
 
 	var run_stats: Node = main_scene.get_node("RunStats")
 	var reward_service: Node = main_scene.get_node("RewardService")
+	var progression := main_scene.get_node("ProgressionService") as ProgressionService
 	var test_passed := true
 	test_passed = (
 		_expect(bool(run_stats.get("is_run_active")), "wave start activates the run clock")
@@ -120,8 +122,11 @@ func _run_smoke_test() -> void:
 				and results_summary.text.contains("ELIMINATIONS")
 				and results_summary.text.contains("RUN SCORE")
 				and results_summary.text.contains("100")
-				and results_summary.text.contains("BATTLE POINTS")
+				and results_summary.text.contains("BP BANKED")
 				and results_summary.text.contains("+110")
+				and results_summary.text.contains("BP WALLET")
+				and progression.balance == 110
+				and progression.best_score == 100
 			),
 			"results show actual wave, elimination, score, and BP values",
 		)
@@ -152,9 +157,11 @@ func _run_smoke_test() -> void:
 				int(run_stats.get("eliminations")) == 0
 				and int(run_stats.get("run_score")) == 0
 				and int(run_stats.get("bp_earned")) == 0
+				and progression.balance == 110
+				and progression.best_score == 100
 				and is_equal_approx(float(run_stats.get("survival_seconds")), 0.0)
 			),
-			"retry resets run-only stats and rewards",
+			"retry resets run-only stats but keeps the banked wallet and best score",
 		)
 		and test_passed
 	)

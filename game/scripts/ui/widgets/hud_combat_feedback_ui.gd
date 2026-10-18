@@ -46,6 +46,16 @@ func clear_message() -> void:
 
 
 func layout_for(hud) -> void:
+	add_theme_stylebox_override(
+		"panel",
+		AegisTheme.panel_style(
+			Color(AegisTokens.PANEL, 0.94 * hud._hud_opacity),
+			AegisTokens.INFO,
+			1,
+			AegisTokens.RADIUS,
+			hud._to_layout(8.0)
+		)
+	)
 	var width: float = minf(hud._to_layout(272.0), hud.size.x - hud._to_layout(24.0))
 	HudLayout.place(
 		hud,

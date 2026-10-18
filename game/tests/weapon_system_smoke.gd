@@ -19,8 +19,13 @@ func _initialize() -> void:
 func _run_smoke_test() -> void:
 	var main_scene := MainScene.instantiate()
 	main_scene.set("start_wave_session_on_ready", false)
+	main_scene.get_node("ProgressionService").set("profile_path", "")
 	root.add_child(main_scene)
 	await process_frame
+	var progression := main_scene.get_node("ProgressionService") as ProgressionService
+	progression.balance = 500
+	var nova_unlocked := progression.unlock_weapon(&"nova_launcher")
+	var arc_unlocked := progression.unlock_weapon(&"arc_shooter")
 
 	var player: Node3D = main_scene.get_node("Player")
 	var weapon_controller: Node = player.get_node("WeaponController")
@@ -31,6 +36,12 @@ func _run_smoke_test() -> void:
 	var ammo_chip := controls.get("_touch_ammo_chip") as Control
 	var touch_ammo := ammo_chip.get("value_label") as Label
 	var test_passed := true
+	test_passed = (
+		_expect(
+			nova_unlocked and arc_unlocked, "fixture spends earned BP to unlock its test weapons"
+		)
+		and test_passed
+	)
 	test_passed = (
 		_expect(
 			weapon_meta.text.contains("24/24") and touch_ammo.text == "24/24",

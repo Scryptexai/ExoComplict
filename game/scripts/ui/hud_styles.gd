@@ -106,8 +106,13 @@ static func apply_fonts(hud) -> void:
 			AegisTheme.resize_button_font(
 				button, "title", maxi(roundi(hud._to_layout(14.0)), floor_size)
 			)
+		elif is_instance_valid(hud._armory_panel) and hud._armory_panel.is_ancestor_of(button):
+			AegisTheme.resize_button_font(
+				button, "title", maxi(roundi(hud._to_layout(15.0)), floor_size)
+			)
 		elif (
-			button == hud._defense_button
+			button == hud._armory_button
+			or button == hud._defense_button
 			or button == hud._results_retry_button
 			or button == hud._results_explore_button
 			or button == hud._pause_resume_button
@@ -123,7 +128,7 @@ static func apply_fonts(hud) -> void:
 	var icon_button_px := maxf(hud._to_layout(56.0), 32.0)
 	for icon_button in [hud._pause_button, hud._sound_button]:
 		if is_instance_valid(icon_button):
-			var width := (
+			var width: float = (
 				hud._to_layout(88.0) if icon_button == hud._pause_button else icon_button_px
 			)
 			icon_button.custom_minimum_size = Vector2(width, icon_button_px)
