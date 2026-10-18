@@ -57,12 +57,22 @@ func layout_for(hud) -> void:
 		)
 	)
 	var width: float = minf(hud._to_layout(272.0), hud.size.x - hud._to_layout(24.0))
-	HudLayout.place(
-		hud,
-		self,
-		0.5,
-		0.5,
-		0.5,
-		0.5,
-		Rect2(-width * 0.5, hud._to_layout(64.0), width, hud._to_layout(40.0))
-	)
+	if hud._touch_mode:
+		# The old centred toast crossed the hero and was *under* the enlarged
+		# EMP plate in a real 390x844 tap frame. The action row ends near y226;
+		# place brief feedback below it, to the left of the actor and controls.
+		var left := hud._to_layout(12.0 if hud._portrait else 20.0)
+		var top: float = hud._top_inset + hud._to_layout(196.0)
+		HudLayout.place(
+			hud, self, 0.0, 0.0, 0.0, 0.0, Rect2(left, top, width, hud._to_layout(40.0))
+		)
+	else:
+		HudLayout.place(
+			hud,
+			self,
+			0.5,
+			0.5,
+			0.5,
+			0.5,
+			Rect2(-width * 0.5, hud._to_layout(64.0), width, hud._to_layout(40.0))
+		)

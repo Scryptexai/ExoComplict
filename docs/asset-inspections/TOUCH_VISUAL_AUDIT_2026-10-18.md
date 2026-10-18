@@ -67,6 +67,12 @@ Ukur piksel putih **yang benar-benar dirender di dalam tile** (ambang RGB >190, 
 
 Tetapi [frame ADS](qa-frames/touch-stage33-ads-overlap.png) membuktikan **EMP di x176..272/y552..648 menutupi sebagian senapan yang sedang dipegang hero**; foto ini menolak penempatan tersebut walau semua tes input lulus. Stage34 memindahkan EMP ke baris atas x176..272/y446..542 dan ring cooldown ikut pindah. Ini harus dibuktikan lagi dengan frame ADS **build stage34** dan tap EMP baru. Screenshot freeze tembakan stage32 juga masih hanya glint pendek di bahu, belum kualitas VFX yang diminta.
 
+### Stage34: perbaikan posisi dibuktikan, lalu toast ditemukan menabrak ikon
+
+Sumber `4240e8a`, payload `54d3c05`, CI `39153694141` sukses. [Explore portrait setelah EMP pindah](qa-frames/touch-stage34-portrait.png) dan [ADS ditahan](qa-frames/touch-stage34-ads-unblocked.png) memperlihatkan tile EMP di baris atas, **tidak lagi menggambar di atas lokasi senapan** seperti [frame stage33 yang ditolak](qa-frames/touch-stage33-ads-overlap.png). Pose senapan sendiri masih sebagian teroklusi oleh tubuh dari sudut kamera: ini tidak boleh dilaporkan sebagai animasi senjata yang lulus artistik.
+
+Sentuhan nyata pada EMP di pusat **(224,494)** memunculkan cooldown/`EMP PULSE · NO TARGETS` [frame ini](qa-frames/touch-stage34-emp-toast-overlap.png); menekan WEAPON di **(330,494)** membuka [Armory yang terbaca](qa-frames/touch-stage34-weapon-armory.png). Tetapi toast status masih di tengah y486, **bertabrakan dengan hero dan berada di bawah tile EMP**. Itu cacat visual baru yang ditemukan dari foto, bukan dari log. Kandidat stage35 memindahkannya tepat di bawah START/ARMORY sekitar y238 untuk layar sentuh; wajib ulang foto tap EMP sebelum dianggap selesai.
+
 ## Stage 22: pembuktian asset FBX di dunia yang benar-benar dirender
 
 Source `db0e483`, payload `4fab8da`, CI `39144895197` sukses (Godot 19/19, static, ekspor Web). **Bukti di sini adalah gambar permainan, bukan hasil test.** Dalam build WebGL root yang sama, F10 mengaktifkan kamera review dan membekukan simulasi; tombol 1 memilih arena atau 4 memilih extraction; F9 hanya membalik visibility root dari instance GLB konversi *FBX unggahan* (grup `uploaded_fbx_visual`, **310 instance**), sementara kamera, objek prosedural, pencahayaan dan collision tidak diganti. Tombol F9 kedua mengembalikan semuanya; keluar tur juga selalu memulihkan semuanya.
