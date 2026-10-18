@@ -187,7 +187,9 @@ static func touch_portrait(hud) -> void:
 	_place_button(hud, hud._aim_button, 12.0, 196.0, 96.0, 96.0)
 	_place_button(hud, hud._skill_button, 118.0, 302.0, 96.0, 96.0)
 	_place_button(hud, hud._weapon_button, 12.0, 302.0, 96.0, 96.0)
-	_place_button(hud, hud._touch_ammo_chip, 266.0, 236.0, 112.0, 54.0)
+	# The old left ammo chip crossed the hero's hip/arm in the 390x844 ADS
+	# screenshot. Attach weapon data ABOVE the right-hand weapon action.
+	_place_button(hud, hud._touch_ammo_chip, 12.0, 408.0, 112.0, 54.0)
 	_place(
 		hud._skill_ring,
 		1,
