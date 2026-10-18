@@ -49,9 +49,12 @@ func _physics_process(delta: float) -> void:
 			var direction := offset / distance
 			if distance <= detection_range:
 				rotation.y = atan2(-direction.x, -direction.z)
-				if distance > attack_range or not _has_line_of_sight():
+				# Don't chase straight through the player's capsule when a nearby
+				# prop blocks the sight ray. Stop at melee distance; physical
+				# collision with layer 4 keeps the target outside the rifle barrel.
+				if distance > attack_range:
 					desired_velocity = direction * move_speed
-				elif _attack_cooldown <= 0.0:
+				elif _has_line_of_sight() and _attack_cooldown <= 0.0:
 					_attack_target()
 
 	var horizontal_velocity := Vector3(velocity.x, 0.0, velocity.z)

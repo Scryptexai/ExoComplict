@@ -171,6 +171,22 @@ func _run() -> void:
 			),
 			"the first Runner uses a visible front lane when a clear one exists",
 		)
+	var flank_marker := wave.call("_choose_intro_flank_marker", valid_spawns) as Marker3D
+	_expect(flank_marker != null, "the second intro Runner has a clear, forward flank")
+	if flank_marker != null:
+		var from_player := flank_marker.global_position - player.global_position
+		from_player.y = 0.0
+		var forward := -camera.global_basis.z
+		forward.y = 0.0
+		var alignment := forward.normalized().dot(from_player.normalized())
+		_expect(
+			(
+				alignment > 0.0
+				and alignment < float(wave.get("camera_front_dot_threshold"))
+				and bool(wave.call("_has_player_sight_line", flank_marker.global_position))
+			),
+			"intro flank remains visible without stacking both enemies on the center ray",
+		)
 
 	# End a run using the visible pause action, not a test-only director call.
 	# Simulated earned BP represents the reward granted by real wave/kill signals.

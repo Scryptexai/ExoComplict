@@ -269,10 +269,18 @@ func _choose_valid_spawn_marker() -> Marker3D:
 	# First contact should teach the player to fight the wave they *chose* to
 	# start, not backstab an idle camera. Use the clearest front-facing lane for
 	# the first Runner if one exists; later enemies retain varied flank entries.
-	if intro_front_spawn and current_wave == 1 and enemies_spawned_this_wave == 0:
-		var intro_marker := _choose_intro_marker(valid_markers)
-		if intro_marker != null:
-			return intro_marker
+	if intro_front_spawn and current_wave == 1:
+		if enemies_spawned_this_wave == 0:
+			var intro_marker := _choose_intro_marker(valid_markers)
+			if intro_marker != null:
+				return intro_marker
+		elif enemies_spawned_this_wave == 1:
+			# The tutorial flank used to be chosen from *any* offscreen marker,
+			# including blocked lanes where the only remaining Runner could stall
+			# behind reactor cover. A visible, clear side lane is more teachable.
+			var flank_marker := _choose_intro_flank_marker(valid_markers)
+			if flank_marker != null:
+				return flank_marker
 	var candidates := preferred_markers if not preferred_markers.is_empty() else valid_markers
 	return candidates[_rng.randi_range(0, candidates.size() - 1)]
 
@@ -292,6 +300,33 @@ func _choose_intro_marker(markers: Array[Marker3D]) -> Marker3D:
 			continue
 		var alignment := camera_forward.dot(to_spawn.normalized())
 		if alignment > best_alignment and _has_player_sight_line(marker.global_position):
+			best = marker
+			best_alignment = alignment
+	return best
+
+
+## The second tutorial Runner enters from an unobstructed forward flank.
+## Later waves still use the varied offscreen spawn policy. Don't place it on
+## the first Runner's exact front ray or on a blind back route behind the player.
+func _choose_intro_flank_marker(markers: Array[Marker3D]) -> Marker3D:
+	if not is_instance_valid(_player_camera):
+		return null
+	var forward := -_player_camera.global_basis.z
+	forward.y = 0.0
+	forward = forward.normalized()
+	var best: Marker3D
+	var best_alignment := 0.0
+	for marker in markers:
+		var toward := marker.global_position - _player.global_position
+		toward.y = 0.0
+		if toward.length_squared() < 0.01:
+			continue
+		var alignment := forward.dot(toward.normalized())
+		if (
+			alignment > best_alignment
+			and alignment < camera_front_dot_threshold
+			and _has_player_sight_line(marker.global_position)
+		):
 			best = marker
 			best_alignment = alignment
 	return best
