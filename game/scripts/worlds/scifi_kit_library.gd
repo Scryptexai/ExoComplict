@@ -98,15 +98,15 @@ const SIZE := {
 ## Palette: cool dark plating contrasts with sparse warm route markers and
 ## cyan energy fixtures. Model-aware policy retains the user's FBX silhouettes.
 const COLORS := {
-	"orange": Color(0.95, 0.38, 0.13),
-	"steel": Color(0.42, 0.49, 0.55),
-	"steel_light": Color(0.52, 0.58, 0.63),
-	"panel": Color(0.27, 0.34, 0.41),
-	"trim": Color(0.16, 0.21, 0.27),
-	"floor": Color(0.27, 0.32, 0.38),
-	"floor_alt": Color(0.22, 0.26, 0.32),
-	"glass": Color(0.35, 0.78, 0.92),
-	"light": Color(0.62, 0.93, 1.0),
+	"orange": Color(0.82, 0.35, 0.14),
+	"steel": Color(0.34, 0.4, 0.45),
+	"steel_light": Color(0.43, 0.49, 0.53),
+	"panel": Color(0.24, 0.3, 0.36),
+	"trim": Color(0.15, 0.2, 0.25),
+	"floor": Color(0.25, 0.29, 0.34),
+	"floor_alt": Color(0.21, 0.25, 0.3),
+	"glass": Color(0.22, 0.59, 0.72),
+	"light": Color(0.34, 0.73, 0.84),
 }
 
 ## Per-model policy, because the pack's material names are not reliable on their
@@ -203,7 +203,7 @@ static func material(color_key: String) -> StandardMaterial3D:
 			material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			material.emission_enabled = true
 			material.emission = COLORS.light
-			material.emission_energy_multiplier = 1.5
+			material.emission_energy_multiplier = 0.95
 		"orange":
 			material.albedo_color = COLORS.orange
 			material.metallic = 0.05

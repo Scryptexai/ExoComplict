@@ -4,7 +4,7 @@
 >
 > **Ini bukan perubahan target platform.** Android tetap target rilis; pipeline produksi tetap Godot + Blender di mesin dev. Web hanya dipakai sebagai jendela review UI/UX + gameplay supaya iterasi tidak menunggu instalasi toolchain.
 >
-> **18 Okt 2026 — review iterasi:** `index.html` di root dan server statis tetap berlaku. Run Godot CI `39095446580` untuk sumber `d8f834b` lulus semua job; payload tersimpan di commit `cafadb2`. QA nyata pada payload itu: `exports/qa-relight-d8f/` (tiga ukuran layar, Explore aman + tombol B menuju countdown) dan `exports/qa-defense-d8f/root-844x390-defense-started.png` (**Defense sungguh terlihat**, log `Encounter: Defense started`, HUD `WAVE 01`). Ini belum memverifikasi eliminasi wave/Results lewat browser, ataupun Android. Sumber visual/GLB yang lebih baru harus diekspor dan ditinjau ulang; **jangan menyamakan keberhasilan job dengan persetujuan estetika**.
+> **18 Okt 2026 — review iterasi:** `index.html` di root dan server statis tetap berlaku. Payload `15acb46` memuat GLB Blender side-fall `a6a08e9` dan perubahan combat/HUD `8104b78`; Chromium lokal memverifikasi `exports/qa-cac-prep/` (**3/3** viewport boot, Explore aman → Preparing) dan `exports/qa-cac-defense/root-844x390-defense-started.png` (**1/1** 844×390 Defense sungguh terlihat: log `Encounter: Defense started`, HUD `WAVE 01`). CI Godot `39102619493` untuk source berikutnya `6caa252` lulus **17/17** smoke termasuk tes tulang kaki aim-walk/run dan side-fall setelah crossfade; perubahan palet selanjutnya harus diekspor dan direview sendiri. QA ini belum membuktikan Results lewat browser, kualitas motion di gameplay, persetujuan estetika, ataupun Android nyata. **Jangan samakan keberhasilan job dengan sign-off visual.**
 >
 > **Status verifikasi (baseline lama di bawah ini):** seluruh wiring statis sudah diperiksa (`tools/web_preset.py check`, `tools/project_doctor.py` → 0 FAIL, 22 unit test). Ekspor Web nyata sudah berhasil di CI (run `38919299364`, job `web-preview` hijau). Hasil terukur:
 
@@ -165,7 +165,7 @@ Artinya build Android tetap memakai renderer `mobile` (sesuai `PROJECT_DECISIONS
 - **Single-thread.** Build ini tidak memakai `Thread` Godot; jangan menilai audio latency atau paralelisme dari preview.
 - **Ukuran unduhan.** WebAssembly engine + pack biasanya beberapa puluh MB; muat pertama lambat, berikutnya ter-cache.
 - **Bukan jalur distribusi.** Ini alat review. Publikasi tetap: Godot → GLB/PCK → Android (APK/AAB).
-- **Bukti browser terbatas per payload.** Pada payload `cafadb2`, tiga ukuran layar memverifikasi Explore/Preparing dan 844×390 mencapai Defense dengan log + frame. Frame relight saat itu masih terlalu rata/biru; revisi sesudah `cafadb2` belum tercakup oleh bukti tersebut. Belum ada verifikasi Results dan animasi gameplay baru lewat browser; Android nyata tetap terpisah.
+- **Bukti browser terbatas per payload.** Pada payload `15acb46` yang memuat GLB side-fall, tiga ukuran layar memverifikasi Explore/Preparing dan 844×390 mencapai Defense dengan log + frame. Pencahayaan reaktor/ground masih terlalu terang-merata/biru dan belum disetujui secara visual. Belum ada verifikasi Results atau motion death penuh lewat browser; smoke Godot yang menggerakkan mixer per frame bukan pengganti video gameplay. Android nyata tetap terpisah.
 
 ## 7. Troubleshooting
 

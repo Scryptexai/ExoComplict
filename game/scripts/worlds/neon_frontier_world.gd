@@ -56,18 +56,20 @@ func _ready() -> void:
 
 func _create_materials() -> void:
 	_materials = {
-		"ground": _make_material(Color(0.29, 0.34, 0.4), 0.04, 0.9),
-		"ground_light": _make_material(Color(0.37, 0.43, 0.49), 0.06, 0.84),
-		"ground_rose": _make_material(Color(0.31, 0.33, 0.41), 0.05, 0.88),
-		"silver": _make_material(Color(0.43, 0.52, 0.59), 0.56, 0.43),
-		"pearl": _make_material(Color(0.68, 0.77, 0.82), 0.15, 0.5),
-		"ceramic": _make_material(Color(0.52, 0.64, 0.73), 0.23, 0.5),
+		# Slate metal should read as material under the cool key, not a single
+		# saturated cornflower-blue expanse. Warm signals stay sparse on the lane.
+		"ground": _make_material(Color(0.26, 0.3, 0.34), 0.04, 0.9),
+		"ground_light": _make_material(Color(0.32, 0.37, 0.41), 0.06, 0.84),
+		"ground_rose": _make_material(Color(0.29, 0.3, 0.35), 0.05, 0.88),
+		"silver": _make_material(Color(0.36, 0.43, 0.48), 0.56, 0.43),
+		"pearl": _make_material(Color(0.58, 0.65, 0.7), 0.15, 0.5),
+		"ceramic": _make_material(Color(0.43, 0.52, 0.58), 0.23, 0.5),
 		"blue": _make_material(Color(0.06, 0.18, 0.36), 0.46, 0.4),
 		"deep_blue": _make_material(Color(0.025, 0.09, 0.21), 0.5, 0.44),
-		"cyan": _make_emissive(Color(0.02, 0.69, 0.9), 1.1),
-		"turquoise": _make_emissive(Color(0.015, 0.76, 0.67), 0.9),
-		"green": _make_emissive(Color(0.13, 0.72, 0.42), 0.9),
-		"yellow": _make_emissive(Color(1.0, 0.66, 0.035), 0.55),
+		"cyan": _make_emissive(Color(0.02, 0.56, 0.73), 0.82),
+		"turquoise": _make_emissive(Color(0.015, 0.62, 0.55), 0.72),
+		"green": _make_emissive(Color(0.13, 0.64, 0.4), 0.75),
+		"yellow": _make_emissive(Color(0.9, 0.54, 0.065), 0.43),
 		"orange": _make_emissive(Color(1.0, 0.27, 0.04), 0.9),
 		"red": _make_emissive(Color(0.98, 0.05, 0.06), 1.0),
 		"dark_trim": _make_material(Color(0.11, 0.18, 0.2), 0.66, 0.38),
@@ -1357,7 +1359,7 @@ func _build_lighting_and_atmosphere() -> void:
 	# procedural sky is dark. An authored slate-blue fill keeps shade lanes and
 	# the player silhouette readable without restoring the old white washout.
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color(0.45, 0.57, 0.7)
+	environment.ambient_light_color = Color(0.45, 0.53, 0.63)
 	environment.ambient_light_energy = 0.62
 	environment.reflected_light_source = Environment.REFLECTION_SOURCE_BG
 	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
