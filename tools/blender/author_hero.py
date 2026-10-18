@@ -47,10 +47,17 @@ def bounds(objects):
 
 
 def inspect_actions(arm):
-    actions = {name: bpy.data.actions.get(name) for name in REQUIRED}
-    missing = [name for name, action in actions.items() if action is None]
-    if missing:
-        raise RuntimeError(f"Hero import is missing existing animations {missing}; present: {[a.name for a in bpy.data.actions]}")
+    # Blender's glTF importer appends the target armature name to imported
+    # action names ("aim_Armature", etc.). Resolve that relationship explicitly
+    # rather than treating the original five GLB clips as absent.
+    actions = {}
+    for name in REQUIRED:
+        choices = [action for action in bpy.data.actions
+                   if action.name == name or action.name == f"{name}_{arm.name}"]
+        if len(choices) != 1:
+            raise RuntimeError(f"Cannot resolve imported {name!r} action: {[a.name for a in bpy.data.actions]}")
+        choices[0].name = name
+        actions[name] = choices[0]
     if arm.animation_data is None:
         arm.animation_data_create()
     return actions
