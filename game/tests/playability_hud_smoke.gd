@@ -778,6 +778,9 @@ func _run_smoke_test() -> void:
 	main_scene.call("_process", 0.75)
 	_expect(not results_panel.visible, "Results do not cut off the middle of the death clip")
 	main_scene.call("_process", 0.9)
+	_expect(not results_panel.visible, "the final death pose survives its first render frame")
+	for _frame in 10:
+		await process_frame
 	_expect(
 		(
 			results_panel.visible

@@ -10,6 +10,7 @@ const RunStatsScript = preload("res://scripts/progression/run_stats.gd")
 const RewardServiceScript = preload("res://scripts/progression/reward_service.gd")
 const ProgressionServiceScript = preload("res://scripts/progression/progression_service.gd")
 const DEFEAT_REVEAL_SECONDS := 1.55
+const DEFEAT_HOLD_DRAWN_FRAMES := 6
 
 ## Test/authoring override only. The shipped scene starts in safe Explore; the
 ## player must explicitly choose Defense before the WaveDirector can run.
@@ -24,6 +25,8 @@ var _is_paused: bool = false
 var _base_look_sensitivity: float = 0.0
 var _defeat_reveal_remaining: float = 0.0
 var _pending_defeat_wave: int = -1
+var _defeat_hold_drawn_at: int = -1
+var _defeat_hold_process_at: int = -1
 
 @onready var player: PlayerControllerScript = $Player
 @onready var training_drone: TrainingDroneScript = $TrainingDrone
@@ -109,9 +112,21 @@ func _process(delta: float) -> void:
 	if _pending_defeat_wave >= 0:
 		_defeat_reveal_remaining = maxf(_defeat_reveal_remaining - delta, 0.0)
 		if _defeat_reveal_remaining <= 0.0:
-			var completed_wave := _pending_defeat_wave
-			_pending_defeat_wave = -1
-			_present_results(completed_wave)
+			if _defeat_hold_drawn_at < 0:
+				_defeat_hold_drawn_at = Engine.get_frames_drawn()
+				_defeat_hold_process_at = Engine.get_process_frames()
+			# Time alone is not enough on a slow WebGL canvas: the entire 1.2 s
+			# Blender fall can be simulated between two visible frames. Hold its
+			# final pose for a few actual rendered frames before covering it.
+			var drawn := Engine.get_frames_drawn() - _defeat_hold_drawn_at
+			var simulated := Engine.get_process_frames() - _defeat_hold_process_at
+			if (
+				drawn >= DEFEAT_HOLD_DRAWN_FRAMES
+				or (Engine.get_frames_drawn() == 0 and simulated >= DEFEAT_HOLD_DRAWN_FRAMES)
+			):
+				var completed_wave := _pending_defeat_wave
+				_pending_defeat_wave = -1
+				_present_results(completed_wave)
 	if session_mode == SessionMode.PREPARING:
 		var before := ceili(_preparation_remaining)
 		_preparation_remaining = maxf(_preparation_remaining - delta, 0.0)
@@ -273,6 +288,8 @@ func _return_to_explore() -> void:
 	_preparation_remaining = 0.0
 	_pending_defeat_wave = -1
 	_defeat_reveal_remaining = 0.0
+	_defeat_hold_drawn_at = -1
+	_defeat_hold_process_at = -1
 	_retry_defense = false
 	wave_director.reset_session()
 	player.reset_player()

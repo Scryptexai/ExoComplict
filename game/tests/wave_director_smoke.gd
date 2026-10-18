@@ -268,7 +268,14 @@ func _run_smoke_test() -> void:
 	)
 	main_scene.call("_process", 1.6)
 	test_passed = (
-		_expect(results.visible, "Results follows the full death reveal") and test_passed
+		_expect(not results.visible, "the fallen pose is not covered on its first render frame")
+		and test_passed
+	)
+	for _frame in 10:
+		await process_frame
+	test_passed = (
+		_expect(results.visible, "Results follows the full death reveal and rendered pose")
+		and test_passed
 	)
 
 	main_scene.call("_reset_session")
