@@ -1,6 +1,6 @@
 # Realistic / higher-detail 3D asset research
 
-**Review date:** 2026-10-16  
+**Review date:** 2026-10-18
 **Status:** research only — no candidate in this review is integrated into a gameplay scene. The Kenney low-poly candidates remain unreferenced. PNGs linked below are source previews only; the in-game candidates are 3D model files, not static images.
 
 The current world direction is stylized-realistic sci-fi and must remain a component-based 3D world. This review prioritizes actual `.glb` files, identifiable provenance, license evidence, and mobile suitability. Candidate GLBs were downloaded into the ignored local `.cache/asset-research/` folder for structural/visual inspection only; they were not added to `game/` or the Android resource graph.
@@ -33,15 +33,15 @@ The [OpenGameArt page](https://opengameart.org/content/sci-fi-environment-pack) 
 - **Polygonal Mind “aero-system”**: a real CC0 GitHub GLB collection with a station, airship, doors, paths, and pads. Preview inspection shows a chunky, strongly stylized/neon look; it does not meet the requested more-realistic direction, so it is not proposed for integration.
 - **Khronos “DamagedHelmet” sample**: visually detailed, but its model license documents both CC-BY-4.0 and CC-BY-NC-4.0 provenance for the original asset. Avoid it for this game unless the rights holder clarifies commercial rights.
 
-## Follow-up free-only research (2026-10-16)
+## Follow-up free-only research (2026-10-16; updated 2026-10-18)
 
 The selected direction is free-only research. NASA, Kenney, and paid packs are not integration candidates under the current selection.
 
-### Candidate D — CreepyCat “3D Scifi Starter Kit Free” (best visual/provenance fit so far; FBX, not GLB)
+### Candidate D — CreepyCat “3D Scifi Starter Kit Free” (user-selected for FBX evaluation; style and integration pending)
 
-Sources: [free asset pack](https://blackcreepycat.itch.io/3d-scifi-starter-kit-free), [Godot 4.7 edition](https://blackcreepycat.itch.io/3d-scifi-starter-kit-for-godot-47), [official Unity Asset Store listing](https://assetstore.unity.com/packages/3d/environments/3d-scifi-kit-starter-kit-92152). CreepyCat is the original publisher, and the itch listings disclose no generative AI. The free pack is listed as 125 FBX files plus 100 PNG maps (diffuse, normal, AO, metallic), a 247 MB ZIP. Its stated free-pack terms permit personal/commercial use and editing, but prohibit redistribution/resale of the source assets. A separate 218 MB Godot 4.7 project edition is listed; its page identifies the same model/texture counts, and the creator confirms commercial game use while prohibiting resale of the source data.
+Sources: [free asset pack](https://blackcreepycat.itch.io/3d-scifi-starter-kit-free), [Godot 4.7 edition](https://blackcreepycat.itch.io/3d-scifi-starter-kit-for-godot-47), [Godot Asset Store edition](https://store.godotengine.org/asset/creepy-cat/scifi-starter-kit/), [Unity Asset Store listing](https://assetstore.unity.com/packages/3d/environments/3d-scifi-kit-starter-kit-92152), and the publisher’s [official GitHub profile](https://github.com/BlackCreepyCat). The GitHub profile has no official pack repository/release; no third-party copies were used. The itch listings disclose no generative AI. The free pack is listed as 125 FBX files plus 100 PNG maps (diffuse, normal, AO, metallic), a 247 MB ZIP. Its stated free-pack terms permit personal/commercial use and editing, but prohibit redistribution/resale of the source assets. A separate 218 MB Godot 4.7 project edition is listed; its page identifies the same model/texture counts, and the creator confirms commercial game use while prohibiting resale of the source data.
 
-The official gallery preview was inspected: a detailed, emissive industrial corridor with PBR-style surface maps. It is more considered and detailed than the rejected Kenney direction, though still stylized rather than photorealistic. The kit is modular, and the Godot-edition listing targets Godot 4.7, close to the project’s 4.7.2. **Blocker:** neither listing offers GLB; the stated mesh format is FBX. The original asset-store listing is tagged for mobile, but this pack’s actual draw calls, mesh totals, texture memory, and Android performance were not verified. Keep as a conditional option only if FBX import/use is approved; do not replace the project world with its demo scene.
+The official gallery preview was inspected: a detailed, emissive industrial corridor with PBR-style surface maps. The Godot Asset Store describes the models as low-poly with atlas maps and optimized for all platforms, so although the preview is more detailed than the rejected Kenney set, it remains a stylized/low-poly direction rather than photorealistic. The kit is modular, and the Godot-edition listing targets Godot 4.7, close to the project’s 4.7.2. **Format:** neither itch listing offers GLB; the stated mesh format is FBX. The creator’s store pages mention mobile/platform optimization, but this pack’s actual draw calls, mesh totals, texture memory, and Android performance were not verified. The user approved FBX for candidate evaluation; this is not final scene-integration approval. Do not replace the project world with its demo scene.
 
 ### Candidate E — Noah Maestre “Sci-Fi Space Station Interior Pack: Modular” (GLB/source-format and license not cleared)
 
@@ -61,6 +61,6 @@ Sources: [Sketchfab model](https://sketchfab.com/3d-models/sci-fi-space-station-
 
 ## Current gate before scene integration
 
-No free candidate has yet passed all required checks as a complete, Android-suitable GLB environment pack. The strongest artist-authored visual option is CreepyCat’s free PBR kit, but it is FBX-only. The strongest GLB pack lead is Noah Maestre’s, but its license statements conflict and its archive format is unknown. The small David W CG GLBs are only supplemental props. Keep the component-based 3D world unchanged until a candidate’s source, license, actual files, visual style, import, and mobile budget are verified and the user approves integration.
+No free candidate has yet passed all required checks as a complete, Android-suitable GLB environment pack. The user selected CreepyCat for FBX candidate evaluation only; this is not approval to integrate it. The official Godot Asset Store description calls the models low-poly, so its style still needs explicit acceptance given the rejected Kenney low-poly direction. The official free ZIP is not in the workspace; the user must upload it before its files, mesh/texture budgets, and Godot import can be audited. The strongest GLB pack lead is Noah Maestre’s, but its license statements conflict and its archive format is unknown. The small David W CG GLBs are only supplemental props. Keep the component-based 3D world unchanged until a candidate’s source, license, actual files, visual style, import, and mobile budget are verified and the user approves integration.
 
 No gameplay scenes or world components were changed during this research. No model archive was downloaded. Godot import/render and Android performance remain untested in this sandbox.
