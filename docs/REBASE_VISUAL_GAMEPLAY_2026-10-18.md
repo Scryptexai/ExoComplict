@@ -1,6 +1,8 @@
 # Re-baseline visual dan gameplay — 18 Oktober 2026
 
-**Status: AUDIT / BELUM DISETUJUI.** Dokumen ini bukan spesifikasi visual final dan **tidak menyatakan game sudah selesai**. Umpan balik terbaru menolak hasil visual AEGIS saat ini. Keberhasilan CI 16/16 smoke test dan QA boot/menu WASM 3/3 hanya membuktikan fungsi tertentu dapat berjalan; keduanya **bukan** bukti pencahayaan, animasi, feel senjata, ritme musuh, atau UI telah memenuhi standar game rilis. PR #1 tetap terbuka, tidak di-merge.
+**Status: ARAH DISETUJUI; IMPLEMENTASI DAN PENERIMAAN VISUAL BELUM SELESAI.** Pengguna memilih **relight bernuansa Warframe**, **hierarki HUD gameplay Destiny 2**, dan **Explore aman sebagai default → Defense dimulai sengaja oleh pemain**. Pilihan ini menyetujui arah, **bukan** frame final, animasi, atau polish. Temuan pada §1 di bawah adalah **baseline historis sebelum perubahan**; jangan membacanya sebagai status kode yang sudah diperbarui. Keberhasilan CI lama 16/16 dan QA boot/menu WASM lama 3/3 hanya membuktikan fungsi tertentu; bukan bukti kualitas visual. PR #1 tetap terbuka, tidak di-merge.
+
+**Perubahan dalam pengerjaan sesudah keputusan:** `main.gd` memisah Explore → Preparing (countdown) → Defense → Results dan HUD kontekstual; world runtime tidak lagi mereferensikan KayKit (paknya dikeluarkan dari `game/assets`), komponen arsitektur/perimeter memakai GLB konversi dari FBX unggahan, dan cahaya digeser ke palet cool key / warm path / cyan energy. Geometri prosedural masih dipakai untuk fondasi, jalur, detail, dan collision; karena itu **belum boleh diklaim seluruh world selesai sebagai FBX**. Smoke test/preview terbaru perlu diverifikasi sesudah perubahan dunia, sementara Blender hero, review animasi oleh manusia, dan QA Android nyata belum selesai.
 
 ## 1. Temuan pada build dan aset yang benar-benar ada
 
@@ -17,7 +19,7 @@
 
 ## 2. Referensi dari game sci-fi yang sudah dirilis — fakta vs usulan
 
-| Rujukan nyata (tautan sumber) | Yang dapat diverifikasi dari sumber | Penerjemahan ke proyek ini — **usulan, belum disetujui** |
+| Rujukan nyata (tautan sumber) | Yang dapat diverifikasi dari sumber | Penerjemahan saat audit (pilihan final dicatat §4) |
 |---|---|---|
 | **No Man’s Sky**: mode Creative untuk eksplorasi dan Survival untuk tantangan [2](https://www.nomanssky.com/foundation-update/); preset Relaxed dan pengaturan kesulitan saat bermain [1](https://www.nomanssky.com/waypoint-update/). | Pemain memilih tingkat tekanan; eksplorasi tidak harus identik dengan survival. | Pertimbangkan dua state jelas: **Explore** tanpa auto-wave dan **Defense Run** yang dimulai pemain, dengan exit/return yang terlihat. Detail pemicu dan mode default perlu keputusan pengguna. |
 | **Helldivers 2**: pilih misi, area turun, gear dan stratagem sebelum masuk misi; ada tujuan dan jenis misi berbeda [1](https://blog.playstation.com/2024/02/02/helldivers-2-hands-on-report-chaotic-co-op-and-empowering-stratagems/). | Pertempuran punya konteks dan persiapan sebelum hostile spawn. Ini **bukan** bukti bahwa Helldivers memiliki mode eksplorasi bebas. | Jika Survival dipilih, tampilkan briefing singkat → pilihan senjata → countdown/telegraph spawn → wave; jangan muncul musuh saat boot tanpa alasan. |
@@ -35,7 +37,7 @@
 
 **Batasan riset:** sumber di atas adalah game yang sudah dirilis dan dokumentasi/screenshot nyata; ini *bukan* lisensi menyalin aset, UI, merek, atau klaim bahwa angka desain Cyber-Strike telah diputuskan. Rujukan yang mirip secara estetis masih harus diuji dengan GLB/FBX milik pengguna, renderer Web Compatibility, dan target mobile. **Screenshot HUD combat Warframe yang diverifikasi belum ditemukan; tidak dipakai sebagai bukti UI.**
 
-## 3. Urutan kerja yang disarankan (belum implementasi)
+## 3. Urutan kerja dari audit (sebagian sudah mulai; verifikasi belum selesai)
 
 1. **Sepakati kontrak gameplay**: apakah boot masuk Explore aman, apa tindakan jelas untuk memulai Defense, apa yang terjadi saat berhenti/meninggalkan misi. Gate: diam/menjelajah 60 detik tanpa wave/damage; misi hanya memunculkan musuh setelah aktivasi; pemain melihat telegraph dan tujuan sebelum ancaman. Verifikasi melalui state test dan rekaman WASM.
 2. **Pilih referensi visual nyata, bukan token dulu**: 1–2 screenshot dari game rilis untuk *dunia*, 1 untuk *HUD*, dan 1 klip firing/reload. Buat frame A/B dari kamera, waktu, posisi dan exposure tetap; evaluasi bersama. Pertahankan paket FBX unggahan sebagai sumber utama; hilangkan KayKit/prosedural hanya setelah collision/rute pengganti lolos tes.
@@ -43,10 +45,9 @@
 4. **Redesain HUD dari hirarki mode**: Explore/Combat/Results berbeda; tombol mobile punya ikon **dan** label pada awal pembelajaran, lalu dapat dipadatkan setelah terbukti terbaca. Bandingkan tiga viewport yang sama; hapus data debug dari jalur utama kecuali QA overlay yang opt-in.
 5. **QA visual sebagai gate terpisah dari CI**: video/stills idle–lari–strafe–ADS–fire burst–reload–damage–death; screenshot world dengan cahaya/material yang disetujui, eksplorasi aman, start encounter, shooter cover/flank, wave/results; cek 1280×720, 390×844, 844×390. Smoke Godot + boot Web tetap wajib, tetapi **tidak cukup**. Perangkat Android nyata ditandai belum diuji hingga tersedia.
 
-## 4. Keputusan pengguna yang masih dibutuhkan
+## 4. Keputusan pengguna dan gerbang penerimaan
 
-- Sebutkan 1–2 game rilis atau tautan/screenshot yang **paling mendekati tampilan dunia dan HUD** yang Anda inginkan. Opsi riset di atas bukan pilihan otomatis saya.
-- Ketika membuka preview, pilih alur: **Explore aman sebagai default** lalu mulai Defense melalui tombol/terminal; atau **pilih mode dari menu depan**; atau alur lain yang Anda maksud.
-- Jika ada file konsep animasi/visual lain di luar `ANIMATION_CHARACTER.txt`, `GAME_CONCEPT.md`, `GAME_OVERVIEW.md`, dan tujuh board AEGIS, tunjukkan jalurnya agar tidak ada yang terlewat.
-
-Sampai keputusan ini jelas, arah AEGIS lama diperlakukan sebagai baseline teknis yang **perlu dievaluasi ulang**, bukan kualitas visual yang telah diterima.
+- **Dunia:** relight mengacu pada hierarki cahaya/pathing Warframe, bukan penyalinan gambar, aset, atau satu LUT. Bandingkan frame lama dan baru di kamera sama; renderer Web Compatibility tidak memberikan GI/volumetrik kelas desktop.
+- **HUD:** hirarki objective/aksi kontekstual ala gameplay Destiny 2; Explore menampilkan tujuan jelas tanpa statistik run yang menguasai pemandangan, Defense baru menampilkan wave/ancaman.
+- **Alur:** saat membuka game, Explore aman tanpa wave otomatis. Tindakan START DEFENSE/B memasuki countdown sebelum wave pertama. Hasil menyediakan RETRY DEFENSE **atau** EXPLORE; spawn-blocked harus kembali aman. Tes state dan QA WASM harus memverifikasi ini.
+- **Belum disetujui:** pencahayaan hasil, siluet/material world, rasa tembak/animasi, tampilan HUD di perangkat, kualitas hasil akhir. Dokumen animasi wajib yang tersedia adalah `ANIMATION_CHARACTER.txt`; klaim lulus Blender/Android memerlukan bukti nyata, bukan sekadar tes headless. AEGIS lama tetap baseline teknis saja.

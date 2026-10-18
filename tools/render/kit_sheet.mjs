@@ -7,7 +7,7 @@
  * at a fixed framing through headless Chromium (SwiftShader), so the layout can
  * be decided by looking at the actual geometry.
  *
- *   node tools/render/kit_sheet.mjs --dir game/assets/world/kaykit_space_base_bits/gltf
+ *   node tools/render/kit_sheet.mjs --dir game/assets/world/scifi_starter_kit/models
  *   node tools/render/kit_sheet.mjs --out exports/kit-sheet --size 360
  *
  * Writes <out>/<model>.png plus <out>/sheet.json (bounds per model).
@@ -28,7 +28,7 @@ const flag = (name, def) => {
   return i === -1 ? def : argv[i + 1];
 };
 
-const assetDir = flag('--dir', 'game/assets/world/kaykit_space_base_bits/gltf');
+const assetDir = flag('--dir', 'game/assets/world/scifi_starter_kit/models');
 const outDir = path.resolve(ROOT, flag('--out', 'exports/kit-sheet'));
 const size = Number(flag('--size', '320'));
 const only = flag('--only', '');
@@ -38,11 +38,11 @@ const only = flag('--only', '');
 const models = fs
   .readdirSync(path.join(ROOT, assetDir))
   .filter((f) => f.endsWith('.gltf') || f.endsWith('.glb'))
-  .filter((f) => !only || only.split(',').includes(path.basename(f).replace(/\.gl[b]?tf?$/, '')))
-  .map((f) => ({ name: path.basename(f).replace(/\.gl[b]?tf?$/, ''), file: f }))
+  .filter((f) => !only || only.split(',').includes(path.basename(f).replace(/\.(?:gltf|glb)$/i, '')))
+  .map((f) => ({ name: path.basename(f).replace(/\.(?:gltf|glb)$/i, ''), file: f }))
   .sort();
 if (!models.length) {
-  console.error('no .gltf files found in ' + assetDir);
+  console.error('no .gltf/.glb models found in ' + assetDir);
   process.exit(2);
 }
 

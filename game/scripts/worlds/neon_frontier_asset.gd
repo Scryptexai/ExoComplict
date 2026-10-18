@@ -1,7 +1,7 @@
 @tool
 extends Node3D
 
-const GltfAssetLibrary = preload("res://scripts/worlds/gltf_asset_library.gd")
+const ScifiBayBuilder = preload("res://scripts/worlds/scifi_bay_builder.gd")
 
 @export_enum(
 	"reactor_core",
@@ -70,14 +70,14 @@ func _ready() -> void:
 
 func _create_materials() -> void:
 	_materials = {
-		"silver": _make_material(Color(0.65, 0.74, 0.79), 0.78, 0.28),
-		"pearl": _make_material(Color(0.88, 0.91, 0.88), 0.22, 0.34),
-		"ceramic": _make_material(Color(0.72, 0.82, 0.83), 0.32, 0.42),
-		"blue": _make_material(Color(0.07, 0.24, 0.56), 0.48, 0.3),
-		"deep_blue": _make_material(Color(0.035, 0.12, 0.31), 0.58, 0.25),
-		"cyan": _make_emissive(Color(0.03, 0.78, 0.96), 1.7),
-		"turquoise": _make_emissive(Color(0.02, 0.94, 0.79), 1.35),
-		"emerald": _make_emissive(Color(0.1, 0.88, 0.39), 1.4),
+		"silver": _make_material(Color(0.43, 0.52, 0.59), 0.56, 0.43),
+		"pearl": _make_material(Color(0.68, 0.77, 0.82), 0.15, 0.5),
+		"ceramic": _make_material(Color(0.52, 0.64, 0.73), 0.23, 0.5),
+		"blue": _make_material(Color(0.06, 0.18, 0.36), 0.46, 0.4),
+		"deep_blue": _make_material(Color(0.025, 0.09, 0.21), 0.5, 0.44),
+		"cyan": _make_emissive(Color(0.02, 0.69, 0.9), 1.1),
+		"turquoise": _make_emissive(Color(0.015, 0.76, 0.67), 0.9),
+		"emerald": _make_emissive(Color(0.1, 0.72, 0.39), 0.9),
 		"yellow": _make_emissive(Color(1.0, 0.66, 0.035), 0.55),
 		"orange": _make_emissive(Color(1.0, 0.27, 0.035), 0.95),
 		"red": _make_emissive(Color(0.98, 0.045, 0.055), 1.25),
@@ -595,86 +595,33 @@ func _build_equipment_depot() -> void:
 		true
 	)
 
-	var depot_model := GltfAssetLibrary.instantiate_model("cargodepot_A")
-	if depot_model != null:
-		depot_model.name = "KayKitCargoDepot"
-		depot_model.position = Vector3(-3.6, 0.4, 0.0)
-		depot_model.scale = Vector3.ONE * 4.2
-		add_child(depot_model)
-		GltfAssetLibrary.add_bounds_collider(depot_model, "KayKitCargoDepotCollision", 0.9)
-	else:
-		_box(
-			"DepotMainContainer",
-			Vector3(-3.6, 2.2, 0.0),
-			Vector3(9.4, 3.6, 9.0),
-			_materials["blue"],
-			Vector3.ZERO,
-			true
-		)
-		_box(
-			"DepotSideContainer",
-			Vector3(4.5, 1.8, -1.4),
-			Vector3(7.2, 2.8, 7.4),
-			_materials["pearl"],
-			Vector3.ZERO,
-			true
-		)
-		_box("DepotCanopy", Vector3(0.0, 4.35, 2.0), Vector3(14.0, 0.35, 6.4), _materials["yellow"])
-		_box(
-			"DepotCanopyBeamFront",
-			Vector3(0.0, 4.05, 5.15),
-			Vector3(14.0, 0.26, 0.28),
-			_materials["copper"]
-		)
-		_box(
-			"DepotDoor", Vector3(-3.6, 1.5, 4.57), Vector3(3.2, 2.7, 0.18), _materials["dark_trim"]
-		)
-		_box("DepotDoorPanel", Vector3(-3.6, 1.6, 4.7), Vector3(2.55, 2.0, 0.1), _materials["cyan"])
-		for rib in range(7):
-			_box(
-				"DepotContainerRib_%02d" % rib,
-				Vector3(-7.7 + rib * 1.35, 2.2, 4.58),
-				Vector3(0.12, 3.2, 0.16),
-				_materials["silver"]
-			)
-		_box(
-			"DepotOverheadRail",
-			Vector3(2.0, 6.3, 0.0),
-			Vector3(0.3, 0.3, 10.0),
-			_materials["silver"]
-		)
-		_link_cylinder(
-			"DepotLiftCable",
-			Vector3(2.0, 6.1, 1.2),
-			Vector3(2.0, 4.3, 1.2),
-			0.08,
-			_materials["dark_trim"]
-		)
-		_box("DepotRepairArm", Vector3(2.0, 3.9, 1.2), Vector3(2.1, 0.3, 0.3), _materials["cyan"])
+	ScifiBayBuilder.place(
+		self,
+		"wall_cube",
+		"SciFiEquipmentDepotFacade",
+		Vector3(-3.6, 0.4, 0.0),
+		90.0,
+		1.85,
+		true,
+		true
+	)
+	ScifiBayBuilder.place(
+		self, "doorway", "SciFiEquipmentDepotAccess", Vector3(-3.6, 0.4, 5.2), 0.0, 1.3, false, true
+	)
 
 	for crate_index in range(4):
 		var crate_x := 7.0 + float(crate_index % 2) * 1.7
 		var crate_z := 3.1 + float(crate_index / 2) * 1.6
-		var cargo_name := "cargo_A_stacked" if crate_index % 2 == 0 else "cargo_B_stacked"
-		var cargo_model := GltfAssetLibrary.instantiate_model(cargo_name)
-		if cargo_model != null:
-			cargo_model.name = "KayKitDepotCargo_%02d" % crate_index
-			cargo_model.position = Vector3(crate_x, 0.04, crate_z)
-			cargo_model.scale = Vector3.ONE * 1.42
-			add_child(cargo_model)
-		else:
-			_box(
-				"DepotFieldCrate_%02d" % crate_index,
-				Vector3(crate_x, 0.72, crate_z),
-				Vector3(1.35, 1.4, 1.35),
-				_materials["copper"]
-			)
-			_box(
-				"DepotCrateBand_%02d" % crate_index,
-				Vector3(crate_x, 0.72, crate_z + 0.72),
-				Vector3(1.1, 0.16, 0.06),
-				_materials["yellow"]
-			)
+		ScifiBayBuilder.place(
+			self,
+			"crate",
+			"SciFiEquipmentSupply_%02d" % crate_index,
+			Vector3(crate_x, 0.4, crate_z),
+			float(crate_index) * 90.0,
+			1.2,
+			false,
+			true
+		)
 	_add_bolts("DepotFoundation", Vector3.ZERO, Vector2(8.8, 5.8), 0.42, _materials["dark_trim"])
 
 
@@ -1150,12 +1097,21 @@ func _build_landing_pad() -> void:
 			Vector3(2.0, 0.12, 0.18),
 			_materials["cyan"]
 		)
-	var kaykit_landing_pad := GltfAssetLibrary.instantiate_model("landingpad_large")
-	if kaykit_landing_pad != null:
-		kaykit_landing_pad.name = "KayKitLandingPadSurface"
-		kaykit_landing_pad.position = Vector3(0.0, 0.72, 0.0)
-		kaykit_landing_pad.scale = Vector3(8.4, 0.55, 8.4)
-		add_child(kaykit_landing_pad)
+	# Six uploaded FBX floor modules form the playable pad surface. The ramp,
+	# safety markings and deck collision remain separate so traversal is stable.
+	for tile_x in range(3):
+		for tile_z in range(2):
+			var key := "floor_alt" if (tile_x + tile_z) % 2 == 0 else "floor"
+			ScifiBayBuilder.place(
+				self,
+				key,
+				"SciFiLandingDeck_%d_%d" % [tile_x, tile_z],
+				Vector3((float(tile_x) - 1.0) * 8.9, 0.745, (float(tile_z) - 0.5) * 8.9),
+				90.0,
+				1.65,
+				false,
+				false
+			)
 
 	_add_bolts("LandingPadDeck", Vector3.ZERO, Vector2(14.0, 10.0), 0.73, _materials["dark_trim"])
 

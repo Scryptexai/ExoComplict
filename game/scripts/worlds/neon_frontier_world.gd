@@ -1,8 +1,7 @@
 @tool
 extends Node3D
 
-const GltfAssetLibrary = preload("res://scripts/worlds/gltf_asset_library.gd")
-const KayKitBaseBuilder = preload("res://scripts/worlds/kaykit_base_builder.gd")
+const ScifiFrontierDresser = preload("res://scripts/worlds/scifi_frontier_dresser.gd")
 const ScifiBayBuilder = preload("res://scripts/worlds/scifi_bay_builder.gd")
 const REACTOR_SCENE: PackedScene = preload("res://scenes/worlds/components/reactor_core.tscn")
 const COMMAND_SCENE: PackedScene = preload("res://scenes/worlds/components/command_center.tscn")
@@ -21,7 +20,6 @@ const DRONE_WRECK_SCENE: PackedScene = preload(
 )
 const CRYSTAL_SCENE: PackedScene = preload("res://scenes/worlds/components/crystal_cluster.tscn")
 const FLORA_SCENE: PackedScene = preload("res://scenes/worlds/components/alien_flora.tscn")
-const ROCK_SCENE: PackedScene = preload("res://scenes/worlds/components/rock_cluster.tscn")
 const SPAWN_GATE_SCENE: PackedScene = preload(
 	"res://scenes/worlds/components/enemy_spawn_gate.tscn"
 )
@@ -52,23 +50,23 @@ func _ready() -> void:
 	_build_alien_landscape()
 	_build_lighting_and_atmosphere()
 	_build_spawn_beacons()
-	KayKitBaseBuilder.dress_districts(self)
 	ScifiBayBuilder.build(self)
+	ScifiFrontierDresser.dress_districts(self)
 
 
 func _create_materials() -> void:
 	_materials = {
-		"ground": _make_material(Color(0.72, 0.56, 0.39), 0.0, 0.92),
-		"ground_light": _make_material(Color(0.83, 0.68, 0.47), 0.0, 0.89),
-		"ground_rose": _make_material(Color(0.66, 0.42, 0.38), 0.0, 0.91),
-		"silver": _make_material(Color(0.68, 0.77, 0.81), 0.74, 0.28),
-		"pearl": _make_material(Color(0.9, 0.93, 0.9), 0.2, 0.35),
-		"ceramic": _make_material(Color(0.72, 0.83, 0.84), 0.28, 0.42),
-		"blue": _make_material(Color(0.08, 0.25, 0.55), 0.52, 0.3),
-		"deep_blue": _make_material(Color(0.035, 0.13, 0.33), 0.58, 0.28),
-		"cyan": _make_emissive(Color(0.02, 0.78, 0.98), 1.5),
-		"turquoise": _make_emissive(Color(0.015, 0.94, 0.8), 1.25),
-		"green": _make_emissive(Color(0.12, 0.84, 0.38), 1.2),
+		"ground": _make_material(Color(0.17, 0.23, 0.29), 0.04, 0.9),
+		"ground_light": _make_material(Color(0.26, 0.32, 0.37), 0.06, 0.84),
+		"ground_rose": _make_material(Color(0.22, 0.25, 0.33), 0.05, 0.88),
+		"silver": _make_material(Color(0.43, 0.52, 0.59), 0.56, 0.43),
+		"pearl": _make_material(Color(0.68, 0.77, 0.82), 0.15, 0.5),
+		"ceramic": _make_material(Color(0.52, 0.64, 0.73), 0.23, 0.5),
+		"blue": _make_material(Color(0.06, 0.18, 0.36), 0.46, 0.4),
+		"deep_blue": _make_material(Color(0.025, 0.09, 0.21), 0.5, 0.44),
+		"cyan": _make_emissive(Color(0.02, 0.69, 0.9), 1.1),
+		"turquoise": _make_emissive(Color(0.015, 0.76, 0.67), 0.9),
+		"green": _make_emissive(Color(0.13, 0.72, 0.42), 0.9),
 		"yellow": _make_emissive(Color(1.0, 0.66, 0.035), 0.55),
 		"orange": _make_emissive(Color(1.0, 0.27, 0.04), 0.9),
 		"red": _make_emissive(Color(0.98, 0.05, 0.06), 1.0),
@@ -172,9 +170,9 @@ func _build_terrain_and_floor() -> void:
 
 
 func _add_world_bounds() -> void:
-	# The collision walls and the rocky skyline are built together so the player
-	# never sees the flat box that stops them. See kaykit_base_builder.gd.
-	KayKitBaseBuilder.build_boundary(self, WORLD_WIDTH, WORLD_DEPTH, WORLD_CENTER_Z)
+	# The invisible collider and visible FBX fencing keep exploration bounded
+	# without exposing an untextured blocking box.
+	ScifiFrontierDresser.build_boundary(self, WORLD_WIDTH, WORLD_DEPTH, WORLD_CENTER_Z)
 
 
 func _build_central_arena() -> void:
@@ -667,39 +665,29 @@ func _build_outpost() -> void:
 		Vector3(0.18, 0.04, 40.0),
 		_materials["yellow"]
 	)
-	_place_world_gltf(
-		"spacetruck_large",
-		"KayKitOutpostServiceTruck",
-		Vector3(-67.0, 0.81, -8.0),
-		Vector3.ZERO,
-		Vector3.ONE * 6.0,
+	ScifiBayBuilder.place(
+		self,
+		"console_large",
+		"SciFiOutpostServiceBay",
+		Vector3(-67.0, 0.0, -8.0),
+		90.0,
+		1.4,
 		true,
-		0.78
+		true
 	)
 	for crate_index in range(6):
 		var x := -37.0 + float(crate_index % 3) * 2.2
 		var z := 14.0 + float(crate_index / 3) * 2.0
-		var cargo_name := "cargo_A_stacked" if crate_index % 2 == 0 else "cargo_B_stacked"
-		var cargo := _place_world_gltf(
-			cargo_name,
-			"KayKitOutpostSupply_%02d" % crate_index,
-			Vector3(x, 0.02, z),
-			Vector3(0.0, float(crate_index % 4) * 90.0, 0.0),
-			Vector3.ONE * 1.5
+		ScifiBayBuilder.place(
+			self,
+			"crate",
+			"SciFiOutpostSupply_%02d" % crate_index,
+			Vector3(x, 0.0, z),
+			float(crate_index % 4) * 90.0,
+			1.2,
+			false,
+			true
 		)
-		if cargo == null:
-			_add_box(
-				"OutpostSupplyCrate_%02d" % crate_index,
-				Vector3(x, 0.75, z),
-				Vector3(1.7, 1.5, 1.7),
-				_materials["copper"]
-			)
-			_add_box(
-				"OutpostCrateLabel_%02d" % crate_index,
-				Vector3(x, 1.2, z + 0.88),
-				Vector3(0.9, 0.25, 0.05),
-				_materials["yellow"]
-			)
 
 	for side in [-1.0, 1.0]:
 		_add_box(
@@ -738,14 +726,25 @@ func _build_extraction_zone() -> void:
 		Vector3(43.0, 0.0, -35.0),
 		Vector3(0.0, 180.0, 0.0)
 	)
-	_place_world_gltf(
-		"drill_structure",
-		"KayKitFrontierDrillStructure",
+	ScifiBayBuilder.place(
+		self,
+		"wall_pipes",
+		"SciFiExtractionPipeArray",
 		Vector3(61.0, 0.0, -31.5),
-		Vector3(0.0, 18.0, 0.0),
-		Vector3.ONE * 3.2,
+		18.0,
+		2.0,
 		true,
-		0.82
+		true
+	)
+	ScifiBayBuilder.place(
+		self,
+		"console_large",
+		"SciFiExtractionController",
+		Vector3(64.0, 0.0, -35.5),
+		108.0,
+		1.35,
+		true,
+		true
 	)
 	_place_component(
 		SENSOR_SCENE,
@@ -1228,28 +1227,18 @@ func _build_alien_landscape() -> void:
 		Vector3(-91.0, 0.0, -22.0),
 	]
 	for rock_index in range(rock_positions.size()):
-		var rock_name := "FrontierCliffRock_%02d" % rock_index
 		var rock_position: Vector3 = rock_positions[rock_index]
-		var rock_rotation := Vector3(0.0, rock_index * 29.0, 0.0)
-		var rock_scale := Vector3(1.5, 2.7 if rock_index % 3 == 0 else 1.8, 1.45)
-		var use_kaykit_rock := (
-			rock_index == 0 or rock_index == 6 or rock_index == 12 or rock_index == 18
+		var key := "wall_cube" if rock_index % 3 == 0 else "column"
+		ScifiBayBuilder.place(
+			self,
+			key,
+			"SciFiFrontierRuin_%02d" % rock_index,
+			rock_position,
+			float(rock_index * 29),
+			1.65,
+			true,
+			true
 		)
-		var external_rock: Node3D = null
-		if use_kaykit_rock:
-			external_rock = _place_world_gltf(
-				"rocks_B",
-				"KayKit" + rock_name,
-				rock_position,
-				rock_rotation,
-				Vector3.ONE * 2.8,
-				true,
-				0.68
-			)
-		if external_rock == null:
-			_place_component(
-				ROCK_SCENE, rock_name, rock_position, rock_rotation, rock_scale, rock_index
-			)
 
 	var crystal_positions: Array[Vector3] = [
 		Vector3(-80.0, 0.0, -58.0),
@@ -1340,9 +1329,9 @@ func _build_alien_landscape() -> void:
 func _build_lighting_and_atmosphere() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "FrontierDaylightSun"
-	sun.rotation_degrees = Vector3(-47.0, -31.0, 0.0)
-	sun.light_color = Color(1.0, 0.93, 0.78)
-	sun.light_energy = 0.72
+	sun.rotation_degrees = Vector3(-39.0, -31.0, 0.0)
+	sun.light_color = Color(0.67, 0.79, 0.92)
+	sun.light_energy = 0.62
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 115.0
 	sun.shadow_bias = 0.04
@@ -1352,47 +1341,55 @@ func _build_lighting_and_atmosphere() -> void:
 	environment.background_mode = Environment.BG_SKY
 	var sky := Sky.new()
 	var sky_material := ProceduralSkyMaterial.new()
-	sky_material.sky_top_color = Color(0.14, 0.48, 0.77)
-	sky_material.sky_horizon_color = Color(0.73, 0.88, 0.92)
-	sky_material.ground_bottom_color = Color(0.55, 0.46, 0.4)
-	sky_material.ground_horizon_color = Color(0.83, 0.73, 0.61)
-	sky_material.sun_angle_max = 18.0
-	sky_material.sun_curve = 0.18
+	# Warframe-inspired hierarchy, not a copied LUT: a cool low-key sky and
+	# broad key light give the armor a silhouette; small amber/cyan fixtures
+	# mark traversable paths and interactable structures. Web Compatibility has
+	# no dependable real-time GI or volumetric fog, so keep the base legible.
+	sky_material.sky_top_color = Color(0.02, 0.055, 0.12)
+	sky_material.sky_horizon_color = Color(0.18, 0.29, 0.36)
+	sky_material.ground_bottom_color = Color(0.07, 0.11, 0.17)
+	sky_material.ground_horizon_color = Color(0.19, 0.27, 0.31)
+	sky_material.sun_angle_max = 10.0
+	sky_material.sun_curve = 0.14
 	sky.sky_material = sky_material
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	environment.ambient_light_energy = 0.36
+	environment.ambient_light_energy = 0.29
 	environment.reflected_light_source = Environment.REFLECTION_SOURCE_BG
-	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	environment.tonemap_exposure = 0.92
-	# The space base is authored in light, toy-like colours; without a little
-	# contrast and saturation the whole frame blows out to white and the player
-	# (a light-suited astronaut) stops reading against the floor.
+	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
+	environment.tonemap_exposure = 0.9
 	environment.adjustment_enabled = true
-	environment.adjustment_brightness = 0.94
-	environment.adjustment_contrast = 1.18
-	environment.adjustment_saturation = 1.22
+	environment.adjustment_brightness = 0.88
+	environment.adjustment_contrast = 1.08
+	environment.adjustment_saturation = 1.04
 	environment.glow_enabled = true
-	environment.glow_intensity = 0.1
+	environment.glow_intensity = 0.08
 	environment.fog_enabled = true
-	environment.fog_light_color = Color(0.42, 0.62, 0.72)
-	environment.fog_density = 0.0042
-	environment.fog_aerial_perspective = 0.22
+	environment.fog_light_color = Color(0.13, 0.22, 0.29)
+	environment.fog_density = 0.0055
+	environment.fog_aerial_perspective = 0.18
 	var world_environment := WorldEnvironment.new()
 	world_environment.name = "ArenaEnvironment"
 	world_environment.environment = environment
 	add_child(world_environment)
 
-	_add_omni_light("ReactorCyanBounce", Vector3(0.0, 7.0, 0.0), Color(0.04, 0.76, 1.0), 2.6, 22.0)
+	_add_omni_light("ReactorCyanBounce", Vector3(0.0, 7.0, 0.0), Color(0.12, 0.68, 0.94), 1.0, 18.0)
 	_add_omni_light(
-		"ReactorEmeraldBounce", Vector3(-1.5, 7.0, 0.0), Color(0.08, 1.0, 0.42), 1.4, 13.0
+		"ReactorEmeraldBounce", Vector3(-1.5, 7.0, 0.0), Color(0.08, 0.7, 0.48), 0.4, 9.0
 	)
 	_add_omni_light(
-		"ExtractionGreenBounce", Vector3(43.0, 6.0, -35.0), Color(0.04, 0.95, 0.68), 2.4, 24.0
+		"ExtractionGreenBounce", Vector3(43.0, 6.0, -35.0), Color(0.1, 0.82, 0.64), 1.3, 19.0
 	)
 	_add_omni_light(
-		"BossGateBlueBounce", Vector3(0.0, 9.0, -82.0), Color(0.04, 0.45, 1.0), 2.0, 23.0
+		"BossGateBlueBounce", Vector3(0.0, 9.0, -82.0), Color(0.12, 0.48, 0.88), 1.4, 21.0
 	)
+	_add_omni_light(
+		"NorthRouteWayfinder", Vector3(0.0, 3.8, -22.0), Color(1.0, 0.48, 0.2), 1.2, 12.0
+	)
+	_add_omni_light(
+		"SouthRouteWayfinder", Vector3(0.0, 3.8, 22.0), Color(1.0, 0.48, 0.2), 1.2, 12.0
+	)
+	_add_omni_light("OutpostWayfinder", Vector3(-41.0, 3.8, 5.0), Color(1.0, 0.55, 0.23), 1.0, 13.0)
 
 	_add_atmospheric_specks()
 
@@ -1447,28 +1444,6 @@ func _build_spawn_beacons() -> void:
 			Vector3(0.25, 0.24, 0.25),
 			_materials["cyan"]
 		)
-
-
-func _place_world_gltf(
-	asset_name: String,
-	node_name: String,
-	at: Vector3,
-	rotation: Vector3 = Vector3.ZERO,
-	model_scale: Vector3 = Vector3.ONE,
-	collidable: bool = false,
-	collider_fill_ratio: float = 0.88
-) -> Node3D:
-	var model := GltfAssetLibrary.instantiate_model(asset_name)
-	if model == null:
-		return null
-	model.name = node_name
-	model.position = at
-	model.rotation_degrees = rotation
-	model.scale = model_scale
-	_get_geometry_parent().add_child(model)
-	if collidable:
-		GltfAssetLibrary.add_bounds_collider(model, "%s_Collision" % node_name, collider_fill_ratio)
-	return model
 
 
 func _place_component(

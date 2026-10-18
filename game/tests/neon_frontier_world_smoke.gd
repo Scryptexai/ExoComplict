@@ -45,16 +45,41 @@ func _run_smoke_test() -> void:
 			and test_passed
 		)
 
-	var kaykit_model_names: Array[String] = [
-		"KayKitCargoDepot",
-		"KayKitDepotCargo_00",
-		"KayKitLandingPadSurface",
-		"KayKitOutpostServiceTruck",
-		"KayKitOutpostSupply_00",
-		"KayKitFrontierDrillStructure",
-		"KayKitFrontierCliffRock_00",
+	var env_node := world.get_node_or_null("ArenaEnvironment") as WorldEnvironment
+	var sun := world.get_node_or_null("FrontierDaylightSun") as DirectionalLight3D
+	var graded := env_node != null and env_node.environment != null
+	if graded:
+		graded = (
+			env_node.environment.tonemap_mode == Environment.TONE_MAPPER_ACES
+			and env_node.environment.ambient_light_energy < 0.36
+			and sun != null
+			and sun.light_energy < 0.72
+		)
+	test_passed = (
+		_expect(
+			(
+				graded
+				and world.get_node_or_null("NorthRouteWayfinder") != null
+				and world.get_node_or_null("SouthRouteWayfinder") != null
+			),
+			"relight controls sky/fill energy and gives the player path wayfinders",
+		)
+		and test_passed
+	)
+
+	# All visible exterior art now comes from the uploaded converted FBX pack.
+	# The older KayKit pack may still exist in the repository but cannot appear
+	# in the playable scene or silently return via a component fallback.
+	var kit_models: Array[String] = [
+		"SciFiEquipmentDepotFacade",
+		"SciFiEquipmentSupply_00",
+		"SciFiLandingDeck_0_0",
+		"SciFiOutpostServiceBay",
+		"SciFiOutpostSupply_00",
+		"SciFiExtractionPipeArray",
+		"SciFiFrontierRuin_00",
 	]
-	for model_name in kaykit_model_names:
+	for model_name in kit_models:
 		var model := world.find_child(model_name, true, false) as Node3D
 		test_passed = (
 			_expect(
@@ -62,33 +87,26 @@ func _run_smoke_test() -> void:
 					model != null
 					and not model.find_children("*", "MeshInstance3D", true, false).is_empty()
 				),
-				"world instantiates the licensed KayKit 3D model " + model_name,
+				"world instantiates the user's FBX-based SciFi kit model " + model_name,
 			)
 			and test_passed
 		)
-	# The world is now dressed from the whole 57-model pack, not the 7 models of
-	# the first pass. Each district has its own group, and the name of the group
-	# is what tells a reviewer which part of the level to look at.
-	var kit_groups: Dictionary = {
-		"KayKitArenaRim": 16,
-		"KayKitOutpost": 20,
-		"KayKitLandingZone": 10,
-		"KayKitExtraction": 15,
-		"KayKitBossZone": 10,
-		"KayKitRuins": 12,
-		"KayKitPower": 8,
-		"KayKitRoutes": 10,
-		"KayKitTerrainShoulders": 120,
-	}
-	for group_name in kit_groups:
-		var group := world.get_node_or_null(group_name) as Node3D
-		var meshes := 0
-		if group != null:
-			meshes = group.find_children("*", "MeshInstance3D", true, false).size()
+	test_passed = (
+		_expect(
+			world.find_children("KayKit*", "Node3D", true, false).is_empty(),
+			"the playable world no longer instantiates KayKit assets",
+		)
+		and test_passed
+	)
+	for district in ["Outpost", "Landing", "Extraction", "Boss", "Wreck"]:
+		var group := world.get_node_or_null("SciFi%sDistrict" % district) as Node3D
 		test_passed = (
 			_expect(
-				meshes >= int(kit_groups[group_name]),
-				"%s is dressed from the KayKit pack (%d meshes)" % [group_name, meshes],
+				(
+					group != null
+					and group.find_children("*", "MeshInstance3D", true, false).size() >= 7
+				),
+				"%s district has uploaded FBX cladding, supplies and a route light" % district,
 			)
 			and test_passed
 		)
@@ -117,48 +135,39 @@ func _run_smoke_test() -> void:
 		)
 		and test_passed
 	)
-	# The boundary is no longer four flat boxes: a collider keeps the player in,
-	# and rock tiles close the horizon. Both have to exist at the same time.
-	for wall_name in [
-		"NorthBoundaryCliffCore",
-		"SouthBoundaryCliffCore",
-		"WestBoundaryCliffCore",
-		"EastBoundaryCliffCore",
-	]:
-		var wall := world.get_node_or_null(wall_name) as Node3D
+	# Physics bounds are hidden behind imported modular fencing and pylons.
+	var perimeter := world.get_node_or_null("SciFiFrontierBoundary") as Node3D
+	for side in ["North", "South", "West", "East"]:
+		var core: Node3D = null
+		var fence: Node3D = null
+		if perimeter != null:
+			core = perimeter.get_node_or_null("%sBoundaryCore" % side) as Node3D
+			fence = perimeter.get_node_or_null("SciFi%sFence_00" % side) as Node3D
 		test_passed = (
 			_expect(
-				wall != null and not wall.visible and wall.get_child_count() > 0,
-				"invisible boundary collider still stops the player: " + wall_name,
+				core != null and not core.visible and core.get_child_count() > 0,
+				"the %s physical boundary is invisible behind imported art" % side,
 			)
 			and test_passed
 		)
-	# Cliff tiles are direct children of the world node, not nested under a
-	# group, so they are counted by name prefix.
-	var cliff_meshes := 0
-	for child in world.get_children():
-		if (
-			String(child.name).begins_with("NorthCliff_")
-			or String(child.name).begins_with("EastCliff_")
-		):
-			cliff_meshes += 1
+		test_passed = (
+			_expect(
+				(
+					fence != null
+					and not fence.find_children("*", "MeshInstance3D", true, false).is_empty()
+				),
+				"the %s horizon has FBX fence geometry rather than a flat box" % side,
+			)
+			and test_passed
+		)
+	var depot := world.get_node_or_null("FieldEquipmentDepot") as Node3D
 	test_passed = (
 		_expect(
-			cliff_meshes >= 16,
-			"the horizon is tiled with rock, not one flat box (%d tiles)" % cliff_meshes
+			depot != null and depot.get_node_or_null("SciFiEquipmentDepotFacadeBody") != null,
+			"imported depot facade has a physical bounds collider",
 		)
 		and test_passed
 	)
-
-	var depot_model := world.find_child("KayKitCargoDepot", true, false) as Node3D
-	if depot_model != null:
-		test_passed = (
-			_expect(
-				depot_model.find_child("KayKitCargoDepotCollision", true, false) != null,
-				"imported depot model receives a physical bounds collider",
-			)
-			and test_passed
-		)
 
 	var mesh_instances := world.find_children("*", "MeshInstance3D", true, false)
 	var static_bodies := world.find_children("*", "StaticBody3D", true, false)

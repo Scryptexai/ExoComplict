@@ -95,16 +95,15 @@ const SIZE := {
 	"beam": Vector3(0.25, 4.0, 4.4),
 }
 
-## Palette: the pack's own material names, given a dark industrial look. The
-## result is deliberately a step away from the pastel KayKit exterior, so the
-## arena reads as an interior bay and the horizon reads as outside.
+## Palette: cool dark plating contrasts with sparse warm route markers and
+## cyan energy fixtures. Model-aware policy retains the user's FBX silhouettes.
 const COLORS := {
-	"orange": Color(0.95, 0.45, 0.1),
-	"steel": Color(0.44, 0.47, 0.52),
-	"steel_light": Color(0.56, 0.59, 0.64),
-	"panel": Color(0.29, 0.32, 0.37),
-	"trim": Color(0.16, 0.18, 0.22),
-	"floor": Color(0.3, 0.33, 0.38),
+	"orange": Color(0.95, 0.38, 0.13),
+	"steel": Color(0.37, 0.45, 0.51),
+	"steel_light": Color(0.48, 0.56, 0.61),
+	"panel": Color(0.23, 0.29, 0.35),
+	"trim": Color(0.11, 0.15, 0.21),
+	"floor": Color(0.22, 0.28, 0.34),
 	"glass": Color(0.35, 0.78, 0.92),
 	"light": Color(0.62, 0.93, 1.0),
 }
@@ -203,7 +202,7 @@ static func material(color_key: String) -> StandardMaterial3D:
 			material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			material.emission_enabled = true
 			material.emission = COLORS.light
-			material.emission_energy_multiplier = 2.4
+			material.emission_energy_multiplier = 1.5
 		"orange":
 			material.albedo_color = COLORS.orange
 			material.metallic = 0.05

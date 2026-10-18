@@ -3,6 +3,7 @@
 > Dokumen pendamping [`DEVELOPMENT_ROADMAP.md`](DEVELOPMENT_ROADMAP.md). Engine baseline sementara dipin ke **Godot 4.7.2-stable** (`.godot-version`); pasang versi tersebut beserta export templates yang cocok sebelum membuka project.
 
 ## 1. Status workspace saat ini
+**18 Okt 2026:** test alur Explore baru `game/tests/exploration_flow_smoke.gd` ditambahkan; total kini 17 smoke test. Angka dan status di bawah yang bertanggal lebih awal adalah catatan historis, bukan bukti relight/world/animasi saat ini sudah lolos QA.
 
 Pemeriksaan diperbarui pada **16 Oktober 2026** setelah integrasi GLTF dan EMP, lalu diperbarui lagi setelah penambahan tooling verifikasi. **Toolchain sesi ini:** `godot`, Java/JDK, Android SDK/ADB, `sdkmanager`, Gradle, dan `keytool` tidak ditemukan di `PATH`; `./scripts/check_toolchain.sh` melaporkan dua kebutuhan Android (Java/JDK dan Android SDK) belum tersedia. Karena itu, project belum dapat diimpor melalui Godot Editor pada sesi ini, export templates belum dapat diperiksa, dan APK belum dibuat.
 
@@ -113,7 +114,7 @@ Jangan pasang SDK iklan, plugin IAP, Google Play Billing wrapper, atau masukkan 
 
    ```bash
    ./scripts/install_godot.sh --with-templates   # ke ~/.local/share, tidak ke repo
-   ./scripts/run_smoke_tests.sh                  # import + 16 smoke test + log di exports/test-logs/
+   ./scripts/run_smoke_tests.sh                  # import + 17 smoke test + log di exports/test-logs/
    ./scripts/run_smoke_tests.sh --list
    ./scripts/run_smoke_tests.sh wave_director_smoke
    ```

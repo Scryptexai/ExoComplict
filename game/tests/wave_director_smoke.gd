@@ -257,18 +257,24 @@ func _run_smoke_test() -> void:
 		(marker as Marker3D).global_position = player.global_position
 	wave_director.call("start_session")
 	for _frame in 45:
-		if wave_director.call("get_state_label").begins_with("SPAWN BLOCKED"):
+		if _spawn_blocked_count > 0:
 			break
 		await physics_frame
 	test_passed = (
+		_expect(_spawn_blocked_count == 1, "blocked spawn emits one failure event") and test_passed
+	)
+	# The main scene owns recovery: do not leave the player trapped in a blocked
+	# encounter or silently restart while there are no valid spawn markers.
+	test_passed = (
 		_expect(
-			wave_director.call("get_state_label").begins_with("SPAWN BLOCKED"),
-			"director handles the case where no spawn point is valid",
+			(
+				int(main_scene.get("session_mode")) == 0
+				and wave_director.call("get_state_label") == "READY"
+				and int(wave_director.get("active_enemy_count")) == 0
+			),
+			"unspawnable defense returns safely to Explore without an automatic retry",
 		)
 		and test_passed
-	)
-	test_passed = (
-		_expect(_spawn_blocked_count == 1, "blocked spawn emits one failure event") and test_passed
 	)
 
 	main_scene.queue_free()

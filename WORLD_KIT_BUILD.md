@@ -1,6 +1,16 @@
-# World build: KayKit exterior + uploaded SciFi Starter Kit interior
+# World build: original KayKit pass (historical) → uploaded SciFi Starter Kit
 
-**Date:** 2026-10-17 · **Branch:** `arena/5257bce8-cyber-strike`
+**Date:** 2026-10-17 (historical build) · **Branch:** `arena/5257bce8-cyber-strike`
+
+> **18 Oct 2026 — rebaseline in progress:** this document records an **older**
+> KayKit build and the original interior FBX integration, not the current runtime
+> layout. The playable `NeonFrontierWorld` now instantiates the user's converted
+> FBX SciFi kit across the bay, landing deck, depot, districts, and visible
+> perimeter; KayKit runtime scripts and files were removed. Existing procedural
+> foundations/ramps/supports remain for gameplay and need visual review before
+> the world can be called fully art-finished. See
+> [`docs/REBASE_VISUAL_GAMEPLAY_2026-10-18.md`](docs/REBASE_VISUAL_GAMEPLAY_2026-10-18.md)
+> for the approved direction and still-open gates.
 
 The level used to be a blockout: a flat plane, four box cliffs and a few GLTF
 props in a sea of grey. This round rebuilds it from the CC0 **KayKit Space Base
