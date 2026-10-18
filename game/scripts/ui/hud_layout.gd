@@ -307,7 +307,9 @@ static func touch_landscape(hud) -> void:
 	_place_button(hud, hud._aim_button, 12.0, 151.0, 84.0, 84.0)
 	_place_button(hud, hud._skill_button, 150.0, 56.0, 84.0, 84.0)
 	_place_button(hud, hud._weapon_button, 110.0, 151.0, 84.0, 84.0)
-	_place_button(hud, hud._touch_ammo_chip, 272.0, 182.0, 112.0, 54.0)
+	# Pair ammo with its swap action, not a detached chip near the hero.
+	# At 844x390 this is x524..636/y154..208, 14px left of SWAP.
+	_place_button(hud, hud._touch_ammo_chip, 208.0, 182.0, 112.0, 54.0)
 	# 844x390: cooldown ring x606..698/y246..338, centred on EMP.
 	_place(
 		hud._skill_ring,

@@ -32,4 +32,6 @@
 2. Sediakan cara eksplisit di root WebAssembly untuk melihat **Mobile HUD dari desktop**; jangan mengubah mode keyboard/mouse normal secara diam-diam. Validasi tombol dengan aksi nyata, bukan ukuran nominal.
 3. Bandingkan ulang foto 390×844, 844×390, dan preview desktop. Baca seluruh gambar, bbox glyph, pemisahan makna, area pandang, thumb overlap, dan respons pada interaksi. Tes parser/CI hanya gerbang teknis. Rekam temuan buruk juga; pemain yang memberi sign-off artistik, bukan unit test.
 
+**Kandidat perbaikan (belum lulus foto WebGL):** simbol WEAPON diganti panah sirkulasi tebal (bukan rifle kedua), ammo landscape dirapatkan ke kontrol WEAPON, dan root menampilkan saklar eksplisit `HUD Mobile` pada browser desktop. Jangan klaim ini sudah memperbaiki desain sebelum ekspor baru difoto dan dibaca.
+
 **Status:** arah produk dipilih sebelumnya; tampilan yang ada belum disetujui. PR #1 tetap tidak di-merge.

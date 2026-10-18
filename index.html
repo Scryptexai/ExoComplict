@@ -94,7 +94,10 @@
 			/* Once the run starts the game's own HUD owns the top of the screen, so
 			   the browser chips fold down to one toggle and come back on hover,
 			   focus or tap. */
-			.chips[data-collapsed='true'] .chip:not(#chips-toggle) { display: none; }
+			/* On a desktop, keep the mobile-preview switch visible even when the
+			   browser chrome collapses: otherwise the player sees NO FIRE icon. */
+			.chips[data-collapsed='true'] .chip:not(#chips-toggle):not(#mobile-hud-toggle) { display: none; }
+			.chip[hidden] { display: none !important; }
 			#chips-toggle { opacity: 0.75; }
 			.chips:not([data-collapsed='true']) #chips-toggle { opacity: 1; }
 			.chip[data-state='ok'] { border-color: rgba(124, 255, 203, 0.45); color: var(--emerald); }
@@ -221,6 +224,7 @@
 				<button class="chip" id="fullscreen" type="button">Fullscreen</button>
 				<button class="chip" id="reload" type="button">Reload</button>
 				<a class="chip" id="raw" href="./web/index.html" target="_blank" rel="noopener">Build mentah</a>
+				<button class="chip" id="mobile-hud-toggle" type="button" title="Tampilkan HUD sentuh sebenarnya pada browser desktop">HUD Mobile</button>
 				<button class="chip" id="chips-toggle" type="button" title="Tampilkan/sembunyikan tombol browser">UI</button>
 			</div>
 
@@ -400,11 +404,25 @@
 				panel.hidden = !panel.hidden;
 			});
 
-			document.getElementById('hide-ui').addEventListener('click', () => {
-				document.body.classList.toggle('hide-ui');
-			});
+				document.getElementById('hide-ui').addEventListener('click', () => {
+					document.body.classList.toggle('hide-ui');
+				});
 
-			/* ---------- browser chips ---------- */
+				// Desktop defaults to mouse/LMB (no FIRE button), which previously
+				// made mobile-UI review impossible from the normal WebAssembly preview.
+				// Opt in visibly; never make a desktop player guess a query parameter.
+				const mobileHudToggle = document.getElementById('mobile-hud-toggle');
+				const touchPreview = new URLSearchParams(window.location.search).has('touch_preview');
+				mobileHudToggle.textContent = touchPreview ? 'HUD Desktop' : 'HUD Mobile';
+				mobileHudToggle.hidden = matchMedia('(pointer: coarse)').matches && !touchPreview;
+				mobileHudToggle.addEventListener('click', () => {
+					const url = new URL(window.location.href);
+					if (touchPreview) url.searchParams.delete('touch_preview');
+					else url.searchParams.set('touch_preview', '1');
+					window.location.assign(url.toString());
+				});
+
+				/* ---------- browser chips ---------- */
 			const chips = document.getElementById('chips');
 			let chipTimer = 0;
 

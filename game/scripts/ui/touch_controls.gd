@@ -186,6 +186,10 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_touch_mode = DisplayServer.is_touchscreen_available()
+	if OS.has_feature("web") and not _touch_mode:
+		_touch_mode = bool(
+			JavaScriptBridge.eval("new URLSearchParams(location.search).has('touch_preview')")
+		)
 	_build_ui()
 	resized.connect(_layout_controls)
 	var window := get_window()
@@ -475,7 +479,7 @@ func set_weapon_label(display_name: String) -> void:
 	if is_instance_valid(_weapon_button):
 		var can_swap := _available_weapon_count > 1
 		_weapon_button.text = ""
-		_weapon_button.icon = AegisTheme.icon("swap" if can_swap else "rifle")
+		_weapon_button.icon = AegisTheme.icon("swap")
 		_weapon_button.set_meta("aegis_state", "swap" if can_swap else "armory")
 		_weapon_button.tooltip_text = (
 			("Tap to swap · Equipped: " if can_swap else "Open Armory · Equipped: ") + display_name
@@ -834,7 +838,7 @@ func _build_touch_buttons() -> void:
 	_fire_button.button_up.connect(_on_fire_up)
 
 	_weapon_button = _combat_button(
-		"rifle", "WeaponSwitchButton", "combat_weapon", "Open Armory", AegisTokens.INFO
+		"swap", "WeaponSwitchButton", "combat_weapon", "Swap / Armory", AegisTokens.INFO
 	)
 	_weapon_button.set_meta("aegis_state", "armory")
 	_weapon_button.pressed.connect(_on_weapon_switch_pressed)
