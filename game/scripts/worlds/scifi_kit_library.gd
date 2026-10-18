@@ -15,6 +15,12 @@ extends RefCounted
 ## 2.4 MB instead of a few hundred.
 
 const ROOT := "res://assets/world/scifi_starter_kit/models/"
+const DECK_TEXTURE: Texture2D = preload(
+	"res://assets/world/scifi_starter_kit/materials/fbx_deck.png"
+)
+const CAUTION_TEXTURE: Texture2D = preload(
+	"res://assets/world/scifi_starter_kit/materials/fbx_deck_caution.png"
+)
 
 ## Models this level uses. Everything else stays on disk for future rounds.
 const MODELS := {
@@ -209,9 +215,13 @@ static func material(color_key: String) -> StandardMaterial3D:
 			material.metallic = 0.05
 			material.roughness = 0.55
 		"floor", "floor_alt":
-			material.albedo_color = COLORS[color_key]
-			material.metallic = 0.02
-			material.roughness = 0.72
+			# Both original FBX floor meshes have UVs but lost texture links on
+			# export. Apply a restrained manufactured-panel map on those same
+			# imported surfaces, not a substitute floor mesh or glowing decal.
+			material.albedo_color = Color.WHITE
+			material.albedo_texture = (DECK_TEXTURE if color_key == "floor" else CAUTION_TEXTURE)
+			material.metallic = 0.10
+			material.roughness = 0.66
 		_:
 			material.albedo_color = COLORS.get(color_key, COLORS.steel)
 			material.metallic = 0.06

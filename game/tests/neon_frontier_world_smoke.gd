@@ -184,6 +184,30 @@ func _run_smoke_test() -> void:
 		)
 		and test_passed
 	)
+	# Check the authored map actually reaches the imported UV-mapped floor;
+	# this verifies integration only, not whether the deck looks polished.
+	var floor_instance: Node3D
+	if bay != null:
+		floor_instance = bay.get_node_or_null("SciFiBayFloor_3_3") as Node3D
+	var floor_visuals: Array[Node] = []
+	if floor_instance != null:
+		floor_visuals = floor_instance.find_children("*", "MeshInstance3D", true, false)
+	var deck_material: StandardMaterial3D = (
+		(floor_visuals[0] as MeshInstance3D).get_active_material(0) as StandardMaterial3D
+		if not floor_visuals.is_empty()
+		else null
+	)
+	test_passed = (
+		_expect(
+			(
+				deck_material != null
+				and deck_material.albedo_texture != null
+				and deck_material.albedo_texture.get_width() == 512
+			),
+			"authored deck map is bound to the uploaded FBX floor UVs",
+		)
+		and test_passed
+	)
 	# Physics bounds are hidden behind imported modular fencing and pylons.
 	var perimeter := world.get_node_or_null("SciFiFrontierBoundary") as Node3D
 	for side in ["North", "South", "West", "East"]:
