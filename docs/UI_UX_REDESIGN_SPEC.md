@@ -1,15 +1,17 @@
 # AEGIS — Spesifikasi redesain UI/UX
 
 **Tanggal spesifikasi:** 17 Oktober 2026
-**Status:** arah visual disetujui · implementasi M0–M6 sedang berjalan (diperbarui 18 Oktober 2026)
+**Status (koreksi 18 Oktober 2026):** persetujuan AEGIS adalah **historis**; pengguna menolak hasil visual, animasi, pacing, dan keterbacaan UI build sekarang. Arah redesign **belum disepakati ulang**.
 **Branch:** `arena/5257bce8-cyber-strike` · **PR:** #1 (open, jangan di-merge)
 **Papan visual:** [`docs/ui-redesign/board/`](ui-redesign/board) — 7 board, PNG + SVG
+**Audit ulang dan rujukan game rilis:** [`REBASE_VISUAL_GAMEPLAY_2026-10-18.md`](REBASE_VISUAL_GAMEPLAY_2026-10-18.md)
 
-Dokumen ini menjawab satu pertanyaan: **seperti apa UI/UX Cyber-Strike kalau
-dirancang sebagai game shooter komersial**, bukan sebagai HUD debug. Semua angka
-di bawah dipakai di papan visual. Arah AEGIS Industrial sudah disetujui; status
-implementasi per milestone ada di §13. Angka pada board adalah target desain,
-bukan bukti bahwa semua fitur sudah tersedia di build.
+Dokumen ini mencatat arah token/layout AEGIS yang **pernah** disetujui, bukan
+spesifikasi kualitas visual final. Angka pada board adalah target desain waktu
+itu, **bukan** bukti animasi, pencahayaan, kontrol, atau pacing telah benar.
+Tabel §13 adalah riwayat implementasi UI dan harus dibaca bersama audit ulang;
+CI 16/16 dan QA boot/menu Web 3/3 hanya meloloskan interaksi yang diuji, bukan
+persetujuan visual atau QA perangkat nyata.
 
 ---
 
@@ -17,7 +19,7 @@ bukan bukti bahwa semua fitur sudah tersedia di build.
 
 Audit **HUD sebelum redesain** (bukan keadaan build terbaru) menemukan:
 
-| Masalah | Bukti di build sekarang | Dampak |
+| Masalah | Bukti pada build sebelum redesain | Dampak |
 |---|---|---|
 | Tiga kartu besar menutupi seperempat layar | `VITALS`, `WAVE`, `RUN DATA` masing-masing 104px tinggi | Dunia dan target tertutup; tidak ada ruang untuk ammo |
 | Tidak ada ammo / slot senjata | Kartu senjata hanya berupa tombol teks di kanan bawah | Pemain tidak tahu sisa peluru |
@@ -41,7 +43,7 @@ sudah ada di dunia, tetapi merapikannya menjadi sistem:
 
 ---
 
-## 1. Keputusan visual (disetujui)
+## 1. Keputusan visual (historis; validasi ulang diperlukan)
 
 1. **Arah visual A — Aegis Industrial**, aksen amber `#FFB020`.
 2. **Tipografi:** Chakra Petch / Barlow / JetBrains Mono (OFL, ikut di repo).
@@ -49,8 +51,9 @@ sudah ada di dunia, tetapi merapikannya menjadi sistem:
 4. **Mobile:** landscape sebagai mode utama, portrait tetap didukung.
 5. **HUD editor** dikerjakan pada milestone M4, bukan ditunda ke v2.
 
-Kelima keputusan disetujui pada fase riset. Implementasi dimulai sesudahnya;
-status dan keterbatasannya dilacak per milestone, bukan dianggap selesai otomatis.
+Kelima keputusan **pernah** disetujui untuk fase AEGIS. Masukan terbaru
+menolak hasilnya; jangan perlakukan persetujuan ini sebagai mandat melanjutkan
+polish atau mengunci palet redesign baru. Baca audit ulang sebelum koding visual.
 
 ---
 
@@ -564,15 +567,19 @@ node tools/web_qa.mjs --url http://127.0.0.1:8133 --page / \
 
 ## 13. Milestone implementasi
 
+**Catatan status:** ✅ di bawah berarti komponen/perilaku tertentu *terimplementasi*
+atau lulus tes teknis, **tidak** berarti kualitas board telah disetujui pengguna.
+Kriteria visual kolom “Selesai bila” harus divalidasi ulang dengan rujukan baru.
+
 | # | Isi | File utama | Selesai bila | Status |
 |---|---|---|---|---|
-| M0 | Token + theme + font + ikon | `aegis_tokens.gd`, `aegis_theme.gd`, `assets/ui/` | HUD lama tampil dengan token baru | ✅ |
-| M1 | HUD desktop baru | `touch_controls.gd`, `hud_layout.gd`, `hud_renderer.gd` | Board 02 cocok di 1280×720; smoke hijau | ✅ smoke 13/13 (2026-10-17) |
-| M2 | HUD sentuh + portrait/landscape | `hud_layout.gd` (`touch_portrait`, `touch_landscape`) | Board 03 cocok di 390×844 & 844×390 | ✅ screenshot Web 18 Okt: ammo, jarak tombol, hint landscape; QA 2/3 sebelum koreksi checker mute |
-| M3 | Pause + results | `_build_pause_menu`, `_build_results_panel` | Board 05; ESC/focus benar | ⏳ ESC pause/resume 3/3 di WASM; hasil/penambahan settings perlu QA |
-| M4 | Settings + HUD editor | `aegis_settings_menu.gd`, `hud_editor.gd` | Board 06; setting persist | ⏳ settings dan editor drag/preset/offset lulus smoke **15/15** (`4fcbf5f`); QA visual WASM baru menyusul |
-| M5 | Polish + a11y | theme, motion | `reduce_motion`, kontras, 44px | ⏳ skala teks, mode buta warna, reduce flash, kamera tanpa bob/kick menunggu CI; kontras di perangkat belum diuji |
-| M6 | QA + evidence | smoke, `web_qa` | Semua frame + smoke 16/16 | ⏳ CI 15/15 (`4fcbf5f`), web_qa 3/3 settings + 2/2 editor; gestur portrait menunggu smoke 16/16 & QA touch |
+| M0 | Token + theme + font + ikon | `aegis_tokens.gd`, `aegis_theme.gd`, `assets/ui/` | HUD lama tampil dengan token baru | ✅ token/tema terpasang; arah palet perlu validasi ulang |
+| M1 | HUD desktop baru | `touch_controls.gd`, `hud_layout.gd`, `hud_renderer.gd` | Board 02 cocok di 1280×720; smoke hijau | ✅ kode terpasang; smoke 13/13 (2026-10-17); **bukan** tanda board disetujui |
+| M2 | HUD sentuh + portrait/landscape | `hud_layout.gd` (`touch_portrait`, `touch_landscape`) | Board 03 cocok di 390×844 & 844×390 | ✅ layout mobile tersedia; QA WASM 3 viewport lulus untuk interaksi yang diuji, **bukan** persetujuan keterbacaan |
+| M3 | Pause + results | `_build_pause_menu`, `_build_results_panel` | Board 05; ESC/focus benar | ⏳ Pause diuji pada WASM; **hasil/results belum berhasil dijangkau** pada probe idle, sehingga visual results belum terverifikasi |
+| M4 | Settings + HUD editor | `aegis_settings_menu.gd`, `hud_editor.gd` | Board 06; setting persist | ✅ Interaksi/settings/editor yang diuji lulus smoke dan QA WASM; **bukan persetujuan visual** |
+| M5 | Polish + a11y | theme, motion | `reduce_motion`, kontras, 44px | ⏳ Sebagian preferensi tersedia dan diuji; kontras, animasi, keterbacaan kontrol di tangan pemain/perangkat nyata **belum** divalidasi |
+| M6 | QA + evidence | smoke, `web_qa` | Semua frame + smoke 16/16 | ⏳ CI run `39088836330`: **16/16 smoke PASS**; QA payload `95f39f6`: **3/3 viewport PASS** untuk interaksi yang diuji. Frame results, perbandingan visual game rilis dan QA perangkat nyata **belum selesai** |
 
 Catatan implementasi: HUD tinggal di satu facade (`touch_controls.gd`) dengan
 geometri di `hud_layout.gd` dan gambar reticle/joystick/vignette di
@@ -596,7 +603,11 @@ Estimasi kasar: M0–M2 = 2 hari, M3–M4 = 2 hari, M5–M6 = 1 hari.
 
 ---
 
-## 15. Pertanyaan terbuka
+## 15. Pertanyaan terbuka (historis; jawaban terbaru di audit ulang)
+
+Pertanyaan di bawah berasal dari fase AEGIS. **Jangan** menganggap keputusan
+historisnya masih berlaku; keputusan yang memblokir redesign tercantum dalam
+[`REBASE_VISUAL_GAMEPLAY_2026-10-18.md` §4](REBASE_VISUAL_GAMEPLAY_2026-10-18.md#4-keputusan-pengguna-yang-masih-dibutuhkan).
 
 1. Apakah aksen amber disetujui, atau tetap mint/cyan seperti reticle sekarang?
 2. Portrait: dipertahankan sebagai mode setara, atau hanya fallback?
