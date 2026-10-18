@@ -2,6 +2,7 @@ class_name PulseProjectile
 extends Node3D
 
 const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
+const PulseAfterglowScript = preload("res://scripts/effects/pulse_afterglow.gd")
 # Thicker, shorter-than-target travel streak: the old 0.022 m core occupied
 # only a few pixels in the real 390 px WebGL firing sequence. Never invent a
 # beam past a hit or draw backwards through the hero at launch.
@@ -87,6 +88,7 @@ func _physics_process(delta: float) -> void:
 		ImpactBurstScript.spawn(
 			get_parent(), hit_position, Color(0.28, 0.86, 1.0), hit.get("normal", Vector3.UP)
 		)
+		PulseAfterglowScript.spawn(get_parent(), _start_position, hit_position)
 		Sfx.play_3d(&"impact", hit_position)
 		queue_free()
 		return

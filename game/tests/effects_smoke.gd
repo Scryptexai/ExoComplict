@@ -10,6 +10,7 @@ extends SceneTree
 const MainScene = preload("res://scenes/main.tscn")
 const PulseScene = preload("res://scenes/weapons/pulse_projectile.tscn")
 const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
+const PulseAfterglowScript = preload("res://scripts/effects/pulse_afterglow.gd")
 const NovaShockwaveScript = preload("res://scripts/effects/nova_shockwave.gd")
 const ModelFitterScript = preload("res://scripts/visual/model_fitter.gd")
 
@@ -100,6 +101,35 @@ func _run_smoke_test() -> void:
 	)
 	independent_projectile.free()
 	projectile.free()
+
+	# A spent Pulse bolt may leave a short wake at its actual collision, not a
+	# full-length laser, an untravelled trail behind the player or a leaked node.
+	var before_wakes := get_nodes_in_group(PulseAfterglowScript.GROUP).size()
+	var wake := PulseAfterglowScript.spawn(
+		main_scene, Vector3(0.0, 1.0, -4.0), Vector3(0.0, 1.0, -8.0)
+	)
+	var wake_core := wake.get_node_or_null("Core") as MeshInstance3D if wake != null else null
+	test_passed = (
+		_expect(
+			(
+				wake != null
+				and get_nodes_in_group(PulseAfterglowScript.GROUP).size() == before_wakes + 1
+				and is_equal_approx(wake.global_position.z, -7.0)
+				and wake_core != null
+				and wake_core.mesh is CapsuleMesh
+				and is_equal_approx((wake_core.mesh as CapsuleMesh).height, 2.0)
+			),
+			"Pulse afterglow ends at the real hit and uses only its last two metres",
+		)
+		and test_passed
+	)
+	test_passed = (
+		_expect(
+			PulseAfterglowScript.spawn(main_scene, Vector3.ZERO, Vector3.ZERO) == null,
+			"an untravelled Pulse round cannot create a cosmetic hit trail",
+		)
+		and test_passed
+	)
 
 	# --- muzzle flash on a real shot ----------------------------------------
 	var weapon_controller: Node = player.get_node("WeaponController")
@@ -260,6 +290,13 @@ func _run_smoke_test() -> void:
 	var after := get_nodes_in_group(ImpactBurstScript.BURST_GROUP).size()
 	test_passed = (
 		_expect(after == before, "the burst frees itself after its particles die") and test_passed
+	)
+	test_passed = (
+		_expect(
+			get_nodes_in_group(PulseAfterglowScript.GROUP).size() == before_wakes,
+			"Pulse impact wakes expire instead of accumulating during a firing run",
+		)
+		and test_passed
 	)
 	test_passed = (
 		_expect(
