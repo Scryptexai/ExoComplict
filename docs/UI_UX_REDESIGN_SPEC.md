@@ -570,9 +570,9 @@ node tools/web_qa.mjs --url http://127.0.0.1:8133 --page / \
 | M1 | HUD desktop baru | `touch_controls.gd`, `hud_layout.gd`, `hud_renderer.gd` | Board 02 cocok di 1280×720; smoke hijau | ✅ smoke 13/13 (2026-10-17) |
 | M2 | HUD sentuh + portrait/landscape | `hud_layout.gd` (`touch_portrait`, `touch_landscape`) | Board 03 cocok di 390×844 & 844×390 | ✅ screenshot Web 18 Okt: ammo, jarak tombol, hint landscape; QA 2/3 sebelum koreksi checker mute |
 | M3 | Pause + results | `_build_pause_menu`, `_build_results_panel` | Board 05; ESC/focus benar | ⏳ ESC pause/resume 3/3 di WASM; hasil/penambahan settings perlu QA |
-| M4 | Settings + HUD editor | `aegis_settings_menu.gd`, `hud_editor.gd` | Board 06; setting persist | ⏳ settings 4 tab lulus smoke 14/14 (`c85c3b3`); editor drag/preset/offset menunggu uji 15/15 dan WASM |
-| M5 | Polish + a11y | theme, motion | `reduce_motion`, kontras, 44px | ⏳ scale teks, mode buta warna, reduce motion/flash, panel-opacity floor 65% menunggu QA |
-| M6 | QA + evidence | smoke, `web_qa` | Semua frame + smoke 15/15 | ⏳ smoke 14/14 untuk settings; ulangi setelah editor dan polish |
+| M4 | Settings + HUD editor | `aegis_settings_menu.gd`, `hud_editor.gd` | Board 06; setting persist | ⏳ settings dan editor drag/preset/offset lulus smoke **15/15** (`4fcbf5f`); QA visual WASM baru menyusul |
+| M5 | Polish + a11y | theme, motion | `reduce_motion`, kontras, 44px | ⏳ skala teks, mode buta warna, reduce motion/flash lulus smoke; kontras di perangkat belum diuji |
+| M6 | QA + evidence | smoke, `web_qa` | Semua frame + smoke 15/15 | ⏳ smoke 15/15; inspeksi tiga viewport dan editor WASM belum selesai |
 
 Catatan implementasi: HUD tinggal di satu facade (`touch_controls.gd`) dengan
 geometri di `hud_layout.gd` dan gambar reticle/joystick/vignette di

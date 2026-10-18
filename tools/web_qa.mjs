@@ -11,6 +11,8 @@
  *   node tools/web_qa.mjs --play 30 --hold 955,636 --touch --still
  *       # hold the AIM button with a real touch event, standing still
  *   node tools/web_qa.mjs --menus         # screenshot pause, then resume
+ *   node tools/web_qa.mjs --menus --settings  # also open/settings screenshot, Esc/back
+ *   node tools/web_qa.mjs --menus --settings --editor # HUD tab/editor screenshot
  *   node tools/web_qa.mjs --tour          # world review camera: F10 + keys 1-8
  *
  * `--hold` exists because the touch HUD lives inside the WebGL canvas: the AIM
@@ -201,6 +203,35 @@ async function checkPage(target, viewport) {
       const pauseFrame = path.join(outDir, `${slug}-${viewport.spec}-pause.png`);
       await page.screenshot({ path: pauseFrame });
       menuFrames.push(path.relative(ROOT, pauseFrame));
+      if (has('--settings') || has('--editor')) {
+        // Pause focuses RESUME; two Tab presses select SETTINGS. Keyboard
+        // navigation works even when the entire Godot UI lives in a canvas.
+        await page.keyboard.press('Tab');
+        await page.keyboard.press('Tab');
+        await page.keyboard.press('Enter');
+        await new Promise((r) => setTimeout(r, 500));
+        const settingsFrame = path.join(outDir, `${slug}-${viewport.spec}-settings.png`);
+        await page.screenshot({ path: settingsFrame });
+        menuFrames.push(path.relative(ROOT, settingsFrame));
+        if (has('--editor')) {
+          // AUDIO has focus. Tab twice → HUD tab; its next four tab stops
+          // are ACCESS, HUD SCALE, OPACITY, EDIT HUD LAYOUT. The last Enter
+          // opens the inspector over the actual paused world.
+          await page.keyboard.press('Tab');
+          await page.keyboard.press('Tab');
+          await page.keyboard.press('Enter');
+          for (let stop = 0; stop < 4; stop += 1) await page.keyboard.press('Tab');
+          await page.keyboard.press('Enter');
+          await new Promise((r) => setTimeout(r, 500));
+          const editorFrame = path.join(outDir, `${slug}-${viewport.spec}-editor.png`);
+          await page.screenshot({ path: editorFrame });
+          menuFrames.push(path.relative(ROOT, editorFrame));
+          await page.keyboard.press('Escape');
+          await new Promise((r) => setTimeout(r, 250));
+        }
+        await page.keyboard.press('Escape');
+        await new Promise((r) => setTimeout(r, 250));
+      }
       await page.keyboard.press('Escape');
       await new Promise((r) => setTimeout(r, 350));
     }
@@ -317,9 +348,19 @@ async function checkPage(target, viewport) {
     checks.push(['world tour captured frames', tourFrames.length === 8]);
   }
   if (has('--menus')) {
-    checks.push(['pause menu captured a frame', menuFrames.length === 1]);
+    checks.push(['pause menu captured a frame', menuFrames.length >= 1]);
     checks.push(['ESC opened the pause state', menuLines.some((line) => line.includes('HUD: paused'))]);
     checks.push(['ESC resumed the game', menuLines.some((line) => line.includes('HUD: resumed'))]);
+    if (has('--settings') || has('--editor')) {
+      checks.push(['settings screen captured a frame', menuFrames.length >= 2]);
+      checks.push(['SETTINGS opened via keyboard', menuLines.some((line) => line.includes('HUD: settings opened'))]);
+      checks.push(['ESC returned to pause from settings', menuLines.some((line) => line.includes('HUD: settings closed'))]);
+    }
+    if (has('--editor')) {
+      checks.push(['HUD editor captured a frame', menuFrames.length === 3]);
+      checks.push(['HUD editor opened via keyboard', menuLines.some((line) => line.includes('HUD: editor opened'))]);
+      checks.push(['ESC returned to settings from editor', menuLines.some((line) => line.includes('HUD: editor closed'))]);
+    }
   }
   if (playSeconds > 0) {
     checks.push(['scripted play captured frames', frames.length > 0]);

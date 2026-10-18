@@ -77,6 +77,20 @@ func _run() -> void:
 		"reset layout clears saved offsets and returns to standard preset",
 	)
 
+	hud.call("set_touch_mode", true)
+	hud.call("apply_layout_for_size", Vector2(844, 390), 0.541667)
+	await process_frame
+	var inspector := editor.find_child("HudInspector", true, false) as Control
+	var finish := editor.find_child("DoneHudEditorButton", true, false) as Button
+	_expect(
+		(
+			finish.is_visible_in_tree()
+			and finish.get_global_rect().end.y <= inspector.get_global_rect().end.y + 1.0
+			and finish.get_global_rect().size.y * 0.541667 >= 43.5
+		),
+		"landscape editor keeps an always-visible 44px DONE target",
+	)
+
 	var escape := InputEventKey.new()
 	escape.keycode = KEY_ESCAPE
 	escape.pressed = true

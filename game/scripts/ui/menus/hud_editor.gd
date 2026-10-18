@@ -16,6 +16,7 @@ var _dragging: bool = false
 var _drag_total: Vector2 = Vector2.ZERO
 var _drag_start: Vector2 = Vector2.ZERO
 var _inspector: AegisPanel
+var _shell: VBoxContainer
 var _content: VBoxContainer
 var _groups: OptionButton
 var _position_label: Label
@@ -80,6 +81,7 @@ func apply_layout(stretch: float, font_scale: float, physical_size: Vector2) -> 
 		)
 	)
 	_content.add_theme_constant_override("separation", roundi(6.0 / _stretch))
+	_shell.add_theme_constant_override("separation", roundi(6.0 / _stretch))
 	var floor_size := maxi(roundi(AegisTokens.MIN_PHYSICAL_FONT_PX / _stretch), 11)
 	for node in find_children("*", "Label", true, false):
 		var label := node as Label
@@ -95,6 +97,14 @@ func apply_layout(stretch: float, font_scale: float, physical_size: Vector2) -> 
 		AegisTheme.resize_button_font(button, "label", maxi(roundi(12.0 / _stretch), floor_size))
 	for slider in [_opacity_slider, _scale_slider]:
 		slider.custom_minimum_size.y = 44.0 / _stretch
+		var track := AegisTheme.flat_style(AegisTokens.LINE_HI)
+		track.content_margin_top = 3.0 / _stretch
+		track.content_margin_bottom = 3.0 / _stretch
+		var filled := AegisTheme.flat_style(AegisTokens.ACCENT)
+		filled.content_margin_top = 3.0 / _stretch
+		filled.content_margin_bottom = 3.0 / _stretch
+		slider.add_theme_stylebox_override("slider", track)
+		slider.add_theme_stylebox_override("grabber_area", filled)
 	queue_redraw()
 
 
@@ -162,12 +172,16 @@ func _build() -> void:
 	_inspector.interactive = true
 	_inspector.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_inspector)
+	_shell = VBoxContainer.new()
+	_shell.name = "InspectorShell"
+	_shell.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_inspector.add_child(_shell)
 	var scroll := ScrollContainer.new()
 	scroll.name = "InspectorScroll"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_inspector.add_child(scroll)
+	_shell.add_child(scroll)
 	_content = VBoxContainer.new()
 	_content.name = "InspectorContent"
 	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -214,7 +228,7 @@ func _build() -> void:
 	reset_row.add_child(reset_layout)
 	var finish := _button("DONE", "DoneHudEditorButton", "primary")
 	finish.pressed.connect(done.emit)
-	_content.add_child(finish)
+	_shell.add_child(finish)
 
 
 func _refresh_groups() -> void:
