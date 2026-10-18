@@ -309,9 +309,25 @@ func _death_trace(player: AnimationPlayer, skeleton: Skeleton3D) -> String:
 	var pose_rotation := (
 		skeleton.get_bone_pose_rotation(root_index) if root_index >= 0 else Quaternion.IDENTITY
 	)
+	var anchor := player.get_node_or_null(player.root_node)
+	var track_target := anchor.get_node_or_null("Armature/Skeleton3D") if anchor != null else null
 	return (
-		"root=%s tracks=%d BoneRoot rotation=%s track=%s"
-		% [player.root_node, clip.get_track_count(), pose_rotation, track]
+		(
+			"mixer=%s root=%s target=%s skeleton=%s same=%s playing=%s active=%s "
+			+ "tracks=%d BoneRoot=%s track=%s"
+		)
+		% [
+			player.get_path(),
+			player.root_node,
+			track_target.get_path() if track_target != null else "<missing>",
+			skeleton.get_path(),
+			track_target == skeleton,
+			player.is_playing(),
+			player.active,
+			clip.get_track_count(),
+			pose_rotation,
+			track,
+		]
 	)
 
 
