@@ -239,8 +239,11 @@ func _run_smoke_test() -> void:
 	_expect(str(visual.call("current_clip")) == "death", "death pose remains until reset")
 	if has_collapse_bones and anim_player != null:
 		anim_player.seek(1.2, true)
-		# Godot may defer Skeleton3D's global-pose cache after seek(); read the
-		# imported clip itself, not the previous hit action's stale bone matrix.
+		# The visual's _process was advanced by hand above, but the separate
+		# AnimationPlayer has only received a few fast headless engine frames.
+		# Finish its 0.18 s blend from hit/aim into death before measuring the
+		# skeleton; otherwise a seek changes clip time while blend weight stays 0.
+		anim_player.advance(0.22)
 		skeleton.force_update_all_bone_transforms()
 		var fallen_hip := _bone_world(skeleton, hip_index)
 		var fallen_head := _bone_world(skeleton, head_index)
