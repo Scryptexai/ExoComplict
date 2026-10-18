@@ -232,6 +232,12 @@ func _run_smoke_test() -> void:
 	player.call("apply_damage", 8.0)
 	_expect(str(visual.call("current_clip")) == "hit", "nonfatal damage plays hit reaction")
 	visual.call("_process", 0.6)
+	# The visual's action timer was advanced by hand. Give AnimationPlayer the
+	# same simulated time, too: otherwise the test piles fire→reload→hit→aim
+	# blends into a few milliseconds before inspecting death. Real gameplay
+	# advances both on every frame; an impossible mixer backlog is not QA.
+	if anim_player != null:
+		anim_player.advance(0.6)
 	_expect(str(visual.call("current_clip")) == "aim", "hit reaction returns to aimed stance")
 	player.call("apply_damage", 1000.0)
 	_expect(str(visual.call("current_clip")) == "death", "fatal damage plays death motion")
@@ -254,8 +260,14 @@ func _run_smoke_test() -> void:
 		var head_spread := (
 			Vector2(fallen_head.x - fallen_hip.x, fallen_head.z - fallen_hip.z).length()
 		)
+		var sideways := head_spread > 0.35 and fallen_head.y < idle_head_height - 0.55
+		var clip_before_trace := anim_player.current_animation
+		var time_before_trace := anim_player.current_animation_position
+		# Direct playback is a *diagnostic*, never a shortcut that makes the
+		# actual gameplay-driven death sample pass this assertion.
+		var trace := _death_trace(anim_player, skeleton) if not sideways else ""
 		_expect(
-			head_spread > 0.35 and fallen_head.y < idle_head_height - 0.55,
+			sideways,
 			(
 				(
 					"death lies sideways: spread %.2f m, head %s, hip %s, idle head y %.2f,"
@@ -266,10 +278,10 @@ func _run_smoke_test() -> void:
 					fallen_head,
 					fallen_hip,
 					idle_head_height,
-					anim_player.current_animation,
-					anim_player.current_animation_position,
+					clip_before_trace,
+					time_before_trace,
 					anim_player.get_animation("death").length,
-					_death_trace(anim_player, skeleton),
+					trace,
 				]
 			),
 		)
