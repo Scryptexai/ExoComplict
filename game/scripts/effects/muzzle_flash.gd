@@ -102,7 +102,7 @@ func _ready() -> void:
 	_light.light_energy = 0.0
 	# Tight transient bounce around the weapon; broad cyan ground wash hid
 	# the FBX material contrast in the WebGL phone capture.
-	_light.omni_range = 1.65
+	_light.omni_range = 1.35
 	_light.shadow_enabled = false
 	add_child(_light)
 
@@ -158,8 +158,10 @@ func flash(strength: float = 1.0, tint: Color = Color(0.0, 0.0, 0.0, 0.0)) -> vo
 	_hot_core_material.albedo_color = white_centre
 	_hot_core_material.emission = white_centre
 	_hot_core_material.emission_energy_multiplier = 1.2 if _reduce_flash else flash_energy + 0.7
-	_glint_material.albedo_color = Color.WHITE.lerp(color, 0.28)
-	_glint_material.emission = Color.WHITE.lerp(color, 0.35)
+	# Keep a white hot core, but let the wider barrel streak read as PULSE
+	# cyan against the now-lighter FBX deck instead of a white smoke smudge.
+	_glint_material.albedo_color = Color.WHITE.lerp(color, 0.72)
+	_glint_material.emission = Color.WHITE.lerp(color, 0.68)
 	_light.light_color = color
 	_remaining = duration * clampf(strength, 0.4, 2.0)
 	_trigger_frame = Engine.get_process_frames()
