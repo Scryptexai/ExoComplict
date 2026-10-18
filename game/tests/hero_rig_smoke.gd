@@ -239,6 +239,9 @@ func _run_smoke_test() -> void:
 	_expect(str(visual.call("current_clip")) == "death", "death pose remains until reset")
 	if has_collapse_bones and anim_player != null:
 		anim_player.seek(1.2, true)
+		# Godot may defer Skeleton3D's global-pose cache after seek(); read the
+		# imported clip itself, not the previous hit action's stale bone matrix.
+		skeleton.force_update_all_bone_transforms()
 		var fallen_hip := _bone_world(skeleton, hip_index)
 		var fallen_head := _bone_world(skeleton, head_index)
 		var fallen_foot_height := minf(
@@ -251,8 +254,19 @@ func _run_smoke_test() -> void:
 		_expect(
 			head_spread > 0.35 and fallen_head.y < idle_head_height - 0.55,
 			(
-				"death lies sideways on the floor instead of folding upright (%.2f m spread)"
-				% head_spread
+				(
+					"death lies sideways: spread %.2f m, head %s, hip %s, idle head y %.2f,"
+					+ " player clip %s @ %.2f/%.2f s"
+				)
+				% [
+					head_spread,
+					fallen_head,
+					fallen_hip,
+					idle_head_height,
+					anim_player.current_animation,
+					anim_player.current_animation_position,
+					anim_player.get_animation("death").length,
+				]
 			),
 		)
 		_expect(
