@@ -47,6 +47,7 @@ const WALK_THRESHOLD := 0.06
 @export var rig_path: String = DEFAULT_RIG_PATH
 @export var use_rig_animation: bool = true
 @export_range(0.05, 1.0, 0.01) var weapon_socket_blend_seconds: float = 0.16
+@export_range(-60.0, 60.0, 0.5) var reload_weapon_yaw_degrees: float = -38.0
 
 var _model: Node3D
 var _model_bounds: AABB
@@ -70,6 +71,7 @@ var _attachment: BoneAttachment3D = null
 var _current_clip: String = ""
 var _fire_remaining: float = 0.0
 var _reload_remaining: float = 0.0
+var _reload_total: float = 0.0
 var _hit_remaining: float = 0.0
 var _defeated: bool = false
 var _socket_aiming: bool = false
@@ -146,6 +148,7 @@ func play_reload(seconds: float) -> void:
 	if _defeated or seconds <= 0.0:
 		return
 	_reload_remaining = seconds
+	_reload_total = seconds
 	_fire_remaining = 0.0
 	if is_rigged():
 		_update_locomotion(_last_speed_ratio)
@@ -153,6 +156,7 @@ func play_reload(seconds: float) -> void:
 
 func finish_reload() -> void:
 	_reload_remaining = 0.0
+	_reload_total = 0.0
 	if is_rigged():
 		_update_locomotion(_last_speed_ratio)
 
@@ -169,6 +173,7 @@ func play_death() -> void:
 	_defeated = true
 	_fire_remaining = 0.0
 	_reload_remaining = 0.0
+	_reload_total = 0.0
 	_hit_remaining = 0.0
 	if is_rigged():
 		_update_locomotion(0.0)
@@ -178,6 +183,7 @@ func reset_action_state() -> void:
 	_defeated = false
 	_fire_remaining = 0.0
 	_reload_remaining = 0.0
+	_reload_total = 0.0
 	_hit_remaining = 0.0
 	_aiming = false
 	_last_speed_ratio = 0.0
@@ -491,6 +497,19 @@ func _blend_socket(delta: float) -> void:
 	var step := delta / maxf(weapon_socket_blend_seconds, 0.01)
 	_socket_weight = move_toward(_socket_weight, target, step)
 	var basis := _socket_carry_basis.slerp(_socket_aim_basis, _socket_weight)
+	# In the actual WebGL player camera, three Blender reload attempts kept the
+	# receiver hidden behind the hero even though the hands visibly moved. Turn
+	# the *actual rifle about its grip* during the authored receiver-check hold;
+	# its MuzzlePoint, flash and mesh remain the same transform. This is a
+	# weapon-specific presentation offset, not a cosmetic floating gun or a new
+	# projectile origin. Ease back to true aim BEFORE the ammo timer completes so
+	# the first legal post-reload shot always leaves an aligned barrel.
+	if _reload_remaining > 0.0 and _reload_total > 0.0 and _current_clip == "reload":
+		var reload_phase := clampf(1.0 - _reload_remaining / _reload_total, 0.0, 1.0)
+		var reveal := smoothstep(0.04, 0.28, reload_phase)
+		var recover := 1.0 - smoothstep(0.70, 0.96, reload_phase)
+		var grip_yaw := deg_to_rad(reload_weapon_yaw_degrees * reveal * recover)
+		basis = basis * Basis(Vector3.UP, grip_yaw)
 	_weapon_socket.global_transform = (
 		_attachment.global_transform * Transform3D(basis, _socket_offset)
 	)
