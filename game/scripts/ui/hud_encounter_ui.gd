@@ -6,7 +6,7 @@ extends RefCounted
 
 
 static func update_objective(
-	hud, wave_number: int, active_enemies: int, remaining_enemies: int, state_text: String
+	hud, wave_number: int, _active_enemies: int, remaining_enemies: int, state_text: String
 ) -> void:
 	if not is_instance_valid(hud._wave_title_label):
 		return
@@ -26,8 +26,10 @@ static func update_objective(
 			"WAVE %02d" % wave_number if wave_number > 0 else "FRONTIER DEFENSE"
 		)
 		hud._wave_state_label.text = state_text.to_upper()
+		# The action earns visible currency now; the full accounting stays in
+		# Results. Active count remains in the wave state (ACTIVE n/max).
 		hud._wave_enemy_label.text = (
-			"ENEMIES  %d ACTIVE  ·  %d LEFT" % [active_enemies, remaining_enemies]
+			"%d LEFT · %d KO · +%d BP" % [remaining_enemies, hud._run_kos, hud._run_bp]
 		)
 		hud._wave_chip_label.text = (
 			"WAVE %02d\n%d LEFT" % [wave_number, remaining_enemies]
@@ -49,7 +51,9 @@ static func apply_context(hud) -> void:
 	hud._defense_button.visible = active and (exploring or preparing)
 	hud._defense_button.disabled = not exploring
 	hud._defense_button.text = (
-		"DEFENSE IN %d" % hud._preparation_seconds if preparing else "START DEFENSE  [B]"
+		"DEFENSE IN %d" % hud._preparation_seconds
+		if preparing
+		else ("START DEFENSE" if hud._touch_mode else "START DEFENSE  [B]")
 	)
 	hud._wave_card.visible = not hud._results_visible() and hud._play_phase != "results"
 	# The old three-line run panel competed with the horizon. Detailed score,
@@ -61,7 +65,11 @@ static func apply_context(hud) -> void:
 		active and not hud._touch_mode and (exploring or preparing) and hud._hud_preset != "MINIMAL"
 	)
 	if is_instance_valid(hud._pause_restart_button):
-		hud._pause_restart_button.text = ("RESET EXPLORATION" if exploring else "RETURN TO EXPLORE")
+		hud._pause_restart_button.text = (
+			"RESET EXPLORATION"
+			if exploring
+			else ("FINISH RUN · RESULTS" if hud._play_phase == "defense" else "CANCEL DEFENSE")
+		)
 	if is_instance_valid(hud._pause_stats_label) and exploring:
 		hud._pause_stats_label.text = "SAFE ZONE · NO WAVES UNTIL YOU START"
 
@@ -140,3 +148,41 @@ static func build_legacy_score_widgets(hud) -> void:
 	hud._compact_label.name = "CompactDataLabel"
 	hud._compact_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hud._compact_card.add_child(hud._compact_label)
+
+
+static func build_run_data(hud) -> void:
+	hud._run_card = AegisPanel.new()
+	hud._run_card.name = "RunDataCard"
+	hud._run_card.clip_contents = true
+	hud.add_child(hud._run_card)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 3)
+	hud._run_card.add_child(content)
+	content.add_child(hud._label("RUN DATA", "label_s", AegisTokens.INK_3))
+	hud._status_label = hud._label(
+		"Score: 0 · BP earned: 0\nKOs: 0 · Time: 00:00\nTarget 54 / 54 · Shots 0",
+		"mono_s",
+		AegisTokens.INK_2
+	)
+	hud._status_label.name = "StatusLabel"
+	hud._status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(hud._status_label)
+
+
+static func build_help_panel(hud, help_text: String) -> void:
+	hud._help_panel = AegisPanel.new()
+	hud._help_panel.name = "ControlsHelpPanel"
+	hud._help_panel.accent_side = "left"
+	hud._help_panel.accent_color = Color(AegisTokens.INFO, 0.9)
+	hud._help_panel.visible = false
+	hud._help_remaining = 0.0
+	hud._help_panel.clip_contents = true
+	hud._help_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_child(hud._help_panel)
+	hud._help_label = hud._label(help_text, "caption", AegisTokens.INK_2, 1.0, true)
+	hud._help_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hud._help_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	hud._help_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hud._help_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud._help_panel.add_child(hud._help_label)

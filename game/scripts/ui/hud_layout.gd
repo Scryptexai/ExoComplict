@@ -57,7 +57,9 @@ static func desktop(hud) -> void:
 		0,
 		Rect2(inset, hud._top_inset + 128.0 * unit, 230.0 * unit, 52.0 * unit)
 	)
-	_place_in_top_bar(hud._system_row, 1, 0, 1, 0, Rect2(-96.0 * unit, 0, 96.0 * unit, 44.0 * unit))
+	_place_in_top_bar(
+		hud._system_row, 1, 0, 1, 0, Rect2(-152.0 * unit, 0, 152.0 * unit, 56.0 * unit)
+	)
 	_place(
 		hud._score_chip,
 		1,
@@ -117,13 +119,13 @@ static func desktop(hud) -> void:
 
 static func touch_portrait(hud) -> void:
 	var edge: float = hud._to_layout(12.0)
-	var bar_height: float = hud._to_layout(48.0)
+	var bar_height: float = hud._to_layout(56.0)
 	_place_top_bar(hud, edge, hud._top_inset, bar_height)
-	_place_in_top_bar(hud._health_card, 0, 0, 0, 0, Rect2(0, 0, hud._to_layout(168.0), bar_height))
+	_place_in_top_bar(hud._health_card, 0, 0, 0, 0, Rect2(0, 0, hud._to_layout(184.0), bar_height))
 	var objective_top: float = bar_height + hud._to_layout(8.0)
-	var objective_width: float = minf(hud._to_layout(330.0), hud.size.x - edge * 2.0)
+	var objective_width: float = minf(hud._to_layout(354.0), hud.size.x - edge * 2.0)
 	_place_in_top_bar(
-		hud._wave_card, 0, 0, 0, 0, Rect2(0, objective_top, objective_width, hud._to_layout(58.0))
+		hud._wave_card, 0, 0, 0, 0, Rect2(0, objective_top, objective_width, hud._to_layout(64.0))
 	)
 	_place(
 		hud._defense_button,
@@ -133,24 +135,24 @@ static func touch_portrait(hud) -> void:
 		0,
 		Rect2(
 			edge,
-			hud._top_inset + objective_top + hud._to_layout(66.0),
-			hud._to_layout(196.0),
-			hud._to_layout(50.0)
+			hud._top_inset + objective_top + hud._to_layout(72.0),
+			hud._to_layout(234.0),
+			hud._to_layout(60.0)
 		)
 	)
-	# The sound control is hidden on phones, so the row only needs one target
-	# there; on a wide touch screen both buttons must fit side by side.
-	var system_width: float = hud._to_layout(44.0 if hud._narrow else 96.0)
+	# A 56 px pause target is deliberate, not just the minimum 44 px chip.
+	var system_width: float = hud._to_layout(88.0 if hud._narrow else 152.0)
 	_place_in_top_bar(
 		hud._system_row, 1, 0, 1, 0, Rect2(-system_width, 0, system_width, bar_height)
 	)
 
-	_place_button(hud, hud._fire_button, 18.0, 50.0, 92.0, 92.0)
-	_place_button(hud, hud._aim_button, 36.0, 176.0, 56.0, 56.0)
-	_place_button(hud, hud._skill_button, 130.0, 116.0, 56.0, 56.0)
-	# Keep the weapon action at least 44 px high and 12 px away from AIM.
-	_place_button(hud, hud._weapon_button, 112.0, 218.0, 120.0, 48.0)
-	_place_button(hud, hud._touch_ammo_chip, 244.0, 226.0, 52.0, 32.0)
+	# Physical pixels, not logical Godot canvas units. One large firing target;
+	# secondary actions sit in their own 64–72 px lanes with finger gaps.
+	_place_button(hud, hud._fire_button, 12.0, 38.0, 112.0, 112.0)
+	_place_button(hud, hud._aim_button, 20.0, 168.0, 72.0, 72.0)
+	_place_button(hud, hud._skill_button, 136.0, 104.0, 72.0, 72.0)
+	_place_button(hud, hud._weapon_button, 110.0, 236.0, 144.0, 60.0)
+	_place_button(hud, hud._touch_ammo_chip, 266.0, 236.0, 52.0, 36.0)
 	_place(
 		hud._skill_ring,
 		1,
@@ -158,10 +160,10 @@ static func touch_portrait(hud) -> void:
 		1,
 		1,
 		Rect2(
-			-hud._to_layout(125.0),
-			-hud._to_layout(111.0),
-			hud._to_layout(66.0),
-			hud._to_layout(66.0)
+			-hud._to_layout(214.0),
+			-hud._to_layout(182.0),
+			hud._to_layout(84.0),
+			hud._to_layout(84.0)
 		)
 	)
 	_place(
@@ -179,11 +181,11 @@ static func touch_portrait(hud) -> void:
 	)
 
 	_mirror_skill_ring(hud)
-	var stick_x: float = hud._to_layout(84.0)
+	var stick_x: float = hud._to_layout(86.0)
 	hud._joystick_center = Vector2(
 		hud.size.x - stick_x if hud._left_handed else stick_x, hud.size.y - hud._to_layout(106.0)
 	)
-	hud._joystick_radius = hud._to_layout(64.0)
+	hud._joystick_radius = hud._to_layout(72.0)
 
 	hud._show_top_wave_details(true)
 	# The objective now has its own row: display a readable description instead
@@ -197,7 +199,7 @@ static func touch_portrait(hud) -> void:
 	_place_help(
 		hud,
 		edge,
-		hud._top_inset + objective_top + hud._to_layout(124.0),
+		hud._top_inset + objective_top + hud._to_layout(142.0),
 		minf(hud._to_layout(342.0), hud.size.x - edge * 2.0),
 		hud._help_block_height(2)
 	)
@@ -214,9 +216,9 @@ static func touch_portrait(hud) -> void:
 
 static func touch_landscape(hud) -> void:
 	var edge: float = hud._to_layout(44.0)
-	var bar_height: float = hud._to_layout(44.0)
+	var bar_height: float = hud._to_layout(56.0)
 	_place_top_bar(hud, edge, hud._top_inset, bar_height)
-	_place_in_top_bar(hud._health_card, 0, 0, 0, 0, Rect2(0, 0, hud._to_layout(196.0), bar_height))
+	_place_in_top_bar(hud._health_card, 0, 0, 0, 0, Rect2(0, 0, hud._to_layout(208.0), bar_height))
 	var objective_top: float = bar_height + hud._to_layout(8.0)
 	_place_in_top_bar(
 		hud._wave_card,
@@ -224,7 +226,7 @@ static func touch_landscape(hud) -> void:
 		0,
 		0,
 		0,
-		Rect2(0, objective_top, hud._to_layout(270.0), hud._to_layout(52.0))
+		Rect2(0, objective_top, hud._to_layout(294.0), hud._to_layout(60.0))
 	)
 	_place(
 		hud._defense_button,
@@ -234,9 +236,9 @@ static func touch_landscape(hud) -> void:
 		0,
 		Rect2(
 			edge,
-			hud._top_inset + objective_top + hud._to_layout(60.0),
-			hud._to_layout(200.0),
-			hud._to_layout(48.0)
+			hud._top_inset + objective_top + hud._to_layout(68.0),
+			hud._to_layout(230.0),
+			hud._to_layout(56.0)
 		)
 	)
 	_place_in_top_bar(
@@ -245,16 +247,16 @@ static func touch_landscape(hud) -> void:
 		0,
 		1,
 		0,
-		Rect2(-hud._to_layout(96.0), 0, hud._to_layout(96.0), bar_height)
+		Rect2(-hud._to_layout(152.0), 0, hud._to_layout(152.0), bar_height)
 	)
 
-	_place_button(hud, hud._fire_button, 44.0, 50.0, 80.0, 80.0)
-	_place_button(hud, hud._aim_button, 60.0, 154.0, 48.0, 48.0)
-	_place_button(hud, hud._skill_button, 148.0, 104.0, 48.0, 48.0)
-	# Below the run card at 844x390, but horizontally clear of AIM and vertically
-	# clear of EMP. A 36 px row was not a usable touch target.
-	_place_button(hud, hud._weapon_button, 120.0, 168.0, 132.0, 48.0)
-	_place_button(hud, hud._touch_ammo_chip, 264.0, 176.0, 68.0, 32.0)
+	_place_button(hud, hud._fire_button, 18.0, 24.0, 104.0, 104.0)
+	_place_button(hud, hud._aim_button, 18.0, 140.0, 64.0, 64.0)
+	_place_button(hud, hud._skill_button, 134.0, 46.0, 64.0, 64.0)
+	_place_button(hud, hud._weapon_button, 104.0, 170.0, 152.0, 60.0)
+	_place_button(hud, hud._touch_ammo_chip, 272.0, 182.0, 68.0, 36.0)
+	# Formerly the EMP cooldown ring was misplaced over FIRE. It now frames the
+	# actual ability button: x(646–710), y(280–344) on an 844×390 display.
 	_place(
 		hud._skill_ring,
 		1,
@@ -262,10 +264,10 @@ static func touch_landscape(hud) -> void:
 		1,
 		1,
 		Rect2(
-			-hud._to_layout(143.0),
-			-hud._to_layout(99.0),
-			hud._to_layout(58.0),
-			hud._to_layout(58.0)
+			-hud._to_layout(204.0),
+			-hud._to_layout(116.0),
+			hud._to_layout(76.0),
+			hud._to_layout(76.0)
 		)
 	)
 
@@ -274,7 +276,7 @@ static func touch_landscape(hud) -> void:
 	hud._joystick_center = Vector2(
 		hud.size.x - stick_x if hud._left_handed else stick_x, hud.size.y - hud._to_layout(90.0)
 	)
-	hud._joystick_radius = hud._to_layout(56.0)
+	hud._joystick_radius = hud._to_layout(64.0)
 
 	hud._show_top_wave_details(true)
 	hud._sound_button.visible = true

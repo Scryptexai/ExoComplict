@@ -97,8 +97,9 @@ const MOTION_RESULTS := 0.24
 const HIT_MARKER := 0.16
 const DAMAGE_VIGNETTE := 0.28
 
-const MIN_PHYSICAL_FONT_PX := 11.0
-const MIN_TOUCH_PX := 44.0
+## Baseline for supporting HUD text; the four touch actions use 14–18 px.
+const MIN_PHYSICAL_FONT_PX := 13.0
+const MIN_TOUCH_PX := 56.0
 const TOUCH_GAP_PX := 12.0
 
 

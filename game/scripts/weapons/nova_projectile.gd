@@ -3,6 +3,9 @@ extends Node3D
 
 const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
 
+## The round collides at the muzzle, but its mesh waits until clear of camera.
+const VISUAL_CLEARANCE: float = 1.4
+
 var _direction: Vector3 = Vector3.FORWARD
 var _damage: float = 34.0
 var _speed: float = 18.0
@@ -11,6 +14,7 @@ var _collision_mask: int = 3
 var _splash_damage: float = 24.0
 var _splash_radius: float = 4.0
 var _shooter: CollisionObject3D
+var _distance_flown: float = 0.0
 
 
 func launch(
@@ -31,7 +35,13 @@ func launch(
 	_collision_mask = definition.collision_mask
 	_splash_damage = definition.splash_damage
 	_splash_radius = definition.splash_radius
+	_distance_flown = 0.0
 	look_at(global_position + _direction, Vector3.UP)
+	var trail := get_node_or_null("NovaTrail") as MeshInstance3D
+	if trail != null:
+		trail.rotation.x = PI * 0.5
+		trail.position.z = 0.36
+	_set_visuals_visible(false)
 
 
 func _physics_process(delta: float) -> void:
@@ -56,6 +66,16 @@ func _physics_process(delta: float) -> void:
 
 	global_position = next_position
 	_remaining_range -= step_distance
+	_distance_flown += step_distance
+	if _distance_flown - step_distance < VISUAL_CLEARANCE and _distance_flown >= VISUAL_CLEARANCE:
+		_set_visuals_visible(true)
+
+
+func _set_visuals_visible(value: bool) -> void:
+	for mesh_name in ["NovaCore", "NovaTrail"]:
+		var mesh := get_node_or_null(mesh_name) as MeshInstance3D
+		if mesh != null:
+			mesh.visible = value
 
 
 func _detonate(impact_position: Vector3, direct_target: Object) -> void:

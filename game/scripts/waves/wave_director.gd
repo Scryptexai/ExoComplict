@@ -143,6 +143,9 @@ func end_session() -> void:
 	_session_running = false
 	_spawn_timer = 0.0
 	_intermission_timer = 0.0
+	# Don't leave live AI attacking the player behind the Results panel when a
+	# run is finished voluntarily (or after a defeat).
+	_clear_active_enemies()
 	state = WaveState.GAME_OVER
 	session_ended.emit(current_wave, session_defeated_count)
 	_emit_progress()

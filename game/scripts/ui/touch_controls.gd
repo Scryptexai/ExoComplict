@@ -19,6 +19,7 @@ signal pause_requested
 signal retry_requested
 signal defense_start_requested
 signal return_to_explore_requested
+signal finish_run_requested
 signal sound_mute_requested
 signal settings_changed(values: Dictionary)
 
@@ -91,6 +92,7 @@ var _run_card: AegisPanel
 var _score_chip: AegisPanel
 var _compact_card: AegisPanel
 var _help_panel: AegisPanel
+var _feedback_panel: HudCombatFeedbackUi
 var _desktop_weapon_card: AegisPanel
 var _ads_chip: AegisPanel
 var _emp_chip: AegisButton
@@ -439,7 +441,10 @@ func _refresh_compact_label(source: String = "") -> void:
 
 func set_weapon_label(display_name: String) -> void:
 	if is_instance_valid(_weapon_button):
-		_weapon_button.text = display_name.to_upper()
+		# On touch, show the *action* and a short current weapon name; a bare
+		# "NOVA LAUNCHER" chip never explained that it could be tapped to swap.
+		_weapon_button.text = "SWAP · %s" % display_name.get_slice(" ", 0).to_upper()
+		_weapon_button.tooltip_text = "Tap to swap · Equipped: " + display_name
 	if is_instance_valid(_desktop_weapon_name):
 		_desktop_weapon_name.text = display_name.to_upper()
 
@@ -467,6 +472,13 @@ func show_skill_feedback(targets_hit: int) -> void:
 	_skill_button.text = "EMP\n%d HIT" % targets_hit if targets_hit > 0 else "EMP\nNO HIT"
 	_skill_button.disabled = (_player_down or get_tree().paused or _skill_cooldown_remaining > 0.0)
 	_emp_chip.text = ("EMP · %d HIT" % targets_hit if targets_hit > 0 else "EMP · NO HIT")
+	_feedback_panel.show_message(
+		(
+			"EMP PULSE · %d TARGET%s" % [targets_hit, "" if targets_hit == 1 else "S"]
+			if targets_hit > 0
+			else "EMP PULSE · NO TARGETS"
+		)
+	)
 
 
 func _refresh_skill_button() -> void:
@@ -525,6 +537,7 @@ func set_paused(paused: bool) -> void:
 		_top_bar.visible = true
 	if is_instance_valid(_pause_button):
 		_pause_button.icon = AegisTheme.icon("play" if paused else "pause", paused)
+		_pause_button.text = "RESUME" if paused else "PAUSE"
 		_pause_button.set_meta("aegis_state", "resume" if paused else "pause")
 		_pause_button.tooltip_text = "Resume (Esc)" if paused else "Pause (Esc)"
 		_pause_button.disabled = false
@@ -567,6 +580,7 @@ func set_player_down(down: bool) -> void:
 			"arrow-counter-clockwise" if down else ("play" if get_tree().paused else "pause")
 		)
 		_pause_button.set_meta("aegis_state", "retry" if down else "pause")
+		_pause_button.text = "RETRY" if down else "PAUSE"
 		_pause_button.tooltip_text = "Retry the run" if down else "Pause (Esc)"
 	if is_instance_valid(_fire_button):
 		_fire_button.disabled = down or get_tree().paused
@@ -605,6 +619,8 @@ func show_results(
 		)
 	)
 	_results_panel.visible = true
+	if is_instance_valid(_feedback_panel):
+		_feedback_panel.clear_message()
 	_results_retry_button.grab_focus()
 	if is_instance_valid(_scrim):
 		_scrim.visible = true
@@ -678,9 +694,10 @@ func _build_ui() -> void:
 	_build_wave_card()
 	_build_defense_action()
 	_build_system_row()
-	_build_run_card()
+	HudEncounterUi.build_run_data(self)
 	HudEncounterUi.build_legacy_score_widgets(self)
-	_build_help_panel()
+	HudEncounterUi.build_help_panel(self, HELP_TEXT)
+	_build_combat_feedback()
 	_build_touch_buttons()
 	_build_desktop_chips()
 	_build_overlays()
@@ -746,42 +763,10 @@ func _build_system_row() -> void:
 	_system_row.add_child(_pause_button)
 
 
-func _build_run_card() -> void:
-	_run_card = AegisPanel.new()
-	_run_card.name = "RunDataCard"
-	_run_card.clip_contents = true
-	add_child(_run_card)
-
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 3)
-	_run_card.add_child(content)
-	content.add_child(_label("RUN DATA", "label_s", AegisTokens.INK_3))
-	_status_label = _label(
-		"Score: 0 · BP earned: 0\nKOs: 0 · Time: 00:00\nTarget 54 / 54 · Shots 0",
-		"mono_s",
-		AegisTokens.INK_2
-	)
-	_status_label.name = "StatusLabel"
-	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	content.add_child(_status_label)
-
-
-func _build_help_panel() -> void:
-	_help_panel = AegisPanel.new()
-	_help_panel.name = "ControlsHelpPanel"
-	_help_panel.accent_side = "left"
-	_help_panel.accent_color = Color(AegisTokens.INFO, 0.9)
-	_help_panel.visible = false
-	_help_remaining = 0.0
-	_help_panel.clip_contents = true
-	_help_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_help_panel)
-	_help_label = _label(HELP_TEXT, "caption", AegisTokens.INK_2, 1.0, true)
-	_help_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_help_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	_help_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_help_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_help_panel.add_child(_help_label)
+func _build_combat_feedback() -> void:
+	_feedback_panel = HudCombatFeedbackUi.new()
+	_feedback_panel.name = "CombatFeedback"
+	add_child(_feedback_panel)
 
 
 func _build_touch_buttons() -> void:
@@ -1033,13 +1018,17 @@ func _register_type(control: Control, role: String, _color: Color, multiplier: f
 func _icon_button(button_name: String, icon_name: String, tooltip: String) -> AegisButton:
 	var button := AegisButton.new()
 	button.name = button_name
-	button.text = ""
+	# A glyph alone is not an instruction on a phone. SOUND stays icon-only
+	# where there is room; the always-visible system action names itself.
+	button.text = "PAUSE" if button_name == "PauseButton" else ""
 	button.tooltip_text = tooltip
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
 	button.icon = AegisTheme.icon(icon_name, true)
 	button.expand_icon = false
-	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.icon_alignment = (
+		HORIZONTAL_ALIGNMENT_LEFT if button_name == "PauseButton" else HORIZONTAL_ALIGNMENT_CENTER
+	)
 	button.add_theme_constant_override("icon_max_width", 20)
 	button.add_theme_font_size_override("font_size", 11)
 	AegisTheme.set_button_variant(button, "icon")
@@ -1142,6 +1131,8 @@ func _layout_overlays() -> void:
 		_scrim.offset_right = 0.0
 		_scrim.offset_bottom = 0.0
 	HudLayout.overlays(self)
+	if is_instance_valid(_feedback_panel):
+		_feedback_panel.layout_for(self)
 	HudPauseGesture.layout(self)
 	if is_instance_valid(_settings_menu):
 		var width := minf(_to_layout(700.0), size.x * 0.94)
@@ -1582,6 +1573,8 @@ func _on_restart_pressed() -> void:
 	Sfx.play_ui(&"ui_click")
 	if _play_phase == "explore":
 		retry_requested.emit()
+	elif _play_phase == "defense":
+		finish_run_requested.emit()
 	else:
 		return_to_explore_requested.emit()
 

@@ -66,7 +66,7 @@ func _run_smoke_test() -> void:
 		and test_passed
 	)
 	test_passed = (
-		_expect(weapon_button.text == "PULSE RIFLE", "touch button shows the selected weapon")
+		_expect(weapon_button.text == "SWAP · PULSE", "touch button shows the selected weapon")
 		and test_passed
 	)
 
@@ -75,7 +75,7 @@ func _run_smoke_test() -> void:
 		_expect(
 			(
 				weapon_controller.call("get_current_weapon_name") == "Nova Launcher"
-				and weapon_button.text == "NOVA LAUNCHER"
+				and weapon_button.text == "SWAP · NOVA"
 				and touch_ammo.text == "6/6"
 			),
 			"mobile weapon button selects Nova and updates its label",
@@ -87,7 +87,7 @@ func _run_smoke_test() -> void:
 		_expect(
 			(
 				weapon_controller.call("get_current_weapon_name") == "Arc Shooter"
-				and weapon_button.text == "ARC SHOOTER"
+				and weapon_button.text == "SWAP · ARC"
 				and touch_ammo.text == "12/12"
 			),
 			"mobile weapon button reaches Arc Shooter and updates its label",
@@ -260,6 +260,23 @@ func _run_smoke_test() -> void:
 		_expect(nova_fire and not nova_repeat, "Nova Launcher has an independent cooldown")
 		and test_passed
 	)
+	var nova_round := main_scene.find_child("NovaProjectile", true, false) as Node3D
+	if nova_round != null:
+		var nova_core := nova_round.get_node("NovaCore") as MeshInstance3D
+		var nova_trail := nova_round.get_node("NovaTrail") as MeshInstance3D
+		test_passed = (
+			_expect(
+				(
+					not nova_core.visible
+					and not nova_trail.visible
+					and (nova_core.mesh as SphereMesh).radius <= 0.12
+				),
+				"Nova fires from muzzle but waits until clear of camera to reveal a small bolt",
+			)
+			and test_passed
+		)
+	else:
+		test_passed = _expect(false, "Nova round exists after firing") and test_passed
 	for _frame in 45:
 		await physics_frame
 		if not nova_direct.damage_calls.is_empty() and not nova_nearby.damage_calls.is_empty():

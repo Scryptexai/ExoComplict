@@ -57,6 +57,7 @@ func _ready() -> void:
 	touch_controls.retry_requested.connect(_reset_session)
 	touch_controls.defense_start_requested.connect(_request_defense)
 	touch_controls.return_to_explore_requested.connect(_return_to_explore)
+	touch_controls.finish_run_requested.connect(_finish_run)
 	player.aim_changed.connect(touch_controls.set_aim_state)
 	player.shot_fired.connect(_on_shot_fired)
 	player.health_changed.connect(_on_combatant_health_changed)
@@ -69,6 +70,7 @@ func _ready() -> void:
 	wave_director.wave_started.connect(_on_wave_started)
 	wave_director.wave_completed.connect(_on_wave_completed)
 	wave_director.wave_completed.connect(reward_service.award_wave_completion)
+	reward_service.wave_rewarded.connect(_on_wave_rewarded)
 	wave_director.enemy_spawned.connect(_on_wave_enemy_spawned)
 	wave_director.enemy_defeated.connect(reward_service.award_enemy_defeat)
 	wave_director.session_ended.connect(_on_wave_session_ended)
@@ -191,6 +193,18 @@ func _return_to_explore() -> void:
 	print("Encounter: Returned to Explore")
 
 
+## Pause offers a deliberate cash-out path; a player need not die or leave
+## their BP behind to see the outcome and choose another run.
+func _finish_run() -> void:
+	if session_mode != SessionMode.DEFENSE:
+		return
+	_is_paused = false
+	get_tree().paused = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	touch_controls.set_paused(false)
+	wave_director.end_session()
+
+
 func _on_shot_fired() -> void:
 	_shots_fired += 1
 	_update_status()
@@ -234,6 +248,14 @@ func _on_wave_started(_wave_index: int, _enemy_count: int) -> void:
 
 func _on_wave_completed(_wave_index: int) -> void:
 	_update_status()
+
+
+func _on_wave_rewarded(wave_index: int, bp_reward: int) -> void:
+	# Only show the award once it was actually applied, not before the reward
+	# service has checked its per-wave duplicate guard.
+	touch_controls._feedback_panel.show_message(
+		"WAVE %02d CLEAR · +%d BP" % [wave_index, bp_reward]
+	)
 
 
 func _on_wave_enemy_spawned(enemy: Node3D) -> void:
@@ -283,8 +305,6 @@ func _update_status() -> void:
 	var active_enemies := wave_director.active_enemy_count
 	var remaining_enemies := wave_director.enemies_remaining
 	var wave_state := wave_director.get_state_label()
-	touch_controls.set_wave_status(wave_number, active_enemies, remaining_enemies, wave_state)
-	touch_controls.set_status(status)
 	(
 		touch_controls
 		. set_run_summary(
@@ -295,3 +315,5 @@ func _update_status() -> void:
 			_shots_fired,
 		)
 	)
+	touch_controls.set_wave_status(wave_number, active_enemies, remaining_enemies, wave_state)
+	touch_controls.set_status(status)

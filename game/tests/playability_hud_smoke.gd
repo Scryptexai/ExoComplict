@@ -125,7 +125,7 @@ func _run_smoke_test() -> void:
 	_expect(
 		(
 			fire_button.text == "FIRE"
-			and weapon_button.text == "PULSE RIFLE"
+			and weapon_button.text == "SWAP · PULSE"
 			and skill_button.text.contains("READY")
 			and not skill_button.disabled
 			and String(pause_button.get_meta("aegis_state", "")) == "pause"
@@ -213,17 +213,25 @@ func _run_smoke_test() -> void:
 		),
 		"portrait objective and start action stack below vitals without overlap",
 	)
+	var portrait_gap := float(controls.call("_to_layout", 5.9))
 	_expect(
 		(
-			weapon_button.get_global_rect().size.y * 0.3047 >= 43.5
-			and not (
-				weapon_button
-				. get_global_rect()
-				. grow(controls.call("_to_layout", 5.9))
-				. intersects(aim_button.get_global_rect())
+			weapon_button.get_global_rect().size.y * 0.3047 >= 59.0
+			and fire_button.get_global_rect().size.x * 0.3047 >= 110.0
+			and aim_button.get_global_rect().size.x * 0.3047 >= 70.0
+			and skill_button.get_global_rect().size.x * 0.3047 >= 70.0
+			and pause_button.get_global_rect().size.x * 0.3047 >= 86.0
+			and not weapon_button.get_global_rect().grow(portrait_gap).intersects(
+				aim_button.get_global_rect()
+			)
+			and not fire_button.get_global_rect().grow(portrait_gap).intersects(
+				aim_button.get_global_rect()
+			)
+			and not fire_button.get_global_rect().grow(portrait_gap).intersects(
+				skill_button.get_global_rect()
 			)
 		),
-		"portrait SWAP is a 44px target with space from AIM",
+		"portrait FIRE 112, AIM/EMP 72, SWAP 60, PAUSE 88 px with finger gaps",
 	)
 	_expect(
 		(
@@ -232,14 +240,16 @@ func _run_smoke_test() -> void:
 			# The promise is about pixels on the glass, not about the canvas: the
 			# web build keeps a 1280-unit logical canvas in portrait, so a 390 px
 			# phone renders every logical pixel at ~0.3x.
-			and portrait_font >= 10.5
-			and portrait_body_font >= 10.5
+			and portrait_font >= 12.5
+			and portrait_body_font >= 12.5
+			and fire_button.get_theme_font_size("font_size") * 0.3047 >= 17.5
+			and weapon_button.get_theme_font_size("font_size") * 0.3047 >= 13.5
 			and wave_card.size.y >= wave_enemy_label.get_combined_minimum_size().y
-			and defense_button.get_global_rect().size.y * 0.3047 >= 48.0
+			and defense_button.get_global_rect().size.y * 0.3047 >= 59.0
 		),
 		(
 			(
-				"portrait HUD text stays >=11 physical px (%.1f / %.1f), "
+				"portrait HUD text stays >=13 physical px (%.1f / %.1f), "
 				+ "objective and start control fit (%.0f >= %.0f)"
 			)
 			% [
@@ -253,17 +263,26 @@ func _run_smoke_test() -> void:
 	controls.call("apply_layout_for_size", Vector2(844.0, 390.0), 0.541667)
 	await process_frame
 	var landscape_gap := float(controls.call("_to_layout", 5.9))
+	var emp_center: Vector2 = skill_button.get_global_rect().get_center()
+	var ring := controls.get("_skill_ring") as Control
 	_expect(
 		(
-			weapon_button.get_global_rect().size.y * 0.541667 >= 43.5
+			weapon_button.get_global_rect().size.y * 0.541667 >= 59.0
+			and fire_button.get_global_rect().size.x * 0.541667 >= 102.0
+			and aim_button.get_global_rect().size.x * 0.541667 >= 62.0
+			and skill_button.get_global_rect().size.x * 0.541667 >= 62.0
+			and emp_center.distance_to(ring.get_global_rect().get_center()) * 0.541667 < 2.0
 			and not weapon_button.get_global_rect().grow(landscape_gap).intersects(
 				aim_button.get_global_rect()
 			)
-			and not weapon_button.get_global_rect().grow(landscape_gap).intersects(
+			and not fire_button.get_global_rect().grow(landscape_gap).intersects(
 				skill_button.get_global_rect()
 			)
+			and not fire_button.get_global_rect().grow(landscape_gap).intersects(
+				aim_button.get_global_rect()
+			)
 		),
-		"landscape SWAP is at least 44px high and clear of AIM and EMP",
+		"landscape FIRE 104, AIM/EMP 64, SWAP 60 px; ring frames EMP",
 	)
 	var help_plate := controls.get("_help_panel") as Control
 	_expect(
@@ -386,15 +405,15 @@ func _run_smoke_test() -> void:
 
 	wave_director.call("start_session")
 	_expect(
-		wave_title.text == "WAVE 01" and wave_enemy_label.text.ends_with("3 LEFT"),
-		"starting a wave updates wave number and remaining-enemy count",
+		wave_title.text == "WAVE 01" and wave_enemy_label.text.contains("3 LEFT · 0 KO · +0 BP"),
+		"starting a wave shows the objective and earned BP while fighting",
 	)
 
 	_tap_screen_button(controls, weapon_button, 73)
 	_expect(
 		(
 			player.call("get_current_weapon_name") == "Nova Launcher"
-			and weapon_button.text == "NOVA LAUNCHER"
+			and weapon_button.text == "SWAP · NOVA"
 		),
 		"touching the weapon button cycles the active weapon and HUD label",
 	)

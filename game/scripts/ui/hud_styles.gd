@@ -95,11 +95,17 @@ static func apply_fonts(hud) -> void:
 			continue
 		button.add_theme_font_size_override("font_size", floor_size)
 		if button == hud._fire_button:
-			AegisTheme.resize_button_font(button, "title", maxi(roundi(15.0 * unit), floor_size))
-		elif (
-			button == hud._weapon_button or button == hud._skill_button or button == hud._aim_button
-		):
-			AegisTheme.resize_button_font(button, "label", maxi(roundi(11.0 * unit), floor_size))
+			AegisTheme.resize_button_font(
+				button, "title", maxi(roundi(hud._to_layout(18.0)), floor_size)
+			)
+		elif button == hud._aim_button or button == hud._skill_button:
+			AegisTheme.resize_button_font(
+				button, "title", maxi(roundi(hud._to_layout(15.0)), floor_size)
+			)
+		elif button == hud._weapon_button:
+			AegisTheme.resize_button_font(
+				button, "title", maxi(roundi(hud._to_layout(14.0)), floor_size)
+			)
 		elif (
 			button == hud._defense_button
 			or button == hud._results_retry_button
@@ -113,11 +119,14 @@ static func apply_fonts(hud) -> void:
 		hud._health_bar.custom_minimum_size.y = maxf(hud._to_layout(6.0), 3.0)
 	# Icons are raster assets; size them in physical pixels so a 20 px glyph on
 	# desktop is still 20 px on a phone instead of shrinking with the canvas.
-	var icon_px := maxi(roundi(hud._to_layout(18.0)), 12)
-	var icon_button_px := maxf(hud._to_layout(44.0), 32.0)
+	var icon_px := maxi(roundi(hud._to_layout(20.0)), 12)
+	var icon_button_px := maxf(hud._to_layout(56.0), 32.0)
 	for icon_button in [hud._pause_button, hud._sound_button]:
 		if is_instance_valid(icon_button):
-			icon_button.custom_minimum_size = Vector2(icon_button_px, icon_button_px)
+			var width := (
+				hud._to_layout(88.0) if icon_button == hud._pause_button else icon_button_px
+			)
+			icon_button.custom_minimum_size = Vector2(width, icon_button_px)
 	for button in [
 		hud._defense_button,
 		hud._results_explore_button,
@@ -130,4 +139,9 @@ static func apply_fonts(hud) -> void:
 		hud._emp_chip
 	]:
 		if is_instance_valid(button):
-			button.add_theme_constant_override("icon_max_width", icon_px)
+			var button_icon_px := icon_px
+			if button == hud._fire_button:
+				button_icon_px = roundi(hud._to_layout(26.0))
+			elif button == hud._pause_button or button == hud._sound_button:
+				button_icon_px = roundi(hud._to_layout(24.0))
+			button.add_theme_constant_override("icon_max_width", button_icon_px)

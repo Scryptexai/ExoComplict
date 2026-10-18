@@ -73,7 +73,22 @@ func _run() -> void:
 		int(wave.get("current_wave")) == 0 and wave.call("get_active_enemies").is_empty(),
 		"no enemy may spawn before the preparation countdown expires",
 	)
-	main.call("_process", 1.2)
+	var escape := hud.get("_pause_restart_button") as Button
+	main.call("_toggle_pause")
+	_expect(paused and escape.text == "CANCEL DEFENSE", "preparation can be cancelled")
+	_tap(hud, escape)
+	_expect(
+		(
+			not paused
+			and int(main.get("session_mode")) == 0
+			and int(wave.get("current_wave")) == 0
+			and wave.call("get_active_enemies").is_empty()
+		),
+		"cancelling preparation returns to safe Explore without a reward",
+	)
+
+	_tap(hud, start)
+	main.call("_process", 5.1)
 	_expect(
 		(
 			int(main.get("session_mode")) == 2
@@ -83,27 +98,21 @@ func _run() -> void:
 		"the first wave begins only after an explicit start plus countdown",
 	)
 
+	# End a run using the visible pause action, not a test-only director call.
 	main.call("_toggle_pause")
-	var escape := hud.get("_pause_restart_button") as Button
-	_expect(paused and escape.text == "RETURN TO EXPLORE", "Defense pause exposes a real exit")
-	escape.pressed.emit()
+	_expect(paused and escape.text == "FINISH RUN · RESULTS", "Defense offers a cash-out")
+	_tap(hud, escape)
+	var results := hud.get("_results_panel") as Control
 	_expect(
 		(
 			not paused
-			and int(main.get("session_mode")) == 0
-			and int(wave.get("current_wave")) == 0
+			and int(main.get("session_mode")) == 3
+			and results.visible
 			and wave.call("get_active_enemies").is_empty()
-			and is_equal_approx(float(player.get("current_health")), health_before)
 		),
-		"exit clears the wave, unpauses and restores health in safe Explore",
+		"FINISH RUN opens Results and stops enemies without losing the run",
 	)
-
-	# Complete a run via the director to verify the results screen has both
-	# choices. Retry must prepare again; RETURN TO EXPLORE must not spawn.
-	start.pressed.emit()
-	main.call("_process", 5.1)
-	wave.call("end_session")
-	var results := hud.get("_results_panel") as Control
+	# Retry must prepare again; RETURN TO EXPLORE must not spawn.
 	var retry := hud.get("_results_retry_button") as Button
 	var explore := hud.get("_results_explore_button") as Button
 	_expect(

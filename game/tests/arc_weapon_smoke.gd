@@ -36,7 +36,7 @@ func _run_smoke_test() -> void:
 		_expect(
 			(
 				weapon_controller.call("get_current_weapon_name") == "Arc Shooter"
-				and weapon_button.text == "ARC SHOOTER"
+				and weapon_button.text == "SWAP · ARC"
 			),
 			"Arc selection updates the mobile weapon label",
 		)
