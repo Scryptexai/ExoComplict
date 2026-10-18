@@ -215,6 +215,10 @@ func _run_smoke_test() -> void:
 	# the whole HUD used to render at ~30% of its designed size. The layout must
 	# size itself from the physical window instead: a 390 px wide phone therefore
 	# gets portrait body text (~11 px on glass), not 3 px.
+	# As in the real exported portrait canvas, the HUD must span *both* axes
+	# after the physical->logical stretch. Otherwise bottom-anchored actions
+	# sit above the simulated screen and overlap checks judge a fictitious HUD.
+	controls.size = Vector2(390.0 / 0.3047, 844.0 / 0.3047)
 	controls.call("apply_layout_for_size", Vector2(390.0, 844.0), 0.3047)
 	# One frame so the containers settle at the new font sizes before measuring.
 	await process_frame
