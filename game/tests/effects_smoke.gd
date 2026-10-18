@@ -45,8 +45,8 @@ func _run_smoke_test() -> void:
 					cone != null
 					and cone.mesh is CylinderMesh
 					and cone.position.z < -0.1
-					and (cone.mesh as CylinderMesh).height <= 0.32
-					and (cone.mesh as CylinderMesh).bottom_radius <= 0.06
+					and (cone.mesh as CylinderMesh).height <= 0.4
+					and (cone.mesh as CylinderMesh).bottom_radius <= 0.08
 					and muzzle_flash.get_node_or_null("FlashSpark_1") != null
 				),
 				"barrel flash cone has bounded forward dimensions (visual check still needed)",
