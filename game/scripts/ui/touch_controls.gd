@@ -114,6 +114,9 @@ var _pause_panel: AegisPanel
 var _pause_label: Label
 var _pause_stats_label: Label
 var _pause_resume_button: AegisButton
+var _pause_swipe_handle: ColorRect
+var _pause_swipe_id: int = -1
+var _pause_swipe_origin: Vector2 = Vector2.ZERO
 var _pause_restart_button: AegisButton
 var _pause_settings_button: AegisButton
 var _settings_menu: AegisSettingsMenu
@@ -210,6 +213,8 @@ func _input(event: InputEvent) -> void:
 		and (event is InputEventScreenTouch or event is InputEventScreenDrag)
 	):
 		# Editor GUI owns touch drags, not the gameplay thumb-zone dispatcher.
+		return
+	if HudPauseGesture.handle(self, event):
 		return
 	if event is InputEventScreenTouch:
 		if event.pressed and not _touch_mode:
@@ -933,6 +938,13 @@ func _build_pause_menu() -> void:
 	content.add_theme_constant_override("separation", 12)
 	_pause_panel.add_child(content)
 
+	_pause_swipe_handle = ColorRect.new()
+	_pause_swipe_handle.name = "PauseSwipeHandle"
+	_pause_swipe_handle.color = AegisTokens.LINE_HI
+	_pause_swipe_handle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_pause_swipe_handle.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	content.add_child(_pause_swipe_handle)
+
 	var eyebrow := _label("RUN SUSPENDED", "label", AegisTokens.ACCENT)
 	content.add_child(eyebrow)
 	_pause_label = _label("PAUSED", "display_l", AegisTokens.INK)
@@ -1156,6 +1168,7 @@ func _layout_overlays() -> void:
 		_scrim.offset_right = 0.0
 		_scrim.offset_bottom = 0.0
 	HudLayout.overlays(self)
+	HudPauseGesture.layout(self)
 	if is_instance_valid(_settings_menu):
 		var width := minf(_to_layout(700.0), size.x * 0.94)
 		var height := minf(_to_layout(520.0), size.y * 0.90)

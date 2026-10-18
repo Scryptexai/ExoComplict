@@ -37,6 +37,9 @@ var _aiming: bool = false
 var _aim_blend: float = 0.0
 var _kick: float = 0.0
 var _kick_offset: Vector3 = Vector3.ZERO
+var _default_walk_bob: float = 0.0
+var _default_kick_rotation: float = 0.0
+var _default_kick_push: float = 0.0
 
 @onready var yaw_pivot: Node3D = $YawPivot
 @onready var pitch_pivot: Node3D = $YawPivot/PitchPivot
@@ -45,6 +48,9 @@ var _kick_offset: Vector3 = Vector3.ZERO
 
 
 func _ready() -> void:
+	_default_walk_bob = walk_bob_scale
+	_default_kick_rotation = kick_rotation_degrees
+	_default_kick_push = kick_push
 	_apply_blend(0.0)
 	pitch_pivot.rotation.x = clampf(
 		pitch_pivot.rotation.x, deg_to_rad(min_pitch_degrees), deg_to_rad(max_pitch_degrees)
@@ -60,6 +66,20 @@ func _process(delta: float) -> void:
 		if _kick < 0.001:
 			_kick = 0.0
 		_apply_kick()
+
+
+## Accessibility: preserve authored kick/bob values so toggling the option in
+## a paused run restores the exact camera feel rather than a hard-coded guess.
+func set_reduced_motion(enabled: bool) -> void:
+	walk_bob_scale = 0.0 if enabled else _default_walk_bob
+	kick_rotation_degrees = 0.0 if enabled else _default_kick_rotation
+	kick_push = 0.0 if enabled else _default_kick_push
+	if enabled:
+		_kick = 0.0
+		spring_camera.rotation = Vector3.ZERO
+		spring_camera.position.z = 0.0
+		spring_camera.h_offset = 0.0
+		spring_camera.v_offset = 0.0
 
 
 func apply_look_delta(delta: Vector2) -> void:

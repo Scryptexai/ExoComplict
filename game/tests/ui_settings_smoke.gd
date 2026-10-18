@@ -127,11 +127,28 @@ func _run() -> void:
 		),
 		"accessibility settings shorten motion and disable damage flashes",
 	)
+	var rig := camera_rig as ThirdPersonCameraRig
+	_expect(
+		(
+			is_zero_approx(rig.walk_bob_scale)
+			and is_zero_approx(rig.kick_rotation_degrees)
+			and is_zero_approx(rig.kick_push)
+		),
+		"reduce motion disables camera bob and weapon kick, not just HUD fades",
+	)
 	reduce_flash.button_pressed = false
 	controls.call("show_damage_received")
 	_expect(
 		float(controls.get("_damage_flash_remaining")) <= 0.1,
 		"reduce motion caps the vignette even when reduce flash is off",
+	)
+	reduce_motion.button_pressed = false
+	_expect(
+		(
+			is_equal_approx(rig.walk_bob_scale, float(rig.get("_default_walk_bob")))
+			and is_equal_approx(rig.kick_push, float(rig.get("_default_kick_push")))
+		),
+		"disabling reduce motion restores authored camera feel",
 	)
 
 	var escape := InputEventKey.new()

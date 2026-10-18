@@ -13,6 +13,7 @@
  *   node tools/web_qa.mjs --menus         # screenshot pause, then resume
  *   node tools/web_qa.mjs --menus --settings  # also open/settings screenshot, Esc/back
  *   node tools/web_qa.mjs --menus --settings --editor # HUD tab/editor screenshot
+ *   node tools/web_qa.mjs --menus --swipe --viewport 390x844 # portrait sheet gesture
  *   node tools/web_qa.mjs --tour          # world review camera: F10 + keys 1-8
  *
  * `--hold` exists because the touch HUD lives inside the WebGL canvas: the AIM
@@ -232,7 +233,17 @@ async function checkPage(target, viewport) {
         await page.keyboard.press('Escape');
         await new Promise((r) => setTimeout(r, 250));
       }
-      await page.keyboard.press('Escape');
+      if (has('--swipe') && viewport.height > viewport.width) {
+        // The portrait bottom sheet sits 34 physical px above the gesture
+        // area and is 340 px tall. Start at its 48x4 grip, not on RESUME.
+        const gripX = viewport.width / 2;
+        const gripY = viewport.height - 34 - 340 + 18;
+        await page.touchscreen.touchStart(gripX, gripY);
+        await page.touchscreen.touchMove(gripX, gripY + 100);
+        await page.touchscreen.touchEnd();
+      } else {
+        await page.keyboard.press('Escape');
+      }
       await new Promise((r) => setTimeout(r, 350));
     }
   }
@@ -350,7 +361,10 @@ async function checkPage(target, viewport) {
   if (has('--menus')) {
     checks.push(['pause menu captured a frame', menuFrames.length >= 1]);
     checks.push(['ESC opened the pause state', menuLines.some((line) => line.includes('HUD: paused'))]);
-    checks.push(['ESC resumed the game', menuLines.some((line) => line.includes('HUD: resumed'))]);
+    checks.push([
+      has('--swipe') && viewport.height > viewport.width ? 'portrait swipe resumed the game' : 'ESC resumed the game',
+      menuLines.some((line) => line.includes('HUD: resumed')),
+    ]);
     if (has('--settings') || has('--editor')) {
       checks.push(['settings screen captured a frame', menuFrames.length >= 2]);
       checks.push(['SETTINGS opened via keyboard', menuLines.some((line) => line.includes('HUD: settings opened'))]);

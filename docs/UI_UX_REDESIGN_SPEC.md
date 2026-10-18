@@ -408,8 +408,8 @@ ini kompromi aksesibilitas yang disengaja, bukan hasil uji kontras di perangkat.
 Board menargetkan **bottom sheet** 440px dengan handle dan baris 74px.
 Implementasi pause di 390×844 memakai tinggi 340px agar ruang kosong di bawah
 aksi berkurang setelah QA visual; results tetap punya tombol 302×56 dan
-safe area footer 34px. Swipe-down = resume masih target polish, belum ada
-handler gesture (gunakan RESUME atau Esc sampai diuji pada perangkat).
+safe area footer 34px. Handle 48×4px dan swipe-down 80px untuk resume sudah
+diimplementasikan; perlu validasi touch asli di perangkat.
 
 ---
 
@@ -571,8 +571,8 @@ node tools/web_qa.mjs --url http://127.0.0.1:8133 --page / \
 | M2 | HUD sentuh + portrait/landscape | `hud_layout.gd` (`touch_portrait`, `touch_landscape`) | Board 03 cocok di 390×844 & 844×390 | ✅ screenshot Web 18 Okt: ammo, jarak tombol, hint landscape; QA 2/3 sebelum koreksi checker mute |
 | M3 | Pause + results | `_build_pause_menu`, `_build_results_panel` | Board 05; ESC/focus benar | ⏳ ESC pause/resume 3/3 di WASM; hasil/penambahan settings perlu QA |
 | M4 | Settings + HUD editor | `aegis_settings_menu.gd`, `hud_editor.gd` | Board 06; setting persist | ⏳ settings dan editor drag/preset/offset lulus smoke **15/15** (`4fcbf5f`); QA visual WASM baru menyusul |
-| M5 | Polish + a11y | theme, motion | `reduce_motion`, kontras, 44px | ⏳ skala teks, mode buta warna, reduce motion/flash lulus smoke; kontras di perangkat belum diuji |
-| M6 | QA + evidence | smoke, `web_qa` | Semua frame + smoke 15/15 | ⏳ smoke 15/15; inspeksi tiga viewport dan editor WASM belum selesai |
+| M5 | Polish + a11y | theme, motion | `reduce_motion`, kontras, 44px | ⏳ skala teks, mode buta warna, reduce flash, kamera tanpa bob/kick menunggu CI; kontras di perangkat belum diuji |
+| M6 | QA + evidence | smoke, `web_qa` | Semua frame + smoke 16/16 | ⏳ CI 15/15 (`4fcbf5f`), web_qa 3/3 settings + 2/2 editor; gestur portrait menunggu smoke 16/16 & QA touch |
 
 Catatan implementasi: HUD tinggal di satu facade (`touch_controls.gd`) dengan
 geometri di `hud_layout.gd` dan gambar reticle/joystick/vignette di

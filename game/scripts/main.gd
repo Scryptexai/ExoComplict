@@ -103,6 +103,7 @@ func _on_sound_mute_requested() -> void:
 
 func _on_settings_changed(values: Dictionary) -> void:
 	player.camera_rig.look_sensitivity = _base_look_sensitivity * float(values["sensitivity"])
+	player.camera_rig.set_reduced_motion(bool(values.get("reduce_motion", false)))
 	var muted := bool(values["muted"])
 	if Sfx.is_muted() != muted:
 		Sfx.set_muted(muted)
