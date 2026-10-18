@@ -86,6 +86,11 @@ func _physics_process(delta: float) -> void:
 	camera_rig.apply_walk_bob(visual_root.walk_intensity(), _walk_time)
 	var desktop_fire := Input.is_action_pressed("fire") and not _is_pointer_over_ui()
 	if desktop_fire or _touch_fire_pressed:
+		# The real rifle must be shouldered *before* the first muzzle point is
+		# sampled. Previously hip fire spent a round with the flash at the boot,
+		# then animated into the correct shooting pose after the projectile left.
+		if weapon_controller.get_current_ammo() > 0 and not weapon_controller.is_reloading():
+			visual_root.prime_shot_pose()
 		if weapon_controller.try_fire(self, muzzle, aim_point):
 			if is_instance_valid(muzzle_flash):
 				muzzle_flash.flash(_current_recoil_strength(), _current_flash_color())

@@ -324,9 +324,27 @@ func _run_smoke_test() -> void:
 	player.call("reset_player")
 	_expect(str(visual.call("current_clip")) == "idle", "reset exits death into neutral idle")
 
-	# Hip-fire must not leave the Blender hero motionless while a projectile
-	# leaves the lowered carry rifle. A stationary shot plays the authored fire
-	# action; firing in a sprint keeps the moving aim-run legs and forward socket.
+	# In a real browser screenshot the FIRST hip shot originated near the boot:
+	# recoil did shoulder the rifle, but only after the projectile had already
+	# left. Prime the existing Blender pose before resolving the first shot.
+	var carry_muzzle_y := muzzle.global_position.y
+	visual.call("prime_shot_pose")
+	_expect(str(visual.call("current_clip")) == "aim", "hip shot primes the authored aim pose")
+	_expect(
+		muzzle.global_position.y > carry_muzzle_y + 0.35,
+		(
+			"first hip shot lifts the real barrel above carry height (%.2f -> %.2f m)"
+			% [carry_muzzle_y, muzzle.global_position.y]
+		),
+	)
+	_expect(
+		_barrel(muzzle).dot(forward) > 0.94,
+		"first hip shot aligns the real rifle barrel before the projectile leaves",
+	)
+	_expect(
+		muzzle.global_position.distance_to(muzzle_point.global_position) < 0.002,
+		"first hip shot still comes from the GLB's measured MuzzlePoint",
+	)
 	visual.call("play_recoil", 1.0)
 	_expect(
 		str(visual.call("current_clip")) == "fire", "hip-fire shoulders the rifle and plays recoil"
@@ -343,6 +361,11 @@ func _run_smoke_test() -> void:
 		anim_player.advance(0.5)
 	_expect(str(visual.call("current_clip")) == "idle", "hip-fire returns to carry after the burst")
 	visual.call("update_pose", Vector3(6.0, 0.0, 0.0), true, 0.016)
+	visual.call("prime_shot_pose")
+	_expect(
+		str(visual.call("current_clip")) == "aim_run" and _barrel(muzzle).dot(forward) > 0.94,
+		"moving hip shot uses authored aim-run legs with the barrel forward before firing",
+	)
 	visual.call("play_recoil", 1.0)
 	_expect(
 		str(visual.call("current_clip")) == "aim_run",

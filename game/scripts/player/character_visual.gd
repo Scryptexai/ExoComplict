@@ -185,6 +185,40 @@ func reset_action_state() -> void:
 		_update_locomotion(0.0)
 
 
+## Hip fire cannot spawn at the lowered carry barrel and THEN begin raising the
+## authored arms: that put the first discharge beside the boot in actual WebGL.
+## Sample the already-authored Blender aim/aim-run frame before resolving the
+## projectile. Keep a moving clip's phase so its legs do not restart on trigger.
+## This moves the real rifle, MuzzlePoint, projectile and light as one assembly;
+## it never adds a fake higher shot origin or changes damage/aim assist.
+func prime_shot_pose() -> void:
+	if not is_rigged() or _defeated or _reload_remaining > 0.0:
+		return
+	if _socket_weight >= 0.98 and _current_clip in ["aim", "aim_walk", "aim_run", "fire"]:
+		return
+	var clip := "aim"
+	if _last_speed_ratio > RUN_THRESHOLD and _has_clip("aim_run"):
+		clip = "aim_run"
+	elif _last_speed_ratio > WALK_THRESHOLD and _has_clip("aim_walk"):
+		clip = "aim_walk"
+	if not _has_clip(clip):
+		return
+	var phase := _anim_player.current_animation_position
+	_play(clip, 0.0)
+	var target_time := (
+		0.0 if clip == "aim" else fmod(phase, _anim_player.get_animation(clip).length)
+	)
+	_anim_player.seek(target_time, true)
+	_socket_weight = 1.0
+	# BoneAttachment3D syncs during the normal update, but the shot is fired
+	# *inside this physics tick*. Read the measured hand bone pose directly so
+	# the marker and the rifle are in the same pose on the first trigger frame.
+	var hand_index := _skeleton.find_bone(str(_rig.get("hand_bone", "R_Hand")))
+	if hand_index >= 0:
+		var hand := _skeleton.global_transform * _skeleton.get_bone_global_pose(hand_index)
+		_weapon_socket.global_transform = hand * Transform3D(_socket_aim_basis, _socket_offset)
+
+
 func play_recoil(strength: float = 1.0, duration: float = 0.16) -> void:
 	_recoil_duration = maxf(duration, 0.01)
 	_recoil_remaining = maxf(_recoil_remaining, _recoil_duration * clampf(strength, 0.2, 2.0))
