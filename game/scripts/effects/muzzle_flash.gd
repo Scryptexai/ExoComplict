@@ -79,9 +79,12 @@ func _ready() -> void:
 	_glint_material.emission = Color.WHITE
 	_glint_material.emission_energy_multiplier = 2.3
 	var glint_quad := QuadMesh.new()
-	glint_quad.size = Vector2(0.34, 0.34)
+	# At 390px the alpha mask's hot core was only a handful of visible pixels:
+	# enlarge the *feathered image*, not the hard opaque cone that became a
+	# shield in stage28. Keep its centre forward of the calibrated muzzle.
+	glint_quad.size = Vector2(0.62, 0.62)
 	_glint = _add_shape("FlashGlint", glint_quad)
-	_glint.position.z = -0.32
+	_glint.position.z = -0.42
 	_glint.material_override = _glint_material
 
 	var streak_mesh := BoxMesh.new()
