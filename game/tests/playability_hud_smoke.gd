@@ -550,6 +550,18 @@ func _run_smoke_test() -> void:
 	var pause_panel := controls.get("_pause_panel") as PanelContainer
 	var resume_button := controls.get("_pause_resume_button") as Button
 	var restart_button := controls.get("_pause_restart_button") as Button
+	var settings_button := controls.get("_pause_settings_button") as Button
+	await process_frame
+	_expect(
+		(
+			(
+				settings_button.get_theme_constant("icon_max_width")
+				<= float(controls.call("_to_layout", 24.0))
+			)
+			and settings_button.get_global_rect().end.y <= pause_panel.get_global_rect().end.y + 1.0
+		),
+		"settings icon stays small and every pause action fits inside its card",
+	)
 	_expect(
 		(
 			pause_panel.is_visible_in_tree()

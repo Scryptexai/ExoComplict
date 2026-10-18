@@ -141,7 +141,8 @@ func _draw() -> void:
 	if target == null or not target.is_visible_in_tree():
 		return
 	var bounds := target.get_global_rect()
-	var rect := Rect2(to_local(bounds.position), bounds.size).grow(4.0 / _stretch)
+	var local_position := get_global_transform().affine_inverse() * bounds.position
+	var rect := Rect2(local_position, bounds.size).grow(4.0 / _stretch)
 	draw_rect(rect, AegisTokens.ACCENT, false, 2.0 / _stretch)
 	var handle := 7.0 / _stretch
 	for corner in [

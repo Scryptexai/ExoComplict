@@ -62,10 +62,14 @@ static func apply(hud) -> void:
 	if is_instance_valid(hud._wave_icon):
 		var icon_size: float = hud._to_layout(16.0)
 		hud._wave_icon.custom_minimum_size = Vector2(icon_size, icon_size)
-	if is_instance_valid(hud._results_retry_button):
-		hud._results_retry_button.add_theme_constant_override(
-			"icon_max_width", roundi(hud._to_layout(18.0))
-		)
+	for button in [
+		hud._results_retry_button,
+		hud._pause_resume_button,
+		hud._pause_restart_button,
+		hud._pause_settings_button,
+	]:
+		if is_instance_valid(button):
+			button.add_theme_constant_override("icon_max_width", roundi(hud._to_layout(18.0)))
 
 
 static func apply_fonts(hud) -> void:
