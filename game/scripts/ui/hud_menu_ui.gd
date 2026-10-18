@@ -134,7 +134,9 @@ static func build_results(hud) -> void:
 	hud._results_summary = hud._label("", "mono_m", AegisTokens.INK_2)
 	hud._results_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	report.add_child(hud._results_summary)
-	var hint := hud._label("10 BP PER KO · 100 BP PER CLEARED WAVE", "caption", AegisTokens.INK_3)
+	var hint: Label = hud._label(
+		"10 BP PER KO · 100 BP PER CLEARED WAVE", "caption", AegisTokens.INK_3
+	)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	report.add_child(hint)
 
