@@ -174,7 +174,7 @@ func _run() -> void:
 	var flank_marker := wave.call("_choose_intro_flank_marker", valid_spawns) as Marker3D
 	_expect(flank_marker != null, "the second intro Runner has a clear, forward flank")
 	if flank_marker != null:
-		var from_player := flank_marker.global_position - player.global_position
+		var from_player: Vector3 = flank_marker.global_position - player.global_position
 		from_player.y = 0.0
 		var forward := -camera.global_basis.z
 		forward.y = 0.0
