@@ -13,6 +13,8 @@ extends Node3D
 ##   1 – 8      jump to a vantage point
 ##   F9         hide/show only imported FBX visuals, for same-camera A/B proof
 ##   Esc / 0    restore all imports and hand the view back to the player
+##   F8         only with ?qa_effect: arm ONE real shot, freeze after it fires;
+##              press F8 again to resume. Never spawns an effect or a fake shot.
 ##
 ## It is deliberately not part of the HUD: no touch player will ever press F10,
 ## and nothing in the combat code reads it.
@@ -72,11 +74,14 @@ var _camera: Camera3D
 var _active := false
 var _vantage := 0
 var _uploaded_fbx_visible := true
+var _effect_review_enabled := false
+var _freeze_next_shot := false
+var _shot_frozen := false
 
 
 func _ready() -> void:
-	# The tour must keep receiving F10 and the number keys while the tree is
-	# paused, otherwise the first vantage you pick would trap the view there.
+	# The tour and effect reviewer must still receive their toggle keys while
+	# paused, otherwise a frozen frame would trap the player there.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_camera = Camera3D.new()
 	_camera.name = "TourCamera"
@@ -86,6 +91,14 @@ func _ready() -> void:
 	_camera.current = false
 	add_child(_camera)
 	set_process_unhandled_input(true)
+	if OS.has_feature("web"):
+		_effect_review_enabled = bool(
+			JavaScriptBridge.eval("new URLSearchParams(location.search).has('qa_effect')")
+		)
+	if _effect_review_enabled:
+		var player := get_parent().get_node_or_null("Player")
+		if player != null:
+			player.shot_fired.connect(_freeze_live_shot)
 
 
 func is_active() -> bool:
@@ -100,7 +113,21 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey) or not event.pressed or event.echo:
 		return
 	var key := (event as InputEventKey).keycode
+	if key == KEY_F8 and _effect_review_enabled:
+		if _shot_frozen:
+			_shot_frozen = false
+			get_tree().paused = false
+			print("Shot QA: resumed gameplay")
+		elif not _active:
+			_freeze_next_shot = not _freeze_next_shot
+			print("Shot QA: %s next real shot" % ("armed" if _freeze_next_shot else "disarmed"))
+		get_viewport().set_input_as_handled()
+		return
 	if key == KEY_F10:
+		if _shot_frozen:
+			_shot_frozen = false
+			get_tree().paused = false
+		_freeze_next_shot = false
 		_set_active(not _active)
 		if _active:
 			_apply()
@@ -119,6 +146,24 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif key == KEY_ESCAPE or key == KEY_0:
 		_set_active(false)
 		get_viewport().set_input_as_handled()
+
+
+## Freeze only after the normal player controller has successfully fired a live
+## projectile and activated its own muzzle effect. The next WebGL draw shows
+## that exact barrel pose without stretching a 105-ms flash to several seconds.
+func _freeze_live_shot() -> void:
+	if not _freeze_next_shot or _active:
+		return
+	_freeze_next_shot = false
+	_shot_frozen = true
+	var muzzle := get_parent().get_node_or_null("Player/VisualRoot/WeaponSocket/Muzzle") as Node3D
+	var camera := get_viewport().get_camera_3d()
+	if muzzle != null and camera != null:
+		var screen := camera.unproject_position(muzzle.global_position)
+		print("Shot QA: real shot frozen muzzle=%s screen=%s" % [muzzle.global_position, screen])
+	else:
+		print("Shot QA: real shot frozen but barrel or camera missing")
+	get_tree().paused = true
 
 
 func _set_active(value: bool) -> void:
