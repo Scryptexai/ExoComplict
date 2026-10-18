@@ -2,7 +2,10 @@ class_name PulseProjectile
 extends Node3D
 
 const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
-const MAX_TRAIL_LENGTH: float = 2.2
+# Thicker, shorter-than-target travel streak: the old 0.022 m core occupied
+# only a few pixels in the real 390 px WebGL firing sequence. Never invent a
+# beam past a hit or draw backwards through the hero at launch.
+const MAX_TRAIL_LENGTH: float = 2.6
 
 @export var collision_mask: int = 3
 
@@ -38,7 +41,7 @@ func launch(
 
 
 ## The moving capsule covers only the path *already travelled* by the bolt,
-## capped at 2.2 m to stay legible without drawing a beam through cover.
+## capped at 2.6 m to stay legible without drawing a beam through cover.
 ## Duplicate the mesh: a shared CapsuleMesh must not stretch other rounds.
 func _stretch_tracer(length: float = 1.2) -> void:
 	for part_name in ["Tracer", "TracerGlow"]:
