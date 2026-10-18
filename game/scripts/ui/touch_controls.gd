@@ -74,7 +74,11 @@ var _stretch: float = 1.0
 var _ui_scale: float = 1.0
 var _top_inset: float = 0.0
 var _hud_scale: float = 1.0
+var _text_scale: float = 1.0
+var _colorblind: bool = false
 var _hud_opacity: float = 1.0
+var _hud_preset: String = "STANDARD"
+var _hud_offsets: Dictionary = {}
 var _left_handed: bool = false
 var _reduce_motion: bool = false
 var _reduce_flash: bool = false
@@ -113,6 +117,7 @@ var _pause_resume_button: AegisButton
 var _pause_restart_button: AegisButton
 var _pause_settings_button: AegisButton
 var _settings_menu: AegisSettingsMenu
+var _hud_editor: AegisHudEditor
 var _results_summary: Label
 var _results_title: Label
 var _desktop_weapon_name: Label
@@ -184,9 +189,13 @@ func _process(delta: float) -> void:
 		needs_redraw = true
 	if is_instance_valid(_help_panel) and _help_panel.visible and _help_remaining > 0.0:
 		_help_remaining = maxf(_help_remaining - delta, 0.0)
-		if _help_remaining <= HELP_FADE_SECONDS:
+		if (
+			_help_remaining <= HELP_FADE_SECONDS
+			and not _reduce_motion
+			and _hud_preset != "ADVANCED"
+		):
 			_help_panel.modulate.a = clampf(_help_remaining / HELP_FADE_SECONDS, 0.0, 1.0)
-		if _help_remaining <= 0.0:
+		if _help_remaining <= 0.0 and _hud_preset != "ADVANCED":
 			_help_panel.visible = false
 	if _aiming and not get_tree().paused:
 		needs_redraw = true
@@ -195,6 +204,13 @@ func _process(delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if (
+		is_instance_valid(_hud_editor)
+		and _hud_editor.visible
+		and (event is InputEventScreenTouch or event is InputEventScreenDrag)
+	):
+		# Editor GUI owns touch drags, not the gameplay thumb-zone dispatcher.
+		return
 	if event is InputEventScreenTouch:
 		if event.pressed and not _touch_mode:
 			# A hybrid laptop or a browser that starts reporting touch after the
@@ -209,7 +225,9 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and not event.echo:
 		if event.is_action_pressed("ui_cancel") and get_tree().paused:
 			# ESC closes a submenu first; only the next press resumes the run.
-			if is_instance_valid(_settings_menu) and _settings_menu.visible:
+			if is_instance_valid(_hud_editor) and _hud_editor.visible:
+				HudEditorBridge.close(self)
+			elif is_instance_valid(_settings_menu) and _settings_menu.visible:
 				_settings_menu.close()
 			else:
 				_on_pause_pressed()
@@ -238,6 +256,9 @@ func set_hud_health(current: float, maximum: float) -> void:
 		health_color = CRITICAL_HEALTH_COLOR
 	elif health_ratio <= 0.6:
 		health_color = WARNING_HEALTH_COLOR
+	if _colorblind and health_ratio <= 0.3:
+		health_color = Color("ff8c42")
+	_health_heading.text = "VITALS !" if health_ratio <= 0.3 else "VITALS"
 	_health_bar.add_theme_stylebox_override("fill", AegisTheme.flat_style(health_color))
 	_health_bar.add_theme_stylebox_override(
 		"background", AegisTheme.flat_style(Color(AegisTokens.PANEL_3, 0.95))
@@ -374,7 +395,9 @@ func show_hit_confirmed() -> void:
 
 
 func show_damage_received() -> void:
-	_damage_flash_remaining = 0.0 if _reduce_flash else DAMAGE_FLASH_DURATION
+	_damage_flash_remaining = (
+		0.0 if _reduce_flash else (0.1 if _reduce_motion else DAMAGE_FLASH_DURATION)
+	)
 	queue_redraw()
 
 
@@ -483,6 +506,8 @@ func set_paused(paused: bool) -> void:
 		_clear_touch_state()
 	elif is_instance_valid(_settings_menu):
 		_settings_menu.visible = false
+		if is_instance_valid(_hud_editor):
+			_hud_editor.close()
 		_top_bar.visible = true
 	if is_instance_valid(_pause_button):
 		_pause_button.icon = AegisTheme.icon("play" if paused else "pause", paused)
@@ -892,6 +917,7 @@ func _build_overlays() -> void:
 	_settings_menu.changed.connect(_apply_preferences)
 	_settings_menu.close_requested.connect(_close_settings)
 	add_child(_settings_menu)
+	HudEditorBridge.install(self)
 
 
 ## Pause is a sibling of the results card: same panel language, same button
@@ -1105,6 +1131,7 @@ func _layout_controls(
 
 	_layout_overlays()
 	_apply_input_mode()
+	HudEditorLayout.apply(self)
 	queue_redraw()
 
 
@@ -1142,7 +1169,8 @@ func _layout_overlays() -> void:
 			0.5,
 			Rect2(-width * 0.5, -height * 0.5, width, height)
 		)
-		_settings_menu.apply_layout(_stretch, _ui_scale * _hud_scale)
+		_settings_menu.apply_layout(_stretch, _ui_scale * _hud_scale * _text_scale)
+	HudEditorBridge.layout(self)
 
 
 ## StyleBox overrides vary with the physical viewport; the factory lives in
@@ -1402,32 +1430,7 @@ func _activate_touch_button(button: Button) -> void:
 
 
 func _is_over_hud(position: Vector2) -> bool:
-	var hud_controls: Array[Control] = [
-		_top_bar,
-		_help_panel,
-		_fire_button,
-		_weapon_button,
-		_skill_button,
-		_aim_button,
-		_touch_ammo_chip,
-		_pause_panel,
-		_results_panel,
-		_settings_menu,
-		_run_card,
-		_score_chip,
-		_desktop_weapon_card,
-		_emp_chip,
-		_ads_chip,
-		_compact_card,
-	]
-	for control in hud_controls:
-		if (
-			is_instance_valid(control)
-			and control.visible
-			and control.get_global_rect().has_point(position)
-		):
-			return true
-	return false
+	return HudLayout.over_hud(self, position)
 
 
 # --------------------------------------------------------------------------- #
@@ -1536,6 +1539,7 @@ func _open_settings() -> void:
 	_pause_panel.visible = false
 	_top_bar.visible = false
 	_settings_menu.open()
+	print("HUD: settings opened")
 
 
 func _close_settings() -> void:
@@ -1544,11 +1548,16 @@ func _close_settings() -> void:
 	_pause_panel.visible = true
 	_top_bar.visible = true
 	_pause_resume_button.grab_focus()
+	print("HUD: settings closed")
 
 
 func _apply_preferences(values: Dictionary) -> void:
 	_hud_scale = float(values.get("hud_scale", 1.0))
+	_text_scale = float(values.get("text_scale", 1.0))
+	_colorblind = bool(values.get("colorblind", false))
 	_hud_opacity = float(values.get("hud_opacity", 1.0))
+	_hud_preset = String(values.get("hud_preset", "STANDARD"))
+	_hud_offsets = values.get("hud_offsets", {}).duplicate(true)
 	_left_handed = bool(values.get("left_handed", false))
 	_reduce_motion = bool(values.get("reduce_motion", false))
 	_reduce_flash = bool(values.get("reduce_flash", false))
@@ -1556,6 +1565,7 @@ func _apply_preferences(values: Dictionary) -> void:
 		_fire_flash_remaining = 0.0
 	if _reduce_flash:
 		_damage_flash_remaining = 0.0
+	set_hud_health(_health_bar.value, _health_bar.max_value)
 	_layout_controls()
 	settings_changed.emit(values)
 

@@ -10,6 +10,35 @@ class_name HudLayout
 extends RefCounted
 
 
+static func over_hud(hud, position: Vector2) -> bool:
+	var hud_controls: Array[Control] = [
+		hud._top_bar,
+		hud._help_panel,
+		hud._fire_button,
+		hud._weapon_button,
+		hud._skill_button,
+		hud._aim_button,
+		hud._touch_ammo_chip,
+		hud._pause_panel,
+		hud._results_panel,
+		hud._settings_menu,
+		hud._run_card,
+		hud._score_chip,
+		hud._desktop_weapon_card,
+		hud._emp_chip,
+		hud._ads_chip,
+		hud._compact_card,
+	]
+	for control in hud_controls:
+		if (
+			is_instance_valid(control)
+			and control.visible
+			and control.get_global_rect().has_point(position)
+		):
+			return true
+	return false
+
+
 static func desktop(hud) -> void:
 	var unit: float = hud._control_unit()
 	var inset := 20.0 * unit

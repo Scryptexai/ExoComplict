@@ -70,7 +70,7 @@ static func apply(hud) -> void:
 
 static func apply_fonts(hud) -> void:
 	var floor_size: int = hud._minimum_font_size()
-	var unit: float = hud._control_unit()
+	var unit: float = hud._control_unit() * hud._text_scale
 	for node in hud.find_children("*", "Label", true, false):
 		var label := node as Label
 		if label == null or not label.has_meta("aegis_role"):

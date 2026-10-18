@@ -399,12 +399,17 @@ perubahan langsung diterapkan (live preview).
 Pratinjau HUD penuh + grid 40px. Grup terpilih diberi border dashed amber,
 4 handle, dan chip nama. Inspector 360×528: opacity (min 30%), scale (80–120%),
 preset `MINIMAL/STANDARD/ADVANCED`, posisi X/Y, reset, done. Snap 8px.
+Implementasi membatasi opacity panel ke **65–100%** (bukan minimum 30% di
+board) agar teks tetap memiliki latar yang cukup gelap di atas world terang;
+ini kompromi aksesibilitas yang disengaja, bukan hasil uji kontras di perangkat.
 
 ### 7.6 Menu di HP
 
-Pause memakai **bottom sheet** 440px dengan handle; baris 74px (lebih tinggi
-karena jempol), tombol penuh 302×56 di results, dan safe area 34px di footer.
-Swipe-down = resume, sama dengan tombol.
+Board menargetkan **bottom sheet** 440px dengan handle dan baris 74px.
+Implementasi pause di 390×844 memakai tinggi 340px agar ruang kosong di bawah
+aksi berkurang setelah QA visual; results tetap punya tombol 302×56 dan
+safe area footer 34px. Swipe-down = resume masih target polish, belum ada
+handler gesture (gunakan RESUME atau Esc sampai diuji pada perangkat).
 
 ---
 
@@ -565,9 +570,9 @@ node tools/web_qa.mjs --url http://127.0.0.1:8133 --page / \
 | M1 | HUD desktop baru | `touch_controls.gd`, `hud_layout.gd`, `hud_renderer.gd` | Board 02 cocok di 1280×720; smoke hijau | ✅ smoke 13/13 (2026-10-17) |
 | M2 | HUD sentuh + portrait/landscape | `hud_layout.gd` (`touch_portrait`, `touch_landscape`) | Board 03 cocok di 390×844 & 844×390 | ✅ screenshot Web 18 Okt: ammo, jarak tombol, hint landscape; QA 2/3 sebelum koreksi checker mute |
 | M3 | Pause + results | `_build_pause_menu`, `_build_results_panel` | Board 05; ESC/focus benar | ⏳ ESC pause/resume 3/3 di WASM; hasil/penambahan settings perlu QA |
-| M4 | Settings + HUD editor | `aegis_settings_menu.gd`, `hud_editor.gd` | Board 06; setting persist | ⏳ settings 4 tab + persist sedang diuji; editor belum selesai |
-| M5 | Polish + a11y | theme, motion | `reduce_motion`, kontras, 44px | ⏳ reduce motion/flash & panel-opacity floor 65% sedang diuji |
-| M6 | QA + evidence | smoke, `web_qa` | Semua frame + smoke 14/14 | ⏳ smoke 13/13 untuk build sebelumnya; ulangi setelah M4–M5 |
+| M4 | Settings + HUD editor | `aegis_settings_menu.gd`, `hud_editor.gd` | Board 06; setting persist | ⏳ settings 4 tab lulus smoke 14/14 (`c85c3b3`); editor drag/preset/offset menunggu uji 15/15 dan WASM |
+| M5 | Polish + a11y | theme, motion | `reduce_motion`, kontras, 44px | ⏳ scale teks, mode buta warna, reduce motion/flash, panel-opacity floor 65% menunggu QA |
+| M6 | QA + evidence | smoke, `web_qa` | Semua frame + smoke 15/15 | ⏳ smoke 14/14 untuk settings; ulangi setelah editor dan polish |
 
 Catatan implementasi: HUD tinggal di satu facade (`touch_controls.gd`) dengan
 geometri di `hud_layout.gd` dan gambar reticle/joystick/vignette di

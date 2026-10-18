@@ -100,8 +100,24 @@ func _run() -> void:
 	menu.call("_show_tab", 3)
 	var reduce_motion := menu.find_child("reduce_motionToggle", true, false) as Button
 	var reduce_flash := menu.find_child("reduce_flashToggle", true, false) as Button
+	var colorblind := menu.find_child("colorblindToggle", true, false) as Button
+	var text_scale := menu.find_child("text_scaleSlider", true, false) as HSlider
+	text_scale.value = 1.25
+	colorblind.button_pressed = true
 	reduce_motion.button_pressed = true
 	reduce_flash.button_pressed = true
+	controls.call("set_hud_health", 20.0, 100.0)
+	var health_style := (
+		(controls.get("_health_bar") as Control).get_theme_stylebox("fill") as StyleBoxFlat
+	)
+	_expect(
+		(
+			is_equal_approx(float(controls.get("_text_scale")), 1.25)
+			and health_style.bg_color.is_equal_approx(Color("ff8c42"))
+			and (controls.get("_health_heading") as Label).text.contains("!")
+		),
+		"large text and colorblind-safe low-health signal apply live",
+	)
 	controls.call("show_hit_confirmed")
 	controls.call("show_damage_received")
 	_expect(
@@ -110,6 +126,12 @@ func _run() -> void:
 			and is_zero_approx(float(controls.get("_damage_flash_remaining")))
 		),
 		"accessibility settings shorten motion and disable damage flashes",
+	)
+	reduce_flash.button_pressed = false
+	controls.call("show_damage_received")
+	_expect(
+		float(controls.get("_damage_flash_remaining")) <= 0.1,
+		"reduce motion caps the vignette even when reduce flash is off",
 	)
 
 	var escape := InputEventKey.new()

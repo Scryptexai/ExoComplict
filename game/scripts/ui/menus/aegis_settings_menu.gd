@@ -14,6 +14,7 @@ var _active_tab: int = 0
 var _tabs: Array[Button] = []
 var _shell: VBoxContainer
 var _tab_row: HBoxContainer
+var _page_scroll: ScrollContainer
 var _page: VBoxContainer
 var _footer: HBoxContainer
 var _stretch: float = 1.0
@@ -96,10 +97,16 @@ func _build() -> void:
 		_tab_row.add_child(tab)
 		_tabs.append(tab)
 
+	_page_scroll = ScrollContainer.new()
+	_page_scroll.name = "SettingsScroll"
+	_page_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_page_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_page_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_shell.add_child(_page_scroll)
 	_page = VBoxContainer.new()
 	_page.name = "SettingsPage"
-	_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_shell.add_child(_page)
+	_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_page_scroll.add_child(_page)
 
 	_footer = HBoxContainer.new()
 	_footer.name = "SettingsFooter"
@@ -116,6 +123,7 @@ func _build() -> void:
 
 func _show_tab(index: int) -> void:
 	_active_tab = clampi(index, 0, 3)
+	_page_scroll.scroll_vertical = 0
 	for tab_index in _tabs.size():
 		AegisTheme.set_button_variant(
 			_tabs[tab_index], "primary" if tab_index == _active_tab else "ghost"
@@ -140,6 +148,8 @@ func _show_tab(index: int) -> void:
 			_page.add_child(edit)
 		3:
 			_page.add_child(_label("ACCESSIBILITY", "heading_s", AegisTokens.INK))
+			_add_slider("text_scale", "TEXT SCALE", 1.0, 1.3, 0.05)
+			_add_toggle("colorblind", "COLORBLIND SAFE")
 			_add_toggle("reduce_motion", "REDUCE MOTION")
 			_add_toggle("reduce_flash", "REDUCE FLASH")
 	apply_layout(_stretch, _font_scale)
