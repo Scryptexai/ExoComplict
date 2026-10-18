@@ -108,6 +108,12 @@ func _run_smoke_test() -> void:
 		main_scene.get_node("HUD/TouchControls").get("_results_panel") as PanelContainer
 	)
 	var results_summary := main_scene.get_node("HUD/TouchControls").get("_results_summary") as Label
+	var results_reward := (
+		main_scene.get_node("HUD/TouchControls").get("_results_reward_label") as Label
+	)
+	var next_goal := (
+		main_scene.get_node("HUD/TouchControls").get("_results_goal_progress_label") as Label
+	)
 	var results_retry_button := (
 		main_scene.get_node("HUD/TouchControls").get("_results_retry_button") as Button
 	)
@@ -117,14 +123,12 @@ func _run_smoke_test() -> void:
 	test_passed = (
 		_expect(
 			(
-				results_summary.text.contains("WAVE REACHED")
-				and results_summary.text.contains("1")
-				and results_summary.text.contains("ELIMINATIONS")
-				and results_summary.text.contains("RUN SCORE")
-				and results_summary.text.contains("100")
-				and results_summary.text.contains("BP BANKED")
-				and results_summary.text.contains("+110")
-				and results_summary.text.contains("BP WALLET")
+				results_summary.text.contains("WAVE 01")
+				and results_summary.text.contains("ELIMINATIONS 1")
+				and results_summary.text.contains("SCORE 100")
+				and results_summary.text.contains("WALLET 110 BP")
+				and results_reward.text == "+110 BP BANKED"
+				and next_goal.text.contains("10 TO GO")
 				and progression.balance == 110
 				and progression.best_score == 100
 			),
