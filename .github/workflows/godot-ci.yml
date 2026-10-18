@@ -610,7 +610,7 @@ jobs:
             echo "::error title=Blender hero failed::${digest:-check logs}"
             exit "$status"
           fi
-          for required in game/assets/characters/hero/hero_source.blend docs/asset-inspections/hero-blender.json; do
+          for required in source-assets/characters/hero/hero_source.blend docs/asset-inspections/hero-blender.json; do
             if [[ ! -s "$required" ]]; then
               echo "::error title=Blender output missing::$required was not generated"
               exit 1
@@ -621,14 +621,25 @@ jobs:
         run: |
           ./scripts/install_godot.sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          set +e
           GODOT_BIN="$HOME/.local/bin/godot" SMOKE_TEST_TIMEOUT=60 \
             ./scripts/run_smoke_tests.sh hero_rig_smoke combat_feedback_smoke effects_smoke
+          status=$?
+          set -e
+          if [[ "$status" -ne 0 ]]; then
+            for log in exports/test-logs/import.log exports/test-logs/hero_rig_smoke.log; do
+              [[ -f "$log" ]] || continue
+              digest="$( (grep -iE 'hero.glb|missing|ERROR:|Parse Error|failed:' "$log" || true) | head -n 7 | tr '\n' '|')"
+              echo "::error title=Blender hero Godot validation::$(basename "$log"): ${digest:-no diagnostic lines}"
+            done
+            exit "$status"
+          fi
 
       - name: Publish Blender source and tested GLB on the fixed branch
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add game/assets/characters/hero/hero_source.blend \
+          git add source-assets/characters/hero/hero_source.blend \
             game/assets/characters/hero/hero.glb docs/asset-inspections/hero-blender.json
           git diff --cached --check
           git commit -m 'Build and inspect hero motion in Blender' \

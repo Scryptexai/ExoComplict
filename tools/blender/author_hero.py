@@ -27,7 +27,10 @@ from mathutils import Quaternion, Vector
 ROOT = Path(__file__).resolve().parents[2]
 HERO = ROOT / "game/assets/characters/hero/hero.glb"
 RIFLE = ROOT / "game/assets/weapons/futuristic_rifle/rifle.glb"
-BLEND = ROOT / "game/assets/characters/hero/hero_source.blend"
+# Keep the editable .blend outside the Godot project root. Godot's editor
+# tries to import .blend as another scene, competing with hero.glb and causing
+# incomplete project imports in CI; only the exported GLB belongs in game/.
+BLEND = ROOT / "source-assets/characters/hero/hero_source.blend"
 REPORT = ROOT / "docs/asset-inspections/hero-blender.json"
 REQUIRED = {"idle", "walk", "run", "aim", "fire"}
 REQUIRED_BONES = {
