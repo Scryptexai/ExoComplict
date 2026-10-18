@@ -12,6 +12,7 @@
  *       # hold the AIM button with a real touch event, standing still
  *   node tools/web_qa.mjs --menus         # screenshot pause, then resume
  *   node tools/web_qa.mjs --menus --settings  # also open/settings screenshot, Esc/back
+ *   node tools/web_qa.mjs --menus --settings-tabs # capture Controls, HUD, Access tabs
  *   node tools/web_qa.mjs --menus --settings --editor # HUD tab/editor screenshot
  *   node tools/web_qa.mjs --menus --swipe --viewport 390x844 # portrait sheet gesture
  *   node tools/web_qa.mjs --tour          # world review camera: F10 + keys 1-8
@@ -192,6 +193,8 @@ async function checkPage(target, viewport) {
 
   /* ---------- optional pause/resume frame ---------- */
   const menuFrames = [];
+  const settingsTabFrames = [];
+  let accessBottomFrame = null;
   if (booted && has('--menus')) {
     const canvasCentre = await page.evaluate(() => {
       const rect = document.querySelector('canvas')?.getBoundingClientRect();
@@ -204,7 +207,7 @@ async function checkPage(target, viewport) {
       const pauseFrame = path.join(outDir, `${slug}-${viewport.spec}-pause.png`);
       await page.screenshot({ path: pauseFrame });
       menuFrames.push(path.relative(ROOT, pauseFrame));
-      if (has('--settings') || has('--editor')) {
+      if (has('--settings') || has('--editor') || has('--settings-tabs')) {
         // Pause focuses RESUME; two Tab presses select SETTINGS. Keyboard
         // navigation works even when the entire Godot UI lives in a canvas.
         await page.keyboard.press('Tab');
@@ -214,13 +217,42 @@ async function checkPage(target, viewport) {
         const settingsFrame = path.join(outDir, `${slug}-${viewport.spec}-settings.png`);
         await page.screenshot({ path: settingsFrame });
         menuFrames.push(path.relative(ROOT, settingsFrame));
+        if (has('--settings-tabs')) {
+          // Each selected tab retains focus when its page contents change.
+          // Visit all pages, then return to HUD if the editor is requested.
+          for (const tab of ['controls', 'hud', 'access']) {
+            await page.keyboard.press('Tab');
+            await page.keyboard.press('Enter');
+            await new Promise((r) => setTimeout(r, 350));
+            const frame = path.join(outDir, `${slug}-${viewport.spec}-settings-${tab}.png`);
+            await page.screenshot({ path: frame });
+            settingsTabFrames.push(path.relative(ROOT, frame));
+          }
+          if (viewport.height < 500) {
+            // The fixed footer must not obscure the last accessibility toggle
+            // on a short landscape phone; wheel over the scrollable page.
+            await page.mouse.move(viewport.width / 2, viewport.height * 0.6);
+            await page.mouse.wheel({ deltaY: 480 });
+            await new Promise((r) => setTimeout(r, 350));
+            const frame = path.join(outDir, `${slug}-${viewport.spec}-settings-access-bottom.png`);
+            await page.screenshot({ path: frame });
+            accessBottomFrame = path.relative(ROOT, frame);
+          }
+        }
         if (has('--editor')) {
-          // AUDIO has focus. Tab twice → HUD tab; its next four tab stops
-          // are ACCESS, HUD SCALE, OPACITY, EDIT HUD LAYOUT. The last Enter
-          // opens the inspector over the actual paused world.
-          await page.keyboard.press('Tab');
-          await page.keyboard.press('Tab');
+          if (has('--settings-tabs')) {
+            // ACCESS has focus; Shift-Tab returns to HUD.
+            await page.keyboard.down('Shift');
+            await page.keyboard.press('Tab');
+            await page.keyboard.up('Shift');
+          } else {
+            // AUDIO has focus; two tabs reach HUD.
+            await page.keyboard.press('Tab');
+            await page.keyboard.press('Tab');
+          }
           await page.keyboard.press('Enter');
+          // From HUD, the next four stops are ACCESS, HUD SCALE, OPACITY,
+          // EDIT HUD LAYOUT. The last Enter opens the live inspector.
           for (let stop = 0; stop < 4; stop += 1) await page.keyboard.press('Tab');
           await page.keyboard.press('Enter');
           await new Promise((r) => setTimeout(r, 500));
@@ -365,10 +397,16 @@ async function checkPage(target, viewport) {
       has('--swipe') && viewport.height > viewport.width ? 'portrait swipe resumed the game' : 'ESC resumed the game',
       menuLines.some((line) => line.includes('HUD: resumed')),
     ]);
-    if (has('--settings') || has('--editor')) {
+    if (has('--settings') || has('--editor') || has('--settings-tabs')) {
       checks.push(['settings screen captured a frame', menuFrames.length >= 2]);
       checks.push(['SETTINGS opened via keyboard', menuLines.some((line) => line.includes('HUD: settings opened'))]);
       checks.push(['ESC returned to pause from settings', menuLines.some((line) => line.includes('HUD: settings closed'))]);
+    }
+    if (has('--settings-tabs')) {
+      checks.push(['Controls, HUD, and Access tabs captured', settingsTabFrames.length === 3]);
+      if (viewport.height < 500) {
+        checks.push(['landscape Access bottom captured after scrolling', accessBottomFrame !== null]);
+      }
     }
     if (has('--editor')) {
       checks.push(['HUD editor captured a frame', menuFrames.length === 3]);
@@ -405,6 +443,8 @@ async function checkPage(target, viewport) {
     failed: checks.filter(([, ok]) => !ok).map(([name]) => name),
     screenshot: path.relative(ROOT, shot),
     menuFrames,
+    settingsTabFrames,
+    accessBottomFrame,
     frames,
     tourFrames,
     audio: audioLines,
@@ -435,6 +475,8 @@ try {
       if (result.scriptErrors.length) console.log(`  script errors: ${result.scriptErrors.join(' | ')}`);
       console.log(`  screenshot: ${result.screenshot}`);
       if (result.menuFrames?.length) console.log(`  menu frames: ${result.menuFrames.join(', ')}`);
+      if (result.settingsTabFrames?.length) console.log(`  tab frames: ${result.settingsTabFrames.join(', ')}`);
+      if (result.accessBottomFrame) console.log(`  Access scroll: ${result.accessBottomFrame}`);
       if (result.menuTransitions?.length) console.log(`  menu state: ${result.menuTransitions.join(' | ')}`);
       if (result.frames?.length) console.log(`  play frames: ${result.frames.join(', ')}`);
       if (result.tourFrames?.length) console.log(`  tour frames: ${result.tourFrames.length} in ${path.relative(ROOT, outDir)}`);

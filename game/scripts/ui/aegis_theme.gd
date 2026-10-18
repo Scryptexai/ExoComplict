@@ -154,6 +154,21 @@ static func flat_style(color: Color, radius: float = 1.0) -> StyleBoxFlat:
 	return style
 
 
+## Explicit, six-pixel tracks rather than the engine's nearly invisible default.
+## The grabber remains in a 44 px high touch target, even at small viewports.
+static func style_slider(slider: HSlider, stretch: float) -> void:
+	var unit := 1.0 / maxf(stretch, 0.001)
+	var track := flat_style(AegisTokens.LINE_HI)
+	track.content_margin_top = 3.0 * unit
+	track.content_margin_bottom = 3.0 * unit
+	var filled := flat_style(AegisTokens.ACCENT)
+	filled.content_margin_top = 3.0 * unit
+	filled.content_margin_bottom = 3.0 * unit
+	slider.custom_minimum_size.y = 44.0 * unit
+	slider.add_theme_stylebox_override("slider", track)
+	slider.add_theme_stylebox_override("grabber_area", filled)
+
+
 static func button_style(
 	fill: Color,
 	border: Color,

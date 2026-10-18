@@ -96,15 +96,7 @@ func apply_layout(stretch: float, font_scale: float, physical_size: Vector2) -> 
 		button.custom_minimum_size.y = 44.0 / _stretch
 		AegisTheme.resize_button_font(button, "label", maxi(roundi(12.0 / _stretch), floor_size))
 	for slider in [_opacity_slider, _scale_slider]:
-		slider.custom_minimum_size.y = 44.0 / _stretch
-		var track := AegisTheme.flat_style(AegisTokens.LINE_HI)
-		track.content_margin_top = 3.0 / _stretch
-		track.content_margin_bottom = 3.0 / _stretch
-		var filled := AegisTheme.flat_style(AegisTokens.ACCENT)
-		filled.content_margin_top = 3.0 / _stretch
-		filled.content_margin_bottom = 3.0 / _stretch
-		slider.add_theme_stylebox_override("slider", track)
-		slider.add_theme_stylebox_override("grabber_area", filled)
+		AegisTheme.style_slider(slider, _stretch)
 	queue_redraw()
 
 

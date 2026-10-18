@@ -75,7 +75,7 @@ func apply_layout(stretch: float, font_scale: float = 1.0) -> void:
 		button.custom_minimum_size.y = 48.0 * unit
 		AegisTheme.resize_button_font(button, "title", maxi(roundi(13.0 * unit), floor_size))
 	for slider in find_children("*", "HSlider", true, false):
-		(slider as HSlider).custom_minimum_size.y = 44.0 * unit
+		AegisTheme.style_slider(slider as HSlider, _stretch)
 
 
 func _build() -> void:

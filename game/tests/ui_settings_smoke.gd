@@ -56,6 +56,16 @@ func _run() -> void:
 		is_instance_valid(sensitivity) and is_instance_valid(handed),
 		"controls tab offers aim and handedness"
 	)
+	var slider_track := sensitivity.get_theme_stylebox("slider") as StyleBoxFlat
+	var slider_fill := sensitivity.get_theme_stylebox("grabber_area") as StyleBoxFlat
+	_expect(
+		(
+			slider_track.bg_color.is_equal_approx(AegisTokens.LINE_HI)
+			and slider_fill.bg_color.is_equal_approx(AegisTokens.ACCENT)
+			and slider_track.content_margin_top >= 3.0
+		),
+		"settings sliders retain high-contrast tracks like the HUD editor",
+	)
 	sensitivity.value = 1.25
 	_expect(
 		(
