@@ -1335,6 +1335,10 @@ func _build_lighting_and_atmosphere() -> void:
 	sun.light_color = Color(0.96, 0.91, 0.83)
 	sun.light_energy = 0.88
 	sun.shadow_enabled = true
+	# Dense FBX ribs used to project solid-black, razor-edged patches across
+	# the playable floor in Compatibility. Keep depth cues, but let neutral
+	# ambient fill through the key's shadow instead of hiding the tile material.
+	sun.shadow_opacity = 0.58
 	sun.directional_shadow_max_distance = 115.0
 	sun.shadow_bias = 0.04
 	add_child(sun)

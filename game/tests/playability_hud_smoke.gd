@@ -258,6 +258,8 @@ func _run_smoke_test() -> void:
 	_expect(
 		(
 			weapon_button.get_global_rect().size.y * 0.3047 >= 59.0
+			and weapon_button.get_global_rect().size.x * 0.3047 >= 70.0
+			and weapon_button.get_global_rect().get_center().x * 0.3047 > 290.0
 			and fire_button.get_global_rect().size.x * 0.3047 >= 110.0
 			and fire_button.get_theme_constant("icon_max_width") * 0.3047 >= 47.0
 			and aim_button.get_global_rect().size.x * 0.3047 >= 70.0

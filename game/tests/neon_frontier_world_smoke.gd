@@ -62,6 +62,8 @@ func _run_smoke_test() -> void:
 			and sun.light_color.r > sun.light_color.b
 			and sun.light_energy < 1.1
 			and sun.shadow_enabled
+			and sun.shadow_opacity >= 0.5
+			and sun.shadow_opacity <= 0.65
 			and reactor_fill != null
 			and reactor_fill.omni_range <= 13.0
 			and reactor_fill.light_energy < 0.8

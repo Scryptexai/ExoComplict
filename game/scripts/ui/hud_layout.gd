@@ -180,7 +180,10 @@ static func touch_portrait(hud) -> void:
 	_place_button(hud, hud._fire_button, 12.0, 38.0, 112.0, 112.0)
 	_place_button(hud, hud._aim_button, 20.0, 168.0, 72.0, 72.0)
 	_place_button(hud, hud._skill_button, 136.0, 104.0, 72.0, 72.0)
-	_place_button(hud, hud._weapon_button, 110.0, 236.0, 144.0, 60.0)
+	# SWAP used to span x136–280 at 390 px, covering the Blender hero and
+	# rifle silhouette. Keep its 60 px hit height but stack it above ADS on the
+	# right thumb rail, with a 32 px gap and the centre aiming lane unobstructed.
+	_place_button(hud, hud._weapon_button, 20.0, 272.0, 72.0, 60.0)
 	_place_button(hud, hud._touch_ammo_chip, 266.0, 236.0, 112.0, 54.0)
 	_place(
 		hud._skill_ring,
