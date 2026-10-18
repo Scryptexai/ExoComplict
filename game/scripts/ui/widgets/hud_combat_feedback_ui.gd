@@ -61,8 +61,14 @@ func layout_for(hud) -> void:
 		# The old centred toast crossed the hero and was *under* the enlarged
 		# EMP plate in a real 390x844 tap frame. The action row ends near y226;
 		# place brief feedback below it, to the left of the actor and controls.
-		var left: float = hud._to_layout(12.0 if hud._portrait else 20.0)
+		var left: float = hud._to_layout(12.0)
 		var top: float = hud._top_inset + hud._to_layout(196.0)
+		if not hud._portrait:
+			# 844x390: the left stick occupies x56..184/y236..364, so a
+			# below-START toast hid its upper half. Use the small clear slot
+			# above the right actions (sound/pause end ~y98, weapon starts y155).
+			left = hud.size.x - hud._to_layout(12.0) - width
+			top = hud._top_inset + hud._to_layout(64.0)
 		HudLayout.place(
 			hud, self, 0.0, 0.0, 0.0, 0.0, Rect2(left, top, width, hud._to_layout(40.0))
 		)
