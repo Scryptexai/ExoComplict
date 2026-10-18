@@ -232,7 +232,7 @@ func _run() -> void:
 			int(main.get("session_mode")) == 1
 			and int(wave.get("current_wave")) == 0
 			and is_equal_approx(pitch_pivot.rotation.x, authored_pitch)
-			and is_equal_approx(yaw_pivot.rotation.y, chosen_y)
+			and is_equal_approx(yaw_pivot.rotation.y, chosen_yaw)
 		),
 		"RETRY re-centers the horizon without turning the player or spawning immediately",
 	)
