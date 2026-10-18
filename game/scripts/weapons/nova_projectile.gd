@@ -1,6 +1,8 @@
 class_name NovaProjectile
 extends Node3D
 
+const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
+
 var _direction: Vector3 = Vector3.FORWARD
 var _damage: float = 34.0
 var _speed: float = 18.0
@@ -62,6 +64,12 @@ func _detonate(impact_position: Vector3, direct_target: Object) -> void:
 	_apply_damage_once(direct_target, _damage, damaged_targets)
 	if _splash_damage > 0.0 and _splash_radius > 0.0:
 		_apply_splash_damage(impact_position, damaged_targets)
+	var burst := ImpactBurstScript.spawn(get_parent(), impact_position, Color(1.0, 0.46, 0.16))
+	if burst != null:
+		# More debris velocity distinguishes an area blast from Pulse's pinprick.
+		burst.amount = 28
+		burst.initial_velocity_min = 2.4
+		burst.initial_velocity_max = 5.6
 	Sfx.play_3d(&"explosion", impact_position)
 	queue_free()
 

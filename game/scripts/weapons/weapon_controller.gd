@@ -145,6 +145,12 @@ func try_fire(shooter: CollisionObject3D, muzzle: Marker3D, aim_point: Vector3) 
 	if get_current_ammo() <= 0:
 		request_reload()
 		return false
+	# The camera ray can see around a corner even when the rifle itself is
+	# inside cover. Reject that shot before spawning a projectile, consuming a
+	# round, or playing muzzle effects: an inside-origin ray on the projectile
+	# alone may miss the wall and make the blast pass through solid geometry.
+	if _muzzle_is_blocked(shooter, muzzle, definition.collision_mask):
+		return false
 	var projectile := definition.projectile_scene.instantiate() as Node3D
 	if projectile == null or not projectile.has_method("launch"):
 		if projectile != null:
@@ -172,3 +178,19 @@ func try_fire(shooter: CollisionObject3D, muzzle: Marker3D, aim_point: Vector3) 
 	Sfx.play_shot(definition.weapon_id, muzzle.global_position)
 	shot_fired.emit(definition.weapon_id)
 	return true
+
+
+func _muzzle_is_blocked(shooter: CollisionObject3D, muzzle: Marker3D, mask: int) -> bool:
+	# Layer 1 is solid world cover; an enemy reaching the player's barrel on
+	# layer 2 is still a valid close-range target, not a reason to dry-fire.
+	var world_mask := mask & 1
+	if world_mask == 0:
+		return false
+	var chest := shooter.global_position + Vector3.UP * 1.2
+	var mouth := muzzle.global_position
+	if chest.distance_squared_to(mouth) < 0.01:
+		return false
+	var excluded: Array[RID] = [shooter.get_rid()]
+	var query := PhysicsRayQueryParameters3D.create(chest, mouth, world_mask, excluded)
+	query.hit_from_inside = true
+	return not shooter.get_world_3d().direct_space_state.intersect_ray(query).is_empty()

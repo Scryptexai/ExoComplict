@@ -90,6 +90,22 @@ func _run_smoke_test() -> void:
 		hand_distance < 0.25,
 		"the weapon socket rides the hand bone (%.3f m from it)" % hand_distance,
 	)
+	var head_index := skeleton.find_bone("Head")
+	var hip_index := skeleton.find_bone("Hip")
+	var left_foot_index := skeleton.find_bone("L_Foot")
+	var right_foot_index := skeleton.find_bone("R_Foot")
+	var has_collapse_bones := (
+		head_index >= 0 and hip_index >= 0 and left_foot_index >= 0 and right_foot_index >= 0
+	)
+	_expect(has_collapse_bones, "the Blender death pose has head, hip, and both foot bones")
+	var idle_head_height := 0.0
+	var idle_foot_height := 0.0
+	if has_collapse_bones:
+		idle_head_height = _bone_world(skeleton, head_index).y
+		idle_foot_height = minf(
+			_bone_world(skeleton, left_foot_index).y,
+			_bone_world(skeleton, right_foot_index).y,
+		)
 
 	# --- the muzzle is the barrel's own point ------------------------------
 	var muzzle_point := weapon.get_node_or_null("MuzzlePoint") as Node3D
@@ -142,9 +158,23 @@ func _run_smoke_test() -> void:
 		str(visual.call("current_clip")) == "aim_walk",
 		"moving aim blends walking legs with aimed upper body instead of sliding",
 	)
+	if anim_player != null:
+		anim_player.seek(0.4, true)
+	visual.call("_process", 0.3)
+	_expect(
+		_barrel(muzzle).dot(forward) > 0.96,
+		"aim-walk keeps the barrel level at mid-stride",
+	)
 	visual.call("update_pose", Vector3(6.0, 0.0, 0.0), true, 0.016)
 	visual.call("_process", 0.016)
 	_expect(str(visual.call("current_clip")) == "aim_run", "sprint aim has a moving-leg clip")
+	if anim_player != null:
+		anim_player.seek(0.3, true)
+	visual.call("_process", 0.3)
+	_expect(
+		_barrel(muzzle).dot(forward) > 0.96,
+		"aim-run does not tip the barrel away from the reticle at mid-stride",
+	)
 	visual.call("update_pose", Vector3.ZERO, true, 0.016)
 	visual.call("_process", 0.016)
 	_expect(str(visual.call("current_clip")) == "aim", "stopping returns to stationary aim")
@@ -207,6 +237,31 @@ func _run_smoke_test() -> void:
 	_expect(str(visual.call("current_clip")) == "death", "fatal damage plays death motion")
 	visual.call("_process", 1.6)
 	_expect(str(visual.call("current_clip")) == "death", "death pose remains until reset")
+	if has_collapse_bones and anim_player != null:
+		anim_player.seek(1.2, true)
+		var fallen_hip := _bone_world(skeleton, hip_index)
+		var fallen_head := _bone_world(skeleton, head_index)
+		var fallen_foot_height := minf(
+			_bone_world(skeleton, left_foot_index).y,
+			_bone_world(skeleton, right_foot_index).y,
+		)
+		var head_spread := (
+			Vector2(fallen_head.x - fallen_hip.x, fallen_head.z - fallen_hip.z).length()
+		)
+		_expect(
+			head_spread > 0.35 and fallen_head.y < idle_head_height - 0.55,
+			(
+				"death lies sideways on the floor instead of folding upright (%.2f m spread)"
+				% head_spread
+			),
+		)
+		_expect(
+			fallen_foot_height > idle_foot_height - 0.16,
+			(
+				"the death clip keeps both boots clear of the deck (%.2f m vs %.2f m idle)"
+				% [fallen_foot_height, idle_foot_height]
+			),
+		)
 	player.call("reset_player")
 	_expect(str(visual.call("current_clip")) == "idle", "reset exits death into neutral idle")
 
@@ -215,6 +270,10 @@ func _run_smoke_test() -> void:
 
 func _barrel(muzzle: Node3D) -> Vector3:
 	return -muzzle.global_transform.basis.z.normalized()
+
+
+func _bone_world(skeleton: Skeleton3D, index: int) -> Vector3:
+	return skeleton.global_transform * skeleton.get_bone_global_pose(index).origin
 
 
 func _finish(main_scene: Node) -> void:

@@ -159,7 +159,8 @@ window.measure = () => {
   if (hand) out.hand = hand.getWorldPosition(new THREE.Vector3()).toArray();
   const supportHand = bone(hero, 'L_Hand');
   if (supportHand) out.supportHand = supportHand.getWorldPosition(new THREE.Vector3()).toArray();
-  for (const name of ['L_Upperarm', 'L_Forearm', 'L_Hand']) {
+  for (const name of ['BoneRoot', 'Hip', 'Pelvis', 'Waist', 'Spine01', 'Spine02', 'Head',
+                      'L_Upperarm', 'L_Forearm', 'L_Hand', 'L_Foot', 'R_Foot', 'R_Hand']) {
     const joint = bone(hero, name);
     if (joint) {
       out[name] = {

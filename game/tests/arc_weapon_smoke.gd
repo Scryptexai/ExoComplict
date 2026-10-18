@@ -1,6 +1,7 @@
 extends SceneTree
 
 const MainScene = preload("res://scenes/main.tscn")
+const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
 
 
 class DamageReceiver:
@@ -125,6 +126,13 @@ func _run_smoke_test() -> void:
 			"Arc beam damages its primary target exactly once",
 		)
 		and test_passed
+	)
+	var arc_spark := false
+	for candidate in get_nodes_in_group(ImpactBurstScript.BURST_GROUP):
+		if (candidate as Node3D).global_position.distance_to(direct_target.global_position) < 0.55:
+			arc_spark = true
+	test_passed = (
+		_expect(arc_spark, "Arc creates a real impact spark at the beam hit") and test_passed
 	)
 	test_passed = (
 		_expect(

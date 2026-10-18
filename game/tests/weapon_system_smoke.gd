@@ -1,6 +1,7 @@
 extends SceneTree
 
 const MainScene = preload("res://scenes/main.tscn")
+const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
 
 
 class DamageReceiver:
@@ -133,6 +134,34 @@ func _run_smoke_test() -> void:
 		and test_passed
 	)
 
+	# Over-the-shoulder targeting must not shoot a projectile through cover when
+	# the barrel itself clips a wall. Place a small solid box at the real GLB
+	# muzzle, rather than guessing a weapon position from the player origin.
+	var near_wall := StaticBody3D.new()
+	near_wall.name = "WallAtMuzzle"
+	near_wall.position = muzzle.global_position
+	near_wall.collision_layer = 1
+	near_wall.collision_mask = 0
+	var near_shape := CollisionShape3D.new()
+	var near_box := BoxShape3D.new()
+	near_box.size = Vector3(0.25, 0.25, 0.25)
+	near_shape.shape = near_box
+	near_wall.add_child(near_shape)
+	main_scene.add_child(near_wall)
+	await physics_frame
+	var blocked_fire: bool = weapon_controller.call(
+		"try_fire", player, muzzle, pulse_target.global_position
+	)
+	test_passed = (
+		_expect(
+			not blocked_fire and int(weapon_controller.call("get_current_ammo")) == 24,
+			"a muzzle inside world cover cannot spawn a shot or spend ammunition",
+		)
+		and test_passed
+	)
+	near_wall.queue_free()
+	await physics_frame
+
 	var first_fire: bool = weapon_controller.call(
 		"try_fire", player, muzzle, pulse_target.global_position
 	)
@@ -190,6 +219,14 @@ func _run_smoke_test() -> void:
 			),
 			"Pulse projectile hits its target once for the original damage",
 		)
+		and test_passed
+	)
+	var pulse_spark := false
+	for candidate in get_nodes_in_group(ImpactBurstScript.BURST_GROUP):
+		if (candidate as Node3D).global_position.distance_to(pulse_target.global_position) < 0.55:
+			pulse_spark = true
+	test_passed = (
+		_expect(pulse_spark, "a real Pulse impact emits sparks at the collision point")
 		and test_passed
 	)
 
@@ -253,6 +290,18 @@ func _run_smoke_test() -> void:
 			"Nova explosion does not damage targets outside its radius",
 		)
 		and test_passed
+	)
+	var nova_spark := false
+	for candidate in get_nodes_in_group(ImpactBurstScript.BURST_GROUP):
+		var burst := candidate as CPUParticles3D
+		if (
+			burst != null
+			and burst.amount == 28
+			and burst.global_position.distance_to(nova_direct.global_position) < 0.55
+		):
+			nova_spark = true
+	test_passed = (
+		_expect(nova_spark, "a real Nova detonation emits a distinct spark burst") and test_passed
 	)
 	test_passed = (
 		_expect(

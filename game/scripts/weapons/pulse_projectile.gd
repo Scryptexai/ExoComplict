@@ -1,6 +1,8 @@
 class_name PulseProjectile
 extends Node3D
 
+const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
+
 @export var collision_mask: int = 3
 
 var _direction: Vector3 = Vector3.FORWARD
@@ -62,6 +64,10 @@ func _physics_process(delta: float) -> void:
 			collider.call("apply_damage", _damage, _shooter)
 		var hit_position: Vector3 = hit.get("position", next_position)
 		global_position = hit_position
+		# Spawn at the collision point, not the projectile origin. The muzzle
+		# effect and impact must be driven by the *actual* fired round, never by
+		# a cosmetic keyframe or a standalone smoke-test helper.
+		ImpactBurstScript.spawn(get_parent(), hit_position, Color(0.28, 0.86, 1.0))
 		Sfx.play_3d(&"impact", hit_position)
 		queue_free()
 		return

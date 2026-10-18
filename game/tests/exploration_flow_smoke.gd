@@ -62,6 +62,7 @@ func _run() -> void:
 			int(main.get("session_mode")) == 1
 			and start.disabled
 			and start.text.contains("DEFENSE IN")
+			and (hud.get("_wave_enemy_label") as Label).text == "GET READY · SPAWNS MARKED"
 			and int(wave.get("current_wave")) == 0
 		),
 		"touching START DEFENSE enters a visible preparation, not instant combat",

@@ -4,9 +4,9 @@
 >
 > **Ini bukan perubahan target platform.** Android tetap target rilis; pipeline produksi tetap Godot + Blender di mesin dev. Web hanya dipakai sebagai jendela review UI/UX + gameplay supaya iterasi tidak menunggu instalasi toolchain.
 >
-> **18 Okt 2026:** instruksi server dan `index.html` di root tetap berlaku. Tabel ukuran dan screenshot di bagian bawah adalah **bukti historis**; mode Explore/HUD/relight/world baru harus diuji pada payload CI terbaru, bukan dianggap otomatis lolos hanya karena HTML dan engine boot.
+> **18 Okt 2026 — review iterasi:** `index.html` di root dan server statis tetap berlaku. Run Godot CI `39095446580` untuk sumber `d8f834b` lulus semua job; payload tersimpan di commit `cafadb2`. QA nyata pada payload itu: `exports/qa-relight-d8f/` (tiga ukuran layar, Explore aman + tombol B menuju countdown) dan `exports/qa-defense-d8f/root-844x390-defense-started.png` (**Defense sungguh terlihat**, log `Encounter: Defense started`, HUD `WAVE 01`). Ini belum memverifikasi eliminasi wave/Results lewat browser, ataupun Android. Sumber visual/GLB yang lebih baru harus diekspor dan ditinjau ulang; **jangan menyamakan keberhasilan job dengan persetujuan estetika**.
 >
-> **Status verifikasi (baseline lama):** seluruh wiring statis sudah diperiksa (`tools/web_preset.py check`, `tools/project_doctor.py` → 0 FAIL, 22 unit test). Ekspor Web nyata sudah berhasil di CI (run `38919299364`, job `web-preview` hijau). Hasil terukur:
+> **Status verifikasi (baseline lama di bawah ini):** seluruh wiring statis sudah diperiksa (`tools/web_preset.py check`, `tools/project_doctor.py` → 0 FAIL, 22 unit test). Ekspor Web nyata sudah berhasil di CI (run `38919299364`, job `web-preview` hijau). Hasil terukur:
 
 | Bagian | Ukuran | Content-Type dari `python -m http.server` |
 |---|---|---|
@@ -64,11 +64,13 @@ npm ci --prefix tools          # sekali; mengunduh Chromium headless (paket @spa
 node tools/web_qa.mjs          # menyajikan repo sendiri, membuka / dan /web/index.html
 node tools/web_qa.mjs --json   # laporan terstruktur untuk skrip/CI
 node tools/web_qa.mjs --play 80 --play-shot-every 25   # main sungguhan + foto berseri
-node tools/web_qa.mjs --encounter --explore-wait 8000 --viewport 390x844
-# eksplorasi aman, tekan B secara sengaja, cek urutan preparing/defense + frame
+node tools/web_qa.mjs --encounter-prep --explore-wait 8000 --viewport 390x844
+# verifikasi Explore aman + B menuju countdown; TIDAK mengklaim Defense
+node tools/web_qa.mjs --encounter --explore-wait 8000 --encounter-timeout 600 --viewport 844x390
+# gate lebih ketat: tunggu log Defense nyata, lalu ambil frame Defense
 ```
 
-`tools/web_qa.mjs` membuka halaman sungguhan di Chromium headless dan gagal (exit 1) bila engine tidak boot, tidak ada WebGL 2, kanvas tetap 300×150, ada permintaan 4xx/5xx, atau kartu error tampil. Tangkapan layarnya ditulis ke `exports/web-qa/`. Ini gate yang sama yang dijalankan job CI `web-preview`.
+`tools/web_qa.mjs` membuka halaman sungguhan di Chromium headless dan gagal (exit 1) bila engine tidak boot, tidak ada WebGL 2, kanvas tetap 300×150, ada permintaan 4xx/5xx, atau kartu error tampil. Tangkapan layarnya ditulis ke `exports/web-qa/`. Gate boot ini sama dengan job CI `web-preview`; opsi `--encounter-prep` dan `--encounter` **tidak** otomatis berjalan pada job CI tersebut. Dalam SwiftShader tanpa GPU, countdown lima detik Godot bisa membutuhkan >100 detik waktu nyata. `--encounter` baru PASS bila log `Defense started` dan screenshot Defense sungguh ada; setelah timeout ia FAIL, bukan melabeli frame Preparing sebagai Defense. Tes Results tetap terpisah.
 
 **Mode `--play <detik>`** menguji input gerak/tembak di mode saat ini (**Explore aman**, kecuali `--encounter` juga diberikan). Klik kanvas sekaligus menjadi gesture yang dibutuhkan browser sebelum audio boleh berbunyi; kemudian skrip berjalan, berbelok, berganti senjata, dan menembak dengan event input sungguhan sambil menulis rangkaian foto `<halaman>-<viewport>-play-<t>s.png`. Ia juga memeriksa baris log `Audio:` — termasuk `Audio: first voice played (...)`, bukti audio benar-benar terpakai di browser, bukan sekadar ter-import. Di tengah sesi play, gate menekan tombol `M` dan memastikan baris `Audio: muted` muncul, jadi jalur HUD → audio ikut terbukti. Pemeriksaan itu sengaja eksak: baris boot berakhir `muted=no`, sehingga pencocokan longgar akan lulus tanpa tombolnya benar-benar sampai.
 
@@ -163,7 +165,7 @@ Artinya build Android tetap memakai renderer `mobile` (sesuai `PROJECT_DECISIONS
 - **Single-thread.** Build ini tidak memakai `Thread` Godot; jangan menilai audio latency atau paralelisme dari preview.
 - **Ukuran unduhan.** WebAssembly engine + pack biasanya beberapa puluh MB; muat pertama lambat, berikutnya ter-cache.
 - **Bukan jalur distribusi.** Ini alat review. Publikasi tetap: Godot → GLB/PCK → Android (APK/AAB).
-- **Boot browser pernah diuji, penerimaan build baru belum otomatis.** Chromium/WebGL dan export CI pada baseline lama sudah dijalankan, tetapi relight, alur Defense, hasil, serta gerakan baru harus diuji lagi dengan `--encounter` dan inspeksi frame; QA Android nyata tetap terpisah.
+- **Bukti browser terbatas per payload.** Pada payload `cafadb2`, tiga ukuran layar memverifikasi Explore/Preparing dan 844×390 mencapai Defense dengan log + frame. Frame relight saat itu masih terlalu rata/biru; revisi sesudah `cafadb2` belum tercakup oleh bukti tersebut. Belum ada verifikasi Results dan animasi gameplay baru lewat browser; Android nyata tetap terpisah.
 
 ## 7. Troubleshooting
 

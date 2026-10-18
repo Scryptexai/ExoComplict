@@ -17,7 +17,8 @@ static func update_objective(
 		hud._wave_chip_label.text = "EXPLORE\nSAFE"
 	elif hud._play_phase == "preparing":
 		hud._wave_title_label.text = "DEFENSE IN %d" % hud._preparation_seconds
-		hud._wave_enemy_label.text = "READY YOUR WEAPON · SPAWNS TELEGRAPHED"
+		# Keep the promise readable in a 390 px portrait objective card.
+		hud._wave_enemy_label.text = "GET READY · SPAWNS MARKED"
 		hud._wave_state_label.text = "PREPARE"
 		hud._wave_chip_label.text = "DEFENSE\nIN %d" % hud._preparation_seconds
 	else:
