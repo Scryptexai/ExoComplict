@@ -31,21 +31,21 @@ func _ready() -> void:
 	_material.albedo_color = flash_color
 	_material.emission_enabled = true
 	_material.emission = flash_color
-	_material.emission_energy_multiplier = flash_energy
+	_material.emission_energy_multiplier = flash_energy * 0.8
 	_hot_core_material = _material.duplicate() as StandardMaterial3D
 
-	# The weapon's muzzle projects across the right shoulder in portrait.
-	# Keep a compact hot centre; only two slim forward fins reach beyond the
-	# silhouette. A symmetric cross looked like a floating UI bar through the
-	# soldier's helmet in an actual frozen WebGL shot, so it was rejected.
+	# The stage28 two-fin candidate became an opaque cyan kite over the
+	# shoulder at 390px wide. A muzzle discharge is a *short axial glint*,
+	# not a shield or a decorative symbol. Keep its core at the muzzle and
+	# let a tapered, translucent plume and two hairline streaks lead forward.
 	var cone := CylinderMesh.new()
-	cone.top_radius = 0.004
-	cone.bottom_radius = 0.115
-	cone.height = 0.46
+	cone.top_radius = 0.002
+	cone.bottom_radius = 0.05
+	cone.height = 0.30
 	cone.radial_segments = 9
 	_mesh = _add_shape("FlashCone", cone)
 	_mesh.rotation.x = -PI * 0.5
-	_mesh.position.z = -0.18
+	_mesh.position.z = -0.15
 
 	var core_mesh := SphereMesh.new()
 	core_mesh.radius = 0.072
@@ -53,16 +53,16 @@ func _ready() -> void:
 	core_mesh.radial_segments = 10
 	core_mesh.rings = 5
 	_core = _add_shape("FlashCore", core_mesh)
-	_core.position.z = -0.05
+	_core.position.z = -0.035
 	_core.material_override = _hot_core_material
 
 	var streak_mesh := BoxMesh.new()
-	streak_mesh.size = Vector3(0.025, 0.09, 0.26)
+	streak_mesh.size = Vector3(0.014, 0.024, 0.18)
 	for index in range(2):
 		var streak := _add_shape("FlashSpark_%d" % index, streak_mesh)
-		streak.position = Vector3(0.115 + 0.025 * index, 0.055 - 0.12 * index, -0.22)
-		streak.rotation.x = 0.20 if index == 0 else -0.18
-		streak.rotation.y = -0.39 if index == 0 else -0.25
+		streak.position = Vector3(0.07, 0.032 - 0.064 * index, -0.15)
+		streak.rotation.x = 0.12 if index == 0 else -0.10
+		streak.rotation.y = -0.20 if index == 0 else -0.12
 		_streaks.append(streak)
 
 	_light = OmniLight3D.new()
@@ -108,7 +108,7 @@ func _process(delta: float) -> void:
 	_remaining = maxf(_remaining - delta, 0.0)
 	var ratio := _remaining / maxf(duration, 0.0001)
 	_light.light_energy = 0.0 if _reduce_flash else flash_energy * 0.4 * ratio
-	_material.albedo_color.a = clampf(ratio * 1.6, 0.0, 1.0)
+	_material.albedo_color.a = clampf(ratio * 0.85, 0.0, 0.58)
 	_hot_core_material.albedo_color.a = clampf(ratio * 1.9, 0.0, 1.0)
 	if _remaining <= 0.0:
 		_set_active(false)
@@ -129,7 +129,7 @@ func flash(strength: float = 1.0, tint: Color = Color(0.0, 0.0, 0.0, 0.0)) -> vo
 	_remaining = duration * clampf(strength, 0.4, 2.0)
 	_trigger_frame = Engine.get_process_frames()
 	_set_active(true)
-	_material.albedo_color.a = 1.0
+	_material.albedo_color.a = 0.58
 	_hot_core_material.albedo_color.a = 1.0
 	_light.light_energy = 0.0 if _reduce_flash else flash_energy * 0.4
 	var size := flash_scale / 0.34 * randf_range(0.88, 1.12)

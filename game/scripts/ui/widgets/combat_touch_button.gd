@@ -1,4 +1,4 @@
-## Combat actions use full, opaque finger targets; the image inside must do the
+## Combat actions use full-sized, legible finger targets; the image must do the
 ## explaining. No ornamental ring around a tiny pictogram: inspect the rendered
 ## 390x844 canvas before accepting the sizes or claiming it is comfortable.
 class_name CombatTouchButton

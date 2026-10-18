@@ -45,10 +45,11 @@ func _run_smoke_test() -> void:
 					cone != null
 					and cone.mesh is CylinderMesh
 					and cone.position.z < -0.1
-					and (cone.mesh as CylinderMesh).height < 0.5
+					and (cone.mesh as CylinderMesh).height <= 0.32
+					and (cone.mesh as CylinderMesh).bottom_radius <= 0.06
 					and muzzle_flash.get_node_or_null("FlashSpark_1") != null
 				),
-				"the barrel flash projects forward but never eclipses the player",
+				"barrel flash cone has bounded forward dimensions (visual check still needed)",
 			)
 			and test_passed
 		)
@@ -156,7 +157,9 @@ func _run_smoke_test() -> void:
 		)
 		muzzle_flash.call("set_reduced_flash", false)
 		test_passed = (
-			_expect(spark != null and spark.visible, "normal muzzle spokes return when opted in")
+			_expect(
+				spark != null and spark.visible, "normal axial muzzle streaks return when opted in"
+			)
 			and test_passed
 		)
 	for _frame in 20:
