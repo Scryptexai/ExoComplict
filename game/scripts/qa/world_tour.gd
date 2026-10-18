@@ -213,7 +213,21 @@ func _process(delta: float) -> void:
 	_freeze_next_reload = false
 	_reload_frozen = true
 	set_process(false)
-	print("Reload QA: real imported reload frozen at %.2fs" % _reload_review_elapsed)
+	var muzzle := get_parent().get_node_or_null("Player/VisualRoot/WeaponSocket/Muzzle") as Node3D
+	var camera := get_viewport().get_camera_3d()
+	if muzzle != null and camera != null:
+		print(
+			(
+				"Reload QA: real imported reload frozen at %.2fs muzzle=%s screen=%s"
+				% [
+					_reload_review_elapsed,
+					muzzle.global_position,
+					camera.unproject_position(muzzle.global_position)
+				]
+			)
+		)
+	else:
+		print("Reload QA: real imported reload frozen at %.2fs" % _reload_review_elapsed)
 	get_tree().paused = true
 
 
