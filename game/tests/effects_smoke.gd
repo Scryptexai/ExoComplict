@@ -139,6 +139,26 @@ func _run_smoke_test() -> void:
 			)
 			and test_passed
 		)
+		var spark := muzzle_flash.get_node_or_null("FlashSpark_0") as MeshInstance3D
+		var bounce := muzzle_flash.get_node_or_null("FlashLight") as OmniLight3D
+		muzzle_flash.call("set_reduced_flash", true)
+		test_passed = (
+			_expect(
+				(
+					spark != null
+					and not spark.visible
+					and bounce != null
+					and bounce.light_energy == 0.0
+				),
+				"Reduce Flash removes the radial rays and bright bounce, but keeps the shot",
+			)
+			and test_passed
+		)
+		muzzle_flash.call("set_reduced_flash", false)
+		test_passed = (
+			_expect(spark != null and spark.visible, "normal muzzle spokes return when opted in")
+			and test_passed
+		)
 	for _frame in 20:
 		await process_frame
 	test_passed = (

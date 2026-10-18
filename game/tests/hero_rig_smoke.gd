@@ -327,15 +327,15 @@ func _run_smoke_test() -> void:
 	# In a real browser screenshot the FIRST hip shot originated near the boot:
 	# recoil did shoulder the rifle, but only after the projectile had already
 	# left. Prime the existing Blender pose before resolving the first shot.
-	var carry_muzzle_y := muzzle.global_position.y
 	visual.call("prime_shot_pose")
 	_expect(str(visual.call("current_clip")) == "aim", "hip shot primes the authored aim pose")
+	# Resetting death changes the clip name before its blended pose has fully
+	# settled, so its immediate 'carry' y can be stale. Compare to the body's
+	# actual ground origin instead: the bad WebGL shot was 0.54 m above it.
+	var muzzle_height := muzzle.global_position.y - player.global_position.y
 	_expect(
-		muzzle.global_position.y > carry_muzzle_y + 0.35,
-		(
-			"first hip shot lifts the real barrel above carry height (%.2f -> %.2f m)"
-			% [carry_muzzle_y, muzzle.global_position.y]
-		),
+		muzzle_height > 1.0,
+		"first hip shot puts the real barrel above the boot before firing (%.2f m)" % muzzle_height,
 	)
 	_expect(
 		_barrel(muzzle).dot(forward) > 0.94,
