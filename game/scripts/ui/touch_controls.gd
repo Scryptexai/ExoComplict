@@ -38,6 +38,11 @@ var _weapon_button: Button
 var _skill_button: Button
 var _pause_button: Button
 var _pause_label: Label
+var _pause_hint_label: Label
+var _modal_backdrop: ColorRect
+var _pause_panel: PanelContainer
+var _pause_resume_button: Button
+var _pause_retry_button: Button
 var _results_panel: PanelContainer
 var _results_summary: Label
 var _results_retry_button: Button
@@ -178,11 +183,14 @@ func _refresh_skill_button() -> void:
 func set_paused(paused: bool) -> void:
 	if paused:
 		_clear_touch_state()
+	var show_pause_menu := paused and not _player_down
+	if is_instance_valid(_modal_backdrop):
+		_modal_backdrop.visible = show_pause_menu or _results_panel.visible
+	if is_instance_valid(_pause_panel):
+		_pause_panel.visible = show_pause_menu
 	if is_instance_valid(_pause_button):
 		_pause_button.text = "RETRY" if _player_down else ("RESUME" if paused else "PAUSE")
 		_pause_button.disabled = false
-	if is_instance_valid(_pause_label):
-		_pause_label.visible = paused
 	if is_instance_valid(_fire_button):
 		_fire_button.disabled = paused or _player_down
 	if is_instance_valid(_weapon_button):
@@ -194,6 +202,10 @@ func set_player_down(down: bool) -> void:
 	_player_down = down
 	if down:
 		_clear_touch_state()
+	if is_instance_valid(_pause_panel) and down:
+		_pause_panel.visible = false
+	if is_instance_valid(_modal_backdrop):
+		_modal_backdrop.visible = _results_panel.visible
 	if is_instance_valid(_pause_button):
 		_pause_button.text = "RETRY" if down else ("RESUME" if get_tree().paused else "PAUSE")
 	if is_instance_valid(_fire_button):
@@ -218,13 +230,14 @@ func show_results(
 		% [wave_reached, survival_time, eliminations, run_score, bp_earned]
 	)
 	_results_panel.visible = true
+	_modal_backdrop.visible = true
+	_pause_panel.visible = false
 	_top_bar.visible = false
 	_help_label.visible = false
 	_fire_button.visible = false
 	_weapon_button.visible = false
 	_skill_button.visible = false
 	_pause_button.visible = false
-	_pause_label.visible = false
 
 
 func hide_results() -> void:
@@ -237,7 +250,9 @@ func hide_results() -> void:
 	_weapon_button.visible = true
 	_skill_button.visible = true
 	_pause_button.visible = true
-	_pause_label.visible = get_tree().paused
+	var show_pause_menu := get_tree().paused and not _player_down
+	_modal_backdrop.visible = show_pause_menu
+	_pause_panel.visible = show_pause_menu
 	_refresh_skill_button()
 
 
@@ -301,27 +316,16 @@ func _build_ui() -> void:
 	_help_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_help_label)
 
-	_pause_label = Label.new()
-	_pause_label.name = "PauseOverlay"
-	_pause_label.anchor_left = 0.5
-	_pause_label.anchor_right = 0.5
-	_pause_label.anchor_top = 0.5
-	_pause_label.anchor_bottom = 0.5
-	_pause_label.offset_left = -190.0
-	_pause_label.offset_right = 190.0
-	_pause_label.offset_top = -70.0
-	_pause_label.offset_bottom = 70.0
-	_pause_label.text = "PAUSED\nTap RESUME to continue"
-	_pause_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_pause_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_pause_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_pause_label.add_theme_font_size_override("font_size", 28)
-	_pause_label.add_theme_color_override("font_color", Color(0.85, 0.96, 1.0))
-	_pause_label.visible = false
-	_pause_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_pause_label)
+	_modal_backdrop = ColorRect.new()
+	_modal_backdrop.name = "ModalBackdrop"
+	_modal_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_modal_backdrop.color = Color(0.006, 0.018, 0.03, 0.76)
+	_modal_backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	_modal_backdrop.visible = false
+	add_child(_modal_backdrop)
 
 	_build_results_panel()
+	_build_pause_panel()
 
 
 func _build_health_card() -> void:
@@ -445,6 +449,70 @@ func _build_results_panel() -> void:
 	)
 	_results_retry_button.pressed.connect(_on_results_retry_pressed)
 	content.add_child(_results_retry_button)
+
+
+func _build_pause_panel() -> void:
+	_pause_panel = PanelContainer.new()
+	_pause_panel.name = "PausePanel"
+	_pause_panel.anchor_left = 0.5
+	_pause_panel.anchor_right = 0.5
+	_pause_panel.anchor_top = 0.5
+	_pause_panel.anchor_bottom = 0.5
+	_pause_panel.offset_left = -190.0
+	_pause_panel.offset_right = 190.0
+	_pause_panel.offset_top = -150.0
+	_pause_panel.offset_bottom = 150.0
+	_pause_panel.custom_minimum_size = Vector2(380.0, 300.0)
+	_pause_panel.add_theme_stylebox_override("panel", _make_panel_style())
+	_pause_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	_pause_panel.visible = false
+	add_child(_pause_panel)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 12)
+	_pause_panel.add_child(content)
+
+	_pause_label = Label.new()
+	_pause_label.name = "PauseTitle"
+	_pause_label.text = "RUN PAUSED"
+	_pause_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_pause_label.add_theme_font_size_override("font_size", 28)
+	_pause_label.add_theme_color_override("font_color", Color(0.45, 0.86, 1.0))
+	content.add_child(_pause_label)
+
+	_pause_hint_label = Label.new()
+	_pause_hint_label.text = "Take a breather. Your current run is on hold."
+	_pause_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_pause_hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_pause_hint_label.add_theme_font_size_override("font_size", 15)
+	_pause_hint_label.add_theme_color_override("font_color", Color(0.76, 0.88, 0.96))
+	content.add_child(_pause_hint_label)
+
+	_pause_resume_button = Button.new()
+	_pause_resume_button.name = "PauseResumeButton"
+	_pause_resume_button.text = "RESUME RUN"
+	_pause_resume_button.custom_minimum_size = Vector2(0.0, 54.0)
+	_pause_resume_button.focus_mode = Control.FOCUS_NONE
+	_pause_resume_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	_apply_button_theme(
+		_pause_resume_button, Color(0.06, 0.31, 0.4, 1.0), Color(0.2, 0.82, 1.0, 0.95)
+	)
+	_pause_resume_button.add_theme_font_size_override("font_size", 16)
+	_pause_resume_button.pressed.connect(_on_pause_resume_pressed)
+	content.add_child(_pause_resume_button)
+
+	_pause_retry_button = Button.new()
+	_pause_retry_button.name = "PauseRetryButton"
+	_pause_retry_button.text = "RESTART RUN"
+	_pause_retry_button.custom_minimum_size = Vector2(0.0, 50.0)
+	_pause_retry_button.focus_mode = Control.FOCUS_NONE
+	_pause_retry_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	_apply_button_theme(
+		_pause_retry_button, Color(0.12, 0.17, 0.22, 0.98), Color(0.4, 0.58, 0.68, 0.82)
+	)
+	_pause_retry_button.add_theme_font_size_override("font_size", 14)
+	_pause_retry_button.pressed.connect(_on_pause_retry_pressed)
+	content.add_child(_pause_retry_button)
 
 
 func _make_card(card_name: String, minimum_size: Vector2) -> PanelContainer:
@@ -574,11 +642,26 @@ func _layout_controls() -> void:
 	_skill_button.add_theme_font_size_override("font_size", roundi(15.0 * _ui_scale))
 	_help_label.offset_top = -61.0 * _ui_scale
 	_help_label.offset_bottom = -10.0 * _ui_scale
-	_results_panel.custom_minimum_size = Vector2(440.0 * _ui_scale, 356.0 * _ui_scale)
-	_results_panel.offset_left = -220.0 * _ui_scale
-	_results_panel.offset_right = 220.0 * _ui_scale
-	_results_panel.offset_top = -178.0 * _ui_scale
-	_results_panel.offset_bottom = 178.0 * _ui_scale
+	var panel_width := minf(440.0 * _ui_scale, maxf(size.x - 2.0 * margin, 220.0 * _ui_scale))
+	var panel_height := minf(356.0 * _ui_scale, maxf(size.y - 2.0 * margin, 220.0 * _ui_scale))
+	_results_panel.custom_minimum_size = Vector2(panel_width, panel_height)
+	_results_panel.offset_left = -panel_width * 0.5
+	_results_panel.offset_right = panel_width * 0.5
+	_results_panel.offset_top = -panel_height * 0.5
+	_results_panel.offset_bottom = panel_height * 0.5
+	var pause_width := minf(380.0 * _ui_scale, maxf(size.x - 2.0 * margin, 220.0 * _ui_scale))
+	var pause_height := minf(320.0 * _ui_scale, maxf(size.y - 2.0 * margin, 200.0 * _ui_scale))
+	_pause_panel.custom_minimum_size = Vector2(pause_width, pause_height)
+	_pause_panel.offset_left = -pause_width * 0.5
+	_pause_panel.offset_right = pause_width * 0.5
+	_pause_panel.offset_top = -pause_height * 0.5
+	_pause_panel.offset_bottom = pause_height * 0.5
+	_pause_label.add_theme_font_size_override("font_size", roundi(28.0 * _ui_scale))
+	_pause_hint_label.add_theme_font_size_override("font_size", roundi(15.0 * _ui_scale))
+	_pause_resume_button.custom_minimum_size = Vector2(0.0, 54.0 * _ui_scale)
+	_pause_resume_button.add_theme_font_size_override("font_size", roundi(16.0 * _ui_scale))
+	_pause_retry_button.custom_minimum_size = Vector2(0.0, 50.0 * _ui_scale)
+	_pause_retry_button.add_theme_font_size_override("font_size", roundi(14.0 * _ui_scale))
 
 
 func _begin_touch(touch_id: int, position: Vector2) -> void:
@@ -668,6 +751,8 @@ func _clear_touch_state() -> void:
 func _find_touch_button(position: Vector2) -> Button:
 	var buttons: Array[Button] = [
 		_results_retry_button,
+		_pause_resume_button,
+		_pause_retry_button,
 		_pause_button,
 		_weapon_button,
 		_skill_button,
@@ -690,6 +775,10 @@ func _activate_touch_button(button: Button) -> void:
 		_on_skill_pressed()
 	elif button == _pause_button:
 		_on_pause_pressed()
+	elif button == _pause_resume_button:
+		_on_pause_resume_pressed()
+	elif button == _pause_retry_button:
+		_on_pause_retry_pressed()
 	elif button == _results_retry_button:
 		_on_results_retry_pressed()
 
@@ -702,7 +791,8 @@ func _is_over_hud(position: Vector2) -> bool:
 		_fire_button,
 		_weapon_button,
 		_skill_button,
-		_pause_label,
+		_modal_backdrop,
+		_pause_panel,
 		_results_panel,
 	]
 	for control in hud_controls:
@@ -789,6 +879,16 @@ func _on_pause_pressed() -> void:
 
 func _on_results_retry_pressed() -> void:
 	retry_requested.emit()
+
+
+func _on_pause_resume_pressed() -> void:
+	if not _player_down and get_tree().paused:
+		pause_requested.emit()
+
+
+func _on_pause_retry_pressed() -> void:
+	if get_tree().paused and not _player_down:
+		retry_requested.emit()
 
 
 func _on_window_focus_exited() -> void:

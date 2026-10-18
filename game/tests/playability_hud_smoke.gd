@@ -29,6 +29,10 @@ func _run_smoke_test() -> void:
 	var weapon_button := controls.get("_weapon_button") as Button
 	var skill_button := controls.get("_skill_button") as Button
 	var pause_button := controls.get("_pause_button") as Button
+	var pause_panel := controls.get("_pause_panel") as PanelContainer
+	var pause_resume_button := controls.get("_pause_resume_button") as Button
+	var pause_retry_button := controls.get("_pause_retry_button") as Button
+	var modal_backdrop := controls.get("_modal_backdrop") as ColorRect
 	var spring_arm := player.get_node("CameraRig/YawPivot/PitchPivot/SpringArm3D") as SpringArm3D
 	var pitch_pivot := player.get_node("CameraRig/YawPivot/PitchPivot") as Node3D
 
@@ -65,8 +69,10 @@ func _run_smoke_test() -> void:
 			and skill_button.text.contains("READY")
 			and not skill_button.disabled
 			and pause_button.text == "PAUSE"
+			and is_instance_valid(pause_panel)
+			and not pause_panel.visible
 		),
-		"fire, weapon-cycle, EMP skill, and pause buttons are visible and labeled",
+		"combat controls are labeled and the pause modal starts hidden",
 	)
 	_expect(
 		(
@@ -258,11 +264,32 @@ func _run_smoke_test() -> void:
 		"pausing clears held touch fire and movement input",
 	)
 	_expect(
-		fire_button.disabled and skill_button.disabled,
-		"fire and skill are disabled while the run is paused",
+		(
+			fire_button.disabled
+			and skill_button.disabled
+			and pause_panel.visible
+			and modal_backdrop.visible
+			and pause_resume_button.is_visible_in_tree()
+			and pause_retry_button.is_visible_in_tree()
+		),
+		"pause modal dims gameplay, blocks combat controls, and offers resume/restart",
 	)
-	_tap_screen_button(controls, pause_button, 76)
-	_expect(not paused and pause_button.text == "PAUSE", "RESUME restores play input")
+	_tap_screen_button(controls, pause_resume_button, 76)
+	_expect(
+		not paused and not pause_panel.visible and not modal_backdrop.visible,
+		"touching RESUME RUN closes the pause modal and restores play",
+	)
+	_tap_screen_button(controls, pause_button, 88)
+	_tap_screen_button(controls, pause_retry_button, 89)
+	_expect(
+		(
+			not paused
+			and not pause_panel.visible
+			and not bool(player.call("is_defeated"))
+			and is_equal_approx(health_bar.value, 100.0)
+		),
+		"touching RESTART RUN resets the paused session",
+	)
 
 	var run_stats: Node = main_scene.get_node("RunStats")
 	run_stats.call("start_run")
@@ -277,6 +304,7 @@ func _run_smoke_test() -> void:
 	_expect(
 		(
 			results_panel.visible
+			and modal_backdrop.visible
 			and results_retry_button.is_visible_in_tree()
 			and not skill_button.visible
 		),
@@ -288,6 +316,7 @@ func _run_smoke_test() -> void:
 			not bool(player.call("is_defeated"))
 			and is_equal_approx(health_bar.value, 100.0)
 			and not results_panel.visible
+			and not modal_backdrop.visible
 			and skill_button.text.contains("READY")
 			and not skill_button.disabled
 		),
