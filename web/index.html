@@ -297,10 +297,11 @@
 			<div class="shell-help" id="shell-help" data-collapsed="true">
 				<button id="shell-toggle-help" class="shell-button" type="button" style="margin-bottom:0.4rem">Controls</button>
 				<div class="shell-help-body">
-					<strong>Keyboard:</strong> WASD move · hold right mouse to aim · hold left mouse to fire ·
-					E switch weapon · click EMP · Esc pause · R reset run<br>
-					<strong>Touch:</strong> left thumb joystick moves · drag the right side to aim ·
-					hold FIRE · WEAPON / EMP / PAUSE buttons on the right<br>
+					<strong>Safe Explore:</strong> no automatic waves. Press B or START DEFENSE when ready; countdown before enemies.<br>
+					<strong>Keyboard:</strong> WASD move · right mouse aim · left mouse fire ·
+					E switch weapon · EMP · Esc pause · R retry<br>
+					<strong>Touch:</strong> left joystick · drag right to aim ·
+					FIRE · WEAPON / EMP / PAUSE · RETRY DEFENSE or EXPLORE after results<br>
 					<strong>Note:</strong> this build uses the Compatibility renderer (WebGL 2) and runs the
 					desktop/mobile gameplay code unmodified; statistics that depend on real device GPU
 					performance are not representative of an Android build.
@@ -321,7 +322,7 @@
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":13880732,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":12215132,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
