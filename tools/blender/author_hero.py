@@ -97,8 +97,15 @@ def new_action(arm, name):
 
 
 def upper_body(name):
-    """Conservative mask built from the actual imported bone names and hierarchy."""
-    return name in {"Waist", "Spine01", "Spine02"} or name.startswith((
+    """Keep the aiming torso level above a moving pelvis and leg cycle.
+
+    Hip parents *both* Pelvis and Waist on this exact rig. If the moving Hip's
+    run lean is retained while copying aim's Waist and arm channels, the
+    inherited tilt sends the barrel about 22 degrees below the reticle at
+    0.3 s of aim_run. Keeping Hip in aim while Pelvis/legs move preserves the
+    leg cycle without tipping the whole weapon over.
+    """
+    return name in {"Hip", "Waist", "Spine01", "Spine02"} or name.startswith((
         "L_Upperarm", "L_Forearm", "L_Elbow", "L_Hand", "L_Clavicle",
         "L_Pinky", "L_Ring", "L_Mid", "L_Index", "L_Thumb",
         "R_Upperarm", "R_Forearm", "R_Elbow", "R_Hand", "R_Clavicle",
@@ -231,16 +238,16 @@ def main():
                          "L_Forearm": ((1, 0, 0), -21),
                          "L_Hand": ((1, 0, 0), 16),
                          "R_Hand": ((1, 0, 0), 11)}}),
-        (19, {"rotate": {"L_Upperarm": ((1, 0, 0), 19),
-                         "L_Forearm": ((-0.88, 0, 0.48), 33),
+        (19, {"rotate": {"L_Upperarm": ((1, 0, 0), 13),
+                         "L_Forearm": ((-0.97, 0, 0.25), 30),
                          "L_Hand": ((1, 0, 0), 34),
                          "R_Hand": ((1, 0, 0), 13)}}),
-        (26, {"rotate": {"L_Upperarm": ((1, 0, 0), 14),
-                         "L_Forearm": ((-0.88, 0, 0.48), 28),
+        (26, {"rotate": {"L_Upperarm": ((1, 0, 0), 10),
+                         "L_Forearm": ((-0.97, 0, 0.25), 26),
                          "L_Hand": ((1, 0, 0), 26),
                          "R_Hand": ((1, 0, 0), 10)}}),
-        (33, {"rotate": {"L_Upperarm": ((1, 0, 0), 7),
-                         "L_Forearm": ((-0.88, 0, 0.48), 13),
+        (33, {"rotate": {"L_Upperarm": ((1, 0, 0), 4),
+                         "L_Forearm": ((-0.97, 0, 0.25), 13),
                          "L_Hand": ((1, 0, 0), 12),
                          "R_Hand": ((1, 0, 0), 5)}}),
         (43, {}),

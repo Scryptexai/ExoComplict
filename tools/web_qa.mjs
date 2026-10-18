@@ -18,8 +18,8 @@
  *   node tools/web_qa.mjs --tour          # world review camera: F10 + keys 1-8
  *   node tools/web_qa.mjs --encounter-prep --explore-wait 8000
  *       # safe Explore + deliberate B + preparation; Defense is NOT claimed
- *   node tools/web_qa.mjs --encounter --explore-wait 8000
- *       # strict: also require a real Defense transition in this browser
+ *   node tools/web_qa.mjs --encounter --explore-wait 8000 --encounter-timeout 600
+ *       # strict: await a real Defense transition (software WebGL can be slow)
  *
  * `--hold` exists because the touch HUD lives inside the WebGL canvas: the AIM
  * button cannot be found with a DOM selector, so its canvas coordinates (read
@@ -81,6 +81,7 @@ const tourMode = has('--tour');
 const tourWaitMs = Number(flag('--tour-wait', '900'));
 const requireDefense = has('--encounter');
 const encounterMode = requireDefense || has('--encounter-prep');
+const encounterTimeoutMs = Math.max(0, Number(flag('--encounter-timeout', '600')) || 0) * 1000;
 const exploreWaitMs = Number(flag('--explore-wait', '8000'));
 const port = Number(flag('--port', '8126'));
 
@@ -132,6 +133,27 @@ const browser = await puppeteer.launch({
 
 const ENGINE_BANNER = /Godot Engine v/i;
 const report = { base: baseUrl, pages: [] };
+
+// Await an actual Godot transition, not a guessed wall-clock duration. A
+// background SwiftShader renderer may advance only a fraction of a simulation
+// second for each real second; don't falsify Defense by naming a countdown
+// screenshot "started". The timeout belongs to strict --encounter only.
+function awaitConsoleText(page, existingLines, text, timeoutMs) {
+  if (existingLines.some((line) => line.includes(text))) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const onMessage = (message) => {
+      if (!message.text().includes(text)) return;
+      clearTimeout(timer);
+      page.off('console', onMessage);
+      resolve(true);
+    };
+    const timer = setTimeout(() => {
+      page.off('console', onMessage);
+      resolve(false);
+    }, timeoutMs);
+    page.on('console', onMessage);
+  });
+}
 
 async function checkPage(target, viewport) {
   const url = `${baseUrl}${target}`;
@@ -327,6 +349,11 @@ async function checkPage(target, viewport) {
       // a fraction of a second of Godot time per several wall-clock seconds;
       // never label a frame 'Defense started' merely because a timer elapsed.
       await new Promise((r) => setTimeout(r, 7000));
+      if (requireDefense) {
+        await awaitConsoleText(page, consoleLines, 'Encounter: Defense started', encounterTimeoutMs);
+        // Allow the HUD state changed in Godot to reach the visible canvas.
+        await new Promise((r) => setTimeout(r, 700));
+      }
       const defenseStarted = consoleLines.some((line) => line.includes('Encounter: Defense started'));
       const phase = defenseStarted ? 'defense-started' : 'preparing-progress';
       const phaseFrame = path.join(outDir, `${slug}-${viewport.spec}-${phase}.png`);
