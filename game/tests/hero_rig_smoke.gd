@@ -304,28 +304,45 @@ func _death_trace(player: AnimationPlayer, skeleton: Skeleton3D) -> String:
 		var path := str(clip.track_get_path(index))
 		if path.contains("BoneRoot") and clip.track_get_type(index) == Animation.TYPE_ROTATION_3D:
 			var last := clip.track_get_key_count(index) - 1
-			track = "%s keys=%d last=%s" % [path, last + 1, clip.track_get_key_value(index, last)]
+			track = (
+				"%s enabled=%s keys=%d last=%s"
+				% [
+					path,
+					clip.track_is_enabled(index),
+					last + 1,
+					clip.track_get_key_value(index, last)
+				]
+			)
 			break
 	var pose_rotation := (
 		skeleton.get_bone_pose_rotation(root_index) if root_index >= 0 else Quaternion.IDENTITY
 	)
 	var anchor := player.get_node_or_null(player.root_node)
 	var track_target := anchor.get_node_or_null("Armature/Skeleton3D") if anchor != null else null
+	# Directly sample without crossfade: this separates an active blend from an
+	# import/track-binding problem. Diagnostic only, immediately before reset.
+	player.stop()
+	player.play("death", 0.0)
+	player.seek(1.2, true)
+	player.advance(0.001)
+	skeleton.force_update_all_bone_transforms()
+	var forced_rotation := (
+		skeleton.get_bone_pose_rotation(root_index) if root_index >= 0 else Quaternion.IDENTITY
+	)
 	return (
 		(
-			"mixer=%s root=%s target=%s skeleton=%s same=%s playing=%s active=%s "
-			+ "tracks=%d BoneRoot=%s track=%s"
+			"mixer=%s root=%s same=%s active=%s root_motion=%s tracks=%d "
+			+ "BoneRoot before=%s forced=%s track=%s"
 		)
 		% [
 			player.get_path(),
 			player.root_node,
-			track_target.get_path() if track_target != null else "<missing>",
-			skeleton.get_path(),
 			track_target == skeleton,
-			player.is_playing(),
 			player.active,
+			player.root_motion_track,
 			clip.get_track_count(),
 			pose_rotation,
+			forced_rotation,
 			track,
 		]
 	)
