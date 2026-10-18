@@ -1,6 +1,7 @@
 # AEGIS — Spesifikasi redesain UI/UX
 
-**Status:** arah visual disetujui · implementasi M0–M6 sedang berjalan · 18 Oktober 2026
+**Tanggal spesifikasi:** 17 Oktober 2026
+**Status:** arah visual disetujui · implementasi M0–M6 sedang berjalan (diperbarui 18 Oktober 2026)
 **Branch:** `arena/5257bce8-cyber-strike` · **PR:** #1 (open, jangan di-merge)
 **Papan visual:** [`docs/ui-redesign/board/`](ui-redesign/board) — 7 board, PNG + SVG
 
@@ -14,7 +15,7 @@ bukan bukti bahwa semua fitur sudah tersedia di build.
 
 ## 0. Ringkasan
 
-HUD yang ada sekarang bekerja, tetapi belum "proper":
+Audit **HUD sebelum redesain** (bukan keadaan build terbaru) menemukan:
 
 | Masalah | Bukti di build sekarang | Dampak |
 |---|---|---|
@@ -562,16 +563,16 @@ node tools/web_qa.mjs --url http://127.0.0.1:8133 --page / \
 |---|---|---|---|---|
 | M0 | Token + theme + font + ikon | `aegis_tokens.gd`, `aegis_theme.gd`, `assets/ui/` | HUD lama tampil dengan token baru | ✅ |
 | M1 | HUD desktop baru | `touch_controls.gd`, `hud_layout.gd`, `hud_renderer.gd` | Board 02 cocok di 1280×720; smoke hijau | ✅ smoke 13/13 (2026-10-17) |
-| M2 | HUD sentuh + portrait/landscape | `hud_layout.gd` (`touch_portrait`, `touch_landscape`) | Board 03 cocok di 390×844 & 844×390 | ⏳ kode ada, verifikasi visual |
-| M3 | Pause + results | `_build_pause_menu`, `_build_results_panel` | Board 05; ESC/focus benar | ⏳ pause menu + results card ada |
-| M4 | Settings + HUD editor | `settings_menu.gd`, `hud_editor.gd` | Board 06; setting persist | — |
-| M5 | Polish + a11y | theme, motion | `reduce_motion`, kontras, 44px | — |
-| M6 | QA + evidence | smoke, `web_qa` | Semua frame + smoke 13/13 | — |
+| M2 | HUD sentuh + portrait/landscape | `hud_layout.gd` (`touch_portrait`, `touch_landscape`) | Board 03 cocok di 390×844 & 844×390 | ✅ screenshot Web 18 Okt: ammo, jarak tombol, hint landscape; QA 2/3 sebelum koreksi checker mute |
+| M3 | Pause + results | `_build_pause_menu`, `_build_results_panel` | Board 05; ESC/focus benar | ⏳ ESC pause/resume 3/3 di WASM; hasil/penambahan settings perlu QA |
+| M4 | Settings + HUD editor | `aegis_settings_menu.gd`, `hud_editor.gd` | Board 06; setting persist | ⏳ settings 4 tab + persist sedang diuji; editor belum selesai |
+| M5 | Polish + a11y | theme, motion | `reduce_motion`, kontras, 44px | ⏳ reduce motion/flash & panel-opacity floor 65% sedang diuji |
+| M6 | QA + evidence | smoke, `web_qa` | Semua frame + smoke 14/14 | ⏳ smoke 13/13 untuk build sebelumnya; ulangi setelah M4–M5 |
 
 Catatan implementasi: HUD tinggal di satu facade (`touch_controls.gd`) dengan
 geometri di `hud_layout.gd` dan gambar reticle/joystick/vignette di
 `hud_renderer.gd`. Nama file lama (`hud_desktop.gd`, `pause_menu.gd`, …) tidak
-dipakai supaya 13 smoke test yang membaca field privat HUD tetap valid.
+dipakai supaya smoke test lama yang membaca field privat HUD tetap valid.
 
 Estimasi kasar: M0–M2 = 2 hari, M3–M4 = 2 hari, M5–M6 = 1 hari.
 

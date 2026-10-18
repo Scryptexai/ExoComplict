@@ -18,6 +18,7 @@ signal skill_requested
 signal pause_requested
 signal retry_requested
 signal sound_mute_requested
+signal settings_changed(values: Dictionary)
 
 const HIT_CONFIRM_DURATION: float = AegisTokens.HIT_MARKER
 const HELP_VISIBLE_SECONDS: float = 10.0
@@ -72,6 +73,11 @@ var _physical_size: Vector2 = Vector2.ZERO
 var _stretch: float = 1.0
 var _ui_scale: float = 1.0
 var _top_inset: float = 0.0
+var _hud_scale: float = 1.0
+var _hud_opacity: float = 1.0
+var _left_handed: bool = false
+var _reduce_motion: bool = false
+var _reduce_flash: bool = false
 
 # --- Widgets --------------------------------------------------------------- #
 var _top_bar: Control
@@ -105,6 +111,8 @@ var _pause_label: Label
 var _pause_stats_label: Label
 var _pause_resume_button: AegisButton
 var _pause_restart_button: AegisButton
+var _pause_settings_button: AegisButton
+var _settings_menu: AegisSettingsMenu
 var _results_summary: Label
 var _results_title: Label
 var _desktop_weapon_name: Label
@@ -200,9 +208,11 @@ func _input(event: InputEvent) -> void:
 		_update_touch(event.index, event.position, event.relative)
 	elif event is InputEventKey and event.pressed and not event.echo:
 		if event.is_action_pressed("ui_cancel") and get_tree().paused:
-			# The gameplay node is paused, so its _unhandled_input cannot reliably
-			# see ESC again. This HUD runs ALWAYS and owns the resume keystroke.
-			_on_pause_pressed()
+			# ESC closes a submenu first; only the next press resumes the run.
+			if is_instance_valid(_settings_menu) and _settings_menu.visible:
+				_settings_menu.close()
+			else:
+				_on_pause_pressed()
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_R and get_tree().paused:
 			retry_requested.emit()
@@ -357,12 +367,14 @@ func apply_layout_for_size(viewport_size: Vector2, stretch_scale: float = 0.0) -
 
 
 func show_hit_confirmed() -> void:
-	_hit_confirm_remaining = HIT_CONFIRM_DURATION
+	_hit_confirm_remaining = (
+		minf(HIT_CONFIRM_DURATION, 0.09) if _reduce_motion else HIT_CONFIRM_DURATION
+	)
 	queue_redraw()
 
 
 func show_damage_received() -> void:
-	_damage_flash_remaining = DAMAGE_FLASH_DURATION
+	_damage_flash_remaining = 0.0 if _reduce_flash else DAMAGE_FLASH_DURATION
 	queue_redraw()
 
 
@@ -469,6 +481,9 @@ func _apply_aim_visual(aiming: bool) -> void:
 func set_paused(paused: bool) -> void:
 	if paused:
 		_clear_touch_state()
+	elif is_instance_valid(_settings_menu):
+		_settings_menu.visible = false
+		_top_bar.visible = true
 	if is_instance_valid(_pause_button):
 		_pause_button.icon = AegisTheme.icon("play" if paused else "pause", paused)
 		_pause_button.set_meta("aegis_state", "resume" if paused else "pause")
@@ -871,6 +886,12 @@ func _build_overlays() -> void:
 
 	_build_pause_menu()
 	_build_results_panel()
+	_settings_menu = AegisSettingsMenu.new()
+	_settings_menu.name = "SettingsMenu"
+	_settings_menu.visible = false
+	_settings_menu.changed.connect(_apply_preferences)
+	_settings_menu.close_requested.connect(_close_settings)
+	add_child(_settings_menu)
 
 
 ## Pause is a sibling of the results card: same panel language, same button
@@ -921,6 +942,16 @@ func _build_pause_menu() -> void:
 	_pause_restart_button.pressed.connect(_on_restart_pressed)
 	content.add_child(_pause_restart_button)
 	_touch_buttons.append(_pause_restart_button)
+
+	_pause_settings_button = AegisButton.new()
+	_pause_settings_button.name = "SettingsButton"
+	_pause_settings_button.text = "SETTINGS"
+	_pause_settings_button.icon = AegisTheme.icon("gear-six")
+	_pause_settings_button.focus_mode = Control.FOCUS_ALL
+	AegisTheme.set_button_variant(_pause_settings_button, "ghost")
+	_pause_settings_button.pressed.connect(_open_settings)
+	content.add_child(_pause_settings_button)
+	_touch_buttons.append(_pause_settings_button)
 
 	var hint := _label("ESC  ·  RESUME  ·  R  ·  RESTART", "label_s", AegisTokens.INK_3)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1098,121 +1129,30 @@ func _layout_overlays() -> void:
 		_scrim.offset_right = 0.0
 		_scrim.offset_bottom = 0.0
 	HudLayout.overlays(self)
+	if is_instance_valid(_settings_menu):
+		var width := minf(_to_layout(700.0), size.x * 0.94)
+		var height := minf(_to_layout(520.0), size.y * 0.90)
+		_settings_menu.custom_minimum_size = Vector2(width, height)
+		HudLayout.place(
+			self,
+			_settings_menu,
+			0.5,
+			0.5,
+			0.5,
+			0.5,
+			Rect2(-width * 0.5, -height * 0.5, width, height)
+		)
+		_settings_menu.apply_layout(_stretch, _ui_scale * _hud_scale)
 
 
-## Card padding is expressed in physical pixels so a 168 px phone rail gets the
-## same 8 px breathing room as a 268 px desktop card.
+## StyleBox overrides vary with the physical viewport; the factory lives in
+## hud_styles.gd so the HUD facade stays below its complexity limit.
 func _refresh_card_styles() -> void:
-	var pad := _to_layout(10.0)
-	var tight := _to_layout(8.0)
-	var fill := Color(AegisTokens.PANEL, AegisTokens.PANEL_ALPHA)
-	_health_card.add_theme_stylebox_override(
-		"panel", AegisTheme.panel_style(fill, AegisTokens.LINE, 1, AegisTokens.RADIUS, pad)
-	)
-	_wave_card.add_theme_stylebox_override(
-		"panel", AegisTheme.panel_style(fill, AegisTokens.LINE, 1, AegisTokens.RADIUS, tight)
-	)
-	_run_card.add_theme_stylebox_override(
-		"panel", AegisTheme.panel_style(fill, AegisTokens.LINE, 1, AegisTokens.RADIUS, pad)
-	)
-	_score_chip.add_theme_stylebox_override(
-		"panel", AegisTheme.panel_style(fill, AegisTokens.LINE, 1, AegisTokens.RADIUS, tight)
-	)
-	_compact_card.add_theme_stylebox_override(
-		"panel", AegisTheme.panel_style(fill, AegisTokens.LINE, 1, AegisTokens.RADIUS, pad)
-	)
-	_help_panel.add_theme_stylebox_override(
-		"panel",
-		AegisTheme.panel_style(
-			Color(AegisTokens.VOID, 0.86), Color(AegisTokens.LINE, 0.9), 1, AegisTokens.RADIUS, pad
-		)
-	)
-	_desktop_weapon_card.add_theme_stylebox_override(
-		"panel", AegisTheme.panel_style(fill, AegisTokens.LINE, 1, AegisTokens.RADIUS, pad)
-	)
-	_ads_chip.add_theme_stylebox_override(
-		"panel", AegisTheme.panel_style(fill, AegisTokens.LINE, 1, AegisTokens.RADIUS, tight)
-	)
-	_pause_panel.add_theme_stylebox_override(
-		"panel",
-		AegisTheme.panel_style(
-			Color(AegisTokens.PANEL, 0.97),
-			Color(AegisTokens.LINE_HI, 0.9),
-			1,
-			AegisTokens.RADIUS,
-			_to_layout(24.0)
-		)
-	)
-	_results_panel.add_theme_stylebox_override(
-		"panel",
-		AegisTheme.panel_style(
-			Color(AegisTokens.PANEL, 0.97),
-			Color(AegisTokens.LINE_HI, 0.9),
-			1,
-			AegisTokens.RADIUS,
-			_to_layout(24.0)
-		)
-	)
-	if is_instance_valid(_health_bar):
-		_health_bar.custom_minimum_size = Vector2(0.0, _to_layout(6.0))
-		_health_bar.gap_width = maxf(_to_layout(2.0), 1.0)
-	if is_instance_valid(_wave_icon):
-		var icon_size := _to_layout(16.0)
-		_wave_icon.custom_minimum_size = Vector2(icon_size, icon_size)
-	if is_instance_valid(_results_retry_button):
-		_results_retry_button.add_theme_constant_override(
-			"icon_max_width", roundi(_to_layout(18.0))
-		)
+	HudStyles.apply(self)
 
 
 func _apply_font_scale() -> void:
-	var floor_size := _minimum_font_size()
-	var unit := _control_unit()
-	for node in find_children("*", "Label", true, false):
-		var label := node as Label
-		if label == null or not label.has_meta("aegis_role"):
-			continue
-		var role := String(label.get_meta("aegis_role"))
-		var multiplier := float(label.get_meta("aegis_scale", 1.0))
-		var text_size := maxi(
-			roundi(float(AegisTheme.type_size(role)) * unit * multiplier), floor_size
-		)
-		AegisTheme.resize_label(label, role, text_size)
-	for node in find_children("*", "Button", true, false):
-		var button := node as Button
-		if button == null:
-			continue
-		button.add_theme_font_size_override("font_size", floor_size)
-		if button == _fire_button:
-			AegisTheme.resize_button_font(button, "title", maxi(roundi(15.0 * unit), floor_size))
-		elif button == _weapon_button or button == _skill_button or button == _aim_button:
-			AegisTheme.resize_button_font(button, "label", maxi(roundi(11.0 * unit), floor_size))
-		elif (
-			button == _results_retry_button
-			or button == _pause_resume_button
-			or button == _pause_restart_button
-		):
-			AegisTheme.resize_button_font(button, "title", maxi(roundi(15.0 * unit), floor_size))
-	if is_instance_valid(_health_bar):
-		_health_bar.custom_minimum_size.y = maxf(_to_layout(6.0), 3.0)
-	# Icons are raster assets; size them in physical pixels so a 20 px glyph on
-	# desktop is still 20 px on a phone instead of shrinking with the canvas.
-	var icon_px := maxi(roundi(_to_layout(18.0)), 12)
-	var icon_button_px := maxf(_to_layout(44.0), 32.0)
-	for icon_button in [_pause_button, _sound_button]:
-		if is_instance_valid(icon_button):
-			icon_button.custom_minimum_size = Vector2(icon_button_px, icon_button_px)
-	for button in [
-		_fire_button,
-		_weapon_button,
-		_skill_button,
-		_aim_button,
-		_pause_button,
-		_sound_button,
-		_emp_chip
-	]:
-		if is_instance_valid(button):
-			button.add_theme_constant_override("icon_max_width", icon_px)
+	HudStyles.apply_fonts(self)
 
 
 # --------------------------------------------------------------------------- #
@@ -1247,7 +1187,7 @@ func _to_layout(physical_pixels: float) -> float:
 
 
 func _control_unit() -> float:
-	return _ui_scale / _stretch
+	return _ui_scale * _hud_scale / _stretch
 
 
 ## Font size (in logical canvas units) that renders as [constant
@@ -1319,7 +1259,7 @@ func _begin_touch(touch_id: int, position: Vector2) -> void:
 		):
 			_fire_touch_id = touch_id
 			hide_help()
-			_fire_flash_remaining = 1.0
+			_fire_flash_remaining = 0.0 if _reduce_motion else 1.0
 			fire_changed.emit(true)
 			queue_redraw()
 		else:
@@ -1338,7 +1278,9 @@ func _begin_touch(touch_id: int, position: Vector2) -> void:
 		return
 	if position.y < size.y * 0.2:
 		return
-	if position.x < size.x * 0.47 and _move_touch_id == -1:
+	var move_zone := position.x > size.x * 0.53 if _left_handed else position.x < size.x * 0.47
+	var look_zone := position.x < size.x * 0.53 if _left_handed else position.x >= size.x * 0.47
+	if move_zone and _move_touch_id == -1:
 		# Movement is a fixed thumb zone, not any tap on the left half. Offset
 		# starts at the painted ring; touching its edge gives immediate motion.
 		if position.distance_to(_joystick_center) > _joystick_radius + _to_layout(20.0):
@@ -1349,7 +1291,7 @@ func _begin_touch(touch_id: int, position: Vector2) -> void:
 		var offset := (position - _move_origin) / maxf(_joystick_radius, 1.0)
 		movement_changed.emit(offset.limit_length(1.0))
 		queue_redraw()
-	elif position.x >= size.x * 0.47 and _look_touch_id == -1:
+	elif look_zone and _look_touch_id == -1:
 		_look_touch_id = touch_id
 
 
@@ -1412,11 +1354,17 @@ func _clear_touch_state() -> void:
 
 
 func _find_touch_button(position: Vector2) -> Button:
+	# Only the foreground menu accepts touches while a submenu is open.
+	var candidates: Array[Button] = _touch_buttons
+	if is_instance_valid(_settings_menu) and _settings_menu.visible:
+		candidates = []
+		for node in _settings_menu.find_children("*", "Button", true, false):
+			candidates.append(node as Button)
 	# Pick the smallest target containing the touch: the AIM button sits close to
 	# FIRE and an overlapping (larger) control must not steal the press.
 	var best: Button = null
 	var best_area := INF
-	for button in _touch_buttons:
+	for button in candidates:
 		if not is_instance_valid(button) or not button.is_visible_in_tree():
 			continue
 		var rect := button.get_global_rect()
@@ -1444,6 +1392,13 @@ func _activate_touch_button(button: Button) -> void:
 		_on_pause_pressed()
 	elif button == _pause_restart_button:
 		_on_restart_pressed()
+	elif button == _pause_settings_button:
+		_open_settings()
+	elif is_instance_valid(_settings_menu) and _settings_menu.is_ancestor_of(button):
+		if button.toggle_mode:
+			button.button_pressed = not button.button_pressed
+		else:
+			button.pressed.emit()
 
 
 func _is_over_hud(position: Vector2) -> bool:
@@ -1457,6 +1412,7 @@ func _is_over_hud(position: Vector2) -> bool:
 		_touch_ammo_chip,
 		_pause_panel,
 		_results_panel,
+		_settings_menu,
 		_run_card,
 		_score_chip,
 		_desktop_weapon_card,
@@ -1529,7 +1485,7 @@ func _on_sound_pressed() -> void:
 func _on_fire_down() -> void:
 	if not _player_down and not get_tree().paused:
 		hide_help()
-		_fire_flash_remaining = 1.0
+		_fire_flash_remaining = 0.0 if _reduce_motion else 1.0
 		queue_redraw()
 		fire_changed.emit(true)
 
@@ -1572,6 +1528,36 @@ func _on_pause_pressed() -> void:
 		retry_requested.emit()
 	else:
 		pause_requested.emit()
+
+
+func _open_settings() -> void:
+	if not get_tree().paused:
+		return
+	_pause_panel.visible = false
+	_top_bar.visible = false
+	_settings_menu.open()
+
+
+func _close_settings() -> void:
+	if not get_tree().paused:
+		return
+	_pause_panel.visible = true
+	_top_bar.visible = true
+	_pause_resume_button.grab_focus()
+
+
+func _apply_preferences(values: Dictionary) -> void:
+	_hud_scale = float(values.get("hud_scale", 1.0))
+	_hud_opacity = float(values.get("hud_opacity", 1.0))
+	_left_handed = bool(values.get("left_handed", false))
+	_reduce_motion = bool(values.get("reduce_motion", false))
+	_reduce_flash = bool(values.get("reduce_flash", false))
+	if _reduce_motion:
+		_fire_flash_remaining = 0.0
+	if _reduce_flash:
+		_damage_flash_remaining = 0.0
+	_layout_controls()
+	settings_changed.emit(values)
 
 
 func _on_results_retry_pressed() -> void:

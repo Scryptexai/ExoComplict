@@ -11,8 +11,9 @@ func _initialize() -> void:
 
 
 func _run_smoke_test() -> void:
-	# The mute preference is persisted in user://, so a previous run could hand
-	# this one a muted game: start from a known state.
+	# Audio and HUD settings persist in user://; other runs must not alter
+	# this geometry/interaction smoke's default layout or initial mute state.
+	AegisPreferences.write(AegisPreferences.defaults())
 	Sfx.set_muted(false)
 	var main_scene := MainScene.instantiate()
 	main_scene.set("start_wave_session_on_ready", false)
@@ -125,8 +126,7 @@ func _run_smoke_test() -> void:
 		),
 		"fire, weapon-cycle, EMP skill, and pause buttons are visible and labeled",
 	)
-	# Audio has no settings screen yet, so the mute control living on the HUD is
-	# the only way a player can silence the game.
+	# Quick mute and the settings screen must share the same live audio state.
 	_expect(
 		(
 			is_instance_valid(sound_button)

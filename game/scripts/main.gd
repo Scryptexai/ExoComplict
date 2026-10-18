@@ -11,6 +11,7 @@ const RewardServiceScript = preload("res://scripts/progression/reward_service.gd
 
 var _shots_fired: int = 0
 var _is_paused: bool = false
+var _base_look_sensitivity: float = 0.0
 
 @onready var player: PlayerControllerScript = $Player
 @onready var training_drone: TrainingDroneScript = $TrainingDrone
@@ -29,7 +30,11 @@ func _ready() -> void:
 	touch_controls.skill_requested.connect(player.activate_skill)
 	touch_controls.pause_requested.connect(_toggle_pause)
 	touch_controls.sound_mute_requested.connect(_on_sound_mute_requested)
-	touch_controls.set_sound_muted(Sfx.is_muted())
+	_base_look_sensitivity = player.camera_rig.look_sensitivity
+	if not FileAccess.file_exists(AegisPreferences.PATH):
+		touch_controls._settings_menu.set_mute_from_game(Sfx.is_muted())
+	touch_controls.settings_changed.connect(_on_settings_changed)
+	touch_controls._apply_preferences(touch_controls._settings_menu.values)
 	player.weapon_changed.connect(touch_controls.set_weapon_label)
 	player.weapon_controller.ammo_changed.connect(touch_controls._update_weapon_ammo)
 	player.skill_cooldown_changed.connect(touch_controls.set_skill_cooldown)
@@ -92,7 +97,16 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_sound_mute_requested() -> void:
 	var muted := Sfx.toggle_muted()
 	touch_controls.set_sound_muted(muted)
+	touch_controls._settings_menu.set_mute_from_game(muted)
 	Sfx.play_ui(&"ui_click")
+
+
+func _on_settings_changed(values: Dictionary) -> void:
+	player.camera_rig.look_sensitivity = _base_look_sensitivity * float(values["sensitivity"])
+	var muted := bool(values["muted"])
+	if Sfx.is_muted() != muted:
+		Sfx.set_muted(muted)
+	touch_controls.set_sound_muted(muted)
 
 
 func _toggle_pause() -> void:

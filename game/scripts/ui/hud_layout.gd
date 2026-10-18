@@ -127,7 +127,11 @@ static func touch_portrait(hud) -> void:
 		)
 	)
 
-	hud._joystick_center = Vector2(hud._to_layout(84.0), hud.size.y - hud._to_layout(106.0))
+	_mirror_skill_ring(hud)
+	var stick_x: float = hud._to_layout(84.0)
+	hud._joystick_center = Vector2(
+		hud.size.x - stick_x if hud._left_handed else stick_x, hud.size.y - hud._to_layout(106.0)
+	)
 	hud._joystick_radius = hud._to_layout(64.0)
 
 	hud._show_top_wave_details(false)
@@ -193,7 +197,11 @@ static func touch_landscape(hud) -> void:
 		)
 	)
 
-	hud._joystick_center = Vector2(hud._to_layout(120.0), hud.size.y - hud._to_layout(90.0))
+	_mirror_skill_ring(hud)
+	var stick_x: float = hud._to_layout(120.0)
+	hud._joystick_center = Vector2(
+		hud.size.x - stick_x if hud._left_handed else stick_x, hud.size.y - hud._to_layout(90.0)
+	)
 	hud._joystick_radius = hud._to_layout(56.0)
 
 	hud._show_top_wave_details(true)
@@ -279,7 +287,9 @@ static func overlays(hud) -> void:
 	var pause_width: float = minf(
 		hud._to_layout(390.0 if sheet else 400.0), hud.size.x * (0.94 if sheet else 0.88)
 	)
-	var pause_height: float = minf(hud._to_layout(440.0 if sheet else 330.0), hud.size.y * 0.84)
+	var pause_height: float = minf(
+		hud._to_layout(340.0 if sheet else 390.0), hud.size.y * (0.86 if sheet else 0.9)
+	)
 	hud._pause_panel.custom_minimum_size = Vector2(pause_width, pause_height)
 	_place(
 		hud._pause_panel,
@@ -294,7 +304,7 @@ static func overlays(hud) -> void:
 			pause_height
 		)
 	)
-	for button in [hud._pause_resume_button, hud._pause_restart_button]:
+	for button in [hud._pause_resume_button, hud._pause_restart_button, hud._pause_settings_button]:
 		if is_instance_valid(button):
 			button.custom_minimum_size = Vector2(0.0, hud._to_layout(56.0 if sheet else 52.0))
 
@@ -338,8 +348,22 @@ static func _place_button(
 	var bottom: float = hud._to_layout(bottom_px)
 	var width: float = hud._to_layout(w_px)
 	var height: float = hud._to_layout(h_px)
-	_place(button, 1, 1, 1, 1, Rect2(-right - width, -bottom - height, width, height))
+	if hud._left_handed:
+		_place(button, 0, 1, 0, 1, Rect2(right, -bottom - height, width, height))
+	else:
+		_place(button, 1, 1, 1, 1, Rect2(-right - width, -bottom - height, width, height))
 	button.custom_minimum_size = Vector2(width, height)
+
+
+static func _mirror_skill_ring(hud) -> void:
+	if not hud._left_handed:
+		return
+	var old_left: float = hud._skill_ring.offset_left
+	var old_right: float = hud._skill_ring.offset_right
+	hud._skill_ring.anchor_left = 0.0
+	hud._skill_ring.anchor_right = 0.0
+	hud._skill_ring.offset_left = -old_right
+	hud._skill_ring.offset_right = -old_left
 
 
 static func _place_compact(hud, left: float, top: float, visible: bool) -> float:

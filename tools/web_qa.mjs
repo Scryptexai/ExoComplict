@@ -330,9 +330,10 @@ async function checkPage(target, viewport) {
     ]);
     checks.push([
       'the mute control reaches the audio pipeline',
-      // Exact line only: the boot line ends in "muted=no", so a loose substring
-      // match here would pass without the M key ever reaching the audio.
-      audioLines.some((line) => line.trim().endsWith('Audio: muted')),
+      // Exact transition only. Browser user:// persists between viewport runs:
+      // the first M can unmute a previous run instead of muting a fresh one.
+      // The boot line ends in "muted=yes/no" and must not count as a toggle.
+      audioLines.some((line) => /Audio: (muted|unmuted)$/.test(line.trim())),
     ]);
   }
 

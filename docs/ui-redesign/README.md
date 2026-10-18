@@ -1,7 +1,7 @@
 # AEGIS — papan desain UI/UX
 
-Folder ini berisi **proposal desain**, bukan kode game. Tidak ada scene, script
-Godot, atau export yang diubah pada fase ini.
+Folder ini berisi **papan desain yang disetujui**, bukan kode game. Implementasi
+Godot dan bukti QA berada di `game/`, `web/`, serta milestone §13 spesifikasi.
 
 Spesifikasi lengkap: [`../UI_UX_REDESIGN_SPEC.md`](../UI_UX_REDESIGN_SPEC.md)
 
@@ -51,5 +51,6 @@ Semua aset komersial-aman tanpa atribusi wajib; lisensi tetap disertakan.
 
 ## Status
 
-Proposal — menunggu persetujuan arah visual sebelum implementasi (M0–M6 di
-spesifikasi).
+Arah AEGIS Industrial disetujui 17 Oktober 2026. Implementasi M0–M6 berlangsung;
+lihat tabel status dan batasan verifikasi di §13 spesifikasi. Board adalah target
+visual, bukan bukti bahwa tiap fitur sudah tersedia dalam build.
