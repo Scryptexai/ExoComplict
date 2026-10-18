@@ -180,6 +180,8 @@ func _run_smoke_test() -> void:
 		main_scene, Vector3(0.0, 1.0, -6.0), Vector3(0.0, 0.14, -6.0), Vector3.UP, 4.0, true, true
 	)
 	var band := shock.get_node_or_null("ImpactSurface/BlastFront") as MeshInstance3D
+	var reduced_filaments := shock.get_node_or_null("ImpactSurface/IonFilaments") as MeshInstance3D
+	var reduced_etch := shock.get_node_or_null("ImpactSurface/ImpactEtch") as MeshInstance3D
 	var core := shock.get_node_or_null("ImpactCore") as MeshInstance3D
 	var bounce := shock.get_node_or_null("BlastBounce") as OmniLight3D
 	test_passed = (
@@ -188,6 +190,10 @@ func _run_smoke_test() -> void:
 				shock != null
 				and band != null
 				and band.scale.x >= 3.9
+				and reduced_filaments != null
+				and not reduced_filaments.visible
+				and reduced_etch != null
+				and not reduced_etch.visible
 				and core != null
 				and not core.visible
 				and bounce != null
@@ -195,6 +201,26 @@ func _run_smoke_test() -> void:
 				and get_nodes_in_group(NovaShockwaveScript.GROUP).size() == before_shock + 1
 			),
 			"reduced-motion Nova keeps a static radius cue without the bright core or bounce",
+		)
+		and test_passed
+	)
+	var full_shock := NovaShockwaveScript.spawn(
+		main_scene, Vector3(3.0, 1.0, -6.0), Vector3(3.0, 0.14, -6.0), Vector3.UP, 4.0
+	)
+	var filaments := full_shock.get_node_or_null("ImpactSurface/IonFilaments") as MeshInstance3D
+	var etch := full_shock.get_node_or_null("ImpactSurface/ImpactEtch") as MeshInstance3D
+	test_passed = (
+		_expect(
+			(
+				filaments != null
+				and filaments.visible
+				and filaments.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size() == 72
+				and etch != null
+				and etch.visible
+				and etch.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size() == 54
+				and get_nodes_in_group(NovaShockwaveScript.GROUP).size() == before_shock + 2
+			),
+			"normal Nova adds segmented inner arcs and a contact scar only at real impact",
 		)
 		and test_passed
 	)

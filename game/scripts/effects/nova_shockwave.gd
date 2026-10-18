@@ -18,9 +18,13 @@ var _trigger_frame: int = -1
 var _surface: Node3D
 var _front: MeshInstance3D
 var _edge: MeshInstance3D
+var _filaments: MeshInstance3D
+var _etch: MeshInstance3D
 var _core: MeshInstance3D
 var _front_material: StandardMaterial3D
 var _edge_material: StandardMaterial3D
+var _filament_material: StandardMaterial3D
+var _etch_material: StandardMaterial3D
 var _core_material: StandardMaterial3D
 var _light: OmniLight3D
 
@@ -57,10 +61,16 @@ func _ready() -> void:
 	add_child(_surface)
 	_front_material = _material(Color(1.0, 0.42, 0.12), 0.48)
 	_edge_material = _material(Color(1.0, 0.8, 0.53), 0.76)
+	_filament_material = _material(Color(1.0, 0.67, 0.31), 0.66)
+	_etch_material = _material(Color(1.0, 0.36, 0.08), 0.5)
 	_core_material = _material(Color(1.0, 0.68, 0.28), 0.72)
 	_front = _band("BlastFront", 0.92, 1.0, _front_material)
 	_edge = _band("BlastEdge", 0.984, 1.0, _edge_material)
 	_edge.position.y = 0.018
+	_filaments = _fragments()
+	_filaments.visible = not reduce_motion
+	_etch = _etched_contact()
+	_etch.visible = not reduce_motion and not reduce_flash
 	_core = MeshInstance3D.new()
 	_core.name = "ImpactCore"
 	var core_mesh := SphereMesh.new()
@@ -112,6 +122,71 @@ func _band(
 	return band
 
 
+func _fragments() -> MeshInstance3D:
+	# Broken, short warm arcs inside the continuous radius line suggest a
+	# travelling pressure front without replacing the useful damage-area cue.
+	var vertices := PackedVector3Array()
+	for shard in range(12):
+		var start := TAU * (float(shard) + 0.1) / 12.0
+		var end := TAU * (float(shard) + 0.53) / 12.0
+		var near_start := Vector3(cos(start) * 0.78, 0.0, sin(start) * 0.78)
+		var far_start := Vector3(cos(start) * 0.87, 0.0, sin(start) * 0.87)
+		var near_end := Vector3(cos(end) * 0.78, 0.0, sin(end) * 0.78)
+		var far_end := Vector3(cos(end) * 0.87, 0.0, sin(end) * 0.87)
+		vertices.append_array(
+			PackedVector3Array([near_start, far_start, near_end, far_start, far_end, near_end])
+		)
+	return _surface_mesh("IonFilaments", vertices, _filament_material, 0.031)
+
+
+func _etched_contact() -> MeshInstance3D:
+	# A small irregular center scar ties the pressure ring to the real contact
+	# plane. It does not cover the target or become a second damage volume.
+	var vertices := PackedVector3Array()
+	for spoke in range(9):
+		var angle := TAU * float(spoke) / 9.0 + sin(float(spoke) * 5.1) * 0.08
+		var direction := Vector3(cos(angle), 0.0, sin(angle))
+		var side := Vector3(-direction.z, 0.0, direction.x)
+		var reach := 0.7 + float(spoke % 4) * 0.11
+		var root := direction * 0.12
+		var bend := direction * (reach * 0.55) + side * 0.07
+		var tip := direction * reach
+		(
+			vertices
+			. append_array(
+				PackedVector3Array(
+					[
+						root - side * 0.05,
+						root + side * 0.05,
+						bend,
+						root + side * 0.05,
+						tip,
+						bend,
+					]
+				)
+			)
+		)
+	return _surface_mesh("ImpactEtch", vertices, _etch_material, 0.024)
+
+
+func _surface_mesh(
+	label: String, vertices: PackedVector3Array, material: StandardMaterial3D, height: float
+) -> MeshInstance3D:
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var instance := MeshInstance3D.new()
+	instance.name = label
+	instance.mesh = mesh
+	instance.material_override = material
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	instance.position.y = height
+	_surface.add_child(instance)
+	return instance
+
+
 func _material(color: Color, alpha: float) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -141,8 +216,13 @@ func _update_visuals(progress: float) -> void:
 	var reach := lerpf(0.28, blast_radius, expansion)
 	_front.scale = Vector3(reach, 1.0, reach)
 	_edge.scale = Vector3(reach * 0.95, 1.0, reach * 0.95)
+	_filaments.scale = Vector3(reach, 1.0, reach)
+	var etched_reach := lerpf(0.72, 1.5, expansion)
+	_etch.scale = Vector3(etched_reach, 1.0, etched_reach)
 	var fade := pow(1.0 - progress, 1.25)
 	_front_material.albedo_color.a = (0.28 if reduce_flash else 0.48) * fade
 	_edge_material.albedo_color.a = (0.42 if reduce_flash else 0.76) * fade
+	_filament_material.albedo_color.a = (0.28 if reduce_flash else 0.66) * pow(1.0 - progress, 2.0)
+	_etch_material.albedo_color.a = 0.5 * pow(1.0 - progress, 3.0)
 	_core_material.albedo_color.a = 0.72 * clampf(1.0 - progress * 3.2, 0.0, 1.0)
 	_light.light_energy = (0.0 if reduce_flash else 1.3) * clampf(1.0 - progress * 3.5, 0.0, 1.0)

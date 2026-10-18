@@ -128,6 +128,7 @@ func _run_smoke_test() -> void:
 		coils = reactor.get_node_or_null("ReactorCoils") as MeshInstance3D
 		glass = reactor.get_node_or_null("ContainmentGlass") as MeshInstance3D
 	var spine_mesh := spine.mesh as CylinderMesh if spine != null else null
+	var coil_material := coils.material_override as StandardMaterial3D if coils != null else null
 	var glass_material := glass.material_override as StandardMaterial3D if glass != null else null
 	test_passed = (
 		_expect(
@@ -137,6 +138,8 @@ func _run_smoke_test() -> void:
 				and coils != null
 				and coils.mesh != null
 				and coils.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size() >= 1400
+				and coil_material != null
+				and coil_material.cull_mode == BaseMaterial3D.CULL_DISABLED
 				and glass_material != null
 				and glass_material.albedo_color.a < 0.12
 			),

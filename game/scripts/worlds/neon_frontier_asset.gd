@@ -281,7 +281,11 @@ func _reactor_coils() -> MeshInstance3D:
 	var coils := MeshInstance3D.new()
 	coils.name = "ReactorCoils"
 	coils.mesh = mesh
-	coils.material_override = _materials["reactor_coils"]
+	var coil_material := _materials["reactor_coils"] as StandardMaterial3D
+	# Godot's front-face winding differs from the raw band triangles; without
+	# two-sided rendering the near side vanishes behind the dark spine in WebGL.
+	coil_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	coils.material_override = coil_material
 	coils.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(coils)
 	return coils
