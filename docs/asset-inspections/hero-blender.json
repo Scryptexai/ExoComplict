@@ -1125,10 +1125,6 @@
     }
   ],
   "original_actions": {
-    "idle": [
-      0.0,
-      460.0
-    ],
     "aim": [
       0.0,
       60.0
@@ -1144,6 +1140,10 @@
     "fire": [
       0.0,
       15.0
+    ],
+    "idle": [
+      0.0,
+      460.0
     ]
   },
   "rifle": {
@@ -1194,6 +1194,6 @@
     "run",
     "walk"
   ],
-  "exported_hero_bytes": 3065764,
-  "blend_bytes": 5250110
+  "exported_hero_bytes": 3062532,
+  "blend_bytes": 5250455
 }
