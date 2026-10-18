@@ -1332,8 +1332,8 @@ func _build_lighting_and_atmosphere() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "FrontierDaylightSun"
 	sun.rotation_degrees = Vector3(-39.0, -31.0, 0.0)
-	sun.light_color = Color(0.96, 0.91, 0.83)
-	sun.light_energy = 0.88
+	sun.light_color = Color(0.96, 0.88, 0.76)
+	sun.light_energy = 0.68
 	sun.shadow_enabled = true
 	# Dense FBX ribs used to project solid-black, razor-edged patches across
 	# the playable floor in Compatibility. Keep depth cues, but let neutral
@@ -1351,10 +1351,10 @@ func _build_lighting_and_atmosphere() -> void:
 	# broad key light give the armor a silhouette; small amber/cyan fixtures
 	# mark traversable paths and interactable structures. Web Compatibility has
 	# no dependable real-time GI or volumetric fog, so keep the base legible.
-	sky_material.sky_top_color = Color(0.06, 0.13, 0.23)
-	sky_material.sky_horizon_color = Color(0.29, 0.4, 0.49)
-	sky_material.ground_bottom_color = Color(0.16, 0.23, 0.3)
-	sky_material.ground_horizon_color = Color(0.27, 0.36, 0.42)
+	sky_material.sky_top_color = Color(0.04, 0.1, 0.18)
+	sky_material.sky_horizon_color = Color(0.17, 0.29, 0.39)
+	sky_material.ground_bottom_color = Color(0.11, 0.18, 0.26)
+	sky_material.ground_horizon_color = Color(0.18, 0.27, 0.35)
 	sky_material.sun_angle_max = 10.0
 	sky_material.sun_curve = 0.14
 	sky.sky_material = sky_material
@@ -1362,21 +1362,24 @@ func _build_lighting_and_atmosphere() -> void:
 	# Compatibility can leave SKY-sourced ambient nearly black. A neutral
 	# slate fill keeps the FBX plating readable while the reactor owns the cyan
 	# accent; a blue global fill washed every floor plate into the same hue.
+	# Trial a lower key/fill ratio and cooler shadows: the WebGL capture was
+	# flat daylight despite the FBX geometry and warm route lights. Verify
+	# actual armor, floor, and interactable contrast before retaining it.
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color(0.5, 0.5, 0.53)
-	environment.ambient_light_energy = 0.56
+	environment.ambient_light_color = Color(0.4, 0.46, 0.52)
+	environment.ambient_light_energy = 0.49
 	environment.reflected_light_source = Environment.REFLECTION_SOURCE_BG
 	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
-	environment.tonemap_exposure = 1.03
+	environment.tonemap_exposure = 1.01
 	environment.adjustment_enabled = true
 	environment.adjustment_brightness = 0.97
-	environment.adjustment_contrast = 1.07
+	environment.adjustment_contrast = 1.09
 	environment.adjustment_saturation = 0.9
 	environment.glow_enabled = true
 	environment.glow_intensity = 0.06
 	environment.fog_enabled = true
-	environment.fog_light_color = Color(0.13, 0.22, 0.29)
-	environment.fog_density = 0.0055
+	environment.fog_light_color = Color(0.10, 0.19, 0.27)
+	environment.fog_density = 0.007
 	environment.fog_aerial_perspective = 0.18
 	var world_environment := WorldEnvironment.new()
 	world_environment.name = "ArenaEnvironment"
