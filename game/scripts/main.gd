@@ -9,6 +9,7 @@ const TouchControlsScript = preload("res://scripts/ui/touch_controls.gd")
 const RunStatsScript = preload("res://scripts/progression/run_stats.gd")
 const RewardServiceScript = preload("res://scripts/progression/reward_service.gd")
 const ProgressionServiceScript = preload("res://scripts/progression/progression_service.gd")
+const DEFEAT_REVEAL_SECONDS := 1.55
 
 ## Test/authoring override only. The shipped scene starts in safe Explore; the
 ## player must explicitly choose Defense before the WaveDirector can run.
@@ -21,6 +22,8 @@ var _retry_defense: bool = false
 var _shots_fired: int = 0
 var _is_paused: bool = false
 var _base_look_sensitivity: float = 0.0
+var _defeat_reveal_remaining: float = 0.0
+var _pending_defeat_wave: int = -1
 
 @onready var player: PlayerControllerScript = $Player
 @onready var training_drone: TrainingDroneScript = $TrainingDrone
@@ -103,6 +106,12 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	touch_controls.set_aim_state(player.is_aiming())
+	if _pending_defeat_wave >= 0:
+		_defeat_reveal_remaining = maxf(_defeat_reveal_remaining - delta, 0.0)
+		if _defeat_reveal_remaining <= 0.0:
+			var completed_wave := _pending_defeat_wave
+			_pending_defeat_wave = -1
+			_present_results(completed_wave)
 	if session_mode == SessionMode.PREPARING:
 		var before := ceili(_preparation_remaining)
 		_preparation_remaining = maxf(_preparation_remaining - delta, 0.0)
@@ -262,6 +271,8 @@ func _return_to_explore() -> void:
 	_is_paused = false
 	get_tree().paused = false
 	_preparation_remaining = 0.0
+	_pending_defeat_wave = -1
+	_defeat_reveal_remaining = 0.0
 	_retry_defense = false
 	wave_director.reset_session()
 	player.reset_player()
@@ -370,30 +381,41 @@ func _on_wave_session_ended(wave_index: int, _total_defeated: int) -> void:
 		return
 	_retry_defense = was_defense
 	session_mode = SessionMode.RESULTS
-	touch_controls._set_play_phase("results")
 	if not player.is_defeated():
 		Sfx.play_ui(&"session_clear")
 	run_stats.end_run()
-	var run_time := run_stats.get_survival_time_text()
-	var run_kos := run_stats.eliminations
-	var run_score := run_stats.run_score
-	var run_bp := run_stats.bp_earned
 	if was_defense:
-		progression_service.bank_run(run_score, run_bp)
+		# Bank immediately. The player must not lose earned BP merely because
+		# they leave while the short death-reveal animation is still playing.
+		progression_service.bank_run(run_stats.run_score, run_stats.bp_earned)
 		print(
 			(
 				"Progression: banked +%d BP · wallet %d · best %d"
-				% [run_bp, progression_service.balance, progression_service.best_score]
+				% [run_stats.bp_earned, progression_service.balance, progression_service.best_score]
 			)
 		)
+	if was_defense and player.is_defeated():
+		# Results used to cover the authored 1.2 s Blender collapse on the very
+		# same frame as fatal damage. Stop the AI and bank first, then let the
+		# in-world motion actually render before opening the results panel.
+		_pending_defeat_wave = wave_index
+		_defeat_reveal_remaining = DEFEAT_REVEAL_SECONDS
+		_update_status()
+		print("Encounter: Defeat reveal before Results")
+		return
+	_present_results(wave_index)
+
+
+func _present_results(wave_index: int) -> void:
+	touch_controls._set_play_phase("results")
 	(
 		touch_controls
 		. show_results(
 			wave_index,
-			run_time,
-			run_kos,
-			run_score,
-			run_bp,
+			run_stats.get_survival_time_text(),
+			run_stats.eliminations,
+			run_stats.run_score,
+			run_stats.bp_earned,
 			progression_service.balance,
 			progression_service.best_score,
 			progression_service.unlocked_ids,

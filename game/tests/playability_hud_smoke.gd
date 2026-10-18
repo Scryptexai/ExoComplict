@@ -769,11 +769,22 @@ func _run_smoke_test() -> void:
 	var results_retry_button := controls.get("_results_retry_button") as Button
 	_expect(
 		(
+			not results_panel.visible
+			and str(player.get_node("VisualRoot").call("current_clip")) == "death"
+			and wave_director.call("get_active_enemies").is_empty()
+		),
+		"fatal Defense damage shows the Blender collapse without a Results scrim or live AI",
+	)
+	main_scene.call("_process", 0.75)
+	_expect(not results_panel.visible, "Results do not cut off the middle of the death clip")
+	main_scene.call("_process", 0.9)
+	_expect(
+		(
 			results_panel.visible
 			and results_retry_button.is_visible_in_tree()
 			and not skill_button.visible
 		),
-		"defeat presents retry and hides combat controls behind results",
+		"after the collapse, defeat presents retry and hides combat controls behind results",
 	)
 	_tap_screen_button(controls, results_retry_button, 77)
 	_expect(

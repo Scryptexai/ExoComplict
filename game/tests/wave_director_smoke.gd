@@ -254,6 +254,22 @@ func _run_smoke_test() -> void:
 		)
 		and test_passed
 	)
+	var results := main_scene.get_node("HUD/TouchControls").get("_results_panel") as Control
+	test_passed = (
+		_expect(
+			(
+				not results.visible
+				and int(main_scene.get("_pending_defeat_wave")) >= 1
+				and int(main_scene.get_node("ProgressionService").get("balance")) >= 270
+			),
+			"earned BP banks while the in-world death motion remains uncovered",
+		)
+		and test_passed
+	)
+	main_scene.call("_process", 1.6)
+	test_passed = (
+		_expect(results.visible, "Results follows the full death reveal") and test_passed
+	)
 
 	main_scene.call("_reset_session")
 	for marker in spawn_points.get_children():
