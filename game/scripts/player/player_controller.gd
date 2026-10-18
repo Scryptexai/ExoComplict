@@ -266,28 +266,57 @@ func reset_player() -> void:
 
 
 func _spawn_emp_pulse_effect() -> void:
-	var pulse_mesh := TorusMesh.new()
-	pulse_mesh.inner_radius = 0.91
-	pulse_mesh.outer_radius = 1.0
-	pulse_mesh.rings = 32
-	pulse_mesh.ring_segments = 8
-
-	var pulse_material := StandardMaterial3D.new()
-	pulse_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	pulse_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	pulse_material.albedo_color = Color(0.2, 0.84, 1.0, 0.86)
-	pulse_material.emission_enabled = true
-	pulse_material.emission = Color(0.08, 0.45, 0.9)
-	pulse_material.emission_energy_multiplier = 1.4
-
-	var pulse := MeshInstance3D.new()
+	# An opaque 9m torus crossed the third-person camera after ~0.3s and
+	# painted a broad cyan bar across the REAL landscape EMP screenshot. Keep
+	# the 9m damage radius, but draw a hairline ground trace + spaced dashes;
+	# this reads as a wave without masking the floor, hero or touch controls.
+	var pulse := Node3D.new()
 	pulse.name = "EmpPulseEffect"
-	pulse.mesh = pulse_mesh
-	pulse.material_override = pulse_material
-	pulse.position = Vector3(0.0, 0.08, 0.0)
+	pulse.position = Vector3(0.0, 0.14, 0.0)
 	pulse.scale = Vector3.ONE * 0.12
-	pulse.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(pulse)
+
+	var trace_mesh := TorusMesh.new()
+	trace_mesh.inner_radius = 0.986
+	trace_mesh.outer_radius = 1.0
+	trace_mesh.rings = 48
+	trace_mesh.ring_segments = 6
+	var trace_material := StandardMaterial3D.new()
+	trace_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	trace_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	trace_material.albedo_color = Color(0.18, 0.83, 1.0, 0.22)
+	trace_material.emission_enabled = true
+	trace_material.emission = Color(0.08, 0.45, 0.9)
+	trace_material.emission_energy_multiplier = 0.35
+	var trace := MeshInstance3D.new()
+	trace.name = "GroundTrace"
+	trace.mesh = trace_mesh
+	trace.material_override = trace_material
+	trace.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	pulse.add_child(trace)
+
+	var dash_mesh := BoxMesh.new()
+	dash_mesh.size = Vector3(0.12, 0.015, 0.028)
+	var dashes := MultiMesh.new()
+	dashes.transform_format = MultiMesh.TRANSFORM_3D
+	dashes.mesh = dash_mesh
+	dashes.instance_count = 20
+	for index in range(dashes.instance_count):
+		var angle := TAU * float(index) / float(dashes.instance_count)
+		var radial := Vector3(sin(angle), 0.0, cos(angle))
+		var tangent := Vector3(cos(angle), 0.0, -sin(angle))
+		dashes.set_instance_transform(
+			index, Transform3D(Basis(tangent, Vector3.UP, radial), radial)
+		)
+	var dash_material := trace_material.duplicate() as StandardMaterial3D
+	dash_material.albedo_color = Color(0.25, 0.9, 1.0, 0.75)
+	dash_material.emission_energy_multiplier = 1.1
+	var marks := MultiMeshInstance3D.new()
+	marks.name = "PulseDashes"
+	marks.multimesh = dashes
+	marks.material_override = dash_material
+	marks.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	pulse.add_child(marks)
 
 	var pulse_tween := create_tween()
 	var pulse_tweener := pulse_tween.tween_property(
