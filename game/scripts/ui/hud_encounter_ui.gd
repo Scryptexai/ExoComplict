@@ -118,7 +118,7 @@ static func build_start_action(hud) -> void:
 		. _text_button(
 			"START DEFENSE  [B]",
 			"DefenseStartButton",
-			"primary",
+			"tactical_start",
 			"play",
 			"Prepare for Defense (B). No enemies spawn until you start.",
 		)

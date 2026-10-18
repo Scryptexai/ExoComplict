@@ -70,6 +70,17 @@ func _run_smoke_test() -> void:
 		),
 		"Explore starts safe, with a visible start action and no scoreboard",
 	)
+	var launch_style := defense_button.get_theme_stylebox("normal") as StyleBoxFlat
+	_expect(
+		(
+			launch_style != null
+			and launch_style.bg_color.r < 0.15
+			and launch_style.border_width_left >= 4
+			and launch_style.border_width_right == 0
+			and defense_button.icon != null
+		),
+		"START stays legible and tappable without a solid amber rectangle covering the world",
+	)
 	# In portrait the optional help plate must sit below the objective and
 	# Defense button, leaving the centre of the screen unobstructed.
 	controls.call("apply_layout_for_size", Vector2(390.0, 844.0), 1.0)

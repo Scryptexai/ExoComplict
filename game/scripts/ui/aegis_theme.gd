@@ -220,6 +220,14 @@ static func set_button_variant(button: Button, variant: String) -> void:
 			fill = AegisTokens.ACCENT
 			border = AegisTokens.ACCENT
 			font_color = AegisTokens.ACCENT_INK
+		"tactical_start":
+			# Keep the deliberate Defense action finger-sized, but let the
+			# objective and the world lead instead of a large solid amber plate.
+			fill = Color(AegisTokens.PANEL_2, 0.96)
+			border = Color(AegisTokens.ACCENT, 0.82)
+			font_color = AegisTokens.INK
+			pad_h = 14.0
+			pad_v = 9.0
 		"ghost":
 			fill = Color(0, 0, 0, 0)
 			border = Color(0, 0, 0, 0)
@@ -303,6 +311,17 @@ static func set_button_variant(button: Button, variant: String) -> void:
 			Color(AegisTokens.PANEL, 0.62), Color(AegisTokens.LINE, 0.55), 1, radius, pad_h, pad_v
 		)
 	)
+	if variant == "tactical_start":
+		var normal_box := button.get_theme_stylebox("normal") as StyleBoxFlat
+		var hover_box := button.get_theme_stylebox("hover") as StyleBoxFlat
+		var pressed_box := button.get_theme_stylebox("pressed") as StyleBoxFlat
+		var disabled_box := button.get_theme_stylebox("disabled") as StyleBoxFlat
+		normal_box.set_border_width_all(0)
+		normal_box.border_width_left = 4
+		hover_box.border_width_left = 4
+		pressed_box.border_width_left = 4
+		disabled_box.set_border_width_all(0)
+		disabled_box.border_width_left = 4
 	button.add_theme_stylebox_override("focus", focus_style())
 	button.add_theme_color_override("font_color", font_color)
 	button.add_theme_color_override("font_hover_color", font_color)
