@@ -2,7 +2,7 @@ class_name PulseProjectile
 extends Node3D
 
 const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
-const MAX_TRAIL_LENGTH: float = 3.2
+const MAX_TRAIL_LENGTH: float = 2.2
 
 @export var collision_mask: int = 3
 
@@ -32,18 +32,20 @@ func launch(
 	_speed = definition.projectile_speed
 	_remaining_range = definition.max_range
 	look_at(global_position + _direction, Vector3.UP)
-	_stretch_tracer()
+	# At the muzzle there is no travelled path. The previous 1.2 m starter
+	# capsule drew backwards through the hero and read as a white tube.
+	_stretch_tracer(0.0)
 
 
-## The moving capsule covers the path *already travelled* by the live bolt,
-## capped at 3.2 m so it stays legible on a 390 px WebGL phone without drawing
-## a fraudulent instant beam through cover. Duplicate each mesh resource: a
-## shared .tscn CapsuleMesh must never stretch other live projectiles.
+## The moving capsule covers only the path *already travelled* by the bolt,
+## capped at 2.2 m to stay legible without drawing a beam through cover.
+## Duplicate the mesh: a shared CapsuleMesh must not stretch other rounds.
 func _stretch_tracer(length: float = 1.2) -> void:
 	for part_name in ["Tracer", "TracerGlow"]:
 		var part := get_node_or_null(part_name) as MeshInstance3D
 		if part == null:
 			continue
+		part.visible = length >= 0.09
 		if not part.has_meta("unique_trail_mesh"):
 			part.mesh = part.mesh.duplicate(true) as Mesh
 			part.set_meta("unique_trail_mesh", true)

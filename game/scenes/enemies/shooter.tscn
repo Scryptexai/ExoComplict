@@ -53,7 +53,8 @@ shape = SubResource("CapsuleShape_shooter")
 script = ExtResource("2_enemy_visual")
 model_scene = ExtResource("3_astronaut")
 target_size = 1.62
-outline_color = Color(0.09, 0.03, 0.14, 1)
+outline_color = Color(0.72, 0.27, 0.94, 1)
+outline_grow = 0.032
 bob_amplitude = 0.04
 bob_frequency = 7.0
 

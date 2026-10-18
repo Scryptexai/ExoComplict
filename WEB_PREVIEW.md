@@ -4,7 +4,7 @@
 >
 > **Ini bukan perubahan target platform.** Android tetap target rilis; pipeline produksi tetap Godot + Blender di mesin dev. Web hanya dipakai sebagai jendela review UI/UX + gameplay supaya iterasi tidak menunggu instalasi toolchain.
 >
-> **18 Okt 2026 — review iterasi:** `index.html` di root dan server statis tetap berlaku. Payload `15acb46` memuat GLB Blender side-fall `a6a08e9` dan perubahan combat/HUD `8104b78`; Chromium lokal memverifikasi `exports/qa-cac-prep/` (**3/3** viewport boot, Explore aman → Preparing) dan `exports/qa-cac-defense/root-844x390-defense-started.png` (**1/1** 844×390 Defense sungguh terlihat: log `Encounter: Defense started`, HUD `WAVE 01`). CI Godot `39102619493` untuk source berikutnya `6caa252` lulus **17/17** smoke termasuk tes tulang kaki aim-walk/run dan side-fall setelah crossfade; perubahan palet selanjutnya harus diekspor dan direview sendiri. QA ini belum membuktikan Results lewat browser, kualitas motion di gameplay, persetujuan estetika, ataupun Android nyata. **Jangan samakan keberhasilan job dengan sign-off visual.**
+> **18 Okt 2026 — uji tempur nyata:** Root `index.html` dan server statis tetap berlaku. Source `47379b3`/payload `2e625f7` lulus CI `39120493927` (**18/18** Godot, static dan Web PASS); tes Chromium portrait terpisah menjalankan Start→Defense→FIRE/EMP→Runner KO→Results **+10 BP / wallet 10**→Explore→Armory→replay lewat sentuhan nyata. Percobaan identik pada payload `0485b5a` juga +10 BP, setelah dua percobaan payload stage-4 sebelumnya justru +0 BP. Ini membuktikan loop terpakai, **bukan** wave clear +100 BP, unlock/equip dengan saldo cukup, kualitas gerak/efek, kenyamanan jari pada perangkat fisik, atau sign-off estetika. Screenshot dipertahankan di `qa-evidence/combat-touch-v2/`; held-FIRE memperlihatkan trail dekat tubuh terlalu besar, yang sedang dikoreksi. Android nyata belum diuji. PR #1 jangan di-merge.
 >
 > **Status verifikasi (baseline lama di bawah ini):** seluruh wiring statis sudah diperiksa (`tools/web_preset.py check`, `tools/project_doctor.py` → 0 FAIL, 22 unit test). Ekspor Web nyata sudah berhasil di CI (run `38919299364`, job `web-preview` hijau). Hasil terukur:
 
@@ -68,9 +68,13 @@ node tools/web_qa.mjs --encounter-prep --explore-wait 8000 --viewport 390x844
 # verifikasi Explore aman + B menuju countdown; TIDAK mengklaim Defense
 node tools/web_qa.mjs --encounter --explore-wait 8000 --encounter-timeout 600 --viewport 844x390
 # gate lebih ketat: tunggu log Defense nyata, lalu ambil frame Defense
+
+# Dengan server root port 800 masih berjalan, uji sentuhan KO sampai Results,
+# Return→Armory→replay di satu profil browser (membutuhkan BP positif sungguhan):
+node tools/qa_combat_loop.mjs --url=http://127.0.0.1:800/
 ```
 
-`tools/web_qa.mjs` membuka halaman sungguhan di Chromium headless dan gagal (exit 1) bila engine tidak boot, tidak ada WebGL 2, kanvas tetap 300×150, ada permintaan 4xx/5xx, atau kartu error tampil. Tangkapan layarnya ditulis ke `exports/web-qa/`. Gate boot ini sama dengan job CI `web-preview`; opsi `--encounter-prep` dan `--encounter` **tidak** otomatis berjalan pada job CI tersebut. Dalam SwiftShader tanpa GPU, countdown lima detik Godot bisa membutuhkan >100 detik waktu nyata. `--encounter` baru PASS bila log `Defense started` dan screenshot Defense sungguh ada; setelah timeout ia FAIL, bukan melabeli frame Preparing sebagai Defense. Tes Results tetap terpisah.
+`tools/web_qa.mjs` membuka halaman sungguhan di Chromium headless dan gagal (exit 1) bila engine tidak boot, tidak ada WebGL 2, kanvas tetap 300×150, ada permintaan 4xx/5xx, atau kartu error tampil. Tangkapan layarnya ditulis ke `exports/web-qa/`. Gate boot ini sama dengan job CI `web-preview`; opsi `--encounter-prep` dan `--encounter` **tidak** otomatis berjalan pada job CI tersebut. Dalam SwiftShader tanpa GPU, countdown lima detik Godot bisa membutuhkan >100 detik waktu nyata. `--encounter` baru PASS bila log `Defense started` dan screenshot Defense sungguh ada; setelah timeout ia FAIL, bukan melabeli frame Preparing sebagai Defense. Tes Results terpisah `tools/qa_combat_loop.mjs` memerlukan server root yang sudah hidup dan **tidak berjalan otomatis** pada gate boot CI; skrip sengaja FAIL bila KO/+BP nyata tidak tercapai. Ia menulis frame ke `qa-evidence/combat-touch-v2/`, tetapi urutan frame Chromium software-rendered perlu dibaca bersama log peristiwa, bukan dari nama file saja.
 
 **Mode `--play <detik>`** menguji input gerak/tembak di mode saat ini (**Explore aman**, kecuali `--encounter` juga diberikan). Klik kanvas sekaligus menjadi gesture yang dibutuhkan browser sebelum audio boleh berbunyi; kemudian skrip berjalan, berbelok, berganti senjata, dan menembak dengan event input sungguhan sambil menulis rangkaian foto `<halaman>-<viewport>-play-<t>s.png`. Ia juga memeriksa baris log `Audio:` — termasuk `Audio: first voice played (...)`, bukti audio benar-benar terpakai di browser, bukan sekadar ter-import. Di tengah sesi play, gate menekan tombol `M` dan memastikan baris `Audio: muted` muncul, jadi jalur HUD → audio ikut terbukti. Pemeriksaan itu sengaja eksak: baris boot berakhir `muted=no`, sehingga pencocokan longgar akan lulus tanpa tombolnya benar-benar sampai.
 
@@ -149,9 +153,9 @@ Artinya build Android tetap memakai renderer `mobile` (sesuai `PROJECT_DECISIONS
 |---|---|---|
 | Bergerak | WASD | joystick ibu jari di sisi kiri |
 | Membidik | tahan klik kanan + gerakkan mouse | geser di sisi kanan |
-| Menembak | tahan klik kiri | tahan tombol FIRE |
-| Ganti senjata | E atau tombol WEAPON | tombol WEAPON |
-| Skill EMP | klik tombol EMP | tombol EMP |
+| Menembak | tahan klik kiri | tahan ikon senjata menembak (kanan bawah, 112×112 px portrait) |
+| Ganti senjata / Armory | E atau U | ikon senjata/rotasi di samping readout amunisi |
+| Skill EMP | tombol F | ikon petir/pulse ungu di kanan bawah |
 | Mulai Defense | B setelah menjelajah | tombol START DEFENSE (countdown sebelum wave) |
 | Pause / Resume | Esc | tombol PAUSE / RESUME |
 | Retry / kembali ke Explore | R untuk retry, setelah hasil pilih kembali | tombol RETRY DEFENSE atau EXPLORE pada hasil |
@@ -165,7 +169,7 @@ Artinya build Android tetap memakai renderer `mobile` (sesuai `PROJECT_DECISIONS
 - **Single-thread.** Build ini tidak memakai `Thread` Godot; jangan menilai audio latency atau paralelisme dari preview.
 - **Ukuran unduhan.** WebAssembly engine + pack biasanya beberapa puluh MB; muat pertama lambat, berikutnya ter-cache.
 - **Bukan jalur distribusi.** Ini alat review. Publikasi tetap: Godot → GLB/PCK → Android (APK/AAB).
-- **Bukti browser terbatas per payload.** Pada payload `15acb46` yang memuat GLB side-fall, tiga ukuran layar memverifikasi Explore/Preparing dan 844×390 mencapai Defense dengan log + frame. Pencahayaan reaktor/ground masih terlalu terang-merata/biru dan belum disetujui secara visual. Belum ada verifikasi Results atau motion death penuh lewat browser; smoke Godot yang menggerakkan mixer per frame bukan pengganti video gameplay. Android nyata tetap terpisah.
+- **Bukti browser terbatas per payload.** Payload `0485b5a` dan `2e625f7` masing-masing membuktikan KO nyata dan Results +10 BP melalui sentuhan portrait, lalu saldo +10 terlihat di Armory dan Defense baru dapat dimulai. Ini tidak membuktikan bonus clear +100, unlock/equip, kualitas motion/VFX, atau kenyamanan perangkat fisik. Frame held-FIRE `qa-evidence/combat-touch-v2/08-portrait-fire-held.png` memperlihatkan flash/trail yang menutupi hero, sementara dunia dan reaktor masih terlalu rata/biru. Koreksi efek dan kontras Runner perlu dinilai lagi *sesudah* build baru. Smoke Godot yang menggerakkan mixer per frame bukan pengganti video gameplay; Android nyata tetap terpisah.
 
 ## 7. Troubleshooting
 

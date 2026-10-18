@@ -4,8 +4,8 @@ extends SceneTree
 ## the weapon, a projectile must carry a tracer long enough to read while it
 ## moves, and an impact must spawn a spark burst that cleans itself up.
 ##
-## These are exactly the things a screenshot cannot prove (the flash lasts 90 ms,
-## the burst 400 ms) and exactly what makes the shooting feel like shooting.
+## A single screenshot cannot prove the timing (the flash is ~100 ms and the
+## burst ~400 ms), but it can reveal an oversized trail crossing the avatar.
 
 const MainScene = preload("res://scenes/main.tscn")
 const PulseScene = preload("res://scenes/weapons/pulse_projectile.tscn")
@@ -44,9 +44,10 @@ func _run_smoke_test() -> void:
 					cone != null
 					and cone.mesh is CylinderMesh
 					and cone.position.z < -0.1
+					and (cone.mesh as CylinderMesh).height < 0.5
 					and muzzle_flash.get_node_or_null("FlashSpark_3") != null
 				),
-				"the barrel flash projects forward with short radial sparks, not a glowing ball",
+				"the barrel flash projects forward but never eclipses the player",
 			)
 			and test_passed
 		)
@@ -98,6 +99,22 @@ func _run_smoke_test() -> void:
 	var muzzle: Marker3D = player.get_node("VisualRoot/WeaponSocket/Muzzle")
 	var fired := bool(weapon_controller.call("try_fire", player, muzzle, Vector3(0.0, 0.9, -12.0)))
 	test_passed = (_expect(fired, "the weapon fires for the effect test") and test_passed)
+	var spawned_bolt: PulseProjectile
+	for child in main_scene.get_children():
+		if child is PulseProjectile:
+			spawned_bolt = child as PulseProjectile
+			break
+	test_passed = (
+		_expect(
+			(
+				spawned_bolt != null
+				and not (spawned_bolt.get_node("Tracer") as MeshInstance3D).visible
+				and not (spawned_bolt.get_node("TracerGlow") as MeshInstance3D).visible
+			),
+			"the first frame at the muzzle has a bolt but no untravelled trail through the hero",
+		)
+		and test_passed
+	)
 	# try_fire is called directly by this test, so drive the flash the same way the
 	# controller does when the player pulls the trigger.
 	if muzzle_flash != null:

@@ -6,9 +6,9 @@ extends Node3D
 ## round "glowing ball" silhouette without covering the sight line. Every mesh
 ## is transient and the accompanying light has a bounded range for mobile/Web.
 
-@export_range(0.02, 0.4, 0.005) var duration: float = 0.14
-@export_range(0.0, 12.0, 0.1) var flash_energy: float = 3.6
-@export_range(0.02, 2.0, 0.01) var flash_scale: float = 0.42
+@export_range(0.02, 0.4, 0.005) var duration: float = 0.105
+@export_range(0.0, 12.0, 0.1) var flash_energy: float = 2.4
+@export_range(0.02, 2.0, 0.01) var flash_scale: float = 0.34
 @export var flash_color: Color = Color(1.0, 0.74, 0.4, 1.0)
 
 var _mesh: MeshInstance3D
@@ -32,28 +32,28 @@ func _ready() -> void:
 	_material.emission_energy_multiplier = flash_energy
 
 	var cone := CylinderMesh.new()
-	cone.top_radius = 0.007
-	cone.bottom_radius = 0.18
-	cone.height = 0.68
+	cone.top_radius = 0.004
+	cone.bottom_radius = 0.115
+	cone.height = 0.38
 	cone.radial_segments = 9
 	_mesh = _add_shape("FlashCone", cone)
 	_mesh.rotation.x = -PI * 0.5
-	_mesh.position.z = -0.26
+	_mesh.position.z = -0.14
 
 	var core_mesh := SphereMesh.new()
-	core_mesh.radius = 0.09
-	core_mesh.height = 0.18
+	core_mesh.radius = 0.055
+	core_mesh.height = 0.11
 	core_mesh.radial_segments = 8
 	core_mesh.rings = 4
 	_core = _add_shape("FlashCore", core_mesh)
 	_core.position.z = -0.025
 
 	var streak_mesh := BoxMesh.new()
-	streak_mesh.size = Vector3(0.026, 0.30, 0.05)
+	streak_mesh.size = Vector3(0.014, 0.17, 0.025)
 	for index in range(4):
 		var streak := _add_shape("FlashSpark_%d" % index, streak_mesh)
 		var angle := TAU * float(index) / 4.0
-		streak.position = Vector3(sin(angle), cos(angle), -0.16) * Vector3(0.14, 0.14, 1.0)
+		streak.position = Vector3(sin(angle), cos(angle), -0.1) * Vector3(0.085, 0.085, 1.0)
 		streak.rotation.z = -angle
 		_streaks.append(streak)
 
@@ -63,7 +63,7 @@ func _ready() -> void:
 	_light.light_energy = 0.0
 	# Tight transient bounce around the weapon; broad cyan ground wash hid
 	# the FBX material contrast in the WebGL phone capture.
-	_light.omni_range = 2.8
+	_light.omni_range = 2.1
 	_light.shadow_enabled = false
 	add_child(_light)
 

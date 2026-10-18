@@ -118,6 +118,16 @@ try {
   await waitForCount('Encounter: Preparing Defense', preparations + 1, 15000);
   await waitForCount('Encounter: Defense started', defenses + 1, 300000);
   await shot('07-replay-defense');
+  // Capture controls and the rifle *during* a held shot, not just after ammo
+  // changed. These are visual evidence, not an assertion of AAA VFX quality.
+  await delay(3700);
+  await page.touchscreen.touchStart(323, 746);
+  await delay(550);
+  await shot('08-portrait-fire-held');
+  await page.touchscreen.touchEnd();
+  await page.setViewport({ width: 844, height: 390, hasTouch: true, isMobile: true, deviceScaleFactor: 1 });
+  await delay(900);
+  await shot('09-landscape');
   if (errors.length) throw new Error(errors.join('\n'));
   console.log('PASS: actual touch KO -> BP banked -> Results -> Explore -> Armory -> replay');
 } finally {
