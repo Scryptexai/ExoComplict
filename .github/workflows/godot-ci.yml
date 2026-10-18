@@ -11,6 +11,11 @@ on:
       - "arena/**"
   pull_request:
   workflow_dispatch:
+    inputs:
+      bake_hero:
+        description: "Run Blender inspection/clip authoring and publish .blend + verified GLB on this branch"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -543,6 +548,70 @@ jobs:
             -m "Blender conversion on a runner that can fetch the LFS object; textures are packed at 512 px."
           for attempt in 1 2 3; do
             if git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
+            sleep 5
+          done
+          exit 1
+
+  hero-blender:
+    name: Inspect and author hero in Blender
+    # workflow_dispatch does not trigger from an unmerged branch on GitHub.
+    # Explicit marker on our fixed branch runs this expensive authoring pass.
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/arena/5257bce8-cyber-strike' &&
+      contains(github.event.head_commit.message, '[hero-blender]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Blender and Python dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender python3-numpy
+          blender --background --factory-startup --python-expr 'import bpy, numpy; print(bpy.app.version_string)'
+
+      - name: Inspect real GLBs and author motion clips
+        run: |
+          mkdir -p exports
+          set +e
+          blender --background --factory-startup --python tools/blender/author_hero.py \
+            > exports/blender-hero.log 2>&1
+          status=$?
+          set -e
+          tail -n 35 exports/blender-hero.log
+          if [[ "$status" -ne 0 ]]; then
+            digest="$(grep -E 'Traceback|RuntimeError|Error:|ValueError|AttributeError' exports/blender-hero.log | tail -n 4 | tr '\n' '|')"
+            echo "::error title=Blender hero failed::${digest:-check logs}"
+            exit "$status"
+          fi
+          test -s game/assets/characters/hero/hero_source.blend
+          test -s docs/asset-inspections/hero-blender.json
+
+      - name: Verify exported hero in Godot before publication
+        run: |
+          ./scripts/install_godot.sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          GODOT_BIN="$HOME/.local/bin/godot" SMOKE_TEST_TIMEOUT=60 \
+            ./scripts/run_smoke_tests.sh hero_rig_smoke combat_feedback_smoke effects_smoke
+
+      - name: Publish Blender source and tested GLB on the fixed branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add game/assets/characters/hero/hero_source.blend \
+            game/assets/characters/hero/hero.glb docs/asset-inspections/hero-blender.json
+          git diff --cached --check
+          git commit -m 'Build and inspect hero motion in Blender' \
+            -m 'Includes the .blend source and exported clips. Headless Godot smoke checks ran; human motion review remains open.'
+          for attempt in 1 2 3; do
+            if git pull --rebase --autostash origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME"; then
               exit 0
             fi
             sleep 5
