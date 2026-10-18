@@ -97,7 +97,9 @@ try {
     if (!started) throw new Error('This browser cannot record canvas VP8/WebM; try without --record');
   }
   await shot('01-idle');
-  await page.touchscreen.touchStart(334, 640); // ADS icon, not FIRE
+  // Stage51 portrait: ADS y538..634, FIRE begins at y646. The old y640
+  // landed in their gap and never exercised the aim animation.
+  await page.touchscreen.touchStart(330, 585); // ADS icon, not FIRE
   await delay(900);
   await shot('02-ads-held');
   await page.touchscreen.touchEnd();
