@@ -581,8 +581,9 @@ jobs:
         run: |
           mkdir -p exports
           set +e
-          blender --background --factory-startup --python tools/blender/author_hero.py \
-            > exports/blender-hero.log 2>&1
+          # Blender otherwise returns 0 even if the Python script raises.
+          blender --background --factory-startup --python-exit-code 1 \
+            --python tools/blender/author_hero.py > exports/blender-hero.log 2>&1
           status=$?
           set -e
           tail -n 35 exports/blender-hero.log
@@ -594,8 +595,12 @@ jobs:
             echo "::error title=Blender hero failed::${digest:-check logs}"
             exit "$status"
           fi
-          test -s game/assets/characters/hero/hero_source.blend
-          test -s docs/asset-inspections/hero-blender.json
+          for required in game/assets/characters/hero/hero_source.blend docs/asset-inspections/hero-blender.json; do
+            if [[ ! -s "$required" ]]; then
+              echo "::error title=Blender output missing::$required was not generated"
+              exit 1
+            fi
+          done
 
       - name: Verify exported hero in Godot before publication
         run: |
