@@ -226,13 +226,16 @@ static func touch_portrait(hud) -> void:
 	# (86, height-106) move ring crossed the leg and boot. Keep the same
 	# 72px finger radius, but tuck its *centre* into the bottom-left pocket on
 	# short phones instead of shrinking its hit target or hiding it entirely.
+	# Review of the retake found the outer ring clipped 10 px off-screen. Paint
+	# a 64px-radius ring at x73 while retaining the 72px movement hit radius.
 	var short_portrait: bool = hud.size.y < hud._to_layout(720.0)
-	var stick_x: float = hud._to_layout(62.0 if short_portrait else 86.0)
+	var stick_x: float = hud._to_layout(73.0 if short_portrait else 86.0)
 	var stick_bottom: float = hud._to_layout(82.0 if short_portrait else 106.0)
 	hud._joystick_center = Vector2(
 		hud.size.x - stick_x if hud._left_handed else stick_x, hud.size.y - stick_bottom
 	)
 	hud._joystick_radius = hud._to_layout(72.0)
+	hud._joystick_visual_radius = hud._to_layout(64.0 if short_portrait else 72.0)
 
 	hud._show_top_wave_details(true)
 	# The objective now has its own row: display a readable description instead
@@ -341,6 +344,7 @@ static func touch_landscape(hud) -> void:
 		hud.size.x - stick_x if hud._left_handed else stick_x, hud.size.y - hud._to_layout(90.0)
 	)
 	hud._joystick_radius = hud._to_layout(64.0)
+	hud._joystick_visual_radius = hud._joystick_radius
 
 	hud._show_top_wave_details(true)
 	# On a 390 px-high display the optional state badge steals the objective's

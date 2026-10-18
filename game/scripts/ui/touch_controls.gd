@@ -151,7 +151,7 @@ var _touch_buttons: Array[Button] = []
 var _compact_wave_text: String = "ENEMIES  0 ACTIVE  ·  0 LEFT"
 var _joystick_center: Vector2 = Vector2.ZERO
 var _joystick_radius: float = 64.0
-
+var _joystick_visual_radius: float = 64.0
 # --- Run state ------------------------------------------------------------- #
 var _player_down: bool = false
 var _hit_confirm_remaining: float = 0.0
@@ -1467,7 +1467,7 @@ func _draw() -> void:
 		HudRenderer.joystick(
 			self,
 			_move_origin if _move_touch_id != -1 else _joystick_center,
-			_joystick_radius,
+			_joystick_visual_radius,
 			_move_position if _move_touch_id != -1 else _joystick_center,
 			maxf(_to_layout(1.0), 1.0)
 		)
