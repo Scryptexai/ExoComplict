@@ -229,33 +229,38 @@ def main():
     # the original 13-degree support-arm bend stayed hidden by the torso and
     # the clip=reload trace was NOT visual evidence. Without inventing a
     # detachable magazine on this single-mesh rifle, stage a clearly readable
-    # ENERGY-CELL CHECK: shoulder the gun, release/flare the left elbow away
-    # from the armor silhouette, draw the support palm to the receiver, pause
-    # on the latch, then return the hand to its foregrip and recover. Keep the
-    # trigger hand on the actual weapon socket, and keep lower-body/root still.
-    # Key time: 1=ready, 8=withdraw, 17-25=receiver hold, 35=regrip,
-    # 46=ready. The hold costs no extra gameplay time: Godot stretches this
-    # clip to the weapon's measured reload timer. Visual acceptance still
-    # requires a *WebGL player camera* review, not only clip metadata.
+    # ENERGY-CELL CHECK: shoulder the gun, briefly twist the upper torso so
+    # the receiver/left support palm can be seen from the rear player camera,
+    # hold while pressing the cell latch, then settle back into aim. The first
+    # Blender take flared the left elbow by -22 degrees Z, but in WebGL it
+    # left the support palm isolated ~30 px from the rifle; it was visually
+    # unreadable as an actual reload. Keep the X forearm bend that moves the
+    # left hand along the weapon, using a restrained spine *bone-local Y*
+    # turn to expose the gesture instead. Neither root motion nor a detachable
+    # magazine is fabricated. The right trigger hand still drives the actual
+    # weapon socket, and this action is retimed by Godot to ammo reload time.
+    # 1=ready, 8=withdraw, 17-25=receiver hold, 35=regrip, 46=ready.
     keyframed_reaction(arm, actions["aim"], "reload", [
         (1, {}),
-        (8, {"rotate": {"Spine02": ((0, 0, 1), 5),
+        (8, {"rotate": {"Spine01": ((0, 1, 0), 7),
                         "R_Hand": ((1, 0, 0), 8),
-                        "L_Upperarm": ((0, 0, 1), -11),
-                        "L_Forearm": ((1, 0, 0), -15)}}),
-        (17, {"rotate": {"Spine02": ((0, 0, 1), 7),
+                        "L_Upperarm": ((1, 0, 0), 9),
+                        "L_Forearm": ((1, 0, 0), -18)}}),
+        (17, {"rotate": {"Spine01": ((0, 1, 0), 20),
+                         "Spine02": ((0, 0, 1), 4),
                          "R_Hand": ((1, 0, 0), 24),
-                         "L_Upperarm": ((0, 0, 1), -22),
-                         "L_Forearm": ((-0.97, 0, 0.25), 43),
-                         "L_Hand": ((1, 0, 0), 37)}}),
-        (25, {"rotate": {"Spine02": ((0, 0, 1), 7),
+                         "L_Upperarm": ((1, 0, 0), 16),
+                         "L_Forearm": ((-0.97, 0, 0.25), 39),
+                         "L_Hand": ((1, 0, 0), 34)}}),
+        (25, {"rotate": {"Spine01": ((0, 1, 0), 20),
+                         "Spine02": ((0, 0, 1), 4),
                          "R_Hand": ((1, 0, 0), 22),
-                         "L_Upperarm": ((0, 0, 1), -21),
-                         "L_Forearm": ((-0.97, 0, 0.25), 41),
-                         "L_Hand": ((1, 0, 0), 31)}}),
-        (35, {"rotate": {"Spine02": ((0, 0, 1), 3),
+                         "L_Upperarm": ((1, 0, 0), 15),
+                         "L_Forearm": ((-0.97, 0, 0.25), 38),
+                         "L_Hand": ((1, 0, 0), 30)}}),
+        (35, {"rotate": {"Spine01": ((0, 1, 0), 8),
                          "R_Hand": ((1, 0, 0), 9),
-                         "L_Upperarm": ((0, 0, 1), -8),
+                         "L_Upperarm": ((1, 0, 0), 7),
                          "L_Forearm": ((-0.97, 0, 0.25), 14),
                          "L_Hand": ((1, 0, 0), 11)}}),
         (46, {}),
