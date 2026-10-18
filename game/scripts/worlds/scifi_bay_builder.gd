@@ -286,6 +286,10 @@ static func place(
 		return null
 	var instance := scene.instantiate() as Node3D
 	instance.name = node_name
+	# Each visible import can be isolated in the review camera. Hiding this
+	# group leaves procedural scenery/collision intact for a real-frame A/B
+	# comparison instead of inferring FBX use from resource paths alone.
+	instance.add_to_group(&"uploaded_fbx_visual")
 	ScifiKitLibrary.apply_palette(instance, key)
 	instance.position = at + Vector3(0.0, ScifiKitLibrary.base_offset(key) * scale, 0.0)
 	instance.rotation_degrees.y = yaw

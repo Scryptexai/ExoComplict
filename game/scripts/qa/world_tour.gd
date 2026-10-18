@@ -9,9 +9,10 @@ extends Node3D
 ## drive from the keyboard, and that the browser QA script drives with real key
 ## events so the screenshots are of the shipped build.
 ##
-##   F10        toggle the review camera (gameplay keeps running)
+##   F10        toggle the review camera (simulation pauses while touring)
 ##   1 – 8      jump to a vantage point
-##   Esc / 0    hand the view back to the player
+##   F9         hide/show only imported FBX visuals, for same-camera A/B proof
+##   Esc / 0    restore all imports and hand the view back to the player
 ##
 ## It is deliberately not part of the HUD: no touch player will ever press F10,
 ## and nothing in the combat code reads it.
@@ -70,6 +71,7 @@ const VANTAGES := [
 var _camera: Camera3D
 var _active := false
 var _vantage := 0
+var _uploaded_fbx_visible := true
 
 
 func _ready() -> void:
@@ -106,6 +108,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if not _active:
 		return
+	if key == KEY_F9:
+		_set_uploaded_fbx_visible(not _uploaded_fbx_visible)
+		get_viewport().set_input_as_handled()
+		return
 	if key >= KEY_1 and key <= KEY_8:
 		_vantage = key - KEY_1
 		_apply()
@@ -116,6 +122,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _set_active(value: bool) -> void:
+	# A review-only visibility comparison must never strand the playable world
+	# without the user's FBX assets after exiting or changing camera.
+	if not value:
+		_set_uploaded_fbx_visible(true)
 	_active = value
 	_camera.current = value
 	# Freeze the simulation while reviewing. Without this the enemies keep
@@ -130,6 +140,18 @@ func _set_active(value: bool) -> void:
 			if camera != _camera:
 				camera.current = true
 				return
+
+
+func _set_uploaded_fbx_visible(value: bool) -> void:
+	if _uploaded_fbx_visible == value:
+		return
+	_uploaded_fbx_visible = value
+	var count := 0
+	for node in get_tree().get_nodes_in_group(&"uploaded_fbx_visual"):
+		if node is Node3D:
+			(node as Node3D).visible = value
+			count += 1
+	print("World QA: uploaded FBX %s · %d visual instances" % ["ON" if value else "OFF", count])
 
 
 func _all_cameras(node: Node) -> Array[Camera3D]:
