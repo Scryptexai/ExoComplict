@@ -214,17 +214,34 @@ jobs:
           # Real Chromium from the pinned packages: proves the engine boots with
           # WebGL 2 and that index.wasm/index.pck resolve from both entry pages.
           npm ci --prefix tools --no-audit --no-fund
-          node tools/web_qa.mjs --json > exports/web-qa-report.json
+          # Do not let set -e discard the report when a browser check fails.
+          # Per-page error annotations stay readable even when Actions log
+          # downloads are unavailable and the whole workflow is still running.
+          qa_status=0
+          node tools/web_qa.mjs --json > exports/web-qa-report.json || qa_status=$?
           python3 - <<'PY'
           import json
-          report = json.load(open("exports/web-qa-report.json"))
+          from pathlib import Path
+          report_path = Path("exports/web-qa-report.json")
+          if not report_path.exists() or not report_path.stat().st_size:
+              print("::error title=Web QA report missing::Chromium quit before writing a JSON report")
+              raise SystemExit(1)
+          report = json.loads(report_path.read_text())
           for page in report["pages"]:
               print(f'{page["target"]}: {"PASS" if not page["failed"] else "FAIL"} | engine: {page["engine"]} | canvas: {page["state"]["canvasSize"]}')
+              if page["failed"]:
+                  details = [str(item) for item in page["failed"]]
+                  details += [str(item) for item in page.get("scriptErrors", [])]
+                  details += [str(item) for item in page.get("pageErrors", [])]
+                  if page["state"].get("failureText"):
+                      details.append(page["state"]["failureText"])
+                  print("::error title=Web QA " + page["target"] + "::" + " | ".join(details).replace("\n", " ")[:2000])
           print("::notice title=Web QA (Chromium)" + "::" + " | ".join(
               f'{p["target"]} {"PASS" if not p["failed"] else "FAIL"} ({p["state"]["canvasSize"]}, {p["engine"] or "no engine"})'
               for p in report["pages"]))
           raise SystemExit(0 if report["ok"] else 1)
           PY
+          exit "$qa_status"
 
       - name: Upload the web QA screenshots
         if: always()
