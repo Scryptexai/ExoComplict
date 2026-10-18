@@ -25,10 +25,13 @@ var _skill_cooldown_remaining: float = 0.0
 var _is_defeated: bool = false
 var _touch_movement: Vector2 = Vector2.ZERO
 var _touch_fire_pressed: bool = false
+var _character_animation_player: AnimationPlayer
+var _active_character_animation: String = ""
 
 @onready var camera_rig: ThirdPersonCameraRigScript = $CameraRig
 @onready var aim_camera: Camera3D = $CameraRig/YawPivot/PitchPivot/SpringArm3D/Camera3D
 @onready var visual_root: Node3D = $VisualRoot
+@onready var character_model: Node = $VisualRoot/CharacterModel
 @onready var muzzle: Marker3D = $VisualRoot/WeaponSocket/Muzzle
 @onready var weapon_controller: WeaponControllerScript = $WeaponController
 
@@ -36,14 +39,19 @@ var _touch_fire_pressed: bool = false
 func _ready() -> void:
 	current_health = max_health
 	weapon_controller.weapon_changed.connect(_on_weapon_changed)
+	_character_animation_player = _find_animation_player(character_model)
+	_configure_character_animations()
+	_set_character_animation("idle")
 	health_changed.emit(current_health, max_health)
 
 
 func _physics_process(delta: float) -> void:
 	if _is_defeated:
 		velocity = Vector3.ZERO
+		_set_character_animation("idle")
 		return
 	_update_movement(delta)
+	_update_character_animation()
 	if _skill_cooldown_remaining > 0.0:
 		var previous_cooldown_bucket := ceili(_skill_cooldown_remaining)
 		_skill_cooldown_remaining = maxf(_skill_cooldown_remaining - delta, 0.0)
@@ -123,6 +131,73 @@ func select_previous_weapon() -> bool:
 
 func get_current_weapon_name() -> String:
 	return weapon_controller.get_current_weapon_name()
+
+
+func get_active_character_animation() -> String:
+	return _active_character_animation
+
+
+func has_character_animation(clip_name: String) -> bool:
+	return not _resolve_character_animation_name(clip_name).is_empty()
+
+
+func _find_animation_player(root: Node) -> AnimationPlayer:
+	if root is AnimationPlayer:
+		return root as AnimationPlayer
+	for child in root.get_children():
+		var found := _find_animation_player(child)
+		if is_instance_valid(found):
+			return found
+	return null
+
+
+func _configure_character_animations() -> void:
+	if not is_instance_valid(_character_animation_player):
+		return
+	for clip_name in ["idle", "walk", "run"]:
+		var animation_name := _resolve_character_animation_name(clip_name)
+		if animation_name.is_empty():
+			continue
+		var animation := _character_animation_player.get_animation(animation_name)
+		if is_instance_valid(animation):
+			animation.loop_mode = Animation.LOOP_LINEAR
+
+
+func _resolve_character_animation_name(clip_name: String) -> String:
+	if not is_instance_valid(_character_animation_player):
+		return ""
+	var requested := clip_name.to_lower()
+	for animation_name in _character_animation_player.get_animation_list():
+		var normalized_name := animation_name.to_lower()
+		if (
+			normalized_name == requested
+			or normalized_name.ends_with("/" + requested)
+			or normalized_name.ends_with(":" + requested)
+		):
+			return animation_name
+	return ""
+
+
+func _set_character_animation(clip_name: String) -> void:
+	if not is_instance_valid(_character_animation_player):
+		return
+	var animation_name := _resolve_character_animation_name(clip_name)
+	if animation_name.is_empty():
+		return
+	if animation_name == _active_character_animation and _character_animation_player.is_playing():
+		return
+	_character_animation_player.play(animation_name, 0.16)
+	_active_character_animation = animation_name
+
+
+func _update_character_animation() -> void:
+	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
+	var clip_name := "idle"
+	if horizontal_speed >= move_speed * 0.65:
+		clip_name = "run"
+	elif horizontal_speed >= 0.15:
+		clip_name = "walk"
+	_set_character_animation(clip_name)
 
 
 func _on_weapon_changed(display_name: String) -> void:

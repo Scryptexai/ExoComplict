@@ -17,6 +17,8 @@ func _run_smoke_test() -> void:
 	await process_frame
 
 	var player: Node3D = main_scene.get_node("Player")
+	var character_model := player.get_node_or_null("VisualRoot/CharacterModel") as Node3D
+	var player_collider := player.get_node_or_null("CollisionShape3D") as CollisionShape3D
 	var wave_director: Node = main_scene.get_node("WaveDirector")
 	var controls: Control = main_scene.get_node("HUD/TouchControls")
 	var health_bar := controls.get("_health_bar") as ProgressBar
@@ -73,6 +75,25 @@ func _run_smoke_test() -> void:
 			and not pause_panel.visible
 		),
 		"combat controls are labeled and the pause modal starts hidden",
+	)
+	_expect(
+		(
+			is_instance_valid(character_model)
+			and player.get_node_or_null("VisualRoot/BodyMesh") == null
+			and is_instance_valid(player_collider)
+			and player_collider.shape is CapsuleShape3D
+			and character_model.scale.is_equal_approx(Vector3.ONE * 1.8)
+		),
+		"player visual uses the imported humanoid GLB while retaining a separate gameplay collider",
+	)
+	_expect(
+		(
+			bool(player.call("has_character_animation", "idle"))
+			and bool(player.call("has_character_animation", "walk"))
+			and bool(player.call("has_character_animation", "run"))
+			and String(player.call("get_active_character_animation")) == "idle"
+		),
+		"player model exposes and starts the supplied idle/walk/run animations",
 	)
 	_expect(
 		(
@@ -170,6 +191,10 @@ func _run_smoke_test() -> void:
 	_expect(
 		player.global_position.z < initial_position.z - 0.35,
 		"touch movement moves the player through the 3D world",
+	)
+	_expect(
+		String(player.call("get_active_character_animation")) == "run",
+		"full-strength joystick movement selects the supplied run clip",
 	)
 	var joystick_release := InputEventScreenTouch.new()
 	joystick_release.index = 71
