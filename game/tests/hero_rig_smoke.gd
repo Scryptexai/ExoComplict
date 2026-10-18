@@ -259,7 +259,7 @@ func _run_smoke_test() -> void:
 			(
 				(
 					"death lies sideways: spread %.2f m, head %s, hip %s, idle head y %.2f,"
-					+ " player clip %s @ %.2f/%.2f s"
+					+ " player clip %s @ %.2f/%.2f s; %s"
 				)
 				% [
 					head_spread,
@@ -269,6 +269,7 @@ func _run_smoke_test() -> void:
 					anim_player.current_animation,
 					anim_player.current_animation_position,
 					anim_player.get_animation("death").length,
+					_death_trace(anim_player, skeleton),
 				]
 			),
 		)
@@ -291,6 +292,27 @@ func _barrel(muzzle: Node3D) -> Vector3:
 
 func _bone_world(skeleton: Skeleton3D, index: int) -> Vector3:
 	return skeleton.global_transform * skeleton.get_bone_global_pose(index).origin
+
+
+func _death_trace(player: AnimationPlayer, skeleton: Skeleton3D) -> String:
+	# If a baked GLB visibly moves in the glTF viewer but the Godot skeleton
+	# remains upright, show the imported track and mixer root in the CI failure.
+	var clip := player.get_animation("death")
+	var root_index := skeleton.find_bone("BoneRoot")
+	var track := "none"
+	for index in range(clip.get_track_count()):
+		var path := str(clip.track_get_path(index))
+		if path.contains("BoneRoot") and clip.track_get_type(index) == Animation.TYPE_ROTATION_3D:
+			var last := clip.track_get_key_count(index) - 1
+			track = "%s keys=%d last=%s" % [path, last + 1, clip.track_get_key_value(index, last)]
+			break
+	var pose_rotation := (
+		skeleton.get_bone_pose_rotation(root_index) if root_index >= 0 else Quaternion.IDENTITY
+	)
+	return (
+		"root=%s tracks=%d BoneRoot rotation=%s track=%s"
+		% [player.root_node, clip.get_track_count(), pose_rotation, track]
+	)
 
 
 func _finish(main_scene: Node) -> void:
