@@ -374,13 +374,29 @@ async function checkPage(target, viewport) {
     if (centre) {
       // The click doubles as the gesture browsers require before audio runs.
       await page.mouse.click(centre.x, centre.y);
-      // Mute and unmute up front. Each screenshot can cost tens of seconds in a
-      // software-rendered browser, so anything timing-based inside the loop may
-      // never be reached — and the console lines these produce are the only
-      // outside proof that the audio toggle is wired.
-      void page.keyboard.press('KeyM');
-      await new Promise((r) => setTimeout(r, 300));
-      void page.keyboard.press('KeyM');
+      // Verify a real shot before entering the time-boxed motion loop. In
+      // SwiftShader, screenshots and CDP key events can each take tens of
+      // seconds: fire-and-forget mute toggles raced one another and left the
+      // entire play pass muted. Do this before --hold so a mouse-held UI
+      // button is not released by the firing probe.
+      if (consoleLines.some((line) => /Audio: .*muted=yes/.test(line))) {
+        await page.keyboard.press('KeyM');
+        await awaitConsoleText(page, consoleLines, 'Audio: unmuted', 30000);
+      }
+      await page.mouse.move(centre.x, centre.y);
+      await page.mouse.down();
+      await awaitConsoleText(page, consoleLines, 'Audio: first voice played', 45000);
+      await page.mouse.up();
+      // Capture the spent magazine before the motion loop switches weapons.
+      // A later frame can say 6/6 for Nova even though Pulse already fired.
+      const firedFrame = path.join(outDir, `${slug}-${viewport.spec}-fired.png`);
+      await page.screenshot({ path: firedFrame });
+      frames.push(path.relative(ROOT, firedFrame));
+      // Test the sound control separately, in sequence, after audible firing.
+      await page.keyboard.press('KeyM');
+      await awaitConsoleText(page, consoleLines, 'Audio: muted', 30000);
+      await page.keyboard.press('KeyM');
+      await awaitConsoleText(page, consoleLines, 'Audio: unmuted', 30000);
       // --hold presses and holds one canvas point for the whole play pass. The
       // play screenshots then show the held state (e.g. the AIM button -> the
       // aimed pose), which is the only outside proof of the aimed weapon.
@@ -501,8 +517,10 @@ async function checkPage(target, viewport) {
     checks.push(['scripted play captured frames', frames.length > 0]);
     checks.push(['audio pipeline reported itself', audioLines.length > 0]);
     checks.push([
-      'audio played a voice in the browser',
-      audioLines.some((line) => line.includes('first voice')),
+      encounterMode ? 'audio played a voice in the browser' : 'weapon shot played in the browser',
+      audioLines.some((line) =>
+        encounterMode ? line.includes('first voice played') : line.includes('first voice played (shot_'),
+      ),
     ]);
     checks.push([
       'the mute control reaches the audio pipeline',

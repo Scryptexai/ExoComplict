@@ -317,6 +317,40 @@ func _run_smoke_test() -> void:
 	player.call("reset_player")
 	_expect(str(visual.call("current_clip")) == "idle", "reset exits death into neutral idle")
 
+	# Hip-fire must not leave the Blender hero motionless while a projectile
+	# leaves the lowered carry rifle. A stationary shot plays the authored fire
+	# action; firing in a sprint keeps the moving aim-run legs and forward socket.
+	visual.call("play_recoil", 1.0)
+	_expect(
+		str(visual.call("current_clip")) == "fire", "hip-fire shoulders the rifle and plays recoil"
+	)
+	visual.call("_process", 0.22)
+	if anim_player != null:
+		anim_player.advance(0.22)
+	_expect(
+		_barrel(muzzle).dot(forward) > 0.94,
+		"hip-fire turns the actual barrel toward the reticle rather than leaving it in carry",
+	)
+	visual.call("_process", 0.5)
+	if anim_player != null:
+		anim_player.advance(0.5)
+	_expect(str(visual.call("current_clip")) == "idle", "hip-fire returns to carry after the burst")
+	visual.call("update_pose", Vector3(6.0, 0.0, 0.0), true, 0.016)
+	visual.call("play_recoil", 1.0)
+	_expect(
+		str(visual.call("current_clip")) == "aim_run",
+		"sprint hip-fire uses the Blender aim-run stride instead of frozen standing legs",
+	)
+	visual.call("_process", 0.22)
+	if anim_player != null:
+		anim_player.advance(0.22)
+	_expect(
+		_barrel(muzzle).dot(forward) > 0.94,
+		"sprint hip-fire keeps the measured barrel pointed forward",
+	)
+	visual.call("_process", 0.5)
+	_expect(str(visual.call("current_clip")) == "run", "sprint hip-fire returns to run on release")
+
 	_finish(main_scene)
 
 

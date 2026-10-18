@@ -188,15 +188,20 @@ func reset_action_state() -> void:
 func play_recoil(strength: float = 1.0, duration: float = 0.16) -> void:
 	_recoil_duration = maxf(duration, 0.01)
 	_recoil_remaining = maxf(_recoil_remaining, _recoil_duration * clampf(strength, 0.2, 2.0))
-	# Only swap to the fire clip when the rifle is already shouldered; firing
-	# from a sprint must not snap the arms up for half a second.
-	if is_rigged() and _aiming and _has_clip("fire"):
+	# Hip-fire is a real shot too: without this, the rifle fires from its
+	# lowered carry pose while the hero's arms remain idle. Shoulder the
+	# Blender-authored fire pose while standing; during movement keep the
+	# authored aim-walk/run legs moving instead of freezing in a standing pose.
+	if is_rigged() and _has_clip("fire"):
 		_fire_remaining = FIRE_CLIP_SECONDS
-		if _current_clip == "fire":
-			# A second shot restarts the recoil instead of being swallowed.
-			_anim_player.seek(0.0, true)
+		if _last_speed_ratio <= WALK_THRESHOLD:
+			if _current_clip == "fire":
+				# A second shot restarts the recoil instead of being swallowed.
+				_anim_player.seek(0.0, true)
+			else:
+				_play("fire", 0.05)
 		else:
-			_play("fire", 0.05)
+			_update_locomotion(_last_speed_ratio)
 
 
 func recoil_ratio() -> float:
@@ -409,21 +414,23 @@ func _update_locomotion(speed_ratio: float) -> void:
 	if not is_rigged():
 		return
 	# Blender-authored composite clips keep the moving lower body instead of
-	# pinning the legs to a standing aim pose. The weapon socket remains in aim
-	# orientation through aim locomotion, fire, reload and the hit reaction.
+	# pinning the legs to a standing aim pose. A real hip-fire briefly shoulders
+	# the weapon as well; ADS still controls the camera, not whether the hero
+	# animates a shot. The socket follows the chosen clip in either case.
 	var desired := "idle"
+	var combat_aim := _aiming or _fire_remaining > 0.0
 	if _defeated and _has_clip("death"):
 		desired = "death"
 	elif _hit_remaining > 0.0 and _has_clip("hit"):
 		desired = "hit"
 	elif _reload_remaining > 0.0 and _has_clip("reload"):
 		desired = "reload"
-	elif _fire_remaining > 0.0 and _aiming:
-		desired = "fire"
-	elif _aiming and speed_ratio > RUN_THRESHOLD and _has_clip("aim_run"):
+	elif combat_aim and speed_ratio > RUN_THRESHOLD and _has_clip("aim_run"):
 		desired = "aim_run"
-	elif _aiming and speed_ratio > WALK_THRESHOLD and _has_clip("aim_walk"):
+	elif combat_aim and speed_ratio > WALK_THRESHOLD and _has_clip("aim_walk"):
 		desired = "aim_walk"
+	elif _fire_remaining > 0.0 and _has_clip("fire"):
+		desired = "fire"
 	elif _aiming:
 		desired = "aim"
 	elif speed_ratio > RUN_THRESHOLD:
