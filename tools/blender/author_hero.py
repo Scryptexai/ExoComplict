@@ -225,33 +225,40 @@ def main():
 
     locomotion_aim(arm, actions["walk"], actions["aim"], "aim_walk")
     locomotion_aim(arm, actions["run"], actions["aim"], "aim_run")
-    # Recharge gesture: keep the trigger hand on the weapon, withdraw the
-    # support hand from the fore-end toward the receiver, press the integrated
-    # energy-cell latch, then bring it back. The rifle is a *single* mesh: do
-    # not pretend a detachable magazine or bolt is actually being animated.
-    # On the inspected armature, the former -19-degree Z forearm twist moved
-    # the support hand *up* 8 cm and nowhere near the receiver. An X bend
-    # brings the hand back along the weapon and positive Z lowers it.
+    # Recharge gesture, reviewed after a real 390x844 player-camera capture:
+    # the original 13-degree support-arm bend stayed hidden by the torso and
+    # the clip=reload trace was NOT visual evidence. Without inventing a
+    # detachable magazine on this single-mesh rifle, stage a clearly readable
+    # ENERGY-CELL CHECK: shoulder the gun, release/flare the left elbow away
+    # from the armor silhouette, draw the support palm to the receiver, pause
+    # on the latch, then return the hand to its foregrip and recover. Keep the
+    # trigger hand on the actual weapon socket, and keep lower-body/root still.
+    # Key time: 1=ready, 8=withdraw, 17-25=receiver hold, 35=regrip,
+    # 46=ready. The hold costs no extra gameplay time: Godot stretches this
+    # clip to the weapon's measured reload timer. Visual acceptance still
+    # requires a *WebGL player camera* review, not only clip metadata.
     keyframed_reaction(arm, actions["aim"], "reload", [
         (1, {}),
-        (6, {"rotate": {"R_Hand": ((1, 0, 0), 5), "Spine02": ((1, 0, 0), -3)}}),
-        (12, {"rotate": {"L_Upperarm": ((1, 0, 0), 12),
-                         "L_Forearm": ((1, 0, 0), -21),
-                         "L_Hand": ((1, 0, 0), 16),
-                         "R_Hand": ((1, 0, 0), 11)}}),
-        (19, {"rotate": {"L_Upperarm": ((1, 0, 0), 13),
-                         "L_Forearm": ((-0.97, 0, 0.25), 30),
-                         "L_Hand": ((1, 0, 0), 34),
-                         "R_Hand": ((1, 0, 0), 13)}}),
-        (26, {"rotate": {"L_Upperarm": ((1, 0, 0), 10),
-                         "L_Forearm": ((-0.97, 0, 0.25), 26),
-                         "L_Hand": ((1, 0, 0), 26),
-                         "R_Hand": ((1, 0, 0), 10)}}),
-        (33, {"rotate": {"L_Upperarm": ((1, 0, 0), 4),
-                         "L_Forearm": ((-0.97, 0, 0.25), 13),
-                         "L_Hand": ((1, 0, 0), 12),
-                         "R_Hand": ((1, 0, 0), 5)}}),
-        (43, {}),
+        (8, {"rotate": {"Spine02": ((0, 0, 1), 5),
+                        "R_Hand": ((1, 0, 0), 8),
+                        "L_Upperarm": ((0, 0, 1), -11),
+                        "L_Forearm": ((1, 0, 0), -15)}}),
+        (17, {"rotate": {"Spine02": ((0, 0, 1), 7),
+                         "R_Hand": ((1, 0, 0), 24),
+                         "L_Upperarm": ((0, 0, 1), -22),
+                         "L_Forearm": ((-0.97, 0, 0.25), 43),
+                         "L_Hand": ((1, 0, 0), 37)}}),
+        (25, {"rotate": {"Spine02": ((0, 0, 1), 7),
+                         "R_Hand": ((1, 0, 0), 22),
+                         "L_Upperarm": ((0, 0, 1), -21),
+                         "L_Forearm": ((-0.97, 0, 0.25), 41),
+                         "L_Hand": ((1, 0, 0), 31)}}),
+        (35, {"rotate": {"Spine02": ((0, 0, 1), 3),
+                         "R_Hand": ((1, 0, 0), 9),
+                         "L_Upperarm": ((0, 0, 1), -8),
+                         "L_Forearm": ((-0.97, 0, 0.25), 14),
+                         "L_Hand": ((1, 0, 0), 11)}}),
+        (46, {}),
     ])
     keyframed_reaction(arm, actions["aim"], "hit", [
         (1, {}), (4, {"rotate": {"Spine01": ((1, 0, 0), -11),
