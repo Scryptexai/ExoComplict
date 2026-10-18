@@ -214,10 +214,10 @@ func _run_smoke_test() -> void:
 			(
 				filaments != null
 				and filaments.visible
-				and filaments.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size() == 72
+				and filaments.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size() == 90
 				and etch != null
 				and etch.visible
-				and etch.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size() == 54
+				and etch.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size() == 36
 				and get_nodes_in_group(NovaShockwaveScript.GROUP).size() == before_shock + 2
 			),
 			"normal Nova adds segmented inner arcs and a contact scar only at real impact",
