@@ -10,6 +10,7 @@ func _initialize() -> void:
 func _run_smoke_test() -> void:
 	var main_scene := MainScene.instantiate()
 	main_scene.set("start_wave_session_on_ready", false)
+	main_scene.get_node("ProgressionService").set("profile_path", "")
 	var wave_director: Node = main_scene.get_node("WaveDirector")
 	wave_director.set("base_enemies_per_wave", 1)
 	wave_director.set("enemies_added_per_wave", 0)
@@ -24,6 +25,7 @@ func _run_smoke_test() -> void:
 
 	var run_stats: Node = main_scene.get_node("RunStats")
 	var reward_service: Node = main_scene.get_node("RewardService")
+	var progression := main_scene.get_node("ProgressionService") as ProgressionService
 	var test_passed := true
 	test_passed = (
 		_expect(bool(run_stats.get("is_run_active")), "wave start activates the run clock")
@@ -100,12 +102,27 @@ func _run_smoke_test() -> void:
 		)
 		and test_passed
 	)
+	var feedback := main_scene.get_node("HUD/TouchControls").get("_feedback_panel") as Control
+	var feedback_label := feedback.get("_message_label") as Label
+	test_passed = (
+		_expect(
+			feedback.visible and feedback_label.text.contains("WAVE 01 CLEAR · +100 BP"),
+			"a rewarded KO follows through to the real wave-clear outcome chip",
+		)
+		and test_passed
+	)
 
 	wave_director.call("end_session")
 	var results_panel := (
 		main_scene.get_node("HUD/TouchControls").get("_results_panel") as PanelContainer
 	)
 	var results_summary := main_scene.get_node("HUD/TouchControls").get("_results_summary") as Label
+	var results_reward := (
+		main_scene.get_node("HUD/TouchControls").get("_results_reward_label") as Label
+	)
+	var next_goal := (
+		main_scene.get_node("HUD/TouchControls").get("_results_goal_progress_label") as Label
+	)
 	var results_retry_button := (
 		main_scene.get_node("HUD/TouchControls").get("_results_retry_button") as Button
 	)
@@ -115,10 +132,14 @@ func _run_smoke_test() -> void:
 	test_passed = (
 		_expect(
 			(
-				results_summary.text.contains("Wave reached: 1")
-				and results_summary.text.contains("Eliminations: 1")
-				and results_summary.text.contains("Run score: 100")
-				and results_summary.text.contains("BP earned: 110")
+				results_summary.text.contains("WAVE 01")
+				and results_summary.text.contains("ELIMINATIONS 1")
+				and results_summary.text.contains("SCORE 100")
+				and results_summary.text.contains("WALLET 110 BP")
+				and results_reward.text == "+110 BP BANKED"
+				and next_goal.text.contains("10 TO GO")
+				and progression.balance == 110
+				and progression.best_score == 100
 			),
 			"results show actual wave, elimination, score, and BP values",
 		)
@@ -149,9 +170,11 @@ func _run_smoke_test() -> void:
 				int(run_stats.get("eliminations")) == 0
 				and int(run_stats.get("run_score")) == 0
 				and int(run_stats.get("bp_earned")) == 0
+				and progression.balance == 110
+				and progression.best_score == 100
 				and is_equal_approx(float(run_stats.get("survival_seconds")), 0.0)
 			),
-			"retry resets run-only stats and rewards",
+			"retry resets run-only stats but keeps the banked wallet and best score",
 		)
 		and test_passed
 	)

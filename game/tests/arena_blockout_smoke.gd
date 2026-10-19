@@ -32,8 +32,13 @@ func _run_smoke_test() -> void:
 			beacon_count += 1
 	test_passed = (
 		_expect(
-			beacon_count == main_scene.get_node("SpawnPoints").get_child_count(),
-			"every perimeter spawn marker has a visual beacon",
+			(
+				beacon_count == main_scene.get_node("SpawnPoints").get_child_count() - 1
+				and main_scene.get_node_or_null("SpawnPoints/SpawnSouth") != null
+				and arena.get_node_or_null("SpawnSouth_Beacon") == null
+				and arena.get_node_or_null("SpawnSouth_Core") == null
+			),
+			"combat south spawn remains, but its near-camera decorative beacon is hidden",
 		)
 		and test_passed
 	)

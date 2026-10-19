@@ -1,7 +1,7 @@
 @tool
 extends Node3D
 
-const GltfAssetLibrary = preload("res://scripts/worlds/gltf_asset_library.gd")
+const ScifiBayBuilder = preload("res://scripts/worlds/scifi_bay_builder.gd")
 
 @export_enum(
 	"reactor_core",
@@ -70,22 +70,28 @@ func _ready() -> void:
 
 func _create_materials() -> void:
 	_materials = {
-		"silver": _make_material(Color(0.65, 0.74, 0.79), 0.78, 0.28),
-		"pearl": _make_material(Color(0.88, 0.91, 0.88), 0.22, 0.34),
-		"ceramic": _make_material(Color(0.72, 0.82, 0.83), 0.32, 0.42),
-		"blue": _make_material(Color(0.07, 0.24, 0.56), 0.48, 0.3),
-		"deep_blue": _make_material(Color(0.035, 0.12, 0.31), 0.58, 0.25),
-		"cyan": _make_emissive(Color(0.03, 0.78, 0.96), 1.7),
-		"turquoise": _make_emissive(Color(0.02, 0.94, 0.79), 1.35),
-		"emerald": _make_emissive(Color(0.1, 0.88, 0.39), 1.4),
-		"yellow": _make_emissive(Color(1.0, 0.66, 0.035), 0.55),
+		"silver": _make_material(Color(0.36, 0.43, 0.48), 0.56, 0.43),
+		"pearl": _make_material(Color(0.58, 0.65, 0.7), 0.15, 0.5),
+		"ceramic": _make_material(Color(0.43, 0.52, 0.58), 0.23, 0.5),
+		"blue": _make_material(Color(0.055, 0.15, 0.28), 0.46, 0.4),
+		"deep_blue": _make_material(Color(0.025, 0.08, 0.18), 0.5, 0.44),
+		"cyan": _make_emissive(Color(0.02, 0.53, 0.7), 0.78),
+		"turquoise": _make_emissive(Color(0.015, 0.6, 0.52), 0.7),
+		# The reactor's big glass and energy shapes were becoming a white/cyan
+		# billboard in portrait; reserve the brightest values for slim halos.
+		"reactor_core": _make_emissive(Color(0.02, 0.3, 0.37), 0.27),
+		"reactor_spine": _make_material(Color(0.07, 0.16, 0.19), 0.62, 0.38),
+		"reactor_coils": _make_emissive(Color(0.08, 0.64, 0.58), 0.75),
+		"emerald": _make_emissive(Color(0.08, 0.53, 0.33), 0.58),
+		"yellow": _make_emissive(Color(0.9, 0.54, 0.065), 0.43),
 		"orange": _make_emissive(Color(1.0, 0.27, 0.035), 0.95),
 		"red": _make_emissive(Color(0.98, 0.045, 0.055), 1.25),
 		"dark_trim": _make_material(Color(0.105, 0.17, 0.2), 0.66, 0.36),
 		"rock": _make_material(Color(0.59, 0.43, 0.34), 0.02, 0.93),
 		"rock_light": _make_material(Color(0.76, 0.58, 0.42), 0.02, 0.88),
 		"rock_rose": _make_material(Color(0.64, 0.39, 0.37), 0.03, 0.9),
-		"glass": _make_translucent(Color(0.12, 0.78, 0.94, 0.32), 0.25, 0.17),
+		"glass": _make_translucent(Color(0.09, 0.48, 0.61, 0.2), 0.25, 0.2),
+		"reactor_glass": _make_translucent(Color(0.07, 0.34, 0.42, 0.085), 0.25, 0.2),
 		"flora": _make_material(Color(0.19, 0.64, 0.35), 0.0, 0.72),
 		"flora_lime": _make_emissive(Color(0.51, 0.87, 0.17), 0.25),
 		"flora_teal": _make_material(Color(0.04, 0.58, 0.54), 0.05, 0.52),
@@ -242,6 +248,49 @@ func _ring(
 		)
 
 
+func _reactor_coils() -> MeshInstance3D:
+	# One small mesh, not ten extra glowing cylinders/draw calls. Keeping dark
+	# gaps between these powered bands breaks the old six-metre green billboard
+	# without removing the uploaded-FBX columns and cladding around the reactor.
+	var vertices := PackedVector3Array()
+	var normals := PackedVector3Array()
+	for tier in range(10):
+		var height := 4.38 + float(tier) * 0.59
+		var radius := lerpf(0.98, 0.78, float(tier) / 9.0)
+		for segment in range(24):
+			var angle := TAU * float(segment) / 24.0
+			var next_angle := TAU * float(segment + 1) / 24.0
+			var lower := Vector3(cos(angle) * radius, height, sin(angle) * radius)
+			var upper := lower + Vector3.UP * 0.075
+			var next_lower := Vector3(cos(next_angle) * radius, height, sin(next_angle) * radius)
+			var next_upper := next_lower + Vector3.UP * 0.075
+			vertices.append_array(
+				PackedVector3Array([lower, upper, next_lower, upper, next_upper, next_lower])
+			)
+			var normal := Vector3(cos(angle), 0.0, sin(angle))
+			var next_normal := Vector3(cos(next_angle), 0.0, sin(next_angle))
+			normals.append_array(
+				PackedVector3Array([normal, normal, next_normal, normal, next_normal, next_normal])
+			)
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var coils := MeshInstance3D.new()
+	coils.name = "ReactorCoils"
+	coils.mesh = mesh
+	var coil_material := _materials["reactor_coils"] as StandardMaterial3D
+	# Godot's front-face winding differs from the raw band triangles; without
+	# two-sided rendering the near side vanishes behind the dark spine in WebGL.
+	coil_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	coils.material_override = coil_material
+	coils.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(coils)
+	return coils
+
+
 func _add_bolts(
 	prefix: String, center: Vector3, half_size: Vector2, y: float, material: Material
 ) -> void:
@@ -305,11 +354,25 @@ func _build_reactor_core() -> void:
 				0.7,
 				_materials["copper"]
 			)
-			_box(
+			# Keep the old mesh as an editable structural fallback, but dress the
+			# visible load-bearing pylon with the user's imported FBX column.
+			var blockout_pylon := _box(
 				"ReactorPylon_%s_%s" % [str(x_sign), str(z_sign)],
 				Vector3(pylon_x, 4.55, pylon_z),
 				Vector3(0.72, 7.2, 0.72),
 				_materials["pearl"]
+			)
+			blockout_pylon.visible = false
+			ScifiBayBuilder.place(
+				self,
+				"column",
+				"SciFiReactorPylon_%s_%s" % [str(x_sign), str(z_sign)],
+				Vector3(pylon_x, 0.95, pylon_z),
+				0.0,
+				1.0,
+				true,
+				true,
+				Vector3(0.2, 1.8, 1.6)
 			)
 			_box(
 				"ReactorPylonLight_%s_%s" % [str(x_sign), str(z_sign)],
@@ -331,25 +394,37 @@ func _build_reactor_core() -> void:
 		2.45,
 		2.45,
 		5.6,
-		_materials["glass"],
+		_materials["reactor_glass"],
 		Vector3.ZERO,
 		32
 	)
 	_cylinder(
 		"EmeraldEnergyColumn",
 		Vector3(0.0, 7.0, 0.0),
-		1.25,
-		0.7,
+		0.84,
+		0.64,
 		6.1,
-		_materials["emerald"],
+		_materials["reactor_spine"],
 		Vector3.ZERO,
 		24
 	)
+	_reactor_coils()
+	for rail in range(6):
+		var angle := TAU * float(rail) / 6.0
+		_box(
+			"ReactorCoilRail_%02d" % rail,
+			Vector3(cos(angle) * 1.06, 7.0, sin(angle) * 1.06),
+			Vector3(0.12, 5.7, 0.12),
+			_materials["dark_trim"],
+			Vector3(0.0, -rad_to_deg(angle), 0.0)
+		)
+	# Focus the emissive focal point inside the larger FBX-framed structure:
+	# the earlier overexposed cyan orb filled the portrait camera's horizon.
 	_sphere(
 		"SuspendedReactorSeed",
 		Vector3(0.0, 7.0, 0.0),
-		Vector3(1.75, 2.15, 1.75),
-		_materials["turquoise"]
+		Vector3(1.32, 1.63, 1.32),
+		_materials["reactor_core"]
 	)
 	_ring("ContainmentLowerHalo", Vector3.ZERO, 3.1, 4.1, 0.3, _materials["cyan"], 24)
 	_ring("ContainmentUpperHalo", Vector3.ZERO, 3.1, 9.9, 0.3, _materials["cyan"], 24)
@@ -595,86 +670,33 @@ func _build_equipment_depot() -> void:
 		true
 	)
 
-	var depot_model := GltfAssetLibrary.instantiate_model("cargodepot_A")
-	if depot_model != null:
-		depot_model.name = "KayKitCargoDepot"
-		depot_model.position = Vector3(-3.6, 0.4, 0.0)
-		depot_model.scale = Vector3.ONE * 4.2
-		add_child(depot_model)
-		GltfAssetLibrary.add_bounds_collider(depot_model, "KayKitCargoDepotCollision", 0.9)
-	else:
-		_box(
-			"DepotMainContainer",
-			Vector3(-3.6, 2.2, 0.0),
-			Vector3(9.4, 3.6, 9.0),
-			_materials["blue"],
-			Vector3.ZERO,
-			true
-		)
-		_box(
-			"DepotSideContainer",
-			Vector3(4.5, 1.8, -1.4),
-			Vector3(7.2, 2.8, 7.4),
-			_materials["pearl"],
-			Vector3.ZERO,
-			true
-		)
-		_box("DepotCanopy", Vector3(0.0, 4.35, 2.0), Vector3(14.0, 0.35, 6.4), _materials["yellow"])
-		_box(
-			"DepotCanopyBeamFront",
-			Vector3(0.0, 4.05, 5.15),
-			Vector3(14.0, 0.26, 0.28),
-			_materials["copper"]
-		)
-		_box(
-			"DepotDoor", Vector3(-3.6, 1.5, 4.57), Vector3(3.2, 2.7, 0.18), _materials["dark_trim"]
-		)
-		_box("DepotDoorPanel", Vector3(-3.6, 1.6, 4.7), Vector3(2.55, 2.0, 0.1), _materials["cyan"])
-		for rib in range(7):
-			_box(
-				"DepotContainerRib_%02d" % rib,
-				Vector3(-7.7 + rib * 1.35, 2.2, 4.58),
-				Vector3(0.12, 3.2, 0.16),
-				_materials["silver"]
-			)
-		_box(
-			"DepotOverheadRail",
-			Vector3(2.0, 6.3, 0.0),
-			Vector3(0.3, 0.3, 10.0),
-			_materials["silver"]
-		)
-		_link_cylinder(
-			"DepotLiftCable",
-			Vector3(2.0, 6.1, 1.2),
-			Vector3(2.0, 4.3, 1.2),
-			0.08,
-			_materials["dark_trim"]
-		)
-		_box("DepotRepairArm", Vector3(2.0, 3.9, 1.2), Vector3(2.1, 0.3, 0.3), _materials["cyan"])
+	ScifiBayBuilder.place(
+		self,
+		"wall_cube",
+		"SciFiEquipmentDepotFacade",
+		Vector3(-3.6, 0.4, 0.0),
+		90.0,
+		1.85,
+		true,
+		true
+	)
+	ScifiBayBuilder.place(
+		self, "doorway", "SciFiEquipmentDepotAccess", Vector3(-3.6, 0.4, 5.2), 0.0, 1.3, false, true
+	)
 
 	for crate_index in range(4):
 		var crate_x := 7.0 + float(crate_index % 2) * 1.7
 		var crate_z := 3.1 + float(crate_index / 2) * 1.6
-		var cargo_name := "cargo_A_stacked" if crate_index % 2 == 0 else "cargo_B_stacked"
-		var cargo_model := GltfAssetLibrary.instantiate_model(cargo_name)
-		if cargo_model != null:
-			cargo_model.name = "KayKitDepotCargo_%02d" % crate_index
-			cargo_model.position = Vector3(crate_x, 0.04, crate_z)
-			cargo_model.scale = Vector3.ONE * 1.42
-			add_child(cargo_model)
-		else:
-			_box(
-				"DepotFieldCrate_%02d" % crate_index,
-				Vector3(crate_x, 0.72, crate_z),
-				Vector3(1.35, 1.4, 1.35),
-				_materials["copper"]
-			)
-			_box(
-				"DepotCrateBand_%02d" % crate_index,
-				Vector3(crate_x, 0.72, crate_z + 0.72),
-				Vector3(1.1, 0.16, 0.06),
-				_materials["yellow"]
-			)
+		ScifiBayBuilder.place(
+			self,
+			"crate",
+			"SciFiEquipmentSupply_%02d" % crate_index,
+			Vector3(crate_x, 0.4, crate_z),
+			float(crate_index) * 90.0,
+			1.2,
+			false,
+			true
+		)
 	_add_bolts("DepotFoundation", Vector3.ZERO, Vector2(8.8, 5.8), 0.42, _materials["dark_trim"])
 
 
@@ -1150,12 +1172,21 @@ func _build_landing_pad() -> void:
 			Vector3(2.0, 0.12, 0.18),
 			_materials["cyan"]
 		)
-	var kaykit_landing_pad := GltfAssetLibrary.instantiate_model("landingpad_large")
-	if kaykit_landing_pad != null:
-		kaykit_landing_pad.name = "KayKitLandingPadSurface"
-		kaykit_landing_pad.position = Vector3(0.0, 0.72, 0.0)
-		kaykit_landing_pad.scale = Vector3(8.4, 0.55, 8.4)
-		add_child(kaykit_landing_pad)
+	# Six uploaded FBX floor modules form the playable pad surface. The ramp,
+	# safety markings and deck collision remain separate so traversal is stable.
+	for tile_x in range(3):
+		for tile_z in range(2):
+			var key := "floor_alt" if (tile_x + tile_z) % 2 == 0 else "floor"
+			ScifiBayBuilder.place(
+				self,
+				key,
+				"SciFiLandingDeck_%d_%d" % [tile_x, tile_z],
+				Vector3((float(tile_x) - 1.0) * 8.9, 0.745, (float(tile_z) - 0.5) * 8.9),
+				90.0,
+				1.65,
+				false,
+				false
+			)
 
 	_add_bolts("LandingPadDeck", Vector3.ZERO, Vector2(14.0, 10.0), 0.73, _materials["dark_trim"])
 

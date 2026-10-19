@@ -1,6 +1,7 @@
 extends SceneTree
 
 const MainScene = preload("res://scenes/main.tscn")
+const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
 
 
 class DamageReceiver:
@@ -18,15 +19,26 @@ func _initialize() -> void:
 func _run_smoke_test() -> void:
 	var main_scene := MainScene.instantiate()
 	main_scene.set("start_wave_session_on_ready", false)
+	main_scene.get_node("ProgressionService").set("profile_path", "")
 	root.add_child(main_scene)
 	await process_frame
+	var progression := main_scene.get_node("ProgressionService") as ProgressionService
+	progression.balance = 250
+	var arc_unlocked := progression.unlock_weapon(&"arc_shooter")
 
 	var player: Node3D = main_scene.get_node("Player")
 	var weapon_controller: Node = player.get_node("WeaponController")
 	var muzzle: Marker3D = player.get_node("VisualRoot/WeaponSocket/Muzzle")
 	var weapon_button := main_scene.get_node("HUD/TouchControls").get("_weapon_button") as Button
+	var touch_weapon_name := (
+		main_scene.get_node("HUD/TouchControls").get("_touch_ammo_chip").get("weapon_label")
+		as Label
+	)
 	var test_passed := true
 
+	test_passed = (
+		_expect(arc_unlocked, "the fixture purchases Arc before slot selection") and test_passed
+	)
 	test_passed = (
 		_expect(bool(player.call("select_weapon", 2)), "Arc Shooter can be selected by slot")
 		and test_passed
@@ -35,7 +47,9 @@ func _run_smoke_test() -> void:
 		_expect(
 			(
 				weapon_controller.call("get_current_weapon_name") == "Arc Shooter"
-				and weapon_button.text == "ARC SHOOTER"
+				and weapon_button.text.is_empty()
+				and String(weapon_button.get_meta("aegis_state", "")) == "swap"
+				and touch_weapon_name.text == "ARC"
 			),
 			"Arc selection updates the mobile weapon label",
 		)
@@ -125,6 +139,13 @@ func _run_smoke_test() -> void:
 			"Arc beam damages its primary target exactly once",
 		)
 		and test_passed
+	)
+	var arc_spark := false
+	for candidate in get_nodes_in_group(ImpactBurstScript.BURST_GROUP):
+		if (candidate as Node3D).global_position.distance_to(direct_target.global_position) < 0.55:
+			arc_spark = true
+	test_passed = (
+		_expect(arc_spark, "Arc creates a real impact spark at the beam hit") and test_passed
 	)
 	test_passed = (
 		_expect(

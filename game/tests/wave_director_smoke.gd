@@ -18,6 +18,9 @@ func _run_smoke_test() -> void:
 	main_scene.set("start_wave_session_on_ready", false)
 	var wave_director: Node = main_scene.get_node("WaveDirector")
 	wave_director.set("base_enemies_per_wave", 3)
+	# This fixture exercises varied flanking spawns. The shipped two-Runner
+	# introductory wave uses a separate front-facing, clear-lane preference.
+	wave_director.set("intro_front_spawn", false)
 	wave_director.set("enemies_added_per_wave", 1)
 	wave_director.set("max_enemies_per_wave", 5)
 	wave_director.set("max_active_enemies", 2)
@@ -251,24 +254,53 @@ func _run_smoke_test() -> void:
 		)
 		and test_passed
 	)
+	var results := main_scene.get_node("HUD/TouchControls").get("_results_panel") as Control
+	test_passed = (
+		_expect(
+			(
+				not results.visible
+				and int(main_scene.get("_pending_defeat_wave")) >= 1
+				and int(main_scene.get_node("ProgressionService").get("balance")) >= 270
+			),
+			"earned BP banks while the in-world death motion remains uncovered",
+		)
+		and test_passed
+	)
+	main_scene.call("_process", 1.6)
+	test_passed = (
+		_expect(not results.visible, "the fallen pose is not covered on its first render frame")
+		and test_passed
+	)
+	for _frame in 10:
+		await process_frame
+	test_passed = (
+		_expect(results.visible, "Results follows the full death reveal and rendered pose")
+		and test_passed
+	)
 
 	main_scene.call("_reset_session")
 	for marker in spawn_points.get_children():
 		(marker as Marker3D).global_position = player.global_position
 	wave_director.call("start_session")
 	for _frame in 45:
-		if wave_director.call("get_state_label").begins_with("SPAWN BLOCKED"):
+		if _spawn_blocked_count > 0:
 			break
 		await physics_frame
 	test_passed = (
+		_expect(_spawn_blocked_count == 1, "blocked spawn emits one failure event") and test_passed
+	)
+	# The main scene owns recovery: do not leave the player trapped in a blocked
+	# encounter or silently restart while there are no valid spawn markers.
+	test_passed = (
 		_expect(
-			wave_director.call("get_state_label").begins_with("SPAWN BLOCKED"),
-			"director handles the case where no spawn point is valid",
+			(
+				int(main_scene.get("session_mode")) == 0
+				and wave_director.call("get_state_label") == "READY"
+				and int(wave_director.get("active_enemy_count")) == 0
+			),
+			"unspawnable defense returns safely to Explore without an automatic retry",
 		)
 		and test_passed
-	)
-	test_passed = (
-		_expect(_spawn_blocked_count == 1, "blocked spawn emits one failure event") and test_passed
 	)
 
 	main_scene.queue_free()
