@@ -45,6 +45,7 @@ func launch(
 ## capped at 2.6 m to stay legible without drawing a beam through cover.
 ## Duplicate the mesh: a shared CapsuleMesh must not stretch other rounds.
 func _stretch_tracer(length: float = 1.2) -> void:
+	length = PulseAfterglowScript.screen_limited_length(self, global_position, _direction, length)
 	for part_name in ["Tracer", "TracerGlow"]:
 		var part := get_node_or_null(part_name) as MeshInstance3D
 		if part == null:

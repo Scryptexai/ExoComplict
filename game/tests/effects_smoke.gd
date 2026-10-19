@@ -130,6 +130,19 @@ func _run_smoke_test() -> void:
 		)
 		and test_passed
 	)
+	var view_camera := get_viewport().get_camera_3d()
+	if view_camera != null:
+		var near_end := view_camera.global_position - view_camera.global_basis.z * 3.0
+		var near_width := PulseAfterglowScript.screen_limited_length(
+			main_scene, near_end, view_camera.global_basis.x, 2.0
+		)
+		test_passed = (
+			_expect(
+				near_width > 0.0 and near_width < 1.0,
+				"side-on near-camera Pulse wakes shrink before becoming white screen spears",
+			)
+			and test_passed
+		)
 
 	# --- muzzle flash on a real shot ----------------------------------------
 	var weapon_controller: Node = player.get_node("WeaponController")

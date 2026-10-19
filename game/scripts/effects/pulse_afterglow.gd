@@ -3,9 +3,10 @@ extends Node3D
 
 ## A short-lived wake left by a *real* Pulse bolt on collision. On WebGL a
 ## 42 m/s bolt can cross the view and vanish in a single rendered frame; this
-## narrow cyan segment stays at the last 2 m of its travelled path for one
-## extra beat so the action is legible. It never extends through the player or
-## beyond the actual hit, and it never changes hit/damage/range logic.
+## narrow cyan segment stays at *up to* the last 2 m of its travelled path for
+## one extra beat so the action is legible. Close to the camera, this is further
+## capped by its projected width: a near-floor shot must not paint a white spear
+## across the hero. No trail extends past the real collision point.
 const GROUP := "pulse_afterglows"
 const DURATION := 0.22
 const MAX_LENGTH := 2.0
@@ -24,13 +25,36 @@ static func spawn(parent: Node, start: Vector3, hit: Vector3) -> PulseAfterglow:
 	glow.name = "PulseAfterglow"
 	parent.add_child(glow)
 	var direction := travelled.normalized()
-	var length := minf(travelled.length(), MAX_LENGTH)
+	var length := screen_limited_length(
+		parent, hit, direction, minf(travelled.length(), MAX_LENGTH)
+	)
 	glow.global_position = hit - direction * length * 0.5
 	var up := Vector3.FORWARD if absf(direction.dot(Vector3.UP)) > 0.96 else Vector3.UP
 	glow.look_at(hit, up)
 	glow._build(length)
 	glow._trigger_frame = Engine.get_process_frames()
 	return glow
+
+
+## Cap both the in-flight tracer and its collision wake by their actual screen
+## projection. Foreshortened distant shots retain their world-space length;
+## side-on close shots are cut short without changing collision or damage.
+static func screen_limited_length(
+	context: Node, end: Vector3, direction: Vector3, length: float
+) -> float:
+	if context == null or not context.is_inside_tree() or length <= 0.0:
+		return length
+	var viewport := context.get_viewport()
+	var camera := viewport.get_camera_3d()
+	var start := end - direction * length
+	if camera == null or camera.is_position_behind(start) or camera.is_position_behind(end):
+		return length
+	var projected_span := camera.unproject_position(start).distance_to(
+		camera.unproject_position(end)
+	)
+	if projected_span < 0.01:
+		return length
+	return length * minf(1.0, viewport.get_visible_rect().size.x * 0.075 / projected_span)
 
 
 func _ready() -> void:
