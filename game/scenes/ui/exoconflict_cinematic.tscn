@@ -1,0 +1,45 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/exoconflict/images/cinematic_ch1_drop_pod.png" id="1_cine"]
+
+[node name="ExoCinematic" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Image" type="TextureRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_cine")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="Subtitle" type="Label" parent="."]
+anchors_preset = 12
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -64.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+horizontal_alignment = 1
+text = "CHAPTER 1 — HORIZON BREACH · YEAR 2174"
+
+[node name="Skip" type="Button" parent="."]
+anchors_preset = 9
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = -124.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 52.0
+text = "LEWATI ›"

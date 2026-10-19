@@ -1,0 +1,99 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/exoconflict/images/loading_background_16x9_4k.png" id="1_bg"]
+[ext_resource type="Script" path="res://scripts/ui/exoconflict_loading.gd" id="2_script"]
+
+[node name="ExoLoading" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_script")
+
+[node name="Background" type="TextureRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_bg")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="Wordmark" type="TextureRect" parent="."]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_top = 0.0
+anchor_bottom = 0.0
+offset_left = -430.0
+offset_top = 40.0
+offset_right = 430.0
+offset_bottom = 300.0
+grow_horizontal = 2
+texture = ExtResource("1_bg")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Bar" type="ProgressBar" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -280.0
+offset_top = -80.0
+offset_right = 280.0
+offset_bottom = -64.0
+grow_horizontal = 2
+grow_vertical = 0
+max_value = 100.0
+step = 1.0
+value = 0.0
+show_percentage = false
+
+[node name="PercentLabel" type="Label" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = 300.0
+offset_top = -78.0
+offset_right = 360.0
+offset_bottom = -50.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "0%"
+
+[node name="RobotIcon" type="TextureRect" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -42.0
+offset_top = -140.0
+offset_right = 42.0
+offset_bottom = -56.0
+grow_horizontal = 2
+grow_vertical = 0
+expand_mode = 1
+stretch_mode = 4
+
+[node name="TipLabel" type="Label" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -280.0
+offset_top = -48.0
+offset_right = 280.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+horizontal_alignment = 1
+text = "TIP: Tahan AIM untuk presisi"

@@ -1,0 +1,101 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/exoconflict_gameplay_overlay.gd" id="1_script"]
+
+[node name="ExoGameplayOverlay" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="ProfileCard" type="Panel" parent="."]
+anchors_preset = 0
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 184.0
+offset_bottom = 64.0
+
+[node name="Avatar" type="TextureRect" parent="ProfileCard"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 48.0
+offset_bottom = 48.0
+expand_mode = 1
+
+[node name="Name" type="Label" parent="ProfileCard"]
+offset_left = 56.0
+offset_top = 6.0
+offset_right = 160.0
+offset_bottom = 26.0
+text = "NEXUS-01"
+
+[node name="HealthBar" type="ProgressBar" parent="ProfileCard"]
+offset_left = 56.0
+offset_top = 30.0
+offset_right = 160.0
+offset_bottom = 38.0
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="ShieldBar" type="ProgressBar" parent="ProfileCard"]
+offset_left = 56.0
+offset_top = 42.0
+offset_right = 160.0
+offset_bottom = 46.0
+max_value = 100.0
+value = 50.0
+show_percentage = false
+
+[node name="ResourceCard" type="Panel" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = -200.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 64.0
+
+[node name="BPLabel" type="Label" parent="ResourceCard"]
+offset_left = 8.0
+offset_top = 6.0
+offset_right = 92.0
+offset_bottom = 26.0
+text = "0 BP"
+
+[node name="AmmoLabel" type="Label" parent="ResourceCard"]
+offset_left = 100.0
+offset_top = 6.0
+offset_right = 176.0
+offset_bottom = 26.0
+text = "24/24"
+
+[node name="MapCard" type="Panel" parent="."]
+anchors_preset = 2
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -156.0
+offset_top = -156.0
+offset_right = -16.0
+offset_bottom = -16.0
+
+[node name="Map" type="TextureRect" parent="MapCard"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+expand_mode = 1
+stretch_mode = 5

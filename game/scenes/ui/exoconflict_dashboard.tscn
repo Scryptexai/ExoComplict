@@ -1,0 +1,174 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/exoconflict/images/dashboard_bg_sci_fi.png" id="1_bg"]
+[ext_resource type="Texture2D" path="res://assets/ui/exoconflict/images/wordmark_exoconflict.png" id="2_wordmark"]
+[ext_resource type="Script" path="res://scripts/ui/exoconflict_dashboard.gd" id="3_script"]
+
+[node name="ExoDashboard" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("3_script")
+
+[node name="Background" type="TextureRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_bg")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="Wordmark" type="TextureRect" parent="."]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_top = 0.0
+anchor_bottom = 0.0
+offset_left = -260.0
+offset_top = 16.0
+offset_right = 260.0
+offset_bottom = 96.0
+grow_horizontal = 2
+texture = ExtResource("2_wordmark")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ProfileCard" type="Panel" parent="."]
+anchors_preset = 0
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 240.0
+offset_bottom = 108.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="Avatar" type="TextureRect" parent="ProfileCard"]
+anchors_preset = 0
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 72.0
+offset_bottom = 72.0
+expand_mode = 1
+
+[node name="NameLabel" type="Label" parent="ProfileCard"]
+anchors_preset = 0
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = 80.0
+offset_top = 12.0
+offset_right = -8.0
+offset_bottom = 32.0
+text = "NEXUS-01"
+
+[node name="LevelLabel" type="Label" parent="ProfileCard"]
+anchors_preset = 0
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = 80.0
+offset_top = 32.0
+offset_right = -8.0
+offset_bottom = 52.0
+text = "LVL 12"
+
+[node name="EconomyDock" type="HBoxContainer" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = -340.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = 56.0
+grow_horizontal = 0
+
+[node name="CrystalCoin" type="Panel" parent="EconomyDock"]
+custom_minimum_size = Vector2(140, 36)
+
+[node name="Label" type="Label" parent="EconomyDock/CrystalCoin"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "1240"
+
+[node name="GoldCoin" type="Panel" parent="EconomyDock"]
+custom_minimum_size = Vector2(140, 36)
+
+[node name="Label" type="Label" parent="EconomyDock/GoldCoin"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "560"
+
+[node name="MenuRail" type="VBoxContainer" parent="."]
+anchors_preset = 0
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 20.0
+offset_top = 140.0
+offset_right = 260.0
+offset_bottom = 500.0
+
+[node name="PlayButton" type="Button" parent="MenuRail"]
+custom_minimum_size = Vector2(0, 56)
+text = "▶ PLAY"
+
+[node name="HeroButton" type="Button" parent="MenuRail"]
+custom_minimum_size = Vector2(0, 48)
+text = "◈ HERO"
+
+[node name="WeaponButton" type="Button" parent="MenuRail"]
+custom_minimum_size = Vector2(0, 48)
+text = "⬢ WEAPON"
+
+[node name="WorldButton" type="Button" parent="MenuRail"]
+custom_minimum_size = Vector2(0, 48)
+text = "⬣ WORLD"
+
+[node name="Featured" type="Panel" parent="."]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_top = 0.0
+anchor_bottom = 0.0
+offset_left = -310.0
+offset_top = 140.0
+offset_right = 310.0
+offset_bottom = 500.0
+grow_horizontal = 2
+
+[node name="Label" type="Label" parent="Featured"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "NEON FRONTIER — SELECTED"

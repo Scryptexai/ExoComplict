@@ -143,17 +143,42 @@
 					var(--bg);
 			}
 
-			#boot[hidden] { display: none; }
-			#boot h1 {
-				margin: 0;
-				font-size: clamp(1.4rem, 4vw, 2.4rem);
-				font-weight: 700;
-				letter-spacing: 0.32em;
-				text-transform: uppercase;
+			#boot-bg {
+				position: absolute;
+				inset: 0;
+				background: url('./game/assets/ui/exoconflict/images/loading_background_16x9_4k.png') center/cover no-repeat;
+				opacity: 0.95;
+				filter: brightness(0.9) contrast(1.05);
 			}
-
-			#boot h1 span { color: var(--cyan); }
-			#boot .sub { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.22em; text-transform: uppercase; }
+			#boot::after{
+				content:"";
+				position:absolute; inset:0;
+				background: linear-gradient(180deg, rgba(5,8,12,0.55) 0%, rgba(5,8,12,0.35) 45%, rgba(5,8,12,0.88) 100%);
+			}
+			#boot > * { position: relative; z-index: 1; }
+			#boot[hidden] { display: none; }
+			#wordmark {
+				width: min(860px, 82vw);
+				height: auto;
+				margin: 0 auto;
+				display: block;
+				filter: drop-shadow(0 6px 24px rgba(0,0,0,0.65));
+			}
+			#robot-walk{
+				width: 84px; height: 84px;
+				margin: 0 auto 8px;
+				background: url('./game/assets/ui/exoconflict/images/robot_walk_green_chroma.png') 0 0 / 400% 100% no-repeat;
+				animation: robotWalk 0.6s steps(4) infinite;
+				filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
+				border: 1px solid rgba(127,216,255,0.35);
+				border-radius: 12px;
+				background-color: rgba(7,16,26,0.55);
+			}
+			@keyframes robotWalk{
+				from{ background-position: 0 0; }
+				to{ background-position: -336px 0; }
+			}
+			#boot .sub { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.22em; text-transform: uppercase; margin-top: 10px; }
 			#bar {
 				width: min(30rem, 70vw);
 				height: 0.4rem;
@@ -237,8 +262,10 @@
 		</div>
 
 		<div id="boot">
-			<h1>Project <span>Overdrive</span></h1>
-			<div class="sub">WebAssembly preview · Godot 4.7.2</div>
+			<div id="boot-bg"></div>
+			<img id="wordmark" alt="EXOCONFLICT STELLAR HORIZON" src="./game/assets/ui/exoconflict/images/wordmark_exoconflict.png" />
+			<div class="sub">EXOCONFLICT: Stellar Horizon · WebAssembly preview · Godot 4.7.2</div>
+			<div id="robot-walk" aria-hidden="true"></div>
 			<div id="bar"><i></i></div>
 			<div id="boot-status">menyiapkan…</div>
 		</div>
