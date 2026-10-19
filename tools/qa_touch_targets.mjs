@@ -37,16 +37,20 @@ const browser = await puppeteer.launch({
   env: { ...process.env, LD_LIBRARY_PATH: [LIB_DIR, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':') },
 });
 try {
-  const page = await browser.newPage();
+  let page = await browser.newPage();
   const lines = [];
   const errors = [];
-  page.on('console', message => {
-    const line = message.text();
-    lines.push(line);
-    if (/^(Encounter:|HUD:|Shot QA:|Camera QA:|Touch QA:)/.test(line)) console.log(line);
-    if (/SCRIPT ERROR:|Parse Error:/.test(line)) errors.push(line);
-  });
-  page.on('pageerror', error => errors.push(String(error)));
+  const preview = `${URL}${URL.includes('?') ? '&' : '?'}qa_effect&qa_camera&qa_touch`;
+  const listen = target => {
+    target.on('console', message => {
+      const line = message.text();
+      lines.push(line);
+      if (/^(Encounter:|HUD:|Shot QA:|Touch QA:)/.test(line)) console.log(line);
+      if (/SCRIPT ERROR:|Parse Error:/.test(line)) errors.push(line);
+    });
+    target.on('pageerror', error => errors.push(String(error)));
+  };
+  listen(page);
   const count = text => lines.filter(line => line.includes(text)).length;
   const waitForCount = async (text, minimum, ms = 45000) => {
     if (count(text) >= minimum) return;
@@ -80,8 +84,21 @@ try {
     console.log('FRAME', name);
   };
   const tap = async (x, y) => { await page.touchscreen.tap(x, y); await delay(400); };
-  const viewport = async (width, height) => {
+  const viewport = async (width, height, newScene = false) => {
+    if (newScene) {
+      // Changing emulated mobile sizes on an already-loaded Godot canvas can
+      // retain the old viewport meta scale (375x667 becomes 391x696). A new
+      // browser page makes the measurement a REAL native-size canvas.
+      await page.close();
+      page = await browser.newPage();
+      listen(page);
+    }
     await page.setViewport({ width, height, hasTouch: true, isMobile: true, deviceScaleFactor: 1 });
+    if (newScene) {
+      const explored = count('Encounter: Explore safe');
+      await page.goto(preview, { waitUntil: 'domcontentloaded', timeout: 90000 });
+      await waitForCount('Encounter: Explore safe', explored + 1, 90000);
+    }
     await delay(850);
   };
   const fireFromNewRim = async (x, y, name) => {
@@ -96,7 +113,7 @@ try {
   };
 
   await viewport(390, 844);
-  await page.goto(`${URL}${URL.includes('?') ? '&' : '?'}qa_effect&qa_camera&qa_touch`, {
+  await page.goto(preview, {
     waitUntil: 'domcontentloaded', timeout: 90000,
   });
   await waitForCount('Encounter: Explore safe', 1, 90000);
@@ -125,17 +142,17 @@ try {
   await page.keyboard.press('Escape');
   await waitForCount('HUD: resumed', 2);
 
-  await viewport(375, 667);
+  await viewport(375, 667, true);
   await assertPhysicalRects(375, 667, { FIRE: 184, ADS: 106, EMP: 106, SWAP: 110, PAUSE: 62 });
   await shot('07-portrait-375-explore');
   await fireFromNewRim(187, 555, '08-portrait-375-fire-rim'); // Old FIRE began at x203.
 
-  await viewport(844, 390);
+  await viewport(844, 390, true);
   await assertPhysicalRects(844, 390, { FIRE: 178, ADS: 110, EMP: 110, SWAP: 110, PAUSE: 62 });
   await shot('09-landscape-844-explore');
   await fireFromNewRim(662, 290, '10-landscape-844-fire-rim'); // Old FIRE began at x684.
 
-  await viewport(667, 375);
+  await viewport(667, 375, true);
   await assertPhysicalRects(667, 375, { FIRE: 178, ADS: 110, EMP: 110, SWAP: 110, PAUSE: 62 });
   await shot('11-landscape-667-explore');
   const compactPauses = count('HUD: paused');

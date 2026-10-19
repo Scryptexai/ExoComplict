@@ -19,7 +19,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const OUT = path.join(ROOT, 'qa-evidence', 'combat-touch-v2');
+const OUT = path.join(ROOT, 'exports', 'qa-combat-loop');
 const URL = process.argv.find(arg => arg.startsWith('--url='))?.slice(6) || 'http://127.0.0.1:800/';
 const LIB_DIR = path.join(ROOT, 'tools', '.cache', 'al2023-lib', 'lib');
 if (!fs.existsSync(path.join(LIB_DIR, 'libnss3.so'))) {
