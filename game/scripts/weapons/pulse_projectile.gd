@@ -86,7 +86,7 @@ func _physics_process(delta: float) -> void:
 		# effect and impact must be driven by the *actual* fired round, never by
 		# a cosmetic keyframe or a standalone smoke-test helper.
 		ImpactBurstScript.spawn(
-			get_parent(), hit_position, Color(0.28, 0.86, 1.0), hit.get("normal", Vector3.UP)
+			get_parent(), hit_position, Color(0.28, 0.86, 1.0), hit.get("normal", Vector3.UP), true
 		)
 		PulseAfterglowScript.spawn(get_parent(), _start_position, hit_position)
 		Sfx.play_3d(&"impact", hit_position)

@@ -213,10 +213,22 @@ func _run_smoke_test() -> void:
 	# --- impact burst -------------------------------------------------------
 	var before := get_nodes_in_group(ImpactBurstScript.BURST_GROUP).size()
 	var burst := ImpactBurstScript.spawn(
-		main_scene, Vector3(0.0, 1.0, -6.0), Color(0.28, 0.86, 1.0), Vector3.RIGHT
+		main_scene, Vector3(0.0, 1.0, -6.0), Color(0.28, 0.86, 1.0), Vector3.RIGHT, true
 	)
 	test_passed = (_expect(burst != null, "an impact spawns a spark burst") and test_passed)
 	if burst != null:
+		var contact := burst.get_node_or_null("PulseContactRing") as MeshInstance3D
+		test_passed = (
+			_expect(
+				(
+					contact != null
+					and contact.mesh is TorusMesh
+					and contact.basis.y.dot(Vector3.RIGHT) > 0.9
+				),
+				"a real Pulse collision can leave a hollow ring aligned to the hit surface",
+			)
+			and test_passed
+		)
 		test_passed = (
 			_expect(
 				(

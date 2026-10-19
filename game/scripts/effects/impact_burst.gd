@@ -16,8 +16,13 @@ const DEFAULT_TINT := Color(1.0, 0.72, 0.32, 1.0)
 
 @export var tint: Color = DEFAULT_TINT
 
+# Pulse rounds get a restrained, surface-aligned contact ring around the
+# collision point. Leave Nova's separate shockwave and Arc's sparks alone.
+var pulse_contact: bool = false
 var surface_normal: Vector3 = Vector3.UP
 var _light: OmniLight3D
+var _contact_ring: MeshInstance3D
+var _ring_material: StandardMaterial3D
 var _light_age: float = 0.0
 var _trigger_frame: int = -1
 
@@ -25,13 +30,18 @@ var _trigger_frame: int = -1
 ## Spawns a burst at [param position] under [param parent]. Returns the node so a
 ## test can inspect it; gameplay ignores the return value.
 static func spawn(
-	parent: Node, position: Vector3, color: Color = DEFAULT_TINT, normal: Vector3 = Vector3.UP
+	parent: Node,
+	position: Vector3,
+	color: Color = DEFAULT_TINT,
+	normal: Vector3 = Vector3.UP,
+	show_pulse_contact: bool = false
 ) -> ImpactBurst:
 	if parent == null or not parent.is_inside_tree():
 		return null
 	var burst := ImpactBurst.new()
 	burst.name = "ImpactBurst"
 	burst.tint = color
+	burst.pulse_contact = show_pulse_contact
 	burst.surface_normal = normal.normalized() if normal.length_squared() > 0.01 else Vector3.UP
 	parent.add_child(burst)
 	burst.global_position = position
@@ -81,6 +91,8 @@ func _ready() -> void:
 	_light.omni_range = 3.0
 	_light.shadow_enabled = false
 	add_child(_light)
+	if pulse_contact:
+		_build_contact_ring()
 	_trigger_frame = Engine.get_process_frames()
 
 
@@ -89,6 +101,38 @@ func _process(delta: float) -> void:
 		return
 	_light_age += delta
 	_light.light_energy = 1.5 * clampf(1.0 - _light_age / 0.22, 0.0, 1.0)
+	if _contact_ring != null:
+		var progress := clampf(_light_age / 0.3, 0.0, 1.0)
+		_contact_ring.scale = Vector3.ONE * (0.9 + progress * 0.55)
+		_ring_material.albedo_color.a = 0.58 * (1.0 - progress)
+		_ring_material.emission_energy_multiplier = 0.85 * (1.0 - progress)
+		_contact_ring.visible = progress < 1.0
+
+
+func _build_contact_ring() -> void:
+	var torus := TorusMesh.new()
+	torus.inner_radius = 0.34
+	torus.outer_radius = 0.42
+	torus.rings = 8
+	torus.ring_segments = 32
+	_ring_material = StandardMaterial3D.new()
+	_ring_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_ring_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_ring_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_ring_material.albedo_color = Color(tint.r, tint.g, tint.b, 0.58)
+	_ring_material.emission_enabled = true
+	_ring_material.emission = tint
+	_ring_material.emission_energy_multiplier = 0.85
+	_contact_ring = MeshInstance3D.new()
+	_contact_ring.name = "PulseContactRing"
+	_contact_ring.mesh = torus
+	_contact_ring.material_override = _ring_material
+	_contact_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# A torus faces +Y. Match the actual collision normal instead of aiming
+	# every impact at the camera; the hollow center preserves target visibility.
+	_contact_ring.basis = Basis(Quaternion(Vector3.UP, surface_normal))
+	_contact_ring.position = surface_normal * 0.065
+	add_child(_contact_ring)
 
 
 func _spark_material(color: Color) -> StandardMaterial3D:
