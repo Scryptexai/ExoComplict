@@ -538,8 +538,28 @@ func _run_smoke_test() -> void:
 			and fire_button.get_global_rect().size.x * COMPACT_STRETCH >= 178.0
 			and not feedback_panel.get_global_rect().intersects(skill_button.get_global_rect())
 			and not feedback_panel.get_global_rect().intersects(weapon_button.get_global_rect())
+			and (
+				(controls.get("_feedback_panel").get("_message_label") as Label).text
+				== "NO TARGETS"
+			)
 		),
-		"compact landscape preserves an accessible Armory without control overlaps",
+		(
+			(
+				"compact landscape preserves Armory and a free status lane: entry=%s weapon=%s "
+				+ "state=%s tooltip=%s fire=%s feedback=%s EMP=%s SWAP=%s text=%s"
+			)
+			% [
+				armory_entry.visible,
+				weapon_button.visible,
+				weapon_button.get_meta("aegis_state", ""),
+				weapon_button.tooltip_text,
+				fire_button.get_global_rect(),
+				feedback_panel.get_global_rect(),
+				skill_button.get_global_rect(),
+				weapon_button.get_global_rect(),
+				(controls.get("_feedback_panel").get("_message_label") as Label).text,
+			]
+		),
 	)
 	_tap_screen_button(controls, weapon_button, 94)
 	_expect(armory.visible and paused, "compact SWAP face opens Armory in Explore")

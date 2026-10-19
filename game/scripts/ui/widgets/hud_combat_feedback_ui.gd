@@ -8,6 +8,7 @@ var _message_label: Label
 var _remaining: float = 0.0
 var _message: String = ""
 var _compact_explore: bool = false
+var _compact_landscape: bool = false
 
 
 func _ready() -> void:
@@ -50,6 +51,14 @@ func _refresh_message() -> void:
 		_message_label.text = "NO\nTARGETS"
 	elif _compact_explore and _message.contains("TARGET"):
 		_message_label.text = "EMP\nHIT"
+	elif _compact_landscape and _message.contains("NO TARGETS"):
+		_message_label.text = "NO TARGETS"
+	elif _compact_landscape and _message.begins_with("EMP PULSE · "):
+		_message_label.text = _message.trim_prefix("EMP PULSE · ")
+	elif _compact_landscape and _message.begins_with("TARGET DOWN · "):
+		_message_label.text = "KO · " + _message.trim_prefix("TARGET DOWN · ")
+	elif _compact_landscape and _message.contains(" CLEAR · "):
+		_message_label.text = "CLEAR · " + _message.get_slice(" CLEAR · ", 1)
 	else:
 		_message_label.text = _message
 
@@ -71,6 +80,7 @@ func layout_for(hud) -> void:
 		)
 	)
 	_compact_explore = hud._touch_mode and hud._portrait and hud._play_phase == "explore"
+	_compact_landscape = hud._touch_mode and not hud._portrait and hud._narrow
 	_refresh_message()
 	var width: float = minf(hud._to_layout(272.0), hud.size.x - hud._to_layout(24.0))
 	if hud._touch_mode:
