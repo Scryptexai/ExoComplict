@@ -349,10 +349,14 @@ func _spawn_model() -> void:
 	_model = fitted["model"] as Node3D
 	_model_bounds = fitted["bounds"]
 	_model_height = float(fitted["height"])
-	ModelFitterScript.apply_overlay_material(
-		self, ModelFitterScript.outline_material(Color(0.02, 0.05, 0.09, 1.0), 0.012)
-	)
+	# Outline the *body*, not everything under VisualRoot. Applying it from the
+	# root also caught `WeaponSocket/MuzzleFlash/*`: those meshes are additive
+	# VFX, and an opaque near-black grown shell around a muzzle flash paints a
+	# dark blob over the shot instead of a rim around the avatar.
+	var outline := ModelFitterScript.outline_material(Color(0.02, 0.05, 0.09, 1.0), 0.012)
+	ModelFitterScript.apply_overlay_material(_model, outline)
 	if is_instance_valid(_fallback_body):
+		_fallback_body.material_overlay = outline
 		_fallback_body.visible = false
 	_setup_rig()
 	# One line in the console/log: which model the avatar actually got, how tall it
