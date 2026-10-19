@@ -103,23 +103,49 @@ static func refresh_weapon_action(hud) -> void:
 
 ## An opt-in browser report of the rendered Control rectangles, never glyph
 ## bounding boxes or design constants. Only present with ?qa_touch.
+##
+## The report covers every control that can sit near a display edge, and it
+## carries the resolved safe-area reserve, so an edge-margin regression can be
+## checked from the browser log alone: `SAFE=` is what the OS (and the touch
+## gesture reserve) took away, and each rect is what is left for the thumb.
 static func finish_layout(hud) -> void:
 	refresh_weapon_action(hud)
 	if not OS.has_feature("web") or not hud._touch_mode:
 		return
 	if not bool(JavaScriptBridge.eval("new URLSearchParams(location.search).has('qa_touch')")):
 		return
-	var names := ["FIRE", "ADS", "EMP", "SWAP", "PAUSE"]
+	var names := [
+		"FIRE",
+		"ADS",
+		"EMP",
+		"SWAP",
+		"PAUSE",
+		"AMMO",
+		"WAVE",
+		"HEALTH",
+		"START",
+		"ARMORY",
+		"RUN",
+	]
 	var controls: Array[Control] = [
 		hud._fire_button,
 		hud._aim_button,
 		hud._skill_button,
 		hud._weapon_button,
 		hud._pause_button,
+		hud._touch_ammo_chip,
+		hud._wave_card,
+		hud._health_card,
+		hud._defense_button,
+		hud._armory_button,
+		hud._run_card,
 	]
 	var rects := PackedStringArray()
 	for index in range(controls.size()):
-		var rect: Rect2 = controls[index].get_global_rect()
+		var control: Control = controls[index]
+		if not is_instance_valid(control) or not control.visible:
+			continue
+		var rect: Rect2 = control.get_global_rect()
 		(
 			rects
 			. append(
@@ -135,13 +161,34 @@ static func finish_layout(hud) -> void:
 				)
 			)
 		)
+	# JOY is a drawn circle, not a Control: report the real touch pocket.
+	var joy_radius: float = hud._joystick_radius * hud._stretch
+	var joy_center: Vector2 = hud._joystick_center * hud._stretch
+	(
+		rects
+		. append(
+			(
+				"JOY=%d,%d,%dx%d"
+				% [
+					roundi(joy_center.x - joy_radius),
+					roundi(joy_center.y - joy_radius),
+					roundi(joy_radius * 2.0),
+					roundi(joy_radius * 2.0),
+				]
+			)
+		)
+	)
 	print(
 		(
-			"Touch QA: viewport=%dx%d phase=%s %s"
+			"Touch QA: viewport=%dx%d phase=%s SAFE=%d,%d,%d,%d %s"
 			% [
 				roundi(hud._physical_size.x),
 				roundi(hud._physical_size.y),
 				hud._play_phase,
+				roundi(hud._safe_left * hud._stretch),
+				roundi(hud._top_inset * hud._stretch),
+				roundi(hud._safe_right * hud._stretch),
+				roundi(hud._safe_bottom * hud._stretch),
 				" ".join(rects),
 			]
 		)

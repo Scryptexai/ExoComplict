@@ -102,6 +102,18 @@ const MIN_PHYSICAL_FONT_PX := 13.0
 const MIN_TOUCH_PX := 56.0
 const TOUCH_GAP_PX := 12.0
 
+# --- Safe area -------------------------------------------------------------- #
+# Physical pixels kept clear of the display edges for the bottom-docked combat
+# controls. The Android gesture bar is only ~16 dp tall, but its swipe zone
+# reaches further and a swipe started on a button never reaches the game, so
+# the bottom reserve is deliberately larger than the side reserve. These are
+# floors: a device that reports a bigger safe area always wins.
+const SAFE_BOTTOM_PX := 28.0
+const SAFE_SIDE_PX := 8.0
+# Anything the OS reports below this is noise from a windowed or embedded
+# canvas rather than a real system inset.
+const SAFE_INSET_NOISE_PX := 4.0
+
 
 static func panel(alpha: float = PANEL_ALPHA) -> Color:
 	return Color(PANEL, alpha)

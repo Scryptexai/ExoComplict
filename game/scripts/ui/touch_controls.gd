@@ -71,6 +71,12 @@ var _physical_size: Vector2 = Vector2.ZERO
 var _stretch: float = 1.0
 var _ui_scale: float = 1.0
 var _top_inset: float = 0.0
+## Usable-area margins in layout units, resolved per relayout by
+## HudLayout.resolve_safe_insets(). `_top_inset` is separate: the top bar
+## has its own web/editor chrome allowance.
+var _safe_left: float = 0.0
+var _safe_right: float = 0.0
+var _safe_bottom: float = 0.0
 var _hud_scale: float = 1.0
 var _text_scale: float = 1.0
 var _colorblind: bool = false
@@ -1060,9 +1066,12 @@ func _layout_controls(
 	_physical_size = physical
 	var physical_width := maxf(physical.x, 320.0)
 	var physical_height := maxf(physical.y, 320.0)
-	_stretch = stretch_override if stretch_override > 0.0 else _compute_stretch(physical)
+	_stretch = (
+		stretch_override if stretch_override > 0.0 else HudLayout.compute_stretch(self, physical)
+	)
 	_ui_scale = clampf(minf(physical_width, physical_height) / 720.0, 0.64, 1.0)
 	_top_inset = _resolve_top_inset()
+	HudLayout.resolve_safe_insets(self, physical)
 	_narrow = physical_width < NARROW_WIDTH
 	_portrait = physical_height > physical_width
 	if is_instance_valid(_desktop_hint):
@@ -1160,14 +1169,6 @@ func _resolve_physical_size() -> Vector2:
 		if window_size.x >= MIN_WINDOW_PX and window_size.y >= MIN_WINDOW_PX:
 			return window_size
 	return size
-
-
-## How many physical pixels one logical canvas unit occupies. With stretch mode
-## canvas_items this is the uniform scale the engine applies to the canvas.
-func _compute_stretch(physical: Vector2) -> float:
-	if size.x <= 0.0 or size.y <= 0.0 or physical.x <= 0.0 or physical.y <= 0.0:
-		return 1.0
-	return maxf(minf(physical.x / size.x, physical.y / size.y), 0.0001)
 
 
 ## Converts physical pixels into the logical units the HUD lays out in.

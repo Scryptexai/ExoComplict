@@ -43,6 +43,50 @@ static func over_hud(hud, position: Vector2) -> bool:
 	return false
 
 
+## How many physical pixels one logical canvas unit occupies. With stretch mode
+## canvas_items this is the uniform scale the engine applies to the canvas.
+static func compute_stretch(hud, physical: Vector2) -> float:
+	if hud.size.x <= 0.0 or hud.size.y <= 0.0 or physical.x <= 0.0 or physical.y <= 0.0:
+		return 1.0
+	return maxf(minf(physical.x / hud.size.x, physical.y / hud.size.y), 0.0001)
+
+
+## Reserve the system-controlled edges of the display for the bottom-docked
+## combat controls. `get_display_safe_area()` and `get_display_cutouts()` come
+## back in *window* pixels and are converted to layout units here, so every
+## call inside this module adds the same margin. A device that reports nothing
+## (a desktop browser, or an OEM that leaves the insets empty) still gets the
+## touch gesture reserve, so the buttons never reach the glass edge.
+static func resolve_safe_insets(hud, physical: Vector2) -> void:
+	var left := 0.0
+	var right := 0.0
+	var bottom := 0.0
+	if is_instance_valid(hud.get_window()):
+		var safe := DisplayServer.get_display_safe_area()
+		if safe.size.x > 0 and safe.size.y > 0:
+			left = maxf(left, float(safe.position.x))
+			right = maxf(right, float(physical.x - (safe.position.x + safe.size.x)))
+			bottom = maxf(bottom, float(physical.y - (safe.position.y + safe.size.y)))
+		var cutouts := DisplayServer.get_display_cutouts()
+		for index in range(cutouts.size()):
+			var cutout: Rect2 = cutouts[index]
+			if cutout.size.x <= 0.0 or cutout.size.y <= 0.0:
+				continue
+			if cutout.position.x <= AegisTokens.SAFE_INSET_NOISE_PX:
+				left = maxf(left, cutout.position.x + cutout.size.x)
+			if cutout.position.x + cutout.size.x >= physical.x - AegisTokens.SAFE_INSET_NOISE_PX:
+				right = maxf(right, physical.x - cutout.position.x)
+			if cutout.position.y + cutout.size.y >= physical.y - AegisTokens.SAFE_INSET_NOISE_PX:
+				bottom = maxf(bottom, cutout.size.y)
+	if hud._touch_mode:
+		bottom = maxf(bottom, AegisTokens.SAFE_BOTTOM_PX)
+		left = maxf(left, AegisTokens.SAFE_SIDE_PX)
+		right = maxf(right, AegisTokens.SAFE_SIDE_PX)
+	hud._safe_left = hud._to_layout(maxf(left, 0.0))
+	hud._safe_right = hud._to_layout(maxf(right, 0.0))
+	hud._safe_bottom = hud._to_layout(maxf(bottom, 0.0))
+
+
 static func desktop(hud) -> void:
 	var unit: float = hud._control_unit()
 	var inset := 20.0 * unit
@@ -191,24 +235,42 @@ static func touch_portrait(hud) -> void:
 	var action_px: float = 108.0 if short_portrait else 124.0
 	var weapon_px: float = 112.0 if short_portrait else 124.0
 	var gap_px: float = 7.0 if short_portrait else 12.0
-	var fire_bottom: float = 14.0 if short_portrait else 32.0
+	# The stack used to start 8 px from the right and 14 px from the bottom on
+	# a short phone, which put FIRE inside the Android gesture strip. The
+	# authored margin is now a real edge margin; _place_button still adds the
+	# device safe area on top of it. A short phone spends 18 px instead of
+	# 40 px because its vertical budget has to hold the whole stack *and* the
+	# Explore action row above it.
+	var fire_right: float = 18.0
+	var fire_bottom: float = 18.0 if short_portrait else 40.0
 	var aim_bottom: float = fire_bottom + fire_px + gap_px
 	var emp_bottom: float = aim_bottom + action_px + gap_px
-	_place_button(hud, hud._fire_button, 8.0, fire_bottom, fire_px, fire_px)
-	_place_button(hud, hud._aim_button, 8.0, aim_bottom, action_px, action_px)
-	_place_button(hud, hud._skill_button, 8.0, emp_bottom, action_px, action_px)
+	_place_button(hud, hud._fire_button, fire_right, fire_bottom, fire_px, fire_px)
+	_place_button(hud, hud._aim_button, fire_right, aim_bottom, action_px, action_px)
+	_place_button(hud, hud._skill_button, fire_right, emp_bottom, action_px, action_px)
+	# Weapon and magazine stack vertically under the thumb's left pocket.
+	# Side by side they need 224 px of width, which is more than a 375 px
+	# phone can give them once the movement ring and the safe margins are
+	# taken out — the two plates then collided with EMP on the right rail.
+	# The authored 4 px is *added to* the safe-area reserve rather than
+	# replacing it, so the dock keeps the 12 px corner it always had on a
+	# display that reports no safe area, while gaining real clearance on one
+	# that reports a notch or a rounded corner.
 	var dock_top: float = action_top + hud._to_layout(61.0 if short_portrait else 64.0)
-	_place_weapon_dock(hud, hud._weapon_button, 12.0, dock_top, weapon_px, weapon_px)
+	var dock_side: float = 4.0
+	_place_weapon_dock(hud, hud._weapon_button, dock_side, dock_top, weapon_px, weapon_px)
 	_place_weapon_dock(
 		hud,
 		hud._touch_ammo_chip,
-		24.0 + weapon_px,
-		dock_top + hud._to_layout((weapon_px - 54.0) * 0.5),
+		dock_side,
+		dock_top + hud._to_layout(weapon_px + 8.0),
 		112.0,
 		54.0
 	)
 	# Same centre as the expanded EMP hit rectangle, including left-hand mode.
-	_place_button(hud, hud._skill_ring, 4.0, emp_bottom - 4.0, action_px + 8.0, action_px + 8.0)
+	_place_button(
+		hud, hud._skill_ring, fire_right - 4.0, emp_bottom - 4.0, action_px + 8.0, action_px + 8.0
+	)
 	_place(
 		hud._score_chip,
 		1,
@@ -231,8 +293,13 @@ static func touch_portrait(hud) -> void:
 	# a 64px-radius ring at x73 while retaining the 72px movement hit radius.
 	# Match the reflow used by the larger action stack.
 	# `short_portrait` was determined from the physical window above.
-	var stick_x: float = hud._to_layout(73.0 if short_portrait else 86.0)
-	var stick_bottom: float = hud._to_layout(82.0 if short_portrait else 106.0)
+	# The pocket is measured from the usable corner so the drawn ring keeps a
+	# real gap from the glass on every display, not just the ones that report
+	# a safe area. The centre also has to leave the whole 72 px capture circle
+	# clear of FIRE's left rim: at 390 px wide there is not enough room for
+	# both a 202 px plate and a pocket centred any further right than this.
+	var stick_x: float = hud._to_layout(73.0 if short_portrait else 78.0) + hud._safe_left
+	var stick_bottom: float = _stick_pocket_bottom(hud, 82.0 if short_portrait else 106.0, 72.0)
 	hud._joystick_center = Vector2(
 		hud.size.x - stick_x if hud._left_handed else stick_x, hud.size.y - stick_bottom
 	)
@@ -320,22 +387,32 @@ static func touch_landscape(hud) -> void:
 
 	# 844x390: enlarge the actual FIRE/ADS/EMP/SWAP touch faces as a two-row
 	# right-thumb cluster. Keep an 8px gap and move ammo into the open seam.
+	# Landscape used to dock the whole right-thumb cluster 8 px from the right
+	# and the bottom of an 844x390 screen. Raise the authored edge margin; the
+	# device safe area is added on top by _place_button.
 	var fire_px := 180.0
 	var action_px := 112.0
 	var gap_px := 8.0
-	var fire_right := 8.0
-	var aim_bottom := 8.0 + fire_px + gap_px
+	var fire_right := 20.0
+	var fire_bottom := 20.0
+	var aim_bottom := fire_bottom + fire_px + gap_px
 	var weapon_right := fire_right + action_px + gap_px
 	var skill_right := fire_right + fire_px + gap_px
-	_place_button(hud, hud._fire_button, fire_right, 8.0, fire_px, fire_px)
+	_place_button(hud, hud._fire_button, fire_right, fire_bottom, fire_px, fire_px)
 	_place_button(hud, hud._aim_button, fire_right, aim_bottom, action_px, action_px)
-	_place_button(hud, hud._skill_button, skill_right, 8.0, action_px, action_px)
+	_place_button(hud, hud._skill_button, skill_right, fire_bottom, action_px, action_px)
 	_place_button(hud, hud._weapon_button, weapon_right, aim_bottom, action_px, action_px)
-	_place_button(hud, hud._touch_ammo_chip, 224.0, 136.0, 112.0, 54.0)
-	_place_button(hud, hud._skill_ring, skill_right - 4.0, 4.0, action_px + 8.0, action_px + 8.0)
-	var stick_x: float = hud._to_layout(120.0)
+	# The magazine sits in the seam between the top-left rail and the raised
+	# EMP plate: the old (224, 136) corner ended up under the Armory row once
+	# the gesture reserve lifted it off the bottom edge.
+	_place_button(hud, hud._touch_ammo_chip, 340.0, 80.0, 112.0, 54.0)
+	_place_button(
+		hud, hud._skill_ring, skill_right - 4.0, fire_bottom - 4.0, action_px + 8.0, action_px + 8.0
+	)
+	var stick_x: float = hud._to_layout(120.0) + hud._safe_left
 	hud._joystick_center = Vector2(
-		hud.size.x - stick_x if hud._left_handed else stick_x, hud.size.y - hud._to_layout(90.0)
+		hud.size.x - stick_x if hud._left_handed else stick_x,
+		hud.size.y - _stick_pocket_bottom(hud, 90.0, 64.0)
 	)
 	hud._joystick_radius = hud._to_layout(64.0)
 	hud._joystick_visual_radius = hud._joystick_radius
@@ -386,7 +463,9 @@ static func touch_landscape(hud) -> void:
 static func overlays(hud) -> void:
 	var sheet: bool = hud._portrait and hud._narrow
 	var anchor_y := 1.0 if sheet else 0.5
-	var sheet_bottom: float = hud._to_layout(34.0) if sheet else 0.0
+	# Portrait sheets clear the gesture strip too: the drag-to-dismiss grip
+	# lives at the bottom of the sheet, so it must never sit under it.
+	var sheet_bottom: float = (hud._to_layout(34.0) + hud._safe_bottom) if sheet else 0.0
 
 	var results_width: float = minf(
 		hud._to_layout(390.0 if sheet else 600.0), hud.size.x * (0.94 if sheet else 0.92)
@@ -478,11 +557,25 @@ static func _place(
 	control.offset_bottom = rect.position.y + rect.size.y
 
 
+## Distance from the bottom glass to the joystick's centre, in layout units.
+## The pocket only moves up as far as the reserve demands: a 106 px offset
+## already keeps a 72 px ring 34 px clear of the edge, and lifting it by the
+## full reserve on top of that would push the ring into the control stack
+## above it on a 390 px-tall landscape screen.
+static func _stick_pocket_bottom(hud, authored_px: float, radius_px: float) -> float:
+	var needed_px: float = radius_px + hud._safe_bottom * hud._stretch
+	return hud._to_layout(maxf(authored_px, needed_px))
+
+
 static func _place_button(
 	hud, button: Control, right_px: float, bottom_px: float, w_px: float, h_px: float
 ) -> void:
-	var right: float = hud._to_layout(right_px)
-	var bottom: float = hud._to_layout(bottom_px)
+	# The authored margin is measured from the *usable* edge, never from the
+	# glass: the safe-area reserve (Android gesture bar, notch, rounded corner)
+	# is added here so every bottom-docked control inherits it, including the
+	# mirrored left-hand layout.
+	var right: float = hud._to_layout(right_px) + hud._safe_right
+	var bottom: float = hud._to_layout(bottom_px) + hud._safe_bottom
 	var width: float = hud._to_layout(w_px)
 	var height: float = hud._to_layout(h_px)
 	if hud._left_handed:
@@ -497,7 +590,9 @@ static func _place_button(
 static func _place_weapon_dock(
 	hud, control: Control, side_px: float, top: float, w_px: float, h_px: float
 ) -> void:
-	var side: float = hud._to_layout(side_px)
+	var side: float = (
+		hud._to_layout(side_px) + (hud._safe_right if hud._left_handed else hud._safe_left)
+	)
 	var width: float = hud._to_layout(w_px)
 	var height: float = hud._to_layout(h_px)
 	if hud._left_handed:

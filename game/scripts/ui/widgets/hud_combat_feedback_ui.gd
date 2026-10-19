@@ -68,6 +68,17 @@ func clear_message() -> void:
 	visible = false
 
 
+## Top of the compact Explore status lane, in layout units: just below the
+## magazine plate, the last real control on the left rail.
+func _below_ammo_dock(hud) -> float:
+	if not is_instance_valid(hud._touch_ammo_chip):
+		return hud._top_inset + hud._to_layout(386.0)
+	var ammo_bottom: float = hud._touch_ammo_chip.position.y + hud._touch_ammo_chip.size.y
+	if ammo_bottom <= hud._top_inset:
+		return hud._top_inset + hud._to_layout(386.0)
+	return ammo_bottom + hud._to_layout(8.0)
+
+
 func layout_for(hud) -> void:
 	add_theme_stylebox_override(
 		"panel",
@@ -88,11 +99,13 @@ func layout_for(hud) -> void:
 		var top: float = hud._top_inset + hud._to_layout(130.0)
 		var height: float = hud._to_layout(40.0)
 		if _compact_explore:
-			# The larger EMP and SWAP plates close the old full-width toast lane.
-			# A small, non-interactive status fits between ammo, hero and EMP at
-			# both 390x844 and 375x667 without painting over a touch control.
-			left = hud._to_layout(166.0)
-			top = hud._top_inset + hud._to_layout(288.0)
+			# The larger EMP and SWAP plates close the old full-width toast
+			# lane: centred in the gap between SWAP and EMP the panel still
+			# clipped EMP on both phone widths. It now sits under the
+			# weapon/magazine stack on the left rail, above the movement ring.
+			# The panel is decorative, so a real touch target always wins.
+			left = hud._to_layout(4.0) + hud._safe_left
+			top = _below_ammo_dock(hud)
 			width = hud._to_layout(84.0)
 			height = hud._to_layout(44.0)
 		elif not hud._portrait:
@@ -101,6 +114,15 @@ func layout_for(hud) -> void:
 			width = hud._to_layout(140.0 if hud._narrow else 214.0)
 			left = hud._to_layout(202.0) if hud._narrow else (hud.size.x - width) * 0.5
 			top = hud.size.y - hud._to_layout(58.0)
+			# A bar as wide as the old one reaches under EMP now that the
+			# gesture reserve lifts EMP off the bottom edge on a 667x375
+			# phone. Slide the lane left, then narrow it: the toast must never
+			# sit on a control the player is trying to press.
+			var emp_limit: float = hud._skill_button.position.x - hud._to_layout(10.0)
+			if is_instance_valid(hud._skill_button) and left + width > emp_limit:
+				left = maxf(hud._to_layout(202.0), emp_limit - width)
+				if left + width > emp_limit:
+					width = maxf(hud._to_layout(96.0), emp_limit - left)
 		HudLayout.place(hud, self, 0.0, 0.0, 0.0, 0.0, Rect2(left, top, width, height))
 	else:
 		HudLayout.place(
