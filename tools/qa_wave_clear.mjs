@@ -94,29 +94,29 @@ try {
   await page.goto(preview, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await waitFor('Encounter: Explore safe', 90000);
   await shot('00-explore');
-  await tap(130, 247);
+  await tap(120, 195); // START, not the expanded SWAP plate.
   await waitFor('Encounter: Defense started', 300000);
   await delay(5000);
   await shot('01-first-contact');
   await fire(6000);
   await shot('02-after-fire');
-  await tap(215, 700);
+  await tap(320, 400); // EMP, not FIRE.
   await delay(1200);
   await shot('03-after-first-fire-emp');
   console.log('KO now:', lines.filter(line => line.includes('Encounter: RUNNER KO')).length);
   for (let index = 0; index < 10 && !has('Results after wave'); index++) {
-    await swipe(345, 395, 240, index < 3 ? 425 : 395);
+    await swipe(218, 465, 185, index < 3 ? 480 : 465); // open camera-look seam
     await fire(1600);
     if (index % 2 === 1) await shot(`turn-${index}`);
     if (index === 5 || index === 8) {
-      await tap(215, 700);
+      await tap(320, 400); // EMP, not FIRE.
       await shot(`second-emp-${index}`);
     }
     console.log('TURN', index, 'KO', lines.filter(line => line.includes('Encounter: RUNNER KO')).length);
     if (lines.filter(line => line.includes('Encounter: RUNNER KO')).length >= 2) break;
   }
   if (!has('Results after wave')) {
-    await tap(333, 109);
+    await tap(345, 68); // PAUSE
     await delay(550);
     await tap(185, 654);
   }
@@ -128,14 +128,14 @@ try {
   if (banked < 120) throw new Error(`Need 120 earned BP before testing an unlock, got ${banked}`);
   await tap(190, 765); // Results -> Explore
   await waitFor('Encounter: Returned to Explore', 15000);
-  await tap(125, 315); // Explore -> Armory
+  await tap(100, 290); // SWAP opens Armory when only one weapon is equipped.
   await shot('03-armory-ready');
   await tap(190, 404); // Nova, 120 BP
   await waitFor('Armory: unlocked nova_launcher', 15000);
   await shot('04-armory-nova-equipped');
   await tap(190, 533); // Return to field
   await delay(700);
-  await tap(130, 247); // START DEFENSE with unlocked Nova equipped
+  await tap(120, 195); // START DEFENSE with Nova equipped, above SWAP.
   await waitForCount('Encounter: Defense started', 2, 300000);
   let cdp;
   if (EFFECTS) {
@@ -156,7 +156,7 @@ try {
     // steep floor-facing camera from the first wave. Use a deliberate thumb
     // look toward the front-right Runner's approach and the floor near it;
     // a centered blind shot into the horizon cannot demonstrate splash art.
-    await swipe(280, 390, 360, 465);
+    await swipe(218, 465, 238, 485); // start in the open look lane, not EMP
     await shot('05b-nova-aimed-lane');
   }
   await fire(EFFECTS ? 5000 : 1700);
@@ -166,7 +166,7 @@ try {
       /^Effects QA: Nova impact=.+ damaged=[1-9]/.test(line)) || '';
     for (let index = 0; index < 9 && !damagingImpact()
       && lines.filter(line => line.includes('Encounter: Results after wave')).length < 2; index++) {
-      await swipe(345, 395, 260, index % 3 === 2 ? 425 : 395);
+      await swipe(218, 465, 183, index % 3 === 2 ? 485 : 465);
       await fire(2300);
       if (index % 2 === 0) await shot(`nova-search-${index}`);
     }

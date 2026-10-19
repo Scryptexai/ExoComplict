@@ -101,6 +101,53 @@ static func refresh_weapon_action(hud) -> void:
 	)
 
 
+## An opt-in browser report of the rendered Control rectangles, never glyph
+## bounding boxes or design constants. Only present with ?qa_touch.
+static func finish_layout(hud) -> void:
+	refresh_weapon_action(hud)
+	if not OS.has_feature("web") or not hud._touch_mode:
+		return
+	if not bool(JavaScriptBridge.eval("new URLSearchParams(location.search).has('qa_touch')")):
+		return
+	var names := ["FIRE", "ADS", "EMP", "SWAP", "PAUSE"]
+	var controls: Array[Control] = [
+		hud._fire_button,
+		hud._aim_button,
+		hud._skill_button,
+		hud._weapon_button,
+		hud._pause_button,
+	]
+	var rects := PackedStringArray()
+	for index in range(controls.size()):
+		var rect: Rect2 = controls[index].get_global_rect()
+		(
+			rects
+			. append(
+				(
+					"%s=%d,%d,%dx%d"
+					% [
+						names[index],
+						roundi(rect.position.x * hud._stretch),
+						roundi(rect.position.y * hud._stretch),
+						roundi(rect.size.x * hud._stretch),
+						roundi(rect.size.y * hud._stretch),
+					]
+				)
+			)
+		)
+	print(
+		(
+			"Touch QA: viewport=%dx%d phase=%s %s"
+			% [
+				roundi(hud._physical_size.x),
+				roundi(hud._physical_size.y),
+				hud._play_phase,
+				" ".join(rects),
+			]
+		)
+	)
+
+
 static func build_objective(hud) -> void:
 	hud._wave_card = AegisPanel.new()
 	hud._wave_card.name = "WaveCard"

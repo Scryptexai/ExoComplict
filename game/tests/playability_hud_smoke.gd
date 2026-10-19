@@ -542,9 +542,9 @@ func _run_smoke_test() -> void:
 		"compact landscape preserves an accessible Armory without control overlaps",
 	)
 	_tap_screen_button(controls, weapon_button, 94)
-	_expect(armory.visible and get_tree().paused, "compact SWAP face opens Armory in Explore")
+	_expect(armory.visible and paused, "compact SWAP face opens Armory in Explore")
 	main_scene.call("_close_armory")
-	_expect(not get_tree().paused, "closing compact Armory resumes safe Explore")
+	_expect(not paused, "closing compact Armory resumes safe Explore")
 	controls.size = Vector2(1280.0, 720.0)
 	controls.call("apply_layout_for_size", Vector2(1280.0, 720.0), 1.0)
 	_expect(

@@ -83,20 +83,20 @@ try {
   await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await waitFor('Encounter: Explore safe', 90000);
   await shot('01-explore');
-  await tap(130, 247);
+  await tap(120, 195); // START, above the expanded SWAP plate.
   await waitFor('Encounter: Defense started', 300000);
   await delay(5000);
   await shot('02-first-contact');
   if (!has('Results after wave')) {
     await fire(6000);
     await shot('03-after-fire');
-    await tap(215, 700); // EMP after the first Runner has closed to pulse range.
+    await tap(320, 400); // EMP: its new portrait face is x258..382/y338..462.
     await delay(1200);
     await shot('04-after-emp');
   }
   if (!has('Results after wave') && !has('Encounter: Runner KO')) await fire(5000);
   if (!has('Results after wave')) {
-    await tap(333, 109); // PAUSE, then deliberately cash out.
+    await tap(345, 68); // PAUSE: the 64px top-right plate.
     await delay(550);
     await tap(185, 654); // FINISH RUN · RESULTS
   }
@@ -108,13 +108,13 @@ try {
   console.log('EARNED', `${match[1]} BP`, 'WALLET', match[2]);
   await tap(190, 765); // Results -> Return to Explore
   await waitFor('Encounter: Returned to Explore', 15000);
-  await tap(125, 315); // Explore -> Armory (wallet persists in this profile)
+  await tap(100, 290); // SWAP opens Armory with one equipped weapon.
   await shot('06-armory-after-reward');
   await page.keyboard.press('Escape');
   await delay(850);
   const preparations = lines.filter(line => line.includes('Encounter: Preparing Defense')).length;
   const defenses = lines.filter(line => line.includes('Encounter: Defense started')).length;
-  await tap(130, 247);
+  await tap(120, 195); // START, above the expanded SWAP plate.
   await waitForCount('Encounter: Preparing Defense', preparations + 1, 15000);
   await waitForCount('Encounter: Defense started', defenses + 1, 300000);
   await shot('07-replay-defense');

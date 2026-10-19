@@ -1086,7 +1086,7 @@ func _layout_controls(
 
 	_layout_overlays()
 	_apply_input_mode()
-	HudEncounterUi.refresh_weapon_action(self)
+	HudEncounterUi.finish_layout(self)
 	HudEditorLayout.apply(self)
 	queue_redraw()
 

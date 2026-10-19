@@ -82,7 +82,7 @@ try {
   const preview = `${URL}${URL.includes('?') ? '&' : '?'}qa_camera`;
   await page.goto(preview, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await waitFor('Encounter: Explore safe', 90000);
-  await page.touchscreen.tap(130, 247);
+  await page.touchscreen.tap(120, 195); // START, above enlarged SWAP.
   await waitFor('Encounter: Defense started', 300000);
   await waitFor('Encounter: Defeat reveal before Results', 600000);
   if (lines.some(line => line.includes('Encounter: Results after wave'))) {
