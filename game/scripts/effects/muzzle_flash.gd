@@ -7,6 +7,9 @@ extends Node3D
 ## is transient and the accompanying light has a bounded range for mobile/Web.
 
 const GLINT_MASK: Texture2D = preload("res://assets/vfx/muzzle_glint.png")
+# A near-side view of the billboard filled ~100 CSS px on a 390 px phone when
+# the player looked down at the floor. Keep the flare readable but bounded.
+const MAX_GLINT_VIEW_WIDTH: float = 0.095
 
 @export_range(0.02, 0.4, 0.005) var duration: float = 0.15
 @export_range(0.0, 12.0, 0.1) var flash_energy: float = 2.8
@@ -173,7 +176,24 @@ func flash(strength: float = 1.0, tint: Color = Color(0.0, 0.0, 0.0, 0.0)) -> vo
 	var size := flash_scale / 0.34 * randf_range(0.88, 1.12)
 	_mesh.scale = Vector3.ONE * size
 	_core.scale = Vector3.ONE * size
-	_glint.scale = Vector3.ONE * size
+	# The face-on billboard can have a huge projected footprint when a close
+	# floor shot turns its plane broadside to a steep third-person camera. Cap
+	# its actual on-screen width rather than shrinking every normal shot.
+	var glint_size := size
+	var camera := get_viewport().get_camera_3d()
+	if camera != null and not camera.is_position_behind(_glint.global_position):
+		var viewport := get_viewport()
+		var centre := camera.unproject_position(_glint.global_position)
+		var quad := _glint.mesh as QuadMesh
+		var edge := camera.unproject_position(
+			_glint.global_position + camera.global_basis.x * quad.size.x * size
+		)
+		var projected_width := centre.distance_to(edge)
+		if projected_width > 0.01:
+			glint_size *= minf(
+				1.0, viewport.get_visible_rect().size.x * MAX_GLINT_VIEW_WIDTH / projected_width
+			)
+	_glint.scale = Vector3.ONE * glint_size
 	for index in range(_streaks.size()):
 		var streak := _streaks[index]
 		streak.scale = Vector3.ONE * size * (0.85 if index else 1.0)
