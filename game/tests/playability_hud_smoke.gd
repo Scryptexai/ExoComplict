@@ -266,10 +266,17 @@ func _run_smoke_test() -> void:
 		(
 			not feedback_panel.get_global_rect().intersects(weapon_button.get_global_rect())
 			and not feedback_panel.get_global_rect().intersects(ammo_panel.get_global_rect())
-			and feedback_panel.get_global_rect().end.y < skill_button.get_global_rect().position.y
+			and not feedback_panel.get_global_rect().intersects(skill_button.get_global_rect())
+			and not feedback_panel.get_global_rect().intersects(aim_button.get_global_rect())
 		),
 		"portrait Explore feedback does not hide the SWAP/ammo dock or EMP",
 	)
+	feedback_panel.call("show_message", "EMP PULSE · NO TARGETS")
+	_expect(
+		(controls.get("_feedback_panel").get("_message_label") as Label).text == "NO\nTARGETS",
+		"portrait Explore feedback remains legible in the slim lane between real buttons",
+	)
+	feedback_panel.call("clear_message")
 	var portrait_skill_ring := controls.get("_skill_ring") as Control
 	_expect(
 		(
@@ -344,6 +351,28 @@ func _run_smoke_test() -> void:
 			]
 		),
 	)
+	# Press the NEW strip left of the old 160px FIRE rect, not its centre.
+	# Rect-size assertions alone would miss a stale dispatcher/hitbox.
+	var fire_edge: Vector2 = fire_button.get_global_rect().get_center()
+	fire_edge.x = fire_button.get_global_rect().position.x + float(controls.call("_to_layout", 5.0))
+	_expect(
+		controls.call("_find_touch_button", fire_edge) == fire_button,
+		"the physically expanded FIRE rim belongs to the input dispatcher",
+	)
+	_send_screen_touch(controls, 96, fire_edge, true)
+	_expect(bool(player.get("_touch_fire_pressed")), "the newly expanded FIRE rim actually fires")
+	_send_screen_touch(controls, 96, fire_edge, false)
+	_expect(
+		not bool(player.get("_touch_fire_pressed")), "releasing the expanded FIRE rim stops fire"
+	)
+	var pause_edge: Vector2 = pause_button.get_global_rect().get_center()
+	pause_edge.x = (
+		pause_button.get_global_rect().position.x + float(controls.call("_to_layout", 2.0))
+	)
+	_expect(
+		controls.call("_find_touch_button", pause_edge) == pause_button,
+		"the 64px Pause face extends beyond the old 56px hitbox",
+	)
 	controls.call("_set_play_phase", "defense")
 	_expect(
 		(
@@ -369,6 +398,8 @@ func _run_smoke_test() -> void:
 			and skill_button.get_global_rect().size.x * SHORT_STRETCH >= 106.0
 			and weapon_button.get_global_rect().size.x * SHORT_STRETCH >= 110.0
 			and pause_button.get_global_rect().size.x * SHORT_STRETCH >= 62.0
+			and not feedback_panel.get_global_rect().intersects(skill_button.get_global_rect())
+			and not feedback_panel.get_global_rect().intersects(ammo_panel.get_global_rect())
 			and (
 				(
 					(
@@ -429,6 +460,21 @@ func _run_smoke_test() -> void:
 		),
 		"landscape FIRE 180, AIM/EMP/SWAP 112px hit rects; ring frames EMP",
 	)
+	var landscape_fire_edge := (
+		fire_button.get_global_rect().position
+		+ Vector2(float(controls.call("_to_layout", 5.0)), float(controls.call("_to_layout", 8.0)))
+	)
+	var landscape_aim_edge := (
+		aim_button.get_global_rect().position
+		+ Vector2(float(controls.call("_to_layout", 4.0)), float(controls.call("_to_layout", 7.0)))
+	)
+	_expect(
+		(
+			controls.call("_find_touch_button", landscape_fire_edge) == fire_button
+			and controls.call("_find_touch_button", landscape_aim_edge) == aim_button
+		),
+		"landscape FIRE and ADS new border pixels are actual touch targets",
+	)
 	var help_plate := controls.get("_help_panel") as Control
 	var armory_entry := controls.get("_armory_button") as Control
 	var ammo_chip := controls.get("_touch_ammo_chip") as Control
@@ -477,6 +523,28 @@ func _run_smoke_test() -> void:
 			]
 		),
 	)
+	# 667x375 would put the old top Armory entry under the enlarged SWAP
+	# face. On compact landscape SWAP opens Armory in safe Explore instead.
+	const COMPACT_STRETCH := 667.0 / 1280.0
+	controls.size = Vector2(667.0 / COMPACT_STRETCH, 375.0 / COMPACT_STRETCH)
+	controls.call("apply_layout_for_size", Vector2(667.0, 375.0), COMPACT_STRETCH)
+	await process_frame
+	_expect(
+		(
+			not armory_entry.visible
+			and weapon_button.visible
+			and String(weapon_button.get_meta("aegis_state", "")) == "armory"
+			and weapon_button.tooltip_text.contains("Open Armory")
+			and fire_button.get_global_rect().size.x * COMPACT_STRETCH >= 178.0
+			and not feedback_panel.get_global_rect().intersects(skill_button.get_global_rect())
+			and not feedback_panel.get_global_rect().intersects(weapon_button.get_global_rect())
+		),
+		"compact landscape preserves an accessible Armory without control overlaps",
+	)
+	_tap_screen_button(controls, weapon_button, 94)
+	_expect(armory.visible and get_tree().paused, "compact SWAP face opens Armory in Explore")
+	main_scene.call("_close_armory")
+	_expect(not get_tree().paused, "closing compact Armory resumes safe Explore")
 	controls.size = Vector2(1280.0, 720.0)
 	controls.call("apply_layout_for_size", Vector2(1280.0, 720.0), 1.0)
 	_expect(
@@ -781,7 +849,9 @@ func _run_smoke_test() -> void:
 	var yaw_before := yaw_pivot.rotation.y
 	var look_touch := InputEventScreenTouch.new()
 	look_touch.index = 72
-	look_touch.position = Vector2(controls.size.x * 0.82, controls.size.y * 0.58)
+	# A right-edge swipe now correctly hits the larger FIRE plate. Exercise
+	# camera look in the open aiming lane just to its left instead.
+	look_touch.position = Vector2(controls.size.x * 0.58, controls.size.y * 0.66)
 	look_touch.pressed = true
 	controls.call("_input", look_touch)
 	var look_drag := InputEventScreenDrag.new()

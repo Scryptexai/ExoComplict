@@ -50,7 +50,10 @@ static func apply_context(hud) -> void:
 	var preparing: bool = hud._play_phase == "preparing"
 	hud._defense_button.visible = active and (exploring or preparing)
 	if is_instance_valid(hud._armory_button):
-		hud._armory_button.visible = active and exploring
+		# On a short landscape phone the expanded WEAPON plate occupies the
+		# old Armory slot. Its Explore action opens the same Armory instead;
+		# Defense retains the normal SWAP action.
+		hud._armory_button.visible = active and exploring and not weapon_acts_as_armory(hud)
 	hud._defense_button.disabled = not exploring
 	hud._defense_button.text = (
 		"DEFENSE IN %d" % hud._preparation_seconds
@@ -78,6 +81,24 @@ static func apply_context(hud) -> void:
 	# Re-anchor when the encounter changes phase, not only on window resize.
 	if is_instance_valid(hud._feedback_panel):
 		hud._feedback_panel.layout_for(hud)
+
+
+static func weapon_acts_as_armory(hud) -> bool:
+	return hud._touch_mode and hud._narrow and not hud._portrait and hud._play_phase == "explore"
+
+
+static func refresh_weapon_action(hud) -> void:
+	if not is_instance_valid(hud._weapon_button):
+		return
+	var compact_armory: bool = weapon_acts_as_armory(hud)
+	var can_swap: bool = hud._available_weapon_count > 1 and not compact_armory
+	hud._weapon_button.text = ""
+	hud._weapon_button.icon = AegisTheme.icon("rifle" if compact_armory else "swap")
+	hud._weapon_button.set_meta("aegis_state", "swap" if can_swap else "armory")
+	hud._weapon_button.tooltip_text = (
+		("Tap to swap · Equipped: " if can_swap else "Open Armory · Equipped: ")
+		+ hud._weapon_display_name
+	)
 
 
 static func build_objective(hud) -> void:

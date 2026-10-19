@@ -6,6 +6,8 @@ extends AegisPanel
 
 var _message_label: Label
 var _remaining: float = 0.0
+var _message: String = ""
+var _compact_explore: bool = false
 
 
 func _ready() -> void:
@@ -35,9 +37,21 @@ func _process(delta: float) -> void:
 func show_message(text: String) -> void:
 	if text.is_empty():
 		return
-	_message_label.text = text
+	_message = text
+	_refresh_message()
 	_remaining = 1.9
 	visible = true
+
+
+func _refresh_message() -> void:
+	# Only the Explore portrait seam needs a compact two-line status. Keep
+	# complete hit/reward messages in Defense, where the START lane is vacant.
+	if _compact_explore and _message.contains("NO TARGETS"):
+		_message_label.text = "NO\nTARGETS"
+	elif _compact_explore and _message.contains("TARGET"):
+		_message_label.text = "EMP\nHIT"
+	else:
+		_message_label.text = _message
 
 
 func clear_message() -> void:
@@ -56,25 +70,28 @@ func layout_for(hud) -> void:
 			hud._to_layout(8.0)
 		)
 	)
+	_compact_explore = hud._touch_mode and hud._portrait and hud._play_phase == "explore"
+	_refresh_message()
 	var width: float = minf(hud._to_layout(272.0), hud.size.x - hud._to_layout(24.0))
 	if hud._touch_mode:
 		var left: float = hud._to_layout(12.0)
-		var top: float = hud._top_inset + hud._to_layout(304.0)
-		if hud._portrait:
-			# Explore: below the new weapon/ammo dock, above the hero. Defense:
-			# START/ARMORY are hidden, so the free row beneath the objective can
-			# carry feedback without hiding an approaching target or the rifle.
-			if hud._play_phase == "defense":
-				top = hud._top_inset + hud._to_layout(130.0)
-		else:
-			# Landscape: use the free top-bar lane between health and the
-			# pause/sound group. The old top-right position covered ADS/WEAPON.
-			width = minf(width, maxf(hud._to_layout(156.0), hud.size.x - hud._to_layout(464.0)))
-			left = (hud.size.x - width) * 0.5
-			top = hud._top_inset + hud._to_layout(8.0)
-		HudLayout.place(
-			hud, self, 0.0, 0.0, 0.0, 0.0, Rect2(left, top, width, hud._to_layout(40.0))
-		)
+		var top: float = hud._top_inset + hud._to_layout(130.0)
+		var height: float = hud._to_layout(40.0)
+		if _compact_explore:
+			# The larger EMP and SWAP plates close the old full-width toast lane.
+			# A small, non-interactive status fits between ammo, hero and EMP at
+			# both 390x844 and 375x667 without painting over a touch control.
+			left = hud._to_layout(166.0)
+			top = hud._top_inset + hud._to_layout(288.0)
+			width = hud._to_layout(84.0)
+			height = hud._to_layout(44.0)
+		elif not hud._portrait:
+			# Lower centre clears the health rail, top-centre Pause and the
+			# right-side action cluster. On a narrow landscape, avoid EMP too.
+			width = hud._to_layout(140.0 if hud._narrow else 214.0)
+			left = hud._to_layout(202.0) if hud._narrow else (hud.size.x - width) * 0.5
+			top = hud.size.y - hud._to_layout(58.0)
+		HudLayout.place(hud, self, 0.0, 0.0, 0.0, 0.0, Rect2(left, top, width, height))
 	else:
 		HudLayout.place(
 			hud,

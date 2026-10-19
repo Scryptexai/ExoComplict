@@ -174,6 +174,7 @@ var _run_score: int = 0
 var _run_bp: int = 0
 var _wallet_bp: int = 0
 var _available_weapon_count: int = 1
+var _weapon_display_name: String = ""
 var _run_kos: int = 0
 var _run_time: String = "00:00"
 var _run_shots: int = 0
@@ -386,6 +387,7 @@ func _set_play_phase(phase: String, seconds: int = 0) -> void:
 	if phase != "defense":
 		set_wave_status(0, 0, 0, "")
 	_apply_context_visibility()
+	HudEncounterUi.refresh_weapon_action(self)
 	queue_redraw()
 
 
@@ -476,14 +478,8 @@ func _refresh_compact_label(source: String = "") -> void:
 
 
 func set_weapon_label(display_name: String) -> void:
-	if is_instance_valid(_weapon_button):
-		var can_swap := _available_weapon_count > 1
-		_weapon_button.text = ""
-		_weapon_button.icon = AegisTheme.icon("swap")
-		_weapon_button.set_meta("aegis_state", "swap" if can_swap else "armory")
-		_weapon_button.tooltip_text = (
-			("Tap to swap · Equipped: " if can_swap else "Open Armory · Equipped: ") + display_name
-		)
+	_weapon_display_name = display_name
+	HudEncounterUi.refresh_weapon_action(self)
 	if is_instance_valid(_touch_ammo_chip):
 		_touch_ammo_chip.set_weapon(display_name.get_slice(" ", 0).to_upper())
 	if is_instance_valid(_desktop_weapon_name):
@@ -1090,6 +1086,7 @@ func _layout_controls(
 
 	_layout_overlays()
 	_apply_input_mode()
+	HudEncounterUi.refresh_weapon_action(self)
 	HudEditorLayout.apply(self)
 	queue_redraw()
 
@@ -1514,7 +1511,10 @@ func _on_aim_up() -> void:
 func _on_weapon_switch_pressed() -> void:
 	if not _player_down and not get_tree().paused:
 		Sfx.play_ui(&"ui_click")
-		weapon_switch_requested.emit()
+		if HudEncounterUi.weapon_acts_as_armory(self):
+			armory_requested.emit()
+		else:
+			weapon_switch_requested.emit()
 
 
 func _on_skill_pressed() -> void:
