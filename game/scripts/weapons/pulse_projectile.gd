@@ -45,7 +45,12 @@ func launch(
 ## capped at 2.6 m to stay legible without drawing a beam through cover.
 ## Duplicate the mesh: a shared CapsuleMesh must not stretch other rounds.
 func _stretch_tracer(length: float = 1.2) -> void:
-	length = PulseAfterglowScript.screen_limited_length(self, global_position, _direction, length)
+	# The smoke fixture exercises the detached projectile before add_child().
+	# Do not evaluate global_position on a Node3D outside the scene tree.
+	var end_position: Vector3 = position
+	if is_inside_tree():
+		end_position = global_position
+	length = PulseAfterglowScript.screen_limited_length(self, end_position, _direction, length)
 	for part_name in ["Tracer", "TracerGlow"]:
 		var part := get_node_or_null(part_name) as MeshInstance3D
 		if part == null:
