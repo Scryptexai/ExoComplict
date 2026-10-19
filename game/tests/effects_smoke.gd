@@ -48,9 +48,10 @@ func _run_smoke_test() -> void:
 					cone != null
 					and cone.mesh is CylinderMesh
 					and cone.position.z < -0.1
-					and (cone.mesh as CylinderMesh).height <= 0.4
-					and (cone.mesh as CylinderMesh).bottom_radius <= 0.08
+					and (cone.mesh as CylinderMesh).height <= 0.2
+					and (cone.mesh as CylinderMesh).bottom_radius <= 0.04
 					and glint != null
+					and glint.position.z > -0.4
 					and glint.mesh is QuadMesh
 					and (glint.material_override as StandardMaterial3D).albedo_texture != null
 					and muzzle_flash.get_node_or_null("FlashSpark_1") != null

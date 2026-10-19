@@ -800,8 +800,9 @@ func _run_smoke_test() -> void:
 			not paused
 			and not pause_panel.visible
 			and String(pause_button.get_meta("aegis_state", "")) == "pause"
+			and pause_button.icon == AegisTheme.icon("pause", true)
 		),
-		"touching RESUME returns to play and closes the pause menu",
+		"RESUME restores the filled Pause glyph rather than an outline 00",
 	)
 	_tap_screen_button(controls, pause_button, 95)
 	var escape_key := InputEventKey.new()

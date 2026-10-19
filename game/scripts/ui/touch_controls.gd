@@ -589,7 +589,7 @@ func set_paused(paused: bool) -> void:
 			_hud_editor.close()
 		_top_bar.visible = true
 	if is_instance_valid(_pause_button):
-		_pause_button.icon = AegisTheme.icon("play" if paused else "pause", paused)
+		_pause_button.icon = AegisTheme.icon("play" if paused else "pause", true)
 		_pause_button.text = ""
 		_pause_button.set_meta("aegis_state", "resume" if paused else "pause")
 		_pause_button.tooltip_text = "Resume (Esc)" if paused else "Pause (Esc)"
@@ -629,9 +629,10 @@ func set_player_down(down: bool) -> void:
 	if down:
 		_clear_touch_state()
 	if is_instance_valid(_pause_button):
-		_pause_button.icon = AegisTheme.icon(
-			"arrow-counter-clockwise" if down else ("play" if get_tree().paused else "pause")
-		)
+		if down:
+			_pause_button.icon = AegisTheme.icon("arrow-counter-clockwise")
+		else:
+			_pause_button.icon = AegisTheme.icon("play" if get_tree().paused else "pause", true)
 		_pause_button.set_meta("aegis_state", "retry" if down else "pause")
 		_pause_button.text = ""
 		_pause_button.tooltip_text = "Retry the run" if down else "Pause (Esc)"
@@ -1246,9 +1247,8 @@ func _begin_touch(touch_id: int, position: Vector2) -> void:
 			and _fire_touch_id == -1
 		):
 			_fire_touch_id = touch_id
-			# Synthetic screen touches do not pass through Godot's Button GUI once
-			# handled here. Forward both edges so the glyph rim and actual shot stay
-			# synchronized with native mouse/controller button_down/button_up.
+			# Synthetic touches skip Godot Button GUI. Forward both edges so
+			# the glyph rim and actual shot agree with native button_down/up.
 			touched_button.emit_signal("button_down")
 		else:
 			_pressed_touch_buttons[touch_id] = touched_button
@@ -1330,9 +1330,8 @@ func _end_touch(touch_id: int, position: Vector2) -> void:
 
 
 func _clear_touch_state() -> void:
-	# Blur/pause can arrive without a matching finger release. Restore both the
-	# gameplay input and the visual button-down states instead of stranding AIM
-	# or the fire rim in an active state after returning to the field.
+	# Blur/pause can skip finger release; restore gameplay input and visual
+	# button-down state rather than stranding AIM or the FIRE rim.
 	if _fire_touch_id != -1 and is_instance_valid(_fire_button):
 		_fire_button.emit_signal("button_up")
 	for held_button in _pressed_touch_buttons.values():

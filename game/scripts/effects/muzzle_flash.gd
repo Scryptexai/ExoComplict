@@ -47,12 +47,15 @@ func _ready() -> void:
 	# let a tapered, translucent plume and two hairline streaks lead forward.
 	var cone := CylinderMesh.new()
 	cone.top_radius = 0.002
-	cone.bottom_radius = 0.072
-	cone.height = 0.38
+	# The previous 0.38 m / 0.072 m cone became a broad white triangle
+	# when a real touch-look aimed at nearby imported floor. Let the core
+	# and bounded glint carry the beat; the cone only bridges the barrel.
+	cone.bottom_radius = 0.036
+	cone.height = 0.19
 	cone.radial_segments = 9
 	_mesh = _add_shape("FlashCone", cone)
 	_mesh.rotation.x = -PI * 0.5
-	_mesh.position.z = -0.28
+	_mesh.position.z = -0.16
 
 	var core_mesh := SphereMesh.new()
 	core_mesh.radius = 0.072
@@ -87,7 +90,7 @@ func _ready() -> void:
 	# the rifle/helmet. Only a real shot screenshot can accept this treatment.
 	glint_quad.size = Vector2(0.58, 0.58)
 	_glint = _add_shape("FlashGlint", glint_quad)
-	_glint.position.z = -0.48
+	_glint.position.z = -0.31
 	_glint.material_override = _glint_material
 
 	var streak_mesh := BoxMesh.new()
