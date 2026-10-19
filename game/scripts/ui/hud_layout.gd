@@ -171,42 +171,44 @@ static func touch_portrait(hud) -> void:
 			hud._to_layout(56.0)
 		)
 	)
-	# Match the pause glyph to its target instead of a tiny symbol in a 88 px
-	# wide empty rectangle. 56 px remains a finger-sized hit area.
-	var system_width: float = hud._to_layout(56.0 if hud._narrow else 112.0)
+	# The actual Pause plate also grows, not just its icon. Extend four pixels
+	# beyond the 56px rail on each vertical side without covering the objective.
+	var system_width: float = hud._to_layout(64.0 if hud._narrow else 136.0)
 	_place_in_top_bar(
-		hud._system_row, 1, 0, 1, 0, Rect2(-system_width, 0, system_width, bar_height)
+		hud._system_row,
+		1,
+		0,
+		1,
+		0,
+		Rect2(-system_width, -hud._to_layout(4.0), system_width, hud._to_layout(64.0))
 	)
 
-	# Actual 390x844 WebGL review: the four plates crowded the right side and
-	# SHOOT looked like a toy despite a large bbox. Reserve that thumb for FIRE,
-	# ADS, EMP; dock weapon + ammo by the movement thumb, as in the live mobile
-	# control reference. In portrait this leaves the hero and aiming lane clear.
-	# FIRE x218..378/y646..806; ADS x282..378/y538..634;
-	# EMP x282..378/y432..528. An actual held-ADS screenshot exposed the
-	# first bottom-left weapon dock covering the helmet. Dock the infrequent
-	# swap action BELOW Start but ABOVE the hero instead, with ammo alongside.
-	_place_button(hud, hud._fire_button, 12.0, 38.0, 160.0, 160.0)
-	_place_button(hud, hud._aim_button, 12.0, 210.0, 96.0, 96.0)
-	_place_button(hud, hud._skill_button, 12.0, 316.0, 96.0, 96.0)
-	var dock_top: float = action_top + hud._to_layout(64.0)
-	_place_weapon_dock(hud, hud._weapon_button, 12.0, dock_top, 104.0, 104.0)
+	# These are sizes of the painted AND interactive button plates, not icon
+	# ceilings. Keep 7–12px gaps and dock SWAP opposite the firing thumb.
+	# A short phone needs a separate reflow so EMP stays below START/ARMORY.
+	var short_portrait: bool = hud._physical_size.y < 750.0
+	var fire_px: float = 186.0 if short_portrait else 202.0
+	var action_px: float = 108.0 if short_portrait else 124.0
+	var weapon_px: float = 112.0 if short_portrait else 124.0
+	var gap_px: float = 7.0 if short_portrait else 12.0
+	var fire_bottom: float = 14.0 if short_portrait else 32.0
+	var aim_bottom: float = fire_bottom + fire_px + gap_px
+	var emp_bottom: float = aim_bottom + action_px + gap_px
+	_place_button(hud, hud._fire_button, 8.0, fire_bottom, fire_px, fire_px)
+	_place_button(hud, hud._aim_button, 8.0, aim_bottom, action_px, action_px)
+	_place_button(hud, hud._skill_button, 8.0, emp_bottom, action_px, action_px)
+	var dock_top: float = action_top + hud._to_layout(61.0 if short_portrait else 64.0)
+	_place_weapon_dock(hud, hud._weapon_button, 12.0, dock_top, weapon_px, weapon_px)
 	_place_weapon_dock(
-		hud, hud._touch_ammo_chip, 128.0, dock_top + hud._to_layout(18.0), 112.0, 54.0
+		hud,
+		hud._touch_ammo_chip,
+		24.0 + weapon_px,
+		dock_top + hud._to_layout((weapon_px - 54.0) * 0.5),
+		112.0,
+		54.0
 	)
-	_place(
-		hud._skill_ring,
-		1,
-		1,
-		1,
-		1,
-		Rect2(
-			-hud._to_layout(112.0),
-			-hud._to_layout(416.0),
-			hud._to_layout(104.0),
-			hud._to_layout(104.0)
-		)
-	)
+	# Same centre as the expanded EMP hit rectangle, including left-hand mode.
+	_place_button(hud, hud._skill_ring, 4.0, emp_bottom - 4.0, action_px + 8.0, action_px + 8.0)
 	_place(
 		hud._score_chip,
 		1,
@@ -221,14 +223,14 @@ static func touch_portrait(hud) -> void:
 		)
 	)
 
-	_mirror_skill_ring(hud)
 	# At 375x667 the ADS hero fills x≈65..165/y≈345..577, while the old
 	# (86, height-106) move ring crossed the leg and boot. Keep the same
 	# 72px finger radius, but tuck its *centre* into the bottom-left pocket on
 	# short phones instead of shrinking its hit target or hiding it entirely.
 	# Review of the retake found the outer ring clipped 10 px off-screen. Paint
 	# a 64px-radius ring at x73 while retaining the 72px movement hit radius.
-	var short_portrait: bool = hud.size.y < hud._to_layout(720.0)
+	# Match the reflow used by the larger action stack.
+	# `short_portrait` was determined from the physical window above.
 	var stick_x: float = hud._to_layout(73.0 if short_portrait else 86.0)
 	var stick_bottom: float = hud._to_layout(82.0 if short_portrait else 106.0)
 	hud._joystick_center = Vector2(
@@ -291,13 +293,16 @@ static func touch_landscape(hud) -> void:
 			hud._to_layout(56.0)
 		)
 	)
+	# The enlarged upper-right ADS/weapon plates occupy the old Pause slot.
+	# Keep system actions on a separate, safe top-centre rail.
+	var system_width: float = hud._to_layout(64.0 if hud._narrow else 136.0)
 	_place_in_top_bar(
 		hud._system_row,
-		1,
+		0.5,
 		0,
-		1,
+		0.5,
 		0,
-		Rect2(-hud._to_layout(152.0), 0, hud._to_layout(152.0), bar_height)
+		Rect2(-system_width * 0.5, -hud._to_layout(4.0), system_width, hud._to_layout(64.0))
 	)
 	_place(
 		hud._armory_button,
@@ -313,32 +318,21 @@ static func touch_landscape(hud) -> void:
 		)
 	)
 
-	# 844x390: keep a 12+ px separation while giving the primary action a
-	# real 148px face. Ammo stays attached to swap, not floating by the hero.
-	# FIRE x684..832/y229..377; ADS x738..832/y123..217;
-	# EMP x580..674/y240..334; WEAPON x630..724/y123..217.
-	_place_button(hud, hud._fire_button, 12.0, 13.0, 148.0, 148.0)
-	_place_button(hud, hud._aim_button, 12.0, 173.0, 94.0, 94.0)
-	_place_button(hud, hud._skill_button, 170.0, 56.0, 94.0, 94.0)
-	_place_button(hud, hud._weapon_button, 120.0, 173.0, 94.0, 94.0)
-	# y174..228: a real 14px gap below Armory and 12px before EMP.
-	_place_button(hud, hud._touch_ammo_chip, 226.0, 162.0, 112.0, 54.0)
-	# Cooldown ring remains centred around the actual EMP face.
-	_place(
-		hud._skill_ring,
-		1,
-		1,
-		1,
-		1,
-		Rect2(
-			-hud._to_layout(268.0),
-			-hud._to_layout(154.0),
-			hud._to_layout(102.0),
-			hud._to_layout(102.0)
-		)
-	)
-
-	_mirror_skill_ring(hud)
+	# 844x390: enlarge the actual FIRE/ADS/EMP/SWAP touch faces as a two-row
+	# right-thumb cluster. Keep an 8px gap and move ammo into the open seam.
+	var fire_px := 180.0
+	var action_px := 112.0
+	var gap_px := 8.0
+	var fire_right := 8.0
+	var aim_bottom := 8.0 + fire_px + gap_px
+	var weapon_right := fire_right + action_px + gap_px
+	var skill_right := fire_right + fire_px + gap_px
+	_place_button(hud, hud._fire_button, fire_right, 8.0, fire_px, fire_px)
+	_place_button(hud, hud._aim_button, fire_right, aim_bottom, action_px, action_px)
+	_place_button(hud, hud._skill_button, skill_right, 8.0, action_px, action_px)
+	_place_button(hud, hud._weapon_button, weapon_right, aim_bottom, action_px, action_px)
+	_place_button(hud, hud._touch_ammo_chip, 224.0, 136.0, 112.0, 54.0)
+	_place_button(hud, hud._skill_ring, skill_right - 4.0, 4.0, action_px + 8.0, action_px + 8.0)
 	var stick_x: float = hud._to_layout(120.0)
 	hud._joystick_center = Vector2(
 		hud.size.x - stick_x if hud._left_handed else stick_x, hud.size.y - hud._to_layout(90.0)
@@ -511,17 +505,6 @@ static func _place_weapon_dock(
 	else:
 		_place(control, 0, 0, 0, 0, Rect2(side, top, width, height))
 	control.custom_minimum_size = Vector2(width, height)
-
-
-static func _mirror_skill_ring(hud) -> void:
-	if not hud._left_handed:
-		return
-	var old_left: float = hud._skill_ring.offset_left
-	var old_right: float = hud._skill_ring.offset_right
-	hud._skill_ring.anchor_left = 0.0
-	hud._skill_ring.anchor_right = 0.0
-	hud._skill_ring.offset_left = -old_right
-	hud._skill_ring.offset_right = -old_left
 
 
 static func _place_compact(hud, left: float, top: float, visible: bool) -> float:

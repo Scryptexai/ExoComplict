@@ -239,11 +239,17 @@ func _run_smoke_test() -> void:
 	_expect(
 		(
 			(
-				wave_card.get_global_rect().position.y
-				>= (
-					maxf(vitals_card.get_global_rect().end.y, system_row.get_global_rect().end.y)
-					+ rail_gap
-					- 1.0
+				(
+					wave_card.get_global_rect().position.y
+					>= vitals_card.get_global_rect().end.y + rail_gap - 1.0
+				)
+				and (
+					wave_card.get_global_rect().position.y
+					>= (
+						system_row.get_global_rect().end.y
+						+ float(controls.call("_to_layout", 3.0))
+						- 1.0
+					)
 				)
 			)
 			and (
@@ -282,21 +288,23 @@ func _run_smoke_test() -> void:
 	)
 	_expect(
 		(
-			weapon_button.get_global_rect().size.y * 0.3047 >= 71.0
-			and weapon_button.get_global_rect().size.x * 0.3047 >= 75.0
-			and weapon_button.get_global_rect().get_center().x * 0.3047 < 90.0
+			weapon_button.get_global_rect().size.y * 0.3047 >= 122.0
+			and weapon_button.get_global_rect().size.x * 0.3047 >= 122.0
+			and weapon_button.get_global_rect().get_center().x * 0.3047 < 80.0
 			and (
 				weapon_button.get_global_rect().position.y
 				>= defense_button.get_global_rect().end.y + portrait_gap
 			)
-			and fire_button.get_global_rect().size.x * 0.3047 >= 119.0
-			and fire_button.get_theme_constant("icon_max_width") * 0.3047 >= 87.0
+			and fire_button.get_global_rect().size.x * 0.3047 >= 200.0
+			and fire_button.get_global_rect().size.y * 0.3047 >= 200.0
+			and fire_button.get_theme_constant("icon_max_width") * 0.3047 >= 190.0
 			and fire_button.expand_icon
-			and aim_button.get_global_rect().size.x * 0.3047 >= 79.0
-			and aim_button.get_theme_constant("icon_max_width") * 0.3047 >= 55.0
-			and skill_button.get_global_rect().size.x * 0.3047 >= 79.0
-			and skill_button.get_theme_constant("icon_max_width") * 0.3047 >= 55.0
-			and pause_button.get_global_rect().size.x * 0.3047 >= 55.0
+			and aim_button.get_global_rect().size.x * 0.3047 >= 122.0
+			and aim_button.get_theme_constant("icon_max_width") * 0.3047 >= 113.0
+			and skill_button.get_global_rect().size.x * 0.3047 >= 122.0
+			and skill_button.get_theme_constant("icon_max_width") * 0.3047 >= 110.0
+			and pause_button.get_global_rect().size.x * 0.3047 >= 62.0
+			and pause_button.get_global_rect().size.y * 0.3047 >= 62.0
 			and not weapon_button.get_global_rect().grow(portrait_gap).intersects(
 				aim_button.get_global_rect()
 			)
@@ -318,8 +326,8 @@ func _run_smoke_test() -> void:
 			# phone renders every logical pixel at ~0.3x.
 			and portrait_font >= 12.5
 			and portrait_body_font >= 12.5
-			and weapon_button.get_theme_constant("icon_max_width") * 0.3047 >= 59.0
-			and pause_button.get_theme_constant("icon_max_width") * 0.3047 >= 35.0
+			and weapon_button.get_theme_constant("icon_max_width") * 0.3047 >= 113.0
+			and pause_button.get_theme_constant("icon_max_width") * 0.3047 >= 46.0
 			and wave_card.size.y >= wave_enemy_label.get_combined_minimum_size().y
 			and defense_button.get_global_rect().size.y * 0.3047 >= 55.0
 		),
@@ -346,6 +354,49 @@ func _run_smoke_test() -> void:
 		"portrait Defense feedback moves into the vacated START row, clear of SWAP",
 	)
 	controls.call("_set_play_phase", "explore")
+	# A 375x667 phone must gain REAL hit area without pushing EMP into the
+	# Explore action row. Do not accept a larger painted icon in the old rect.
+	const SHORT_STRETCH := 375.0 / 1280.0
+	controls.size = Vector2(375.0 / SHORT_STRETCH, 667.0 / SHORT_STRETCH)
+	controls.call("apply_layout_for_size", Vector2(375.0, 667.0), SHORT_STRETCH)
+	await process_frame
+	var short_gap := float(controls.call("_to_layout", 5.0))
+	_expect(
+		(
+			fire_button.get_global_rect().size.x * SHORT_STRETCH >= 184.0
+			and fire_button.get_global_rect().size.y * SHORT_STRETCH >= 184.0
+			and aim_button.get_global_rect().size.x * SHORT_STRETCH >= 106.0
+			and skill_button.get_global_rect().size.x * SHORT_STRETCH >= 106.0
+			and weapon_button.get_global_rect().size.x * SHORT_STRETCH >= 110.0
+			and pause_button.get_global_rect().size.x * SHORT_STRETCH >= 62.0
+			and (
+				(
+					(
+						skill_button.get_global_rect().position.y
+						- (controls.get("_armory_button") as Control).get_global_rect().end.y
+					)
+					* SHORT_STRETCH
+				)
+				>= 6.0
+			)
+			and not fire_button.get_global_rect().grow(short_gap).intersects(
+				aim_button.get_global_rect()
+			)
+			and not aim_button.get_global_rect().grow(short_gap).intersects(
+				skill_button.get_global_rect()
+			)
+			and (
+				(
+					portrait_skill_ring.get_global_rect().get_center().distance_to(
+						skill_button.get_global_rect().get_center()
+					)
+					* SHORT_STRETCH
+				)
+				< 2.0
+			)
+		),
+		"short portrait enlarges button hit rects and keeps EMP below Explore actions",
+	)
 	# The browser's canvas_items layout spans 844 / .541667 logical units,
 	# not the headless runner's default 1280. Resize the HUD rect as well as
 	# overriding physical pixels so the right rail can actually fit on-screen.
@@ -357,12 +408,15 @@ func _run_smoke_test() -> void:
 	var ring := controls.get("_skill_ring") as Control
 	_expect(
 		(
-			weapon_button.get_global_rect().size.y * 0.541667 >= 63.0
-			and weapon_button.get_global_rect().size.x * 0.541667 >= 75.0
-			and fire_button.get_global_rect().size.x * 0.541667 >= 111.0
-			and aim_button.get_global_rect().size.x * 0.541667 >= 71.0
-			and skill_button.get_global_rect().size.x * 0.541667 >= 71.0
+			weapon_button.get_global_rect().size.y * 0.541667 >= 110.0
+			and weapon_button.get_global_rect().size.x * 0.541667 >= 110.0
+			and fire_button.get_global_rect().size.x * 0.541667 >= 178.0
+			and fire_button.get_global_rect().size.y * 0.541667 >= 178.0
+			and aim_button.get_global_rect().size.x * 0.541667 >= 110.0
+			and skill_button.get_global_rect().size.x * 0.541667 >= 110.0
 			and emp_center.distance_to(ring.get_global_rect().get_center()) * 0.541667 < 2.0
+			and not system_row.get_global_rect().intersects(aim_button.get_global_rect())
+			and not system_row.get_global_rect().intersects(weapon_button.get_global_rect())
 			and not weapon_button.get_global_rect().grow(landscape_gap).intersects(
 				aim_button.get_global_rect()
 			)
@@ -373,7 +427,7 @@ func _run_smoke_test() -> void:
 				aim_button.get_global_rect()
 			)
 		),
-		"landscape FIRE 112, AIM/EMP 72, SWAP 76x64 px; ring frames EMP",
+		"landscape FIRE 180, AIM/EMP/SWAP 112px hit rects; ring frames EMP",
 	)
 	var help_plate := controls.get("_help_panel") as Control
 	var armory_entry := controls.get("_armory_button") as Control
