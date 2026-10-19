@@ -397,7 +397,13 @@ static func overlays(hud) -> void:
 	var results_width: float = minf(
 		hud._to_layout(390.0 if sheet else 600.0), hud.size.x * (0.94 if sheet else 0.92)
 	)
-	var results_height: float = minf(hud._to_layout(528.0), hud.size.y * (0.86 if sheet else 0.9))
+	# A real 390x844 Results screenshot had ~160 px of empty report space
+	# between the reward and its actions. Keep the buttons full-size, but bring
+	# this portrait sheet up from 528 to 448 px so earned BP and the choice to
+	# continue occupy one readable glance rather than a tall vacant card.
+	var results_height: float = minf(
+		hud._to_layout(448.0 if sheet else 528.0), hud.size.y * (0.86 if sheet else 0.9)
+	)
 	hud._results_panel.custom_minimum_size = Vector2(results_width, results_height)
 	_place(
 		hud._results_panel,
