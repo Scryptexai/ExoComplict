@@ -130,7 +130,7 @@ func _run_smoke_test() -> void:
 		)
 		and test_passed
 	)
-	var view_camera := get_viewport().get_camera_3d()
+	var view_camera := main_scene.get_viewport().get_camera_3d()
 	if view_camera != null:
 		var near_end := view_camera.global_position - view_camera.global_basis.z * 3.0
 		var near_width := PulseAfterglowScript.screen_limited_length(
