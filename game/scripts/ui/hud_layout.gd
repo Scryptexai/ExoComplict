@@ -134,7 +134,12 @@ static func desktop(hud) -> void:
 
 
 static func touch_portrait(hud) -> void:
-	var edge: float = hud._to_layout(12.0)
+	var bottom_safe := 0.0
+	var safe_area := DisplayServer.get_display_safe_area()
+	if safe_area.size.y > 0:
+		bottom_safe = maxf(0.0, hud._physical_size.y - (safe_area.position.y + safe_area.size.y))
+	# Keep at least 16 physical px from edges and gesture bar; previous 8/12 was too tight.
+	var edge: float = hud._to_layout(16.0)
 	var bar_height: float = hud._to_layout(56.0)
 	_place_top_bar(hud, edge, hud._top_inset, bar_height)
 	_place_in_top_bar(hud._health_card, 0, 0, 0, 0, Rect2(0, 0, hud._to_layout(184.0), bar_height))
@@ -190,25 +195,26 @@ static func touch_portrait(hud) -> void:
 	var fire_px: float = 186.0 if short_portrait else 202.0
 	var action_px: float = 108.0 if short_portrait else 124.0
 	var weapon_px: float = 112.0 if short_portrait else 124.0
-	var gap_px: float = 7.0 if short_portrait else 12.0
-	var fire_bottom: float = 14.0 if short_portrait else 32.0
+	var gap_px: float = 8.0 if short_portrait else 12.0
+	var base_bottom: float = maxf(20.0, bottom_safe + 16.0)
+	var fire_bottom: float = (base_bottom if short_portrait else base_bottom + 8.0)
 	var aim_bottom: float = fire_bottom + fire_px + gap_px
 	var emp_bottom: float = aim_bottom + action_px + gap_px
-	_place_button(hud, hud._fire_button, 8.0, fire_bottom, fire_px, fire_px)
-	_place_button(hud, hud._aim_button, 8.0, aim_bottom, action_px, action_px)
-	_place_button(hud, hud._skill_button, 8.0, emp_bottom, action_px, action_px)
+	_place_button(hud, hud._fire_button, 16.0, fire_bottom, fire_px, fire_px)
+	_place_button(hud, hud._aim_button, 16.0, aim_bottom, action_px, action_px)
+	_place_button(hud, hud._skill_button, 16.0, emp_bottom, action_px, action_px)
 	var dock_top: float = action_top + hud._to_layout(61.0 if short_portrait else 64.0)
-	_place_weapon_dock(hud, hud._weapon_button, 12.0, dock_top, weapon_px, weapon_px)
+	_place_weapon_dock(hud, hud._weapon_button, 16.0, dock_top, weapon_px, weapon_px)
 	_place_weapon_dock(
 		hud,
 		hud._touch_ammo_chip,
-		24.0 + weapon_px,
+		28.0 + weapon_px,
 		dock_top + hud._to_layout((weapon_px - 54.0) * 0.5),
 		112.0,
 		54.0
 	)
 	# Same centre as the expanded EMP hit rectangle, including left-hand mode.
-	_place_button(hud, hud._skill_ring, 4.0, emp_bottom - 4.0, action_px + 8.0, action_px + 8.0)
+	_place_button(hud, hud._skill_ring, 12.0, emp_bottom - 4.0, action_px + 8.0, action_px + 8.0)
 	_place(
 		hud._score_chip,
 		1,
@@ -231,8 +237,8 @@ static func touch_portrait(hud) -> void:
 	# a 64px-radius ring at x73 while retaining the 72px movement hit radius.
 	# Match the reflow used by the larger action stack.
 	# `short_portrait` was determined from the physical window above.
-	var stick_x: float = hud._to_layout(73.0 if short_portrait else 86.0)
-	var stick_bottom: float = hud._to_layout(82.0 if short_portrait else 106.0)
+	var stick_x: float = hud._to_layout(80.0 if short_portrait else 92.0)
+	var stick_bottom: float = hud._to_layout(88.0 if short_portrait else 112.0)
 	hud._joystick_center = Vector2(
 		hud.size.x - stick_x if hud._left_handed else stick_x, hud.size.y - stick_bottom
 	)
@@ -319,23 +325,30 @@ static func touch_landscape(hud) -> void:
 	)
 
 	# 844x390: enlarge the actual FIRE/ADS/EMP/SWAP touch faces as a two-row
-	# right-thumb cluster. Keep an 8px gap and move ammo into the open seam.
+	# right-thumb cluster. Add 16px safe inset from right/bottom edges so the
+	# firing thumb doesn't hit the screen bezel; previous 8px was too tight.
+	var bottom_safe_landscape := 0.0
+	var safe_landscape := DisplayServer.get_display_safe_area()
+	if safe_landscape.size.y > 0:
+		bottom_safe_landscape = maxf(0.0, hud._physical_size.y - (safe_landscape.position.y + safe_landscape.size.y))
 	var fire_px := 180.0
 	var action_px := 112.0
-	var gap_px := 8.0
-	var fire_right := 8.0
-	var aim_bottom := 8.0 + fire_px + gap_px
+	var gap_px := 12.0
+	var safe_inset := maxf(16.0, bottom_safe_landscape + 12.0)
+	var fire_right := 16.0
+	var fire_bottom := safe_inset
+	var aim_bottom := fire_bottom + fire_px + gap_px
 	var weapon_right := fire_right + action_px + gap_px
 	var skill_right := fire_right + fire_px + gap_px
-	_place_button(hud, hud._fire_button, fire_right, 8.0, fire_px, fire_px)
+	_place_button(hud, hud._fire_button, fire_right, fire_bottom, fire_px, fire_px)
 	_place_button(hud, hud._aim_button, fire_right, aim_bottom, action_px, action_px)
-	_place_button(hud, hud._skill_button, skill_right, 8.0, action_px, action_px)
+	_place_button(hud, hud._skill_button, skill_right, fire_bottom, action_px, action_px)
 	_place_button(hud, hud._weapon_button, weapon_right, aim_bottom, action_px, action_px)
-	_place_button(hud, hud._touch_ammo_chip, 224.0, 136.0, 112.0, 54.0)
-	_place_button(hud, hud._skill_ring, skill_right - 4.0, 4.0, action_px + 8.0, action_px + 8.0)
-	var stick_x: float = hud._to_layout(120.0)
+	_place_button(hud, hud._touch_ammo_chip, 232.0, safe_inset + 128.0, 112.0, 54.0)
+	_place_button(hud, hud._skill_ring, skill_right - 4.0, fire_bottom - 4.0, action_px + 8.0, action_px + 8.0)
+	var stick_x: float = hud._to_layout(126.0)
 	hud._joystick_center = Vector2(
-		hud.size.x - stick_x if hud._left_handed else stick_x, hud.size.y - hud._to_layout(90.0)
+		hud.size.x - stick_x if hud._left_handed else stick_x, hud.size.y - hud._to_layout(96.0)
 	)
 	hud._joystick_radius = hud._to_layout(64.0)
 	hud._joystick_visual_radius = hud._joystick_radius

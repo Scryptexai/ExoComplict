@@ -347,14 +347,26 @@ func _spawn_model() -> void:
 		_keep_fallback("no measurable model")
 		return
 	_model = fitted["model"] as Node3D
-	_model_bounds = fitted["bounds"]
+		_model_bounds = fitted["bounds"]
 	_model_height = float(fitted["height"])
+	var pivot := fitted.get("pivot", null) as Node3D
+	if is_instance_valid(pivot):
+		pivot.visible = true
+	if is_instance_valid(_model):
+		_model.visible = true
+		for mi in ModelFitterScript.meshes_of(_model):
+			mi.visible = true
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	ModelFitterScript.apply_overlay_material(
-		self, ModelFitterScript.outline_material(Color(0.02, 0.05, 0.09, 1.0), 0.012)
+		self, ModelFitterScript.outline_material(Color(0.02, 0.05, 0.09, 1.0), 0.010)
 	)
 	if is_instance_valid(_fallback_body):
 		_fallback_body.visible = false
 	_setup_rig()
+	if not is_rigged() and is_instance_valid(_model):
+		_model.visible = true
+		for m in ModelFitterScript.meshes_of(_model):
+			m.visible = true
 	# One line in the console/log: which model the avatar actually got, how tall it
 	# renders and whether the fallback is in use. Read from the browser console
 	# during web QA and from the editor log on device.
