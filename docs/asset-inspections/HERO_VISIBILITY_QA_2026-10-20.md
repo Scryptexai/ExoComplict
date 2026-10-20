@@ -115,6 +115,29 @@ only; the weapon model is spawned afterwards and never carried the outline.
 Re-measured after the change: the hero mesh keeps the outline, the five flash
 meshes report `overlay=null`.
 
+### The 34 % and the 21 % are both right — reconciled
+
+The report's §2 projects 34 % of frame height from a `?qa_camera` sample; the
+runtime test measures 21 %. They are two camera states, and the two states are
+now both on record:
+
+| | headless `main.tscn` (the test) | browser `?qa_camera` sample |
+| --- | --- | --- |
+| camera | (0.55, 2.654, 14.011) | (0.55, 2.305, 12.139) |
+| player | (0, 0, 8) | (0, 0, 8) |
+| camera → player | **6.59 m** | **4.77 m** |
+| vertical FOV | **73.0°** | **66.0°** |
+
+A 1.79 m hero at 6.59 m / 73° fills 18 % of the frame by the naive projection
+(the measured 21 % is larger because an axis-aligned box projects taller than
+its own height when the camera looks down at it); the same hero at 4.77 m / 66°
+fills 29 % naively, ~33 % with the same box effect. 21 % × 1.385 × 1.14 ≈ 33 %,
+which is where the 34 % came from.
+
+So the browser sample was taken with the spring arm pulled in and the lens
+narrower — a different instant, not a contradiction. Both figures sit inside the
+test's readable band (10 %–85 %), and neither changes the verdict.
+
 ## 5. NOT TESTED — do not read this as a blanket PASS
 
 * **Android / any real GPU.** No device, and this sandbox has no GL, EGL or

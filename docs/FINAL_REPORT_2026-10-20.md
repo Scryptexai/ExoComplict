@@ -79,12 +79,15 @@ created before the cause was established, per the brief.
 
 ### Known measurement discrepancy (not a defect)
 
-The hand projection in §2 of the QA doc (34 % of frame height, from one
-`?qa_camera` sample in a live browser run) and the runtime measurement (21 %,
-same value at all five aspects) are two different camera instants — the headless
-test's camera sits 6.60 m from the hero, the sampled browser camera ~4.8 m. Both
-are inside the readable band (10 %–85 %) and neither changes the verdict, but the
-two numbers are not comparable and have not been reconciled to one instant.
+The §2 hand projection (34 % of frame height, one `?qa_camera` sample) and the
+runtime measurement (21 %, same at all five aspects) are two camera states, and
+both are now on record: the headless camera sits **6.59 m** from the player at
+**73°** FOV, the sampled browser camera **4.77 m** at **66°**. A 1.79 m hero fills
+18 % of the frame in the first and 29 % in the second (the measured 21 % / 34 %
+are higher because an axis-aligned box projects taller than its own height when
+the camera looks down at it); 21 % × 1.385 × 1.14 ≈ 33 %, which is where the 34 %
+came from. Both sit inside the test's readable band (10 %–85 %) and neither
+changes the verdict.
 
 ---
 
@@ -276,5 +279,5 @@ Browser measurements (headless Chromium + SwiftShader WebGL 2, via
 | 5 | **Assets C and F as video.** No encoder exists in this environment. | **BLOCKED** |
 | 6 | **Real device safe areas.** Insets come from `HudLayout`'s synthetic model (8/8/28 in touch mode); a real notch or gesture bar may report more. | **NOT TESTED** |
 | 7 | **Frame rate, shader compilation on real drivers, thermals.** | **NOT TESTED** |
-| 8 | The 34 % vs 21 % hero-height discrepancy (§2) — two camera instants, not reconciled. | open, not a defect |
+| 8 | The 34 % vs 21 % hero-height figure — **reconciled**: two camera states (6.59 m / 73° headless vs 4.77 m / 66° in the browser sample), both inside the readable band. Recorded in the BUG 1 doc. | closed |
 | 9 | `ObjectDB` / `CanvasItem` RID leak warnings at exit in the menu tests (18 RIDs, 36 instances) — reported by Godot after `quit`, stages are freed by the harness. Not investigated. | open, cosmetic |
