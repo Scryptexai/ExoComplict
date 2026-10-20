@@ -26,6 +26,35 @@ const INFO := Color("54c8ff")
 const DANGER := Color("ff5a5a")
 const ABILITY := Color("b79cff")
 
+# --- Art direction --------------------------------------------------------- #
+# The same colours under the names docs/ART_DIRECTION.md gives the concept art,
+# so a texture audit and a button style are reading one palette rather than two
+# that drift apart. These are aliases of the tokens above, never new colours:
+# art and UI are allowed to disagree about names, never about values.
+const ART_NAVY := VOID
+const ART_NAVY_2 := PANEL
+const ART_GUNMETAL := LINE
+const ART_GRAPHITE := LINE_HI
+const ART_CYAN := INFO
+const ART_AMBER := ACCENT
+const ART_SILVER := INK
+const ART_STEEL := INK_2
+const ART_GREEN := OK
+const ART_RED := DANGER
+# Every family a shipped texture is allowed to land in. `steel` covers the
+# desaturated gunmetal and silver; `shadow` covers the near-black falloff the
+# art direction asks for at the edges of every composition.
+const ART_FAMILIES := {
+	"navy": ART_NAVY,
+	"cyan": ART_CYAN,
+	"green": ART_GREEN,
+	"amber": ART_AMBER,
+	"red": ART_RED,
+	"steel": ART_STEEL,
+	"silver": ART_SILVER,
+	"shadow": ART_NAVY,
+}
+
 # Common translucencies. The world stays visible through panels but the text
 # keeps its measured contrast (see the spec's WCAG table).
 const PANEL_ALPHA := 0.92
