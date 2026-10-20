@@ -81,13 +81,28 @@ moved between containers.
 | WEAPON | `BACK=36,282,144x56` `CONTINUE=191,282,144x56` · cards `340x216` at x=346 / 698 / 1050, scrolling sideways | 52 px clear |
 | WORLD | `BACK=36,282,144x56` `LAUNCH=191,282,144x56` · `NeonFrontierCard=346,54,340x168`, locked `170x168` | 52 px clear |
 
-### Headless probe (`menu_layout_smoke.gd`)
+### Headless probe (`menu_layout_smoke.gd`) — 33 assertions, all pass
 
-16 stage/size combinations — DASHBOARD, HERO, WEAPON and WORLD at 390×844,
-844×390, 360×640 and 1280×720 — all pass: every action is 56–60 px tall and
-nothing is drawn outside the viewport. Smallest phone measured (360×640):
+The front end is **mounted once** at 390×844 and then the same live viewport is
+**rotated** to 844×390, 360×640 and 1280×720, so 12 of the 16 stage/size
+combinations go through a real `resized` on an open screen rather than a fresh
+build. Every action is 56–60 px tall and nothing is drawn outside the viewport at
+any of the four sizes. Smallest phone measured (360×640):
 `DEPLOY=28,556,320x60` (bottom 616 of 640). Desktop 1280×720 takes the landscape
 arrangement too: `DEPLOY=649,636,603x60` (bottom 696 of 720).
+
+Each card list is also driven to the end of its range and the cards are checked
+to have moved with it:
+
+| Screen / size | scroll range | first card moves |
+| --- | --- | --- |
+| WEAPON 390×844 | 0 → 96 px down | x stays, y 125 → 29 |
+| HERO 844×390 | 0 → 294 px sideways | x 346 → 52 |
+| WEAPON 844×390 | 0 → 574 px sideways | x 346 → −228 |
+| WORLD 844×390 | 0 → 234 px sideways | x 346 → 112 |
+| HERO 360×640 | 0 → 32 px down | y 144 → 112 |
+| WEAPON 360×640 | 0 → 300 px down | y 125 → −175 |
+| WEAPON 1280×720 | 0 → 138 px sideways | x 346 → 208 |
 
 ---
 
@@ -95,7 +110,8 @@ arrangement too: `DEPLOY=649,636,603x60` (bottom 696 of 720).
 
 | Gap | Why |
 | --- | --- |
-| A rotation *while a screen is open* | The headless probe mounts a fresh `SubViewport` per size and the web build is fixed at one viewport per launch, so no run has driven `resized` from portrait to landscape on a live screen. The code path is the same one that lays the screen out on `enter()`, but that is an argument, not a measurement. |
+| A thumb drag on the landscape card row | **Engine-level blocker.** Godot gates touch panning on the platform: `scene/gui/scroll_container.cpp:237` returns early unless `DisplayServer::is_touchscreen_available()`, and the headless dummy display server never reports one. A synthetic `InputEventScreenDrag` moved the scroll by 0 px however it was sent — while a synthetic *click* pushed the same way does fire a Button's `pressed`, so input reaches the controls and it is specifically the touch-pan gate that is closed. The row's scroll range and the fact that scrolling moves the cards are measured (§3); that a finger produces the gesture is not. |
 | Real device safe areas | No Android device and no emulator (no JDK, no Android SDK). Insets come from `HudLayout.measure_safe_insets()`, whose synthetic model reports 8/8/28 in touch mode; a real notch or gesture bar may report more. |
-| Touch-drag scrolling of the landscape card row | `ScrollContainer` panning was never exercised by a synthetic drag; the rects prove the cards are laid out and scrollable in principle, not that a thumb moves them. |
+| A physical rotation | The probe resizes the live viewport, which is what a rotation does to the layout; it does not exercise the platform's `DisplayServer` orientation signal, the OS re-layout or a real sensor. |
+| Touch scroll *momentum / deacceleration* | The same gate, plus it needs a device to observe. |
 | 120 Hz / very tall (21:9) displays | Not measured. |

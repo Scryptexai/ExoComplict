@@ -233,11 +233,13 @@ journey asked for, that no enabled button is inert, that no control crosses the
 reserved edge, that absent content is disabled, and that `intro_seen` round-trips
 through a real `ConfigFile`.
 
-`game/tests/menu_layout_smoke.gd` mounts the same scene inside `SubViewport`s
-sized 390x844, 844x390, 360x640 and 1280x720 (sixteen stage/size combinations)
-and asserts, in physical pixels, that nothing outside a scroll container is drawn
-outside the viewport and that no button is under the 56 px touch floor. It prints
-the same rect report as `?qa_menu=1`, so the headless numbers and the browser
-numbers can be read against each other.
+`game/tests/menu_layout_smoke.gd` mounts the same scene once and then rotates
+the live viewport through 390x844, 844x390, 360x640 and 1280x720 (sixteen
+stage/size combinations, twelve of them reached by rotation) and asserts, in
+physical pixels, that nothing outside a scroll container is drawn outside the
+viewport, that no button is under the 56 px touch floor, and that every card list
+can be scrolled to the end with the cards moving with it. It prints the same rect
+report as `?qa_menu=1`, so the headless numbers and the browser numbers can be
+read against each other.
 
 Results are recorded in `docs/asset-inspections/` once the suite has been run.

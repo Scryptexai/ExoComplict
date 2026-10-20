@@ -5,13 +5,18 @@
 ## 390x844 put DEPLOY at y=444 on a 390 px tall landscape screen, and a card
 ## list that scrolls nicely in portrait leaves a ~130 px window in landscape.
 ##
-## So this test renders the real `front_end.tscn` inside SubViewports sized like
-## a phone in both orientations (plus a small phone and a desktop window),
-## walks every visible control, and asserts two things in *physical* pixels:
+## So this test mounts the real `front_end.tscn` once, inside a SubViewport
+## sized 390x844, then *rotates* the same live viewport to 844x390, 360x640 and
+## 1280x720 -- the case a browser build cannot produce, because it is fixed at
+## one viewport per launch. At each size it walks every visible control and
+## asserts three things in *physical* pixels:
 ##
 ##   * nothing that is not inside a scroll container is drawn outside the
 ##     viewport -- the failure that hides a button below the bottom edge;
-##   * every button is still at least MIN_TOUCH_PX tall and wide enough to hit.
+##   * every button is still at least MIN_TOUCH_PX tall and wide enough to hit;
+##   * a card list that reports a scroll range can be scrolled to the end, and
+##     scrolling it moves the cards -- a row whose range were zero would strand
+##     the last weapon off screen with no way to reach it.
 ##
 ## It also prints a rect report in the same format as `?qa_menu=1`, so the
 ## numbers measured headlessly can be compared with the numbers measured in a
@@ -38,6 +43,7 @@ const MIN_TOUCH := 55.0
 var _failures: Array[String] = []
 var _viewport: SubViewport = null
 var _front_end: Control = null
+var _current_stage := StringName()
 
 
 func _initialize() -> void:
@@ -45,9 +51,18 @@ func _initialize() -> void:
 
 
 func _run_smoke_test() -> void:
+	var first := true
 	for size_name in SIZES:
 		var size: Vector2i = SIZES[size_name]
-		await _mount(size)
+		# Only the first size is mounted. Everything after it is a *rotation* of
+		# a screen that is already open and laid out, which is the case the
+		# browser cannot produce (one viewport per launch) and the one that
+		# decides whether `resized` really re-arranges a live stage.
+		if first:
+			await _mount(size)
+			first = false
+		else:
+			await _rotate(size_name, size)
 		for stage_name in STAGES:
 			await _probe(stage_name, size_name, Vector2(size))
 	_teardown()
@@ -81,6 +96,20 @@ func _mount(size: Vector2i) -> void:
 	await process_frame
 
 
+## Resizes the live SubViewport, which is what a device rotation does: the
+## front end is anchored full-rect inside it, so every stage gets `resized` and
+## has to re-arrange itself in place. Nothing is freed or rebuilt in between.
+func _rotate(size_name: String, size: Vector2i) -> void:
+	_viewport.size = size
+	await process_frame
+	await process_frame
+	var live := Vector2(_viewport.size)
+	_expect(
+		live == Vector2(size),
+		"rotated the live viewport to %s (%dx%d)" % [size_name, size.x, size.y]
+	)
+
+
 func _teardown() -> void:
 	if is_instance_valid(_front_end):
 		_front_end.free()
@@ -91,6 +120,7 @@ func _teardown() -> void:
 
 
 func _probe(stage_name: StringName, size_name: String, physical: Vector2) -> void:
+	_current_stage = stage_name
 	_front_end.call("go_to", stage_name, {})
 	await process_frame
 	await process_frame
@@ -134,6 +164,7 @@ func _probe(stage_name: StringName, size_name: String, physical: Vector2) -> voi
 		)
 		_check(control, rect, viewport, "%s %s" % [stage_name, size_name])
 	print("Menu layout: " + " | ".join(lines))
+	await _check_row_scroll(stage, "%s %s" % [stage_name, size_name])
 
 
 ## The two rules. A control inside a ScrollContainer is allowed to sit outside
@@ -181,6 +212,87 @@ func _check(control: Control, rect: Rect2, viewport: Rect2, where: String) -> vo
 					% [where, name, rect.size.x, MIN_TOUCH]
 				)
 			)
+
+
+## A list that claims to scroll has to have somewhere to scroll to, and moving
+## it has to move the cards. The landscape row is the interesting case: three
+## 340 px cards in a 470 px window, where a scroll range of zero would strand
+## the last weapon off screen with no way to reach it.
+func _check_row_scroll(stage: Control, where: String) -> void:
+	var sideways := is_landscape(stage)
+	for child in stage.find_children("*", "ScrollContainer", true, false):
+		var scroll := child as ScrollContainer
+		if scroll == null or not scroll.is_visible_in_tree():
+			continue
+		var bar: ScrollBar = scroll.get_h_scroll_bar() if sideways else scroll.get_v_scroll_bar()
+		if not bar.visible or bar.max_value <= 0.0:
+			continue
+		var card: Control = _first_card(scroll)
+		var maximum := float(bar.max_value)
+		var before := 0.0
+		# Portrait scrolls the list down, landscape scrolls it sideways, so the
+		# coordinate that has to move is the axis the scroll runs on.
+		var point_before := card.get_global_rect().position if card != null else Vector2.ZERO
+		if sideways:
+			scroll.scroll_horizontal = int(maximum)
+		else:
+			scroll.scroll_vertical = int(maximum)
+		await process_frame
+		await process_frame
+		var after := float(scroll.scroll_horizontal if sideways else scroll.scroll_vertical)
+		var point_after := card.get_global_rect().position if card != null else Vector2.ZERO
+		var axis := "sideways" if sideways else "down"
+		_expect(
+			after > before, "%s: the card list scrolls %s (0 -> %d)" % [where, axis, int(after)]
+		)
+		if card != null:
+			_expect(
+				(
+					point_after.x < point_before.x - 1.0
+					if sideways
+					else point_after.y < point_before.y - 1.0
+				),
+				(
+					"%s: scrolling %s moves the cards (first card %d -> %d)"
+					% [
+						where,
+						axis,
+						int(point_before.x if sideways else point_before.y),
+						int(point_after.x if sideways else point_after.y)
+					]
+				)
+			)
+		# Back to the top before the drag: anything measured after it has to be
+		# the drag's doing, not the programmatic scroll's.
+		if sideways:
+			scroll.scroll_horizontal = 0
+		else:
+			scroll.scroll_vertical = 0
+		await process_frame
+		await process_frame
+
+
+## A thumb drag is deliberately *not* simulated. Godot gates touch panning on
+## the platform: `scroll_container.cpp` returns early unless
+## `DisplayServer::is_touchscreen_available()`, and the headless dummy display
+## server never reports one -- so a synthetic `InputEventScreenDrag` moves
+## nothing here no matter how it is sent. (Input events themselves do reach the
+## controls: a synthetic click pushed the same way fires a Button's `pressed`.)
+## What this test can prove is that the row has somewhere to scroll and that
+## scrolling it moves the cards, which `_check_row_scroll` does.
+func _first_card(scroll: ScrollContainer) -> Control:
+	for child in scroll.find_children("*", "Control", true, false):
+		var control := child as Control
+		if control != null and control.is_visible_in_tree() and control is Button:
+			return control
+	return null
+
+
+## `MenuStage.is_landscape()` for the stage being measured, without assuming the
+## probe's own viewport agrees with what the stage measured.
+func is_landscape(stage: Control) -> bool:
+	var size := Vector2(stage.size)
+	return size.x > size.y * 1.2
 
 
 func _inside_scroll_container(control: Control) -> bool:

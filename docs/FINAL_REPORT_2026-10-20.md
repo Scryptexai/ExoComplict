@@ -256,7 +256,7 @@ Nothing in this report or in `docs/ART_DIRECTION.md` claims a video exists.
 | `front_end_journey_smoke` | 85 | **PASS** | the whole journey, incl. the saved weapon reaching gameplay |
 | `hero_visibility_smoke` | 54 | **PASS** | BUG 1: the hero is skinned, in frustum, unoccluded, on screen |
 | `hud_safe_margin_smoke` | 246 | **PASS** | BUG 2: every docked control clears the reserved edge at 3 viewports |
-| `menu_layout_smoke` | 16 | **PASS** | nothing outside the viewport, no button under 56 px, at 4 sizes |
+| `menu_layout_smoke` | 33 | **PASS** | nothing outside the viewport, no button under 56 px, and every card list scrolls to the end and moves its cards — at 4 sizes, 12 of the 16 combinations reached by rotating a live screen |
 | `ui_art_smoke` | 48 | **PASS** | all nine textures load in-engine at the documented size |
 | `hero_rig_smoke`, `weapon_system_smoke`, `arc_weapon_smoke`, `wave_director_smoke`, `shooter_enemy_smoke`, `runner_standoff_smoke`, `enemy_visual_smoke`, `effects_smoke`, `combat_feedback_smoke`, `exploration_flow_smoke`, `progression_smoke`, `reward_loop_smoke`, `playability_hud_smoke`, `pause_gesture_smoke`, `hud_editor_smoke`, `ui_settings_smoke`, `neon_frontier_world_smoke`, `arena_blockout_smoke`, `audio_smoke` | (single summary line each) | **PASS** | no regression from this session's work |
 
@@ -271,8 +271,8 @@ Browser measurements (headless Chromium + SwiftShader WebGL 2, via
 | --- | --- | --- |
 | 1 | **Android / any real GPU.** No device, no JDK, no Android SDK, and the sandbox has no GL/EGL/Vulkan library. Every render claim goes through SwiftShader in headless Chromium. | **NOT TESTED** |
 | 2 | **A full `web/` re-export could not be run here.** `engine/web_templates/*.zip` are 133-byte LFS pointers, so the export template cannot be unpacked; `--export-pack` needs no template and was used instead. CI *does* refresh `web/index.pck` on push, and the refreshed payload was measured this session (§3) — but the refresh is CI's output, not a local export. | **PASS** (payload measured) / **NOT TESTED** (local re-export) |
-| 3 | **Rotation while a screen is open.** The layout probe mounts a fresh viewport per size and the browser build is fixed at one viewport per launch, so no run has driven `resized` from portrait to landscape on a live screen. | **NOT TESTED** |
-| 4 | **Touch-drag scrolling** of the landscape card row. The rects prove the row is laid out and scrollable, not that a thumb moves it. | **NOT TESTED** |
+| 3 | **A physical rotation.** The probe resizes a live viewport — which is what a rotation does to the layout — and 12 of 16 stage/size combinations are measured that way. Not exercised: the platform orientation signal, the OS re-layout, a real sensor. | **PASS** (layout) / **NOT TESTED** (device) |
+| 4 | **Touch-drag scrolling** of the landscape card row. The range and the card movement are measured (0 → 574 px sideways on WEAPON). The gesture itself cannot be produced here: Godot gates touch panning on `DisplayServer::is_touchscreen_available()` (`scene/gui/scroll_container.cpp:237`), which the headless display server never reports — a synthetic drag moves 0 px, while a synthetic click pushed the same way does fire a Button. | **PASS** (range + movement) / **NOT TESTED** (gesture) |
 | 5 | **Assets C and F as video.** No encoder exists in this environment. | **BLOCKED** |
 | 6 | **Real device safe areas.** Insets come from `HudLayout`'s synthetic model (8/8/28 in touch mode); a real notch or gesture bar may report more. | **NOT TESTED** |
 | 7 | **Frame rate, shader compilation on real drivers, thermals.** | **NOT TESTED** |
