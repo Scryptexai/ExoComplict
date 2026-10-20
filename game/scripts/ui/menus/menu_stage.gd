@@ -24,6 +24,14 @@ var payload: Dictionary = {}
 ## `make_margin()`. Stored so `enter()` can re-apply the margins on a resize or
 ## a rotation without searching the tree for it.
 var _margin: MarginContainer = null
+## Current canvas scale, refreshed by `_refresh_metrics()`.
+##
+## The project stretches a 1280x720 canvas to the window with aspect=expand, so
+## on a 390x844 phone the canvas is 1280x2770 at 0.305 scale. A button authored
+## as 60 units tall reaches the screen 18 px tall, and a 24 px separation lands
+## at 7. Every menu size is therefore authored in physical pixels and converted
+## through `px()`; the menus inherit the same rule the combat HUD uses.
+var _stretch := 1.0
 
 
 ## Called every time the stage becomes visible, with the payload from the
@@ -56,40 +64,40 @@ func physical_size() -> Vector2:
 
 
 ## Uniform canvas scale: how many physical pixels one layout unit occupies.
-func stretch_factor(physical: Vector2) -> float:
+func _stretch_factor(physical: Vector2) -> float:
 	return HudLayout.compute_stretch(self, physical)
 
 
-func to_layout(physical_pixels: float, stretch: float) -> float:
+func _to_layout(physical_pixels: float, stretch: float) -> float:
 	return physical_pixels / maxf(stretch, 0.0001)
 
 
 ## (left, right, bottom) in physical pixels. Menus use the same function the
 ## combat HUD uses, so a notch or a gesture bar is respected in both instead of
 ## being handled twice and drifting apart.
-func safe_insets(physical: Vector2) -> Vector3:
-	return HudLayout.measure_safe_insets(physical, touch_mode())
+func _safe_insets(physical: Vector2) -> Vector3:
+	return HudLayout.measure_safe_insets(physical, _touch_mode())
 
 
-func touch_mode() -> bool:
+func _touch_mode() -> bool:
 	return DisplayServer.is_touchscreen_available()
 
 
-## Top inset mirrors TouchControls._resolve_top_inset: the web shell keeps one
-## browser toggle on screen, and a notch pushes content down further.
-func top_inset(stretch: float) -> float:
-	var inset := 12.0 if touch_mode() else 20.0
+## Mirrors TouchControls._resolve_top_inset: the web shell keeps one browser
+## toggle on screen, and a notch pushes content down further.
+func _top_inset() -> float:
+	var inset := 12.0 if _touch_mode() else 20.0
 	if OS.has_feature("web"):
 		inset = maxf(inset, 30.0)
 	var safe_area := DisplayServer.get_display_safe_area()
 	if safe_area.position.y > 0:
 		inset = maxf(inset, float(safe_area.position.y))
-	return to_layout(inset, stretch)
+	return px(inset)
 
 
 ## Smallest font that still renders at AegisTokens.MIN_PHYSICAL_FONT_PX on the
 ## real screen. Menus inherit the HUD's readability floor on purpose.
-func minimum_font_size(stretch: float) -> int:
+func _minimum_font_size(stretch: float) -> int:
 	return maxi(roundi(AegisTokens.MIN_PHYSICAL_FONT_PX / maxf(stretch, 0.0001)), 11)
 
 
@@ -120,6 +128,63 @@ func make_button(
 	return button
 
 
+func _refresh_metrics() -> float:
+	_stretch = _stretch_factor(physical_size())
+	return _stretch
+
+
+## Layout units that render as `physical_pixels` on the real screen.
+func px(physical_pixels: float) -> float:
+	return physical_pixels / maxf(_stretch, 0.0001)
+
+
+## Minimum comfortable touch target (AegisTokens.MIN_TOUCH_PX), in layout units.
+func touch_height() -> float:
+	return px(AegisTokens.MIN_TOUCH_PX)
+
+
+## Standard gap between stacked actions.
+func gap() -> float:
+	return px(AegisTokens.TOUCH_GAP_PX)
+
+
+## Authors a minimum size in physical pixels and stamps it, so a window resize
+## or a rotation can re-convert it without rebuilding the tree.
+func physical_min_size(control: Control, width: float, height: float) -> void:
+	control.set_meta("px_w", width)
+	control.set_meta("px_h", height)
+	control.custom_minimum_size = Vector2(px(width), px(height))
+
+
+func physical_separation(container: Container, physical_pixels: float) -> void:
+	container.set_meta("px_sep", physical_pixels)
+	container.add_theme_constant_override("separation", roundi(px(physical_pixels)))
+
+
+## Re-converts every size authored through `physical_min_size` /
+## `physical_separation`. Bound to the stage's own `resized` signal.
+func _reapply_physical_sizes(root: Node) -> void:
+	if root is Control and root.has_meta("px_w"):
+		var control := root as Control
+		control.custom_minimum_size = Vector2(
+			px(float(control.get_meta("px_w"))), px(float(control.get_meta("px_h")))
+		)
+	if root is Container and root.has_meta("px_sep"):
+		(root as Container).add_theme_constant_override(
+			"separation", roundi(px(float(root.get_meta("px_sep"))))
+		)
+	for child in root.get_children():
+		_reapply_physical_sizes(child)
+
+
+## The one call a stage makes when its size changes: re-measure, re-scale every
+## physical size, and re-apply the readability floor.
+func relayout() -> void:
+	_refresh_metrics()
+	_reapply_physical_sizes(self)
+	enforce_font_floor(self, _stretch)
+
+
 ## Creates the full-rect safe-area container a menu screen lays out in.
 func make_margin() -> MarginContainer:
 	_margin = MarginContainer.new()
@@ -134,21 +199,18 @@ func make_margin() -> MarginContainer:
 func apply_safe_margins(
 	container: MarginContainer, extra_side: float = 28.0, extra_bottom: float = 24.0
 ) -> void:
-	var physical := physical_size()
-	var stretch := stretch_factor(physical)
-	var insets := safe_insets(physical)
+	_refresh_metrics()
+	var insets := _safe_insets(physical_size())
 	container.add_theme_constant_override(
-		"margin_left", roundi(to_layout(maxf(insets.x, 0.0) + extra_side, stretch))
+		"margin_left", roundi(px(maxf(insets.x, 0.0) + extra_side))
 	)
 	container.add_theme_constant_override(
-		"margin_right", roundi(to_layout(maxf(insets.y, 0.0) + extra_side, stretch))
+		"margin_right", roundi(px(maxf(insets.y, 0.0) + extra_side))
 	)
 	container.add_theme_constant_override(
-		"margin_bottom", roundi(to_layout(maxf(insets.z, 0.0) + extra_bottom, stretch))
+		"margin_bottom", roundi(px(maxf(insets.z, 0.0) + extra_bottom))
 	)
-	container.add_theme_constant_override(
-		"margin_top", roundi(top_inset(stretch) + to_layout(24.0, stretch))
-	)
+	container.add_theme_constant_override("margin_top", roundi(_top_inset() + px(24.0)))
 
 
 ## Grow every font under `root` so it renders at MIN_PHYSICAL_FONT_PX on the
@@ -156,7 +218,7 @@ func apply_safe_margins(
 ## on a phone the canvas is scaled down and a 15 px title lands at ~7 physical
 ## pixels, which reads as broken rather than small.
 func enforce_font_floor(root: Node, stretch: float) -> void:
-	var floor_size := minimum_font_size(stretch)
+	var floor_size := _minimum_font_size(stretch)
 	if root is Label:
 		_grow_label(root, floor_size)
 	elif root is Button:

@@ -43,7 +43,7 @@ func _ready() -> void:
 	# The key art is a photograph; a flat scrim is what makes the caption and
 	# the bar readable on top of it at every aspect ratio.
 	var scrim := ColorRect.new()
-	scrim.color = Color(AegisTokens.VOID, 0.72)
+	scrim.color = Color(AegisTokens.VOID, 0.5)
 	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(scrim)
@@ -56,7 +56,7 @@ func _ready() -> void:
 
 	var column := VBoxContainer.new()
 	column.alignment = BoxContainer.ALIGNMENT_END
-	column.add_theme_constant_override("separation", 14)
+	physical_separation(column, 14)
 	margin.add_child(column)
 
 	var spacer := Control.new()
@@ -72,7 +72,7 @@ func _ready() -> void:
 	_robot = TextureRect.new()
 	_robot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_robot.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_robot.custom_minimum_size = Vector2(160.0, 160.0)
+	physical_min_size(_robot, 160.0, 160.0)
 	_robot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sheet := try_texture(ROBOT_SHEET)
 	if sheet != null:
@@ -87,15 +87,17 @@ func _ready() -> void:
 	_bar.min_value = 0.0
 	_bar.max_value = 1.0
 	_bar.value = 0.0
-	_bar.custom_minimum_size = Vector2(0.0, 8.0)
+	physical_min_size(_bar, 0.0, 8.0)
 	column.add_child(_bar)
 
 	_indeterminate = MenuIndeterminateBar.new()
-	_indeterminate.custom_minimum_size = Vector2(0.0, 8.0)
+	physical_min_size(_indeterminate, 0.0, 8.0)
 	_indeterminate.visible = false
 	column.add_child(_indeterminate)
 
 	_percent = make_label("", "mono_m", AegisTokens.INFO)
+	resized.connect(_on_resized)
+	relayout()
 	column.add_child(_percent)
 
 
@@ -204,3 +206,7 @@ func _change_scene(scene_path: String) -> void:
 	var error := get_tree().change_scene_to_packed(scene)
 	if error != OK:
 		push_error("MenuLoading: change_scene failed (%d)." % error)
+
+
+func _on_resized() -> void:
+	relayout()

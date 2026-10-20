@@ -30,13 +30,13 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(make_backdrop("res://assets/ui/dashboard_bg.jpg"))
 	var scrim := ColorRect.new()
-	scrim.color = Color(AegisTokens.VOID, 0.8)
+	scrim.color = Color(AegisTokens.VOID, 0.58)
 	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(scrim)
 
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 14)
+	physical_separation(column, 14)
 	make_margin().add_child(column)
 
 	column.add_child(make_label("SELECT OPERATIVE", "display_l", AegisTokens.INK))
@@ -49,7 +49,7 @@ func _ready() -> void:
 	column.add_child(scroll)
 
 	var list := HBoxContainer.new()
-	list.add_theme_constant_override("separation", 16)
+	physical_separation(list, 16)
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(list)
 
@@ -58,22 +58,23 @@ func _ready() -> void:
 		list.add_child(_build_locked_card(index))
 
 	var footer := HBoxContainer.new()
-	footer.add_theme_constant_override("separation", 12)
+	physical_separation(footer, 12)
 	column.add_child(footer)
 
 	var back := make_button("BACK", "ghost", "Return to the dashboard")
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	back.custom_minimum_size = Vector2(0.0, 56.0)
+	physical_min_size(back, 0.0, 56.0)
 	back.pressed.connect(func() -> void: completed.emit(&"DASHBOARD", {}))
 	footer.add_child(back)
 
 	_continue = make_button("CONTINUE", "primary", "Choose a weapon")
 	_continue.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_continue.custom_minimum_size = Vector2(0.0, 56.0)
+	physical_min_size(_continue, 0.0, 56.0)
 	_continue.pressed.connect(_on_continue_pressed)
 	footer.add_child(_continue)
 
 	resized.connect(_on_resized)
+	relayout()
 
 
 func enter(_stage_payload: Dictionary) -> void:
@@ -105,7 +106,7 @@ func _build_operative_card() -> Control:
 	card.toggle_mode = true
 	card.focus_mode = Control.FOCUS_ALL
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
-	card.custom_minimum_size = Vector2(240.0, 360.0)
+	physical_min_size(card, 240.0, 360.0)
 	card.tooltip_text = "Exo Operative — field ready"
 	card.pressed.connect(_on_card_pressed.bind(OPERATIVE_ID))
 	AegisTheme.set_button_variant(card, "round")
@@ -113,14 +114,14 @@ func _build_operative_card() -> Control:
 	var column := VBoxContainer.new()
 	column.set_anchors_preset(Control.PRESET_FULL_RECT)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_theme_constant_override("separation", 8)
+	physical_separation(column, 8)
 	card.add_child(column)
 
 	var portrait := TextureRect.new()
 	portrait.texture = try_texture(HERO_PORTRAIT)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	portrait.custom_minimum_size = Vector2(208.0, 200.0)
+	physical_min_size(portrait, 208.0, 200.0)
 	portrait.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(portrait)
 
@@ -149,7 +150,7 @@ func _build_locked_card(index: int) -> Control:
 	card.disabled = true
 	card.focus_mode = Control.FOCUS_NONE
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.custom_minimum_size = Vector2(240.0, 360.0)
+	physical_min_size(card, 240.0, 360.0)
 	card.set_meta("hero_id", "")
 	AegisTheme.set_button_variant(card, "round")
 
@@ -187,4 +188,4 @@ func _on_continue_pressed() -> void:
 
 
 func _on_resized() -> void:
-	enforce_font_floor(self, stretch_factor(physical_size()))
+	relayout()

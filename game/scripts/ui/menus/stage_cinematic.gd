@@ -53,7 +53,7 @@ func _ready() -> void:
 	viewport.add_child(_plate)
 
 	var scrim := ColorRect.new()
-	scrim.color = Color(AegisTokens.VOID, 0.66)
+	scrim.color = Color(AegisTokens.VOID, 0.42)
 	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(scrim)
@@ -66,7 +66,7 @@ func _ready() -> void:
 
 	var column := VBoxContainer.new()
 	column.alignment = BoxContainer.ALIGNMENT_END
-	column.add_theme_constant_override("separation", 20)
+	physical_separation(column, 20)
 	margin.add_child(column)
 
 	var spacer := Control.new()
@@ -77,7 +77,7 @@ func _ready() -> void:
 	_mark.texture = try_texture("res://assets/ui/logo_wordmark.png")
 	_mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_mark.custom_minimum_size = Vector2(300.0, 75.0)
+	physical_min_size(_mark, 300.0, 75.0)
 	_mark.modulate.a = 0.0
 	column.add_child(_mark)
 
@@ -92,12 +92,14 @@ func _ready() -> void:
 	_position.min_value = 0.0
 	_position.max_value = 1.0
 	_position.value = 0.0
-	_position.custom_minimum_size = Vector2(0.0, 4.0)
+	physical_min_size(_position, 0.0, 4.0)
 	column.add_child(_position)
 
 	_skip = make_button("SKIP", "ghost", "Skip the opening cinematic")
-	_skip.custom_minimum_size = Vector2(160.0, 56.0)
+	physical_min_size(_skip, 160.0, 56.0)
 	_skip.pressed.connect(_on_skip_pressed)
+	resized.connect(_on_resized)
+	relayout()
 	column.add_child(_skip)
 
 
@@ -170,3 +172,7 @@ func _finish() -> void:
 	_finished = true
 	set_process(false)
 	completed.emit(&"CHAPTER", {})
+
+
+func _on_resized() -> void:
+	relayout()

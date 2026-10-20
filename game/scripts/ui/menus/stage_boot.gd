@@ -46,24 +46,24 @@ func _ready() -> void:
 
 	var column := VBoxContainer.new()
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", 24)
+	physical_separation(column, 24)
 	centre.add_child(column)
 
 	var mark := TextureRect.new()
 	mark.texture = try_texture("res://assets/ui/logo_wordmark.png")
 	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	mark.custom_minimum_size = Vector2(360.0, 90.0)
+	physical_min_size(mark, 360.0, 90.0)
 	column.add_child(mark)
 
 	var holder := VBoxContainer.new()
 	holder.alignment = BoxContainer.ALIGNMENT_CENTER
-	holder.add_theme_constant_override("separation", 10)
+	physical_separation(holder, 10)
 	column.add_child(holder)
 
 	_bar = MenuIndeterminateBar.new()
 	_bar.reduce_motion = bool(AegisPreferences.read().get("reduce_motion", false))
-	_bar.custom_minimum_size = Vector2(240.0, 6.0)
+	physical_min_size(_bar, 240.0, 6.0)
 	holder.add_child(_bar)
 
 	_status = make_label(STATUS, "label", AegisTokens.INK_2)
@@ -78,6 +78,8 @@ func enter(_stage_payload: Dictionary) -> void:
 	_hold_remaining = MINIMUM_SECONDS
 	_bar.set_running(true)
 	_status.text = STATUS
+	resized.connect(_on_resized)
+	relayout()
 	set_process(true)
 
 
@@ -94,3 +96,7 @@ func _process(delta: float) -> void:
 	_bar.set_running(false)
 	set_process(false)
 	completed.emit(&"LOADING", {"targets": FRONT_END_ART})
+
+
+func _on_resized() -> void:
+	relayout()

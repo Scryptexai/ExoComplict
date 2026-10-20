@@ -28,7 +28,7 @@ func _ready() -> void:
 	add_child(make_backdrop("res://assets/ui/dashboard_bg.jpg"))
 
 	var scrim := ColorRect.new()
-	scrim.color = Color(AegisTokens.VOID, 0.78)
+	scrim.color = Color(AegisTokens.VOID, 0.55)
 	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(scrim)
@@ -39,14 +39,14 @@ func _ready() -> void:
 	add_child(_margin)
 
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 18)
+	physical_separation(column, 18)
 	_margin.add_child(column)
 
 	var mark := TextureRect.new()
 	mark.texture = try_texture("res://assets/ui/logo_wordmark.png")
 	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	mark.custom_minimum_size = Vector2(320.0, 80.0)
+	physical_min_size(mark, 320.0, 80.0)
 	column.add_child(mark)
 
 	var stats := AegisPanel.new()
@@ -57,7 +57,7 @@ func _ready() -> void:
 	column.add_child(stats)
 
 	var stat_column := VBoxContainer.new()
-	stat_column.add_theme_constant_override("separation", 10)
+	physical_separation(stat_column, 10)
 	stats.add_child(stat_column)
 	stat_column.add_child(make_label("PROFILE", "label", AegisTokens.INK_2))
 	_balance = make_label("BATTLE POINTS  0", "mono_l", AegisTokens.ACCENT)
@@ -70,35 +70,43 @@ func _ready() -> void:
 	_loadout.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	stat_column.add_child(_loadout)
 
+	# On a phone the canvas is ~3x taller than it is wide (1280x2770 at 390x844),
+	# so a top-aligned column would leave two thirds of the screen empty and put
+	# DEPLOY out of thumb reach. A spacer pushes the actions to the bottom and
+	# DEPLOY sits last, closest to the edge the hand is already holding.
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(spacer)
+
 	var actions := VBoxContainer.new()
-	actions.add_theme_constant_override("separation", 12)
+	physical_separation(actions, 12)
 	column.add_child(actions)
 
-	var deploy := make_button("DEPLOY", "primary", "Choose your loadout and start a run")
-	deploy.custom_minimum_size = Vector2(0.0, 60.0)
-	deploy.pressed.connect(_on_deploy_pressed)
-	actions.add_child(deploy)
-
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
+	physical_separation(row, 12)
 	actions.add_child(row)
 
 	var armory := make_button("ARMORY", "round", "Unlock and equip weapons with Battle Points")
 	armory.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	armory.custom_minimum_size = Vector2(0.0, 56.0)
+	physical_min_size(armory, 0.0, 56.0)
 	armory.pressed.connect(_on_armory_pressed)
 	row.add_child(armory)
 
 	var settings := make_button("SETTINGS", "round", "Audio, HUD and control preferences")
 	settings.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	settings.custom_minimum_size = Vector2(0.0, 56.0)
+	physical_min_size(settings, 0.0, 56.0)
 	settings.pressed.connect(_on_settings_pressed)
 	row.add_child(settings)
 
 	var replay := make_button("REPLAY INTRO", "ghost", "Watch the opening cinematic again")
-	replay.custom_minimum_size = Vector2(0.0, 56.0)
+	physical_min_size(replay, 0.0, 56.0)
 	replay.pressed.connect(_on_replay_pressed)
 	actions.add_child(replay)
+
+	var deploy := make_button("DEPLOY", "primary", "Choose your loadout and start a run")
+	physical_min_size(deploy, 0.0, 60.0)
+	deploy.pressed.connect(_on_deploy_pressed)
+	actions.add_child(deploy)
 
 	_armory = HudArmoryUi.new()
 	_armory.name = "ArmoryPanel"
@@ -114,6 +122,7 @@ func _ready() -> void:
 	add_child(_settings)
 
 	resized.connect(_on_resized)
+	relayout()
 
 
 func enter(_stage_payload: Dictionary) -> void:
@@ -151,12 +160,14 @@ func refresh_profile() -> void:
 
 
 func _on_resized() -> void:
-	var stretch := stretch_factor(physical_size())
-	enforce_font_floor(self, stretch)
-	_armory.custom_minimum_size = Vector2(minf(size.x * 0.92, 420.0), minf(size.y * 0.92, 420.0))
-	enforce_font_floor(_armory, stretch)
-	_settings.custom_minimum_size = Vector2(minf(size.x * 0.94, 520.0), minf(size.y * 0.94, 560.0))
-	enforce_font_floor(_settings, stretch)
+	relayout()
+	# The armory and settings panels are sized in physical pixels too: they are
+	# lists of 56 px rows, and a panel authored in canvas units would be a third
+	# of that on a phone.
+	_armory.custom_minimum_size = Vector2(px(minf(physical_size().x * 0.92, 420.0)), px(420.0))
+	_settings.custom_minimum_size = Vector2(px(minf(physical_size().x * 0.94, 520.0)), px(520.0))
+	enforce_font_floor(_armory, _stretch)
+	enforce_font_floor(_settings, _stretch)
 	_centre(_armory)
 	_centre(_settings)
 

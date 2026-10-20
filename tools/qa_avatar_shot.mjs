@@ -134,7 +134,7 @@ server.kill();
 for (const result of results) {
     console.log(`\n=== ${result.viewport} -> ${result.file}`);
     for (const line of result.lines) {
-        if (/Camera QA:|Touch QA:|CharacterVisual:|Rig QA:|Encounter:|PAGEERROR|SCRIPT ERROR|ERROR:/.test(line)) {
+        if (/Camera QA:|Touch QA:|FrontEnd:|Menu QA:|MenuLoading:|UI art|CharacterVisual:|Rig QA:|Encounter:|PAGEERROR|SCRIPT ERROR|ERROR:/.test(line)) {
             console.log(`  ${line}`);
         }
     }

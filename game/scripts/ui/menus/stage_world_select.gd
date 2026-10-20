@@ -19,13 +19,13 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(make_backdrop(WORLD_PLATE))
 	var scrim := ColorRect.new()
-	scrim.color = Color(AegisTokens.VOID, 0.78)
+	scrim.color = Color(AegisTokens.VOID, 0.55)
 	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(scrim)
 
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 14)
+	physical_separation(column, 14)
 	make_margin().add_child(column)
 
 	column.add_child(make_label("SELECT THEATRE", "display_l", AegisTokens.INK))
@@ -38,7 +38,7 @@ func _ready() -> void:
 	column.add_child(scroll)
 
 	var list := VBoxContainer.new()
-	list.add_theme_constant_override("separation", 12)
+	physical_separation(list, 12)
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(list)
 
@@ -48,22 +48,23 @@ func _ready() -> void:
 		list.add_child(_build_locked_card(index))
 
 	var footer := HBoxContainer.new()
-	footer.add_theme_constant_override("separation", 12)
+	physical_separation(footer, 12)
 	column.add_child(footer)
 
 	var back := make_button("BACK", "ghost", "Return to weapon selection")
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	back.custom_minimum_size = Vector2(0.0, 56.0)
+	physical_min_size(back, 0.0, 56.0)
 	back.pressed.connect(func() -> void: completed.emit(&"WEAPON", {}))
 	footer.add_child(back)
 
 	var launch := make_button("LAUNCH", "primary", "Load the arena and start the run")
 	launch.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	launch.custom_minimum_size = Vector2(0.0, 56.0)
+	physical_min_size(launch, 0.0, 56.0)
 	launch.pressed.connect(_on_launch_pressed)
 	footer.add_child(launch)
 
 	resized.connect(_on_resized)
+	relayout()
 
 
 func enter(_stage_payload: Dictionary) -> void:
@@ -83,7 +84,7 @@ func _build_world_card(group: ButtonGroup) -> Control:
 	card.toggle_mode = true
 	card.focus_mode = Control.FOCUS_ALL
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
-	card.custom_minimum_size = Vector2(0.0, 168.0)
+	physical_min_size(card, 0.0, 168.0)
 	card.set_meta("world_id", String(FRONTIER_ID))
 	card.pressed.connect(_on_card_pressed.bind(FRONTIER_ID))
 	AegisTheme.set_button_variant(card, "round")
@@ -91,20 +92,20 @@ func _build_world_card(group: ButtonGroup) -> Control:
 	var row := HBoxContainer.new()
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", 14)
+	physical_separation(row, 14)
 	card.add_child(row)
 
 	var plate := TextureRect.new()
 	plate.texture = try_texture(WORLD_PLATE)
 	plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	plate.custom_minimum_size = Vector2(240.0, 135.0)
+	physical_min_size(plate, 240.0, 135.0)
 	row.add_child(plate)
 
 	var column := VBoxContainer.new()
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_theme_constant_override("separation", 4)
+	physical_separation(column, 4)
 	row.add_child(column)
 	column.add_child(make_label("NEON FRONTIER", "title", AegisTokens.INK))
 	var blurb := make_label(
@@ -129,7 +130,7 @@ func _build_locked_card(index: int) -> Control:
 	card.disabled = true
 	card.focus_mode = Control.FOCUS_NONE
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.custom_minimum_size = Vector2(0.0, 96.0)
+	physical_min_size(card, 0.0, 96.0)
 	AegisTheme.set_button_variant(card, "round")
 
 	var column := VBoxContainer.new()
@@ -187,4 +188,4 @@ func _on_launch_pressed() -> void:
 
 
 func _on_resized() -> void:
-	enforce_font_floor(self, stretch_factor(physical_size()))
+	relayout()

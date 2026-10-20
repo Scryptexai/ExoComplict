@@ -21,7 +21,7 @@ func _ready() -> void:
 	add_child(make_backdrop("res://assets/ui/world_neon_frontier.jpg"))
 
 	var scrim := ColorRect.new()
-	scrim.color = Color(AegisTokens.VOID, 0.7)
+	scrim.color = Color(AegisTokens.VOID, 0.5)
 	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(scrim)
@@ -43,7 +43,7 @@ func _ready() -> void:
 	centre.add_child(_card)
 
 	_column = VBoxContainer.new()
-	_column.add_theme_constant_override("separation", 12)
+	physical_separation(_column, 12)
 	_card.add_child(_column)
 
 	_column.add_child(_line(CHAPTER, "label", AegisTokens.ACCENT))
@@ -51,13 +51,15 @@ func _ready() -> void:
 	_column.add_child(_line(OBJECTIVE, "body", AegisTokens.INFO))
 	var detail := _line(DETAIL, "body_s", AegisTokens.INK_2)
 	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	detail.custom_minimum_size = Vector2(320.0, 0.0)
+	physical_min_size(detail, 320.0, 0.0)
 	_column.add_child(detail)
 
 	var button := make_button("CONTINUE", "primary", "Continue to the dashboard")
-	button.custom_minimum_size = Vector2(220.0, 56.0)
+	physical_min_size(button, 220.0, 56.0)
 	button.pressed.connect(_on_continue_pressed)
 	_column.add_child(button)
+	resized.connect(_on_resized)
+	relayout()
 
 
 func enter(_stage_payload: Dictionary) -> void:
@@ -84,3 +86,7 @@ func _on_continue_pressed() -> void:
 func _line(text: String, role: String, color: Color) -> Label:
 	var label := make_label(text, role, color)
 	return label
+
+
+func _on_resized() -> void:
+	relayout()

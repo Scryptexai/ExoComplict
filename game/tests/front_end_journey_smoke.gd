@@ -24,6 +24,7 @@ extends SceneTree
 
 const FrontEndScene = preload("res://scenes/ui/front_end.tscn")
 const PreloadScene = preload("res://scenes/ui/menus/stage_preload.tscn")
+const GameplayScene = preload("res://scenes/main.tscn")
 
 ## Distinct from the real `user://progression.cfg` so the suite never spends or
 ## unlocks anything in a profile a developer might care about.
@@ -110,7 +111,8 @@ func _run_smoke_test() -> void:
 	await _check_launch_payload()
 
 	await _check_preload_contract()
-	_check_intro_persists()
+	await _check_intro_persists()
+	await _check_saved_weapon_reaches_gameplay()
 	_finish()
 
 
@@ -313,7 +315,7 @@ func _check_preload_contract() -> void:
 	root.add_child(stage)
 	await process_frame
 	_expect(is_instance_valid(stage), "the PRELOAD stage instantiates")
-	var scene := load("res://scenes/main.tscn") as PackedScene
+	var scene := GameplayScene
 	_expect(scene != null, "the preload target res://scenes/main.tscn is a PackedScene")
 	stage.free()
 
@@ -337,6 +339,37 @@ func _check_intro_persists() -> void:
 	_expect(bool(reloaded.intro_seen), "a fresh profile load reads intro_seen back")
 	_expect(reloaded.selected_weapon_id == &"pulse_rifle", "the default loadout survives a reload")
 	reloaded.free()
+
+
+## The last hop: PRELOAD hands the gameplay scene a loadout, and the scene has
+## to actually read it. Without this check the journey could end at a scene that
+## silently ignores the choice the player made three screens earlier.
+func _check_saved_weapon_reaches_gameplay() -> void:
+	var profile := ProgressionService.new()
+	profile.profile_path = PROFILE_PATH
+	root.add_child(profile)
+	await process_frame
+	profile.unlocked_ids["arc_shooter"] = true
+	_expect(profile.select_weapon(&"arc_shooter"), "the profile accepts a weapon the player owns")
+
+	var main: Node = GameplayScene.instantiate()
+	main.set("start_wave_session_on_ready", false)
+	main.get_node("ProgressionService").set("profile_path", PROFILE_PATH)
+	root.add_child(main)
+	await process_frame
+	await process_frame
+	var controller := main.get_node("Player").get("weapon_controller") as WeaponController
+	if not _expect(is_instance_valid(controller), "the gameplay scene exposes a weapon controller"):
+		main.free()
+		profile.free()
+		return
+	var equipped: StringName = controller.get_current_definition().weapon_id
+	_expect(
+		equipped == &"arc_shooter",
+		"gameplay starts with the weapon the front end saved (equipped %s)" % equipped
+	)
+	main.free()
+	profile.free()
 
 
 # --- harness ----------------------------------------------------------------
