@@ -62,6 +62,7 @@ func _ready() -> void:
 	player.skill_used.connect(_on_skill_used)
 	progression_service.profile_changed.connect(_on_profile_changed)
 	_on_profile_changed()
+	_apply_saved_weapon()
 	touch_controls._update_weapon_ammo(
 		player.weapon_controller.get_current_ammo(),
 		player.weapon_controller.get_current_magazine_size(),
@@ -195,6 +196,20 @@ func _on_profile_changed() -> void:
 		player.weapon_controller.get_current_magazine_size(),
 		player.weapon_controller.is_reloading()
 	)
+
+
+## The front end stores the weapon the player launched with; this is where it
+## takes effect. It runs once on boot rather than on every profile change, so a
+## mid-run swap in the armory is not overwritten by the saved choice.
+func _apply_saved_weapon() -> void:
+	var wanted := progression_service.selected_weapon_id
+	if wanted == &"" or not progression_service.is_unlocked(wanted):
+		return
+	for index in range(player.weapon_controller.weapon_definitions.size()):
+		var definition: WeaponDefinition = player.weapon_controller.weapon_definitions[index]
+		if definition != null and definition.weapon_id == wanted:
+			player.select_weapon(index)
+			return
 
 
 func _on_weapon_equipped(_display_name: String) -> void:

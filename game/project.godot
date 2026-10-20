@@ -5,7 +5,7 @@ config_version=5
 [application]
 config/name="Project Overdrive - Combat Prototype"
 config/description="Mobile-first third-person sci-fi shooter with a connected 3D NEON FRONTIER world."
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/ui/front_end.tscn"
 config/icon="res://icon.svg"
 config/features=PackedStringArray("4.7")
 

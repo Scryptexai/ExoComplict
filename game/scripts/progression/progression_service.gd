@@ -12,6 +12,17 @@ const PROFILE_SECTION := "profile"
 const COSTS := {"pulse_rifle": 0, "nova_launcher": 120, "arc_shooter": 250}
 const MAX_VALUE := 99999999
 
+## The only content that actually exists. The selection screens show these as
+## pickable and everything else as LOCKED, so the front end cannot offer a hero,
+## weapon or world the game cannot load. Add an id here *only* when the matching
+## rig / WeaponDefinition / scene exists.
+const HERO_IDS: Array[StringName] = [&"exo_operative"]
+const WEAPON_IDS: Array[StringName] = [&"pulse_rifle", &"nova_launcher", &"arc_shooter"]
+const WORLD_IDS: Array[StringName] = [&"neon_frontier"]
+const DEFAULT_HERO_ID := &"exo_operative"
+const DEFAULT_WEAPON_ID := &"pulse_rifle"
+const DEFAULT_WORLD_ID := &"neon_frontier"
+
 ## Empty for isolated smoke fixtures; the shipped scene uses PROFILE_PATH.
 @export var profile_path: String = PROFILE_PATH
 
@@ -19,6 +30,12 @@ var balance: int = 0
 var best_score: int = 0
 var completed_runs: int = 0
 var unlocked_ids: Dictionary = {"pulse_rifle": true}
+## Front-end state that has to outlive the session: whether the opening
+## cinematic has been played, and the loadout the player last launched with.
+var intro_seen: bool = false
+var selected_hero_id: StringName = DEFAULT_HERO_ID
+var selected_weapon_id: StringName = DEFAULT_WEAPON_ID
+var selected_world_id: StringName = DEFAULT_WORLD_ID
 
 
 func _ready() -> void:
@@ -30,6 +47,10 @@ func load_profile() -> void:
 	best_score = 0
 	completed_runs = 0
 	unlocked_ids = {"pulse_rifle": true}
+	intro_seen = false
+	selected_hero_id = DEFAULT_HERO_ID
+	selected_weapon_id = DEFAULT_WEAPON_ID
+	selected_world_id = DEFAULT_WORLD_ID
 	if profile_path.is_empty():
 		profile_changed.emit()
 		return
@@ -44,7 +65,21 @@ func load_profile() -> void:
 				var key := str(id)
 				if COSTS.has(key):
 					unlocked_ids[key] = true
+		intro_seen = bool(config.get_value(PROFILE_SECTION, "intro_seen", false))
+		selected_hero_id = _known_id(config.get_value(PROFILE_SECTION, "selected_hero", ""), HERO_IDS, DEFAULT_HERO_ID)
+		selected_world_id = _known_id(config.get_value(PROFILE_SECTION, "selected_world", ""), WORLD_IDS, DEFAULT_WORLD_ID)
+		selected_weapon_id = _known_id(config.get_value(PROFILE_SECTION, "selected_weapon", ""), WEAPON_IDS, DEFAULT_WEAPON_ID)
+	# A weapon can be selected and then lost to a reset save, so re-gate it.
+	if not is_unlocked(selected_weapon_id):
+		selected_weapon_id = DEFAULT_WEAPON_ID
 	profile_changed.emit()
+
+
+## An edited user:// file must not be able to invent a hero, weapon or world.
+## Unknown ids fall back to the default rather than reaching the scene loader.
+func _known_id(raw: Variant, known: Array[StringName], fallback: StringName) -> StringName:
+	var candidate := StringName(str(raw))
+	return candidate if known.has(candidate) else fallback
 
 
 func is_unlocked(weapon_id: StringName) -> bool:
@@ -64,6 +99,60 @@ func unlock_weapon(weapon_id: StringName) -> bool:
 	unlocked_ids[String(weapon_id)] = true
 	_save_profile()
 	profile_changed.emit()
+	return true
+
+
+## Called once when the opening cinematic finishes (or is skipped). Persisted
+## immediately so a crash on the first run does not replay it forever.
+func mark_intro_seen() -> void:
+	if intro_seen:
+		return
+	intro_seen = true
+	_save_profile()
+	profile_changed.emit()
+
+
+## Clears the "intro seen" flag so the cinematic plays again. Used by the
+## dashboard's REPLAY INTRO; it touches nothing else in the profile, so no BP,
+## unlock or best score is lost.
+func reset_intro() -> void:
+	if not intro_seen:
+		return
+	intro_seen = false
+	_save_profile()
+	profile_changed.emit()
+
+
+func select_hero(hero_id: StringName) -> bool:
+	if not HERO_IDS.has(hero_id) or hero_id == selected_hero_id:
+		return false
+	selected_hero_id = hero_id
+	_save_profile()
+	profile_changed.emit()
+	return true
+
+
+func select_world(world_id: StringName) -> bool:
+	if not WORLD_IDS.has(world_id) or world_id == selected_world_id:
+		return false
+	selected_world_id = world_id
+	_save_profile()
+	profile_changed.emit()
+	return true
+
+
+## Equipping is separate from owning: the armory buys, this selects within what
+## the profile already unlocks. Selecting a locked weapon is refused rather than
+## silently fixed up later, so the UI cannot show an equipped weapon it cannot
+## fire.
+func select_weapon(weapon_id: StringName) -> bool:
+	if not WEAPON_IDS.has(weapon_id) or not is_unlocked(weapon_id):
+		return false
+	var changed := weapon_id != selected_weapon_id
+	selected_weapon_id = weapon_id
+	if changed:
+		_save_profile()
+		profile_changed.emit()
 	return true
 
 
@@ -91,6 +180,10 @@ func _save_profile() -> void:
 	config.set_value(PROFILE_SECTION, "best_score", best_score)
 	config.set_value(PROFILE_SECTION, "completed_runs", completed_runs)
 	config.set_value(PROFILE_SECTION, "unlocked_ids", unlocked_ids.keys())
+	config.set_value(PROFILE_SECTION, "intro_seen", intro_seen)
+	config.set_value(PROFILE_SECTION, "selected_hero", String(selected_hero_id))
+	config.set_value(PROFILE_SECTION, "selected_weapon", String(selected_weapon_id))
+	config.set_value(PROFILE_SECTION, "selected_world", String(selected_world_id))
 	var result := config.save(profile_path)
 	if result != OK:
 		push_warning("Could not save Battle Points and unlocks: %s" % error_string(result))

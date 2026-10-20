@@ -58,33 +58,41 @@ static func compute_stretch(hud, physical: Vector2) -> float:
 ## (a desktop browser, or an OEM that leaves the insets empty) still gets the
 ## touch gesture reserve, so the buttons never reach the glass edge.
 static func resolve_safe_insets(hud, physical: Vector2) -> void:
+	var measured := measure_safe_insets(physical, hud._touch_mode)
+	hud._safe_left = hud._to_layout(measured.x)
+	hud._safe_right = hud._to_layout(measured.y)
+	hud._safe_bottom = hud._to_layout(measured.z)
+
+
+## Pure form of resolve_safe_insets, in window pixels: x = left, y = right,
+## z = bottom. The menus need the same three numbers and duplicating this maths
+## is how the front end and the combat HUD end up disagreeing about where the
+## glass edge is -- which is the failure BUG 2 was about. Both call this.
+static func measure_safe_insets(physical: Vector2, touch_mode: bool) -> Vector3:
 	var left := 0.0
 	var right := 0.0
 	var bottom := 0.0
-	if is_instance_valid(hud.get_window()):
-		var safe := DisplayServer.get_display_safe_area()
-		if safe.size.x > 0 and safe.size.y > 0:
-			left = maxf(left, float(safe.position.x))
-			right = maxf(right, float(physical.x - (safe.position.x + safe.size.x)))
-			bottom = maxf(bottom, float(physical.y - (safe.position.y + safe.size.y)))
-		var cutouts := DisplayServer.get_display_cutouts()
-		for index in range(cutouts.size()):
-			var cutout: Rect2 = cutouts[index]
-			if cutout.size.x <= 0.0 or cutout.size.y <= 0.0:
-				continue
-			if cutout.position.x <= AegisTokens.SAFE_INSET_NOISE_PX:
-				left = maxf(left, cutout.position.x + cutout.size.x)
-			if cutout.position.x + cutout.size.x >= physical.x - AegisTokens.SAFE_INSET_NOISE_PX:
-				right = maxf(right, physical.x - cutout.position.x)
-			if cutout.position.y + cutout.size.y >= physical.y - AegisTokens.SAFE_INSET_NOISE_PX:
-				bottom = maxf(bottom, cutout.size.y)
-	if hud._touch_mode:
+	var safe := DisplayServer.get_display_safe_area()
+	if safe.size.x > 0 and safe.size.y > 0:
+		left = maxf(left, float(safe.position.x))
+		right = maxf(right, float(physical.x - (safe.position.x + safe.size.x)))
+		bottom = maxf(bottom, float(physical.y - (safe.position.y + safe.size.y)))
+	var cutouts := DisplayServer.get_display_cutouts()
+	for index in range(cutouts.size()):
+		var cutout: Rect2 = cutouts[index]
+		if cutout.size.x <= 0.0 or cutout.size.y <= 0.0:
+			continue
+		if cutout.position.x <= AegisTokens.SAFE_INSET_NOISE_PX:
+			left = maxf(left, cutout.position.x + cutout.size.x)
+		if cutout.position.x + cutout.size.x >= physical.x - AegisTokens.SAFE_INSET_NOISE_PX:
+			right = maxf(right, physical.x - cutout.position.x)
+		if cutout.position.y + cutout.size.y >= physical.y - AegisTokens.SAFE_INSET_NOISE_PX:
+			bottom = maxf(bottom, cutout.size.y)
+	if touch_mode:
 		bottom = maxf(bottom, AegisTokens.SAFE_BOTTOM_PX)
 		left = maxf(left, AegisTokens.SAFE_SIDE_PX)
 		right = maxf(right, AegisTokens.SAFE_SIDE_PX)
-	hud._safe_left = hud._to_layout(maxf(left, 0.0))
-	hud._safe_right = hud._to_layout(maxf(right, 0.0))
-	hud._safe_bottom = hud._to_layout(maxf(bottom, 0.0))
+	return Vector3(maxf(left, 0.0), maxf(right, 0.0), maxf(bottom, 0.0))
 
 
 static func desktop(hud) -> void:
