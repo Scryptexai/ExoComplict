@@ -7,6 +7,7 @@ Checks (no browser needed):
   * the custom Project Overdrive shell was applied (marker present)
   * every ``$GODOT_*`` placeholder was substituted by the exporter
   * the shell references the exported JS library and engine config
+  * the shell's ``fileSizes`` map matches the files on disk
   * total size sanity (warns on unusually small/large builds)
 
 Usage:
@@ -19,6 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import re
 from pathlib import Path
 
 REQUIRED_FILES = ("index.html", "index.js", "index.wasm", "index.pck")
@@ -87,6 +89,26 @@ def verify(build_dir: Path) -> tuple[list[str], list[str], dict[str, int]]:
     for name in ("index.wasm", "index.pck"):
         if name not in html:
             notes.append(f"index.html does not mention {name}; the engine config normally lists both files")
+
+    # The engine drives its loading bar from the fileSizes map the exporter
+    # writes into the shell. Swap a pack without re-exporting the shell and the
+    # bar reports a percentage computed from a size that no longer exists --
+    # a progress number that is not progress.
+    declared = re.search(r'"fileSizes":\{([^}]*)\}', html)
+    if not declared:
+        problems.append(
+            "index.html has no fileSizes map in GODOT_CONFIG; the loader cannot size its progress bar, "
+            "so the number it shows would not be progress"
+        )
+    else:
+        for pair in re.finditer(r'"([^"]+)":(\d+)', declared.group(1)):
+            name, expected = pair.group(1), int(pair.group(2))
+            actual = (build_dir / name).stat().st_size if (build_dir / name).exists() else -1
+            if actual != expected:
+                problems.append(
+                    f"index.html declares {name} as {expected} bytes but the file is {actual} bytes; "
+                    "the loader's progress bar would be computed from a stale size"
+                )
 
     for name in OPTIONAL_FILES:
         if (build_dir / name).exists():

@@ -210,23 +210,55 @@ spritesheet, palette audit) by `tools/art/build_ui_art.py` using Pillow.
 | Asset E — weapon plate | `game/assets/ui/weapon_pulse_rifle.png` | 768×512 | PNG | 0.0 % | WEAPON card |
 | Asset E — weapon plate | `game/assets/ui/weapon_nova_launcher.png` | 768×512 | PNG | 1.3 % | WEAPON card |
 | Asset E — weapon plate | `game/assets/ui/weapon_arc_shooter.png` | 768×512 | PNG | 0.1 % | WEAPON card |
-| Asset C — loading robot | `game/assets/ui/loading_robot_sheet.png` | 2048×512 | PNG (4×512 px cells, 8 fps) | 0.0 % | LOADING, PRELOAD |
+| Asset C — loading robot (fallback) | `game/assets/ui/loading_robot_sheet.png` | 2048×512 | PNG (4×512 px cells, 8 fps) | 0.0 % | LOADING, PRELOAD: used when the video is missing or `reduce_motion` is on |
+| **Asset C — loading robot video** | `game/assets/ui/loading_robot.ogv` | 512×512, 8 fps, 4 frames, 0.50 s, 63 KB | OGV / Theora + silent Vorbis | frames audited before encoding | LOADING, PRELOAD — primary |
+| **Asset F — cinematic opening video** | `game/assets/ui/cinematic_opening.ogv` | 1280×720, 24 fps, 230 frames, 9.58 s, 1.57 MB | OGV / Theora + silent Vorbis | frames audited before encoding | CINEMATIC — primary |
 
-Total **5.3 MB** on disk. Every texture is loaded through
+Total **6.8 MB** on disk (5.2 MB of textures + 1.7 MB of video). Every texture is loaded through
 `MenuStage.try_texture()`, which returns `null` for a missing file, so a lost
 plate is a visual regression rather than a boot failure. Palette audit: 9/9
 within palette; the audit is HSV-only and says nothing about composition or
 quality, and nobody has *looked* at these images — there is no image display in
 this environment.
 
-### Not delivered
+### How the video blocker was cleared
 
-| Asset | Status | Blocker |
-| --- | --- | --- |
-| Asset C as a **video** | **NOT DELIVERED** — a 4-frame sprite sheet ships instead | No video encoder: `ffmpeg` / `ffprobe` absent, Debian mirrors unreachable |
-| Asset F — cinematic opening video | **BLOCKED** | Same. The opening cinematic is composed in-engine (a push-in on the key art under four captions, skippable from frame 1) and is integrated — but it is **not** a video, and no video file exists on disk |
+§8 item 5 recorded "no encoder exists in this environment". That changed: the
+static ffmpeg 7.0.2 binary shipped inside the `imageio_ffmpeg` wheel on PyPI
+(`imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2`, built with
+`--enable-libtheora --enable-libvorbis`) is an encoder that can actually be
+fetched here, and `modules/theora/` is present in the Godot 4.7.2 source. Both
+videos are therefore real files on disk, decoded by the engine, and measured:
 
-Nothing in this report or in `docs/ART_DIRECTION.md` claims a video exists.
+* **Asset C** is the sheet's own four frames at their own cadence (8 fps,
+  0.5 s, looping), so the video and the sprite-sheet fallback are the same
+  animation and the fallback is not a downgrade.
+* **Asset F** is a 9.58 s push-in on the key art. It carries **no** baked-in
+  text: all four captions stay UI text, so they remain translatable, legible at
+  any size and skippable.
+* Both stages keep their non-video path. A device that cannot decode Theora, or
+  a player with `reduce_motion` on, gets the sprite sheet / the composed
+  push-in — degradation, never a blank screen.
+
+Nothing in this report claims a video plays until a measurement says so; see
+§7 for the in-engine and in-browser rows.
+
+### Three video defects the browser check caught
+
+All three were invisible to the test suite and to the inspector; each was found
+by a number from a real browser build.
+
+| # | Defect | How it was caught | Fix |
+| --- | --- | --- | --- |
+| 1 | The intro ended on its first frame: `_total` was taken from `VideoStreamPlayer.stream_length`, which reads **0.00** until the decoder opens the file, so `clampf(_elapsed / maxf(_total, 0.001))` saturated immediately | browser log printed `playing the encoded opening (0.00 s)` and the stage jumped to CHAPTER within the 6 s settle | `stage_cinematic.gd`: start from the authored 4 × 2.4 s and adopt the measured length in `_process` once it reports > 0.1 s |
+| 2 | The opening was smeared to the screen's aspect: `_layout_video()` sized the player from `VideoStream.get_size()`, which **does not exist** in this build (`has_method("get_size")` is false on `VideoStreamTheora`) — the call threw, the player kept the full stage rect, and `expand` stretched 16:9 into 390×844 | QA rect report printed `OpeningVideo=0,0,390x844` | `stage_cinematic.gd`: layout from the decoded `get_video_texture()` size with an authored 16:9 default, retried until the first frame arrives. Now `-555,0,1500x844` at 390×844 and `0,-42,844x475` at 844×390 |
+| 3 | The loading robot was twice as wide as tall: the square 512×512 loop filled a 318×160 column rect while the sprite-sheet fallback drew it 160×160 | QA rect report printed `RobotVideo=36,590,318x160` | `stage_loading.gd`: `size_flags_horizontal = SIZE_SHRINK_CENTER`, so the player keeps its 160×160 minimum. Now `115,590,160x160` |
+
+Two QA hooks had to be added to get those numbers: `report_menu_rects()` now
+includes `VideoStreamPlayer` (previously Buttons, Labels and ProgressBars only),
+and `?qa_stage=LOADING|PRELOAD` now deep-links with the same target list the
+real journey passes — with an empty payload a loading stage leaves on the next
+frame and cannot be photographed at all.
 
 ---
 
@@ -236,8 +268,8 @@ Nothing in this report or in `docs/ART_DIRECTION.md` claims a video exists.
 | --- | --- |
 | Combat HUD | sizes in physical pixels; safe-area reserve; weapon + magazine stacked; toast yields to controls; mirrored left-hand layout honours the reserve |
 | BOOT | indeterminate bar; reads the real profile and preferences |
-| LOADING / PRELOAD | real percentage from `ResourceLoader`; robot sprite sheet animates (8 fps, frame 0 held under `reduce_motion`) |
-| CINEMATIC | in-engine push-in over the key art, four captions, skippable, plays once |
+| LOADING / PRELOAD | real percentage from `ResourceLoader`; the robot **video** loops (0.5 s), sprite sheet if it is missing or `reduce_motion` is on |
+| CINEMATIC | the **opening video** (9.58 s) with the composed push-in as fallback; four captions as UI text, skippable from frame 1, plays once |
 | CHAPTER | title card, advances on tap |
 | DASHBOARD | five real numbers, four working actions, bottom-anchored DEPLOY, two-column in landscape |
 | HERO | one selectable card + two disabled slots, no invented stats, portrait labelled as concept art |
@@ -252,7 +284,7 @@ Nothing in this report or in `docs/ART_DIRECTION.md` claims a video exists.
 ## 7. QA table
 
 `GODOT_BIN=/usr/local/bin/godot SKIP_VERSION_CHECK=1 ./scripts/run_smoke_tests.sh --no-import`
-→ **24 passed, 0 failed** (`exports/test-logs/summary.txt`).
+→ **25 passed, 0 failed** (`exports/test-logs/summary.txt`).
 
 | Test | Assertions | Status | What it proves |
 | --- | --- | --- | --- |
@@ -261,10 +293,24 @@ Nothing in this report or in `docs/ART_DIRECTION.md` claims a video exists.
 | `hud_safe_margin_smoke` | 246 | **PASS** | BUG 2: every docked control clears the reserved edge at 3 viewports |
 | `menu_layout_smoke` | 33 | **PASS** | nothing outside the viewport, no button under 56 px, and every card list scrolls to the end and moves its cards — at 4 sizes, 12 of the 16 combinations reached by rotating a live screen |
 | `ui_art_smoke` | 48 | **PASS** | all nine textures load in-engine at the documented size |
+| `video_asset_smoke` | 17 | **PASS** | both OGVs decode in-engine: measured sizes 512×512 / 1280×720, lengths 0.50 s / 9.58 s matching the manifest, playback advances, both stages bind the file, a missing file loads as `null` instead of crashing |
 | `hero_rig_smoke`, `weapon_system_smoke`, `arc_weapon_smoke`, `wave_director_smoke`, `shooter_enemy_smoke`, `runner_standoff_smoke`, `enemy_visual_smoke`, `effects_smoke`, `combat_feedback_smoke`, `exploration_flow_smoke`, `progression_smoke`, `reward_loop_smoke`, `playability_hud_smoke`, `pause_gesture_smoke`, `hud_editor_smoke`, `ui_settings_smoke`, `neon_frontier_world_smoke`, `arena_blockout_smoke`, `audio_smoke` | (single summary line each) | **PASS** | no regression from this session's work |
 
 Browser measurements (headless Chromium + SwiftShader WebGL 2, via
-`tools/qa_avatar_shot.mjs`) back BUG 1, BUG 2 and the menu layout numbers above.
+`tools/qa_avatar_shot.mjs`) back BUG 1, BUG 2 and the menu layout numbers
+above, and carry the video evidence:
+
+| Browser check (390×844 unless noted) | Result | Status |
+| --- | --- | --- |
+| CINEMATIC: which path ran | log `MenuCinematic: playing the encoded opening`, no error, no stall warning | **PASS** |
+| CINEMATIC: does it advance | log `MenuCinematic: stream at 2.02 s of 9.58 s` | **PASS** |
+| CINEMATIC: is it on screen | 3 frames 2 s apart → 89.8 % of pixels change, motion bbox = whole 390×844 frame | **PASS** |
+| CINEMATIC: is it distorted | `OpeningVideo=-555,0,1500x844` at 390×844 and `0,-42,844x475` at 844×390 — cover rects at the video's own 16:9, centred and clipped | **PASS** |
+| LOADING: which path ran | log `MenuLoading: playing the encoded walk cycle` on the real boot flow | **PASS** |
+| LOADING: is it laid out | `RobotVideo=115,590,160x160` — square, centred, on screen | **PASS** |
+| LOADING: does the loop animate between two captured frames | the stage is on screen ~0.3–0.6 s and its fade-in dominates those frames; the loop's own frame-to-frame change could not be isolated | **NOT TESTED** |
+| The committed `web/` payload, served as-is | `--serve web`: the opening plays (`stream at 2.01 s of 9.58 s`) with `OpeningVideo=-555,0,1500x844` | **PASS** |
+| Shell `fileSizes` match the files on disk | `python3 tools/verify_web_build.py web` | **PASS** — and it now *fails* on a stale or missing `fileSizes` map (both cases tested by breaking the file on purpose). Without the map the loader's percentage is computed from a size that is not there, which is the fake-progress rule, in the loader |
 
 ---
 
@@ -276,8 +322,9 @@ Browser measurements (headless Chromium + SwiftShader WebGL 2, via
 | 2 | **A full `web/` re-export could not be run here.** `engine/web_templates/*.zip` are 133-byte LFS pointers, so the export template cannot be unpacked; `--export-pack` needs no template and was used instead. CI *does* refresh `web/index.pck` on push, and the refreshed payload was measured this session (§3) — but the refresh is CI's output, not a local export. | **PASS** (payload measured) / **NOT TESTED** (local re-export) |
 | 3 | **A physical rotation.** The probe resizes a live viewport — which is what a rotation does to the layout — and 12 of 16 stage/size combinations are measured that way. Not exercised: the platform orientation signal, the OS re-layout, a real sensor. | **PASS** (layout) / **NOT TESTED** (device) |
 | 4 | **Touch-drag scrolling** of the landscape card row. The range and the card movement are measured (0 → 574 px sideways on WEAPON). The gesture itself cannot be produced here: Godot gates touch panning on `DisplayServer::is_touchscreen_available()` (`scene/gui/scroll_container.cpp:237`), which the headless display server never reports — a synthetic drag moves 0 px, while a synthetic click pushed the same way does fire a Button. | **PASS** (range + movement) / **NOT TESTED** (gesture) |
-| 5 | **Assets C and F as video.** No encoder exists in this environment. | **BLOCKED** |
+| 5 | **Assets C and F as video.** Was **BLOCKED** (no encoder); the ffmpeg binary inside the `imageio_ffmpeg` wheel on PyPI cleared it. Both videos are decoded in-engine and played in a browser build this session. Residual: the loading loop's own frame-to-frame motion is not isolated (§7), and no human has watched either video — the audit is numeric. | **PASS** (decode + playback) / **NOT TESTED** (frame isolation, human review) |
 | 6 | **Real device safe areas.** Insets come from `HudLayout`'s synthetic model (8/8/28 in touch mode); a real notch or gesture bar may report more. | **NOT TESTED** |
 | 7 | **Frame rate, shader compilation on real drivers, thermals.** | **NOT TESTED** |
 | 8 | The 34 % vs 21 % hero-height figure — **reconciled**: two camera states (6.59 m / 73° headless vs 4.77 m / 66° in the browser sample), both inside the readable band. Recorded in the BUG 1 doc. | closed |
-| 9 | `ObjectDB` / `CanvasItem` RID leak warnings at exit in the menu tests (18 RIDs, 36 instances) — reported by Godot after `quit`, stages are freed by the harness. Not investigated. | open, cosmetic |
+| 9 | **The shot tool waited on the wrong line.** `tools/qa_avatar_shot.mjs` blocked up to 240 s for `Encounter:`, a gameplay-only banner, so every *menu* screenshot was taken ~4 minutes after boot — long after the state it was meant to capture (caught when three cinematic frames came back byte-identical). It now waits for any engine banner, and the run dropped from ~245 s to ~15 s. Any menu screenshot taken before this fix should be re-taken. | closed |
+| 10 | `ObjectDB` / `CanvasItem` RID leak warnings at exit in the menu tests (18 RIDs, 36 instances) — reported by Godot after `quit`, stages are freed by the harness. Not investigated. | open, cosmetic |

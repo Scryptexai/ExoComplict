@@ -187,14 +187,60 @@ runtime and compares the size the engine reports against this table.
 Total on disk: **5.3 MB**. Sources in `generated/` are kept (22 MB) so the build
 is reproducible; without them `build_ui_art.py` cannot run.
 
-### Not delivered
+## 6b. Video
 
-| Asset | Status | Blocker |
+`tools/art/build_ui_video.py` renders and encodes the two video assets. It needs
+an ffmpeg with `libtheora`; it looks at `$FFMPEG`, then `PATH`, then the
+`imageio-ffmpeg` wheel, and **fails loudly** if none of them can encode Theora.
+It renders deterministic frames with Pillow and hands them to ffmpeg, so the
+same sources produce the same video.
+
+| Key | File | Res | FPS | Length | Size | Off-palette | Integration |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Asset C — loading robot | `loading_robot.ogv` | 512×512 | 8 | 0.5 s (loops) | 63 kB | 0.1 % | LOADING, PRELOAD — the sprite sheet is the fallback |
+| Asset F — cinematic opening | `cinematic_opening.ogv` | 1280×720 | 24 | 9.58 s | 1.6 MB | 0.0 % | CINEMATIC — the composed in-engine opening is the fallback |
+
+Container is **OGV (Theora + Vorbis)**, which is what Godot 4.7.2 can play:
+`modules/theora` ships `ResourceFormatLoaderTheora`, which claims `.ogv` on every
+platform it builds for, web included. Both videos carry a silent Vorbis track
+because the playback implementation seeks by audio granule position when a
+stream has one.
+
+Two rules the encoder keeps:
+
+* **Asset C is the sprite sheet's animation, not a second one.** Same four
+  generated frames, same union crop, same scale, same 8 fps, same 512 px cell —
+  the sheet and the video are one walk cycle in two containers.
+* **Asset F carries no baked-in text.** 9.58 s, the same beat the in-engine
+  cinematic runs (4 × 2.4 s), a push-in from 1.00 to 1.18 with a vignette and a
+  fade at each end — and no captions, because the stage overlays them as UI text
+  and text in pixels cannot be localised (§2).
+
+Sampled frames of both are audited with the same `audit()` the textures use. The
+palette audit is HSV-only and says nothing about motion, timing or quality, and
+nobody has *watched* these videos in this environment.
+
+### Previously not delivered — now delivered
+
+| Asset | Was | Now |
 | --- | --- | --- |
-| Asset C — loading robot **video** | **NOT DELIVERED** | No video encoder. `ffmpeg` and `ffprobe` are absent and the Debian mirrors are unreachable. A 4-frame sprite sheet is shipped instead; it is a sprite sheet, not a video. |
-| Asset F — cinematic opening video | **NOT DELIVERED** | Same blocker, and the opening cinematic needs a real encode before it can be integrated. |
+| Asset C — loading robot video | **NOT DELIVERED** — no encoder (`ffmpeg`/`ffprobe` absent, Debian mirrors unreachable); a 4-frame sprite sheet shipped instead | **DELIVERED** as `loading_robot.ogv`, integrated, with the sheet kept as the fallback |
+| Asset F — cinematic opening video | **BLOCKED** — same, and the opening cinematic needed a real encode before it could be integrated | **DELIVERED** as `cinematic_opening.ogv`, integrated, with the composed in-engine opening kept as the fallback |
 
-Nothing in this document claims a video exists.
+### The aspect rule for `VideoStreamPlayer`
+
+`expand = true` stretches the decoded frame to whatever rect the control has, so
+the rect has to carry the video's own aspect. Both players are sized to *cover*
+their parent and centred, with the parent clipping the overflow
+(`stage_cinematic.gd::_layout_video`, `stage_loading.gd` via
+`SIZE_SHRINK_CENTER`). What happens without it, measured in a browser build: a
+16:9 opening stretched into 390×844, and a square 512×512 robot drawn 318×160.
+
+Note that `VideoStream` exposes **no** size or length: `get_size()` and
+`get_length()` do not exist on it (`has_method` is false on `VideoStreamTheora`),
+and `VideoStreamPlayer.stream_length` reads 0.00 until the decoder opens the
+file. Sizes come from `get_video_texture().get_size()` after the first decoded
+frame; lengths are adopted from `get_stream_length()` once it is non-zero.
 
 ---
 
@@ -205,6 +251,10 @@ Nothing in this document claims a video exists.
 | Palette audit | `python3 tools/art/build_ui_art.py --check` | 9/9 within palette |
 | Textures load in-engine at documented size | `godot --headless --path game --script res://tests/ui_art_smoke.gd` | see §7 note |
 | Not flat rectangles | same | luma spread > 40/255 required |
+| Videos load in-engine at documented size and length | `godot --headless --path game --script res://tests/video_asset_smoke.gd` | 2/2, sizes and lengths match `video_manifest.json` |
+| Video audit only | `python3 tools/art/build_ui_video.py --check` | 2/2 within palette |
+| Video plays in a browser build | `node tools/qa_avatar_shot.mjs --serve <exported web build> --page "/index.html?qa_stage=CINEMATIC&qa_menu=1"` | log `stream at 2.02 s of 9.58 s`; 89.8 % of pixels change across 3 frames 2 s apart |
+| Video is not stretched on screen | same, with `?qa_menu=1` | `OpeningVideo=-555,0,1500x844` at 390×844, `0,-42,844x475` at 844×390, `RobotVideo=115,590,160x160` — cover rects at the video's own aspect |
 
 §7 note: the runtime test is the one that matters. A file can be on disk, listed
 in this document, and still 404 in an export because it was never imported.

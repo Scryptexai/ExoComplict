@@ -86,7 +86,20 @@ func _enter_qa_stage() -> void:
 	var stage_name := StringName(str(requested))
 	if stage_name == &"" or not STAGE_SCENES.has(stage_name):
 		return
-	call_deferred("_enter", stage_name, {})
+	call_deferred("_enter", stage_name, _qa_payload(stage_name))
+
+
+## What the real journey would have passed to this stage. It matters for the
+## two loading stages: with no targets they leave on the next frame, so a deep
+## link landed on a screen that existed for one frame and could not be
+## photographed (or QA'd) at all.
+func _qa_payload(stage_name: StringName) -> Dictionary:
+	match stage_name:
+		&"LOADING":
+			return {"targets": _stages[&"BOOT"].FRONT_END_ART}
+		&"PRELOAD":
+			return {"targets": [GAMEPLAY_SCENE], "title": &"PRE-GAME LOADING"}
+	return {}
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -177,7 +190,12 @@ func report_menu_rects() -> void:
 		var control := child as Control
 		if control == null or not control.is_visible_in_tree():
 			continue
-		if not (control is Button or control is Label or control is ProgressBar):
+		if not (
+			control is Button
+			or control is Label
+			or control is ProgressBar
+			or control is VideoStreamPlayer
+		):
 			continue
 		var label := str(control.name)
 		if control is Button and not (control as Button).text.is_empty():

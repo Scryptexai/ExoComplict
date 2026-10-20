@@ -17,6 +17,10 @@ extends MenuStage
 ## cells. Keeping the animation in a single atlas means one import and one draw
 ## call instead of four textures swapping.
 const ROBOT_SHEET := "res://assets/ui/loading_robot_sheet.png"
+## Asset C as a real video, encoded from the same four frames by
+## tools/art/build_ui_video.py. The sheet is the fallback, not the other way
+## round: a device that cannot decode Theora still gets the walk cycle.
+const ROBOT_VIDEO := "res://assets/ui/loading_robot.ogv"
 const ROBOT_CELL := 512.0
 const ROBOT_FRAMES := 4
 const ROBOT_FPS := 8.0
@@ -30,6 +34,7 @@ var _percent: Label
 var _status: Label
 var _robot: TextureRect
 var _robot_atlas: AtlasTexture
+var _robot_video: VideoStreamPlayer
 var _robot_time := 0.0
 var _indeterminate: MenuIndeterminateBar
 var _reduce_motion := false
@@ -70,6 +75,8 @@ func _ready() -> void:
 	column.add_child(_status)
 
 	_robot = TextureRect.new()
+	_robot.name = &"RobotSheet"
+	_robot.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_robot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_robot.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	physical_min_size(_robot, 160.0, 160.0)
@@ -81,6 +88,21 @@ func _ready() -> void:
 		_robot_atlas.region = Rect2(0.0, 0.0, ROBOT_CELL, ROBOT_CELL)
 		_robot.texture = _robot_atlas
 	column.add_child(_robot)
+
+	_robot_video = VideoStreamPlayer.new()
+	_robot_video.name = &"RobotVideo"
+	_robot_video.stream = try_video(ROBOT_VIDEO)
+	_robot_video.expand = true
+	# `expand` stretches the frame to whatever rect the container gives the
+	# player, and the column is 318 px wide: a square 512x512 loop came out
+	# 318x160, i.e. twice as wide as tall, while the sprite-sheet fallback drew
+	# the same robot at 160x160. Shrink-and-centre makes both paths agree.
+	_robot_video.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_robot_video.loop = true
+	_robot_video.autoplay = false
+	_robot_video.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	physical_min_size(_robot_video, 160.0, 160.0)
+	column.add_child(_robot_video)
 
 	_bar = ProgressBar.new()
 	_bar.show_percentage = false
@@ -127,7 +149,7 @@ func enter(stage_payload: Dictionary) -> void:
 		_percent.text = "0%"
 		_status.text = "0 / %d" % total
 		ResourceLoader.load_threaded_request(_targets[0])
-	_robot.visible = _robot_atlas != null
+	_use_video_robot(_robot_video.stream != null and not _reduce_motion)
 	set_process(true)
 	# An empty queue still has to leave the stage; give it one beat.
 	if total == 0:
@@ -137,10 +159,28 @@ func enter(stage_payload: Dictionary) -> void:
 func exit() -> void:
 	set_process(false)
 	_indeterminate.set_running(false)
+	if is_instance_valid(_robot_video) and _robot_video.is_playing():
+		_robot_video.stop()
+
+
+## The video and the sprite sheet are one animation in two containers, so only
+## one of them is ever on screen. `reduce_motion` holds the first frame of
+## whichever is in use, which for the video means not starting it at all.
+func _use_video_robot(use_video: bool) -> void:
+	_robot_video.visible = use_video
+	_robot.visible = not use_video and _robot_atlas != null
+	if use_video:
+		# No length in the log line: `stream_length` reads 0.00 until the
+		# decoder opens, and the number belongs to the test that waits for it.
+		print("MenuLoading: playing the encoded walk cycle")
+		_robot_video.play()
+	else:
+		_robot_video.stop()
+		_robot_video.stream_position = 0.0
 
 
 func _process(delta: float) -> void:
-	if _robot_atlas != null and not _reduce_motion:
+	if _robot.visible and _robot_atlas != null and not _reduce_motion:
 		_robot_time += delta
 		var frame := int(_robot_time * ROBOT_FPS) % ROBOT_FRAMES
 		_robot_atlas.region = Rect2(frame * ROBOT_CELL, 0.0, ROBOT_CELL, ROBOT_CELL)

@@ -89,6 +89,11 @@ const browser = await puppeteer.launch({
     env: { ...process.env, LD_LIBRARY_PATH: [LIB_DIR, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':') },
 });
 
+// Any of these means the engine is running and rendering. Gameplay prints
+// "Encounter:", the front end prints "Menu QA:" or "MenuLoading:", the rig and
+// camera probes print their own banners.
+const BOOT_MARKER = /Encounter:|Menu QA:|MenuLoading:|MenuCinematic:|Camera QA:|Touch QA:|Rig QA:|UI art/;
+
 const results = [];
 for (const viewport of viewports) {
     const page = await browser.newPage();
@@ -107,11 +112,18 @@ for (const viewport of viewports) {
         () => document.querySelector('canvas') !== null,
         { timeout: 180000 }
     );
-    // Wait for the engine to reach Explore rather than a fixed sleep: a
-    // software rasteriser can take tens of seconds to produce the first frame.
+    // Wait for the engine to be *up* rather than for a fixed sleep: a software
+    // rasteriser can take tens of seconds to produce the first frame. The
+    // marker has to match the page under test -- waiting only for "Encounter:"
+    // (the gameplay banner) silently waits the full 240 s on menu pages, which
+    // means every menu screenshot was taken minutes after the state it was
+    // meant to capture.
     const deadline = Date.now() + 240000;
-    while (Date.now() < deadline && !lines.some((line) => line.includes('Encounter:'))) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+    while (Date.now() < deadline && !lines.some((line) => BOOT_MARKER.test(line))) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+    if (!lines.some((line) => BOOT_MARKER.test(line))) {
+        console.log(`  !! no boot marker from ${viewport.spec} -- timings below are unreliable`);
     }
     await new Promise((resolve) => setTimeout(resolve, settleMs));
     const shots = [];
@@ -134,7 +146,7 @@ server.kill();
 for (const result of results) {
     console.log(`\n=== ${result.viewport} -> ${result.file}`);
     for (const line of result.lines) {
-        if (/Camera QA:|Touch QA:|FrontEnd:|Menu QA:|MenuLoading:|UI art|CharacterVisual:|Rig QA:|Encounter:|PAGEERROR|SCRIPT ERROR|ERROR:/.test(line)) {
+        if (/Camera QA:|Touch QA:|FrontEnd:|Menu QA:|MenuLoading:|MenuCinematic:|UI art|CharacterVisual:|Rig QA:|Encounter:|PAGEERROR|SCRIPT ERROR|ERROR:|WARNING:/.test(line)) {
             console.log(`  ${line}`);
         }
     }

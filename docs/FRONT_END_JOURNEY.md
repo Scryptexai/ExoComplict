@@ -55,9 +55,13 @@ the sweep and the caption reads `PREPARING`. A resource that fails to load
 raises `push_error` and is recorded, so the failure is visible in the log rather
 than hidden behind a completed bar.
 
-The robot walk cycle is played from `loading_robot_sheet.png` (2048×512, four
-512 px cells, 8 fps) by moving an `AtlasTexture` region — one import, one draw
-call. `reduce_motion` holds frame 0 instead of animating.
+The robot walk cycle is `loading_robot.ogv` (512×512, four frames, 8 fps,
+looping) — Asset C as a real video, encoded by `tools/art/build_ui_video.py`
+from the same four generated frames, with the same union crop and scale as the
+sprite sheet. The sheet (`loading_robot_sheet.png`, 2048×512, four 512 px cells)
+is still shipped and is the fallback: a device that cannot decode Theora gets
+the same animation by moving an `AtlasTexture` region instead. `reduce_motion`
+holds the first frame of whichever one is in use.
 
 ## CINEMATIC — `stage_cinematic.gd`
 
@@ -67,12 +71,14 @@ call. `reduce_motion` holds frame 0 instead of animating.
 | Progress shown | **real playback position** (elapsed / duration) |
 | Advances | on completion or on SKIP |
 
-**This is not a video.** Asset F asked for one and none was produced:
-`ffmpeg`/`ffprobe` are not installed and the Debian mirrors are unreachable, so
-there is no encoder in this environment. What ships instead is composed
-in-engine from art the pipeline did produce — a slow push-in on
-`loading_keyart.jpg` under four captions — and is skippable from the first
-frame.
+This plays `cinematic_opening.ogv` (1280×720, 24 fps, 9.58 s) when the video
+loads — Asset F, encoded by `tools/art/build_ui_video.py` — and falls back to
+the same beat composed in-engine: a slow push-in on `loading_keyart.jpg` under
+four captions, 4 × 2.4 s. The key art stays behind the video as its poster
+frame, so a device that cannot decode Theora sees the composed opening rather
+than a hole. Either way it is skippable from the first frame, and the progress
+bar is driven by whichever clock is running (`stream_position`, or elapsed
+time). The video carries no captions: the stage overlays them as UI text.
 
 The captions state the premise the game implements and nothing else: a training
 facility, the Neon Frontier, inbound waves, Battle Points. `GAME_CONCEPT.md` is
@@ -232,6 +238,21 @@ and walks the journey, asserting at each stop that the stage is the one the
 journey asked for, that no enabled button is inert, that no control crosses the
 reserved edge, that absent content is disabled, and that `intro_seen` round-trips
 through a real `ConfigFile`.
+
+`game/tests/video_asset_smoke.gd` loads both videos the way the stages do and
+compares the size and length the engine reports against
+`game/assets/ui/video_manifest.json`, then checks that CINEMATIC and LOADING
+really did select the video over their composed fallbacks.
+
+In a browser build the same thing is measured from outside the engine:
+`?qa_stage=CINEMATIC&qa_menu=1` logs which path ran and the stream position
+(`stream at 2.02 s of 9.58 s`), and three frames taken 2 s apart differ across
+89.8 % of the screen — the decoded video, on screen and moving, not a poster.
+The same `?qa_menu=1` report prints each `VideoStreamPlayer` rect, which is how
+the two aspect defects were caught (a 16:9 opening at `0,0,390x844` and a square
+robot at `36,590,318x160`); both are cover rects now. A loading stage can only
+be photographed via `?qa_stage=LOADING|PRELOAD` because with no targets it leaves
+on the next frame.
 
 `game/tests/menu_layout_smoke.gd` mounts the same scene once and then rotates
 the live viewport through 390x844, 844x390, 360x640 and 1280x720 (sixteen

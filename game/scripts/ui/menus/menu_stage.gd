@@ -462,6 +462,15 @@ func try_texture(texture_path: String) -> Texture2D:
 	return load(texture_path) as Texture2D
 
 
+## Loads a video only if it exists. Same contract as `try_texture()`: the
+## front end must never hard-fail on missing art. A stage that wants a video
+## keeps its composed fallback and checks what came back.
+func try_video(video_path: String) -> VideoStream:
+	if video_path.is_empty() or not ResourceLoader.exists(video_path):
+		return null
+	return load(video_path) as VideoStream
+
+
 ## The persistent profile the front end owns, or null if this stage is being
 ## driven by a test that never attached a FrontEnd.
 func progression_service() -> ProgressionService:
