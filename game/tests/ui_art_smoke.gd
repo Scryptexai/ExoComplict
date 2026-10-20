@@ -103,9 +103,14 @@ func _check_asset(entry: Dictionary) -> void:
 		var frames: int = int(entry.get("frames", 0))
 		_expect(
 			frames > 1 and is_equal_approx(fmod(actual.x, float(cell[0])), 0.0),
-			"the walk sheet divides into %d whole %dpx frames (width %.0f)" % [
-				frames, int(cell[0]), actual.x,
-			],
+			(
+				"the walk sheet divides into %d whole %dpx frames (width %.0f)"
+				% [
+					frames,
+					int(cell[0]),
+					actual.x,
+				]
+			),
 		)
 		_expect(
 			is_equal_approx(actual.y, float(cell[1])),
@@ -132,24 +137,23 @@ func _family_counts(image: Image) -> Dictionary:
 
 
 func _family_of(colour: Color) -> String:
-	var hue: float = colour.get_h() * 360.0
-	var saturation: float = colour.s
-	var value: float = colour.v
-	if value <= 0.10:
-		return "shadow"
-	if saturation <= 0.14:
-		return "steel" if value < 0.62 else "silver"
-	if hue >= 200.0 and hue < 260.0:
-		return "navy"
-	if hue >= 175.0 and hue < 200.0:
-		return "cyan"
-	if hue >= 95.0 and hue < 175.0:
-		return "green"
-	if hue >= 15.0 and hue < 70.0:
-		return "amber"
-	if hue >= 345.0 or hue < 15.0:
-		return "red"
-	return "off-palette"
+	var family := "off-palette"
+	var hue: float = colour.h * 360.0
+	if colour.v <= 0.10:
+		family = "shadow"
+	elif colour.s <= 0.14:
+		family = "steel" if colour.v < 0.62 else "silver"
+	elif hue >= 200.0 and hue < 260.0:
+		family = "navy"
+	elif hue >= 175.0 and hue < 200.0:
+		family = "cyan"
+	elif hue >= 95.0 and hue < 175.0:
+		family = "green"
+	elif hue >= 15.0 and hue < 70.0:
+		family = "amber"
+	elif hue >= 345.0 or hue < 15.0:
+		family = "red"
+	return family
 
 
 func _luma_spread(image: Image) -> float:

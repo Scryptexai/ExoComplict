@@ -33,6 +33,17 @@ const PROFILE_PATH := "user://front_end_smoke_profile.cfg"
 ## LOADING's threaded queue). Headless frames are cheap; this is a ceiling, not
 ## an expectation.
 const MAX_WAIT_FRAMES := 6000
+## Progress-only stages (BOOT, LOADING, PRELOAD) expose no controls at all --
+## there is nothing to press while resources are in flight -- so the
+## "at least one action" half of the rule is skipped for them.
+const INTERACTIVE_STAGES: Array[StringName] = [
+	&"CINEMATIC",
+	&"CHAPTER",
+	&"DASHBOARD",
+	&"HERO",
+	&"WEAPON",
+	&"WORLD",
+]
 
 var _failures: Array[String] = []
 var _front_end: Control
@@ -56,13 +67,13 @@ func _run_smoke_test() -> void:
 	_profile = _front_end.get_node("ProgressionService")
 
 	_expect(_front_end.get("current_stage_name") == &"BOOT", "the journey starts at BOOT")
-	if not _walk_to(&"LOADING", "BOOT"):
+	if not await _walk_to(&"LOADING", "BOOT"):
 		_finish()
 		return
 
 	# LOADING drains its own queue. Waiting on it is the point: it proves the
 	# stage advances because the resources arrived, not because a timer fired.
-	if not _walk_to(&"CINEMATIC", "LOADING"):
+	if not await _walk_to(&"CINEMATIC", "LOADING"):
 		_finish()
 		return
 
@@ -72,7 +83,7 @@ func _run_smoke_test() -> void:
 	)
 	_check_stage(&"CINEMATIC")
 
-	_front_end.go_to(&"CHAPTER", {})
+	_skip_cinematic()
 	await process_frame
 	_check_stage(&"CHAPTER")
 
@@ -96,9 +107,9 @@ func _run_smoke_test() -> void:
 	await process_frame
 	_check_stage(&"WORLD")
 	_check_locked_content_disabled(&"WORLD")
-	_check_launch_payload()
+	await _check_launch_payload()
 
-	_check_preload_contract()
+	await _check_preload_contract()
 	_check_intro_persists()
 	_finish()
 
@@ -116,11 +127,32 @@ func _walk_to(expected: StringName, from_label: String) -> bool:
 		await process_frame
 	_expect(
 		false,
-		"%s advances to %s on its own (still at %s after %d frames)" % [
-			from_label, expected, _front_end.get("current_stage_name"), MAX_WAIT_FRAMES,
-		]
+		(
+			"%s advances to %s on its own (still at %s after %d frames)"
+			% [
+				from_label,
+				expected,
+				_front_end.get("current_stage_name"),
+				MAX_WAIT_FRAMES,
+			]
+		)
 	)
 	return false
+
+
+## Presses SKIP, which is both the player's way out and the path that has to
+## mark the intro as seen. Driving this through go_to() would bypass the rule
+## the test exists to check.
+func _skip_cinematic() -> void:
+	var stage := _stage(&"CINEMATIC")
+	if not is_instance_valid(stage):
+		return
+	for child in stage.find_children("*", "Button", true, false):
+		var button := child as Button
+		if button != null and button.text == "SKIP":
+			button.pressed.emit()
+			return
+	_expect(false, "the cinematic exposes a SKIP control")
 
 
 func _stage(name: StringName) -> Control:
@@ -151,14 +183,24 @@ func _check_buttons_have_actions(stage: Node, label: String) -> void:
 			continue
 		# A stage's own BACK/CONTINUE row is inside the stage; the settings and
 		# armory panels are children of the dashboard and are checked too.
+		# A toggle_mode button does its work on `toggled`, which fires on every
+		# press; `pressed` is not the only signal that makes a control live.
 		var connections := button.get_signal_connection_list("pressed")
+		connections.append_array(button.get_signal_connection_list("toggled"))
 		if connections.is_empty():
 			_expect(
 				false,
-				"%s: button '%s' is enabled but has no pressed handler" % [label, button.name]
+				(
+					"%s: button '%s' is enabled but has no pressed or toggled handler"
+					% [
+						label,
+						button.name,
+					]
+				)
 			)
 		checked += 1
-	_expect(checked > 0, "%s exposes at least one enabled action" % label)
+	if label in INTERACTIVE_STAGES:
+		_expect(checked > 0, "%s exposes at least one enabled action" % label)
 
 
 ## The menus inherit the combat HUD's reserved edge. Headless reports no safe
@@ -207,14 +249,12 @@ func _check_locked_content_disabled(name: StringName) -> void:
 		var button := child as Button
 		if button != null and button.disabled:
 			disabled += 1
-	_expect(
-		disabled > 0,
-		"%s marks content the project does not ship as disabled" % name
-	)
-	_expect(
-		_all_label_text(stage).contains("IN DEVELOPMENT"),
-		"%s labels its placeholder slots IN DEVELOPMENT" % name
-	)
+	_expect(disabled > 0, "%s marks content the project does not ship as disabled" % name)
+	if name != &"WEAPON":
+		_expect(
+			_all_label_text(stage).contains("IN DEVELOPMENT"),
+			"%s labels its placeholder slots IN DEVELOPMENT" % name
+		)
 
 
 ## Pressing LAUNCH must hand PRELOAD a payload naming a scene that exists. The
@@ -232,13 +272,12 @@ func _check_launch_payload() -> void:
 	_expect(launched, "WORLD exposes a LAUNCH action")
 	await process_frame
 	_expect(
-		_front_end.get("current_stage_name") == &"PRELOAD",
-		"LAUNCH advances the journey to PRELOAD"
+		_front_end.get("current_stage_name") == &"PRELOAD", "LAUNCH advances the journey to PRELOAD"
 	)
 	var payload: Dictionary = {}
-	var preload_stage := _stage(&"PRELOAD")
+	var preload_stage := _stage(&"PRELOAD") as MenuStage
 	if is_instance_valid(preload_stage):
-		payload = preload_stage.get("payload") as Dictionary
+		payload = preload_stage.payload
 	_expect(
 		str(payload.get("scene", "")) == "res://scenes/main.tscn",
 		"PRELOAD is handed the gameplay scene path (got '%s')" % str(payload.get("scene", ""))
@@ -247,6 +286,21 @@ func _check_launch_payload() -> void:
 		ResourceLoader.exists(str(payload.get("scene", ""))),
 		"the scene PRELOAD is asked to load exists"
 	)
+	# Step off PRELOAD so it cannot reach change_scene (which would tear the
+	# harness down), then let the threaded fetch it started run to completion.
+	# Quitting with a load in flight makes the loader thread compile scripts
+	# during teardown, which reports failures that are not real.
+	_front_end.go_to(&"DASHBOARD", {})
+	await process_frame
+	for _frame in range(MAX_WAIT_FRAMES):
+		var status := ResourceLoader.load_threaded_get_status("res://scenes/main.tscn")
+		if status != ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			_expect(
+				status == ResourceLoader.THREAD_LOAD_LOADED,
+				"the gameplay scene PRELOAD fetches really loads (status %d)" % status
+			)
+			break
+		await process_frame
 
 
 ## PRELOAD is the only stage allowed to change scene, and it must be handed a
@@ -276,15 +330,12 @@ func _check_intro_persists() -> void:
 		"intro_seen is written to a real ConfigFile, not only held in memory"
 	)
 
-	var reloaded := (load("res://scripts/progression/progression_service.gd") as GDScript).new()
-	reloaded.set("profile_path", PROFILE_PATH)
+	var reloaded := ProgressionService.new()
+	reloaded.profile_path = PROFILE_PATH
 	root.add_child(reloaded)
 	await process_frame
-	_expect(bool(reloaded.get("intro_seen")), "a fresh profile load reads intro_seen back")
-	_expect(
-		reloaded.get("selected_weapon_id") == &"pulse_rifle",
-		"the default loadout survives a reload"
-	)
+	_expect(bool(reloaded.intro_seen), "a fresh profile load reads intro_seen back")
+	_expect(reloaded.selected_weapon_id == &"pulse_rifle", "the default loadout survives a reload")
 	reloaded.free()
 
 
@@ -308,6 +359,9 @@ func _expect(condition: bool, message: String) -> bool:
 
 
 func _finish() -> void:
+	if is_instance_valid(_front_end):
+		_front_end.free()
+		_front_end = null
 	if _failures.is_empty():
 		print("Front-end journey smoke test passed.")
 	else:

@@ -97,7 +97,7 @@ func _build_world_card(group: ButtonGroup) -> Control:
 	var plate := TextureRect.new()
 	plate.texture = try_texture(WORLD_PLATE)
 	plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVER
+	plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	plate.custom_minimum_size = Vector2(240.0, 135.0)
 	row.add_child(plate)
 
@@ -108,8 +108,10 @@ func _build_world_card(group: ButtonGroup) -> Control:
 	row.add_child(column)
 	column.add_child(make_label("NEON FRONTIER", "title", AegisTokens.INK))
 	var blurb := make_label(
-		"An open training arena with raised platforms and sightlines to the edge "
-		+ "of the grid. Wave defence, exploration and the weapon range all run here.",
+		(
+			"An open training arena with raised platforms and sightlines to the edge "
+			+ "of the grid. Wave defence, exploration and the weapon range all run here."
+		),
 		"body_s",
 		AegisTokens.INK_2
 	)
@@ -141,9 +143,9 @@ func _build_locked_card(index: int) -> Control:
 
 
 func _refresh() -> void:
-	if front_end == null or front_end.progression_service == null:
+	var progression := progression_service()
+	if progression == null:
 		return
-	var progression := front_end.progression_service
 	var selected := progression.selected_world_id
 	for card in _cards:
 		var id := StringName(str(card.get_meta("world_id", "")))
@@ -154,29 +156,33 @@ func _refresh() -> void:
 
 
 func _on_card_pressed(world_id: StringName) -> void:
-	if front_end == null or front_end.progression_service == null:
+	var progression := progression_service()
+	if progression == null:
 		return
-	front_end.progression_service.select_world(world_id)
+	progression.select_world(world_id)
 	Sfx.play_ui(&"ui_click")
 	_refresh()
 
 
 func _on_launch_pressed() -> void:
-	if front_end == null or front_end.progression_service == null:
+	var progression := progression_service()
+	if progression == null:
 		return
-	var progression := front_end.progression_service
 	progression.select_world(progression.selected_world_id)
 	# PRELOAD gets the gameplay scene path and the loadout it must honour. It
 	# does the threaded load and the scene change itself.
-	completed.emit(
-		&"PRELOAD",
-		{
-			"scene": "res://scenes/main.tscn",
-			"title": "PREPARING DROP",
-			"targets": ["res://scenes/main.tscn"],
-			"weapon_id": String(progression.selected_weapon_id),
-			"world_id": String(progression.selected_world_id),
-		}
+	(
+		completed
+		. emit(
+			&"PRELOAD",
+			{
+				"scene": "res://scenes/main.tscn",
+				"title": "PREPARING DROP",
+				"targets": ["res://scenes/main.tscn"],
+				"weapon_id": String(progression.selected_weapon_id),
+				"world_id": String(progression.selected_world_id),
+			}
+		)
 	)
 
 

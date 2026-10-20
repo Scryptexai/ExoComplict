@@ -170,5 +170,3 @@ func _finish() -> void:
 	_finished = true
 	set_process(false)
 	completed.emit(&"CHAPTER", {})
-
-

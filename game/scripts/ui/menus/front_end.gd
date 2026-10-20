@@ -36,17 +36,15 @@ const BACK_TARGET := {
 	&"PRELOAD": &"WORLD",
 }
 
-@onready var progression_service: ProgressionService = $ProgressionService
-@onready var stage_host: Control = $StageHost
+## Read-only view of the active stage, for tests and for QA logging.
+var current_stage_name := StringName()
 
 var _stages: Dictionary = {}
 var _current: MenuStage = null
 var _current_name := StringName()
 
-## Read-only view of the active stage, for tests and for QA logging.
-var current_stage_name: StringName:
-	get:
-		return _current_name
+@onready var progression_service: ProgressionService = $ProgressionService
+@onready var stage_host: Control = $StageHost
 
 
 func _ready() -> void:
@@ -60,6 +58,15 @@ func _ready() -> void:
 		stage.visible = false
 		stage.completed.connect(_on_stage_completed.bind(key))
 		stage_host.add_child(stage)
+		# Entering the tree turns processing ON for a node whose script declares
+		# `_process`, even though nothing called set_process(true) -- measured in
+		# this build: a bare Control reports is_processing() false after new(),
+		# true immediately after add_child(). Left alone every stage ticks from
+		# the moment the front end boots, and the cinematic runs to completion
+		# before it is ever shown. So the opt-out has to come *after* add_child,
+		# and stages opt back in from enter().
+		stage.set_process(false)
+		stage.set_physics_process(false)
 		_stages[key] = stage
 	progression_service.profile_changed.connect(_on_profile_changed)
 	_enter(&"BOOT", {})
@@ -77,6 +84,13 @@ func go_to(stage_name: StringName, stage_payload: Dictionary = {}) -> void:
 		push_error("FrontEnd: unknown stage '%s'." % stage_name)
 		return
 	_enter(stage_name, stage_payload)
+
+
+## Where the front-end art load leads: the cinematic on a first launch, the
+## dashboard once it has been seen. Resolved here rather than in BOOT so the
+## "play the intro once" rule lives in exactly one place.
+func stage_after_loading() -> StringName:
+	return &"DASHBOARD" if progression_service.intro_seen else &"CINEMATIC"
 
 
 func start_gameplay() -> void:
@@ -99,13 +113,16 @@ func _enter(stage_name: StringName, stage_payload: Dictionary) -> void:
 		return
 	_current = stage
 	_current_name = stage_name
+	current_stage_name = stage_name
 	stage.payload = stage_payload
 	stage.visible = true
 	stage.enter(stage_payload)
 	print("FrontEnd: stage %s" % stage_name)
 
 
-func _on_stage_completed(next_stage: StringName, stage_payload: Dictionary, from_stage: StringName) -> void:
+func _on_stage_completed(
+	next_stage: StringName, stage_payload: Dictionary, from_stage: StringName
+) -> void:
 	# The cinematic plays once. Skipping it counts as seeing it: being dropped
 	# straight into the dashboard is the reward the skip button is offering.
 	if from_stage == &"CINEMATIC":

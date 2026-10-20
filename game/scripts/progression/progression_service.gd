@@ -66,9 +66,15 @@ func load_profile() -> void:
 				if COSTS.has(key):
 					unlocked_ids[key] = true
 		intro_seen = bool(config.get_value(PROFILE_SECTION, "intro_seen", false))
-		selected_hero_id = _known_id(config.get_value(PROFILE_SECTION, "selected_hero", ""), HERO_IDS, DEFAULT_HERO_ID)
-		selected_world_id = _known_id(config.get_value(PROFILE_SECTION, "selected_world", ""), WORLD_IDS, DEFAULT_WORLD_ID)
-		selected_weapon_id = _known_id(config.get_value(PROFILE_SECTION, "selected_weapon", ""), WEAPON_IDS, DEFAULT_WEAPON_ID)
+		selected_hero_id = _known_id(
+			config.get_value(PROFILE_SECTION, "selected_hero", ""), HERO_IDS, DEFAULT_HERO_ID
+		)
+		selected_world_id = _known_id(
+			config.get_value(PROFILE_SECTION, "selected_world", ""), WORLD_IDS, DEFAULT_WORLD_ID
+		)
+		selected_weapon_id = _known_id(
+			config.get_value(PROFILE_SECTION, "selected_weapon", ""), WEAPON_IDS, DEFAULT_WEAPON_ID
+		)
 	# A weapon can be selected and then lost to a reset save, so re-gate it.
 	if not is_unlocked(selected_weapon_id):
 		selected_weapon_id = DEFAULT_WEAPON_ID

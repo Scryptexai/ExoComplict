@@ -76,14 +76,14 @@ func enter(_stage_payload: Dictionary) -> void:
 	_bar.reduce_motion = bool(values.get("reduce_motion", false))
 	_reported = false
 	_hold_remaining = MINIMUM_SECONDS
-	_bar.running = true
+	_bar.set_running(true)
 	_status.text = STATUS
 	set_process(true)
 
 
 func exit() -> void:
 	set_process(false)
-	_bar.running = false
+	_bar.set_running(false)
 
 
 func _process(delta: float) -> void:
@@ -91,6 +91,6 @@ func _process(delta: float) -> void:
 	if _hold_remaining > 0.0 or _reported:
 		return
 	_reported = true
-	_bar.running = false
+	_bar.set_running(false)
 	set_process(false)
 	completed.emit(&"LOADING", {"targets": FRONT_END_ART})

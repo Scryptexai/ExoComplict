@@ -84,5 +84,3 @@ func _on_continue_pressed() -> void:
 func _line(text: String, role: String, color: Color) -> Label:
 	var label := make_label(text, role, color)
 	return label
-
-

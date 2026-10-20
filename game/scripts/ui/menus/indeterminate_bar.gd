@@ -18,18 +18,22 @@ const SEGMENT_RATIO := 0.34
 @export var corner_color: Color = AegisTokens.LINE_HI
 @export var reduce_motion: bool = false
 
-var _elapsed := 0.0
-
 ## Paused bars stop animating but stay visible: BOOT pauses the sweep the moment
 ## its work finishes so the bar never implies progress that has already stopped.
-var running: bool = true:
-	set(value):
-		running = value
-		set_process(value)
+var running := true
+
+var _elapsed := 0.0
 
 
 func _ready() -> void:
 	set_process(running)
+
+
+## Pausing the bar keeps it on screen and frozen: the screen still reads as
+## "working" without the sweep implying progress that has already stopped.
+func set_running(value: bool) -> void:
+	running = value
+	set_process(value)
 
 
 func _process(delta: float) -> void:

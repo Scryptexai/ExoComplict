@@ -15,13 +15,16 @@ extends Control
 signal completed(next_stage: StringName, payload: Dictionary)
 
 ## Set by FrontEnd when the stage is instantiated, before `enter()` runs.
+## Typed as Node rather than FrontEnd because the two cannot preload each other;
+## `progression_service()` is the typed way back to the profile.
 var front_end: Node = null
+## Whatever the previous stage passed along. Empty on the first stage.
+var payload: Dictionary = {}
 ## Full-rect safe-area container every screen lays out in, created by
 ## `make_margin()`. Stored so `enter()` can re-apply the margins on a resize or
 ## a rotation without searching the tree for it.
 var _margin: MarginContainer = null
-## Whatever the previous stage passed along. Empty on the first stage.
-var payload: Dictionary = {}
+
 
 ## Called every time the stage becomes visible, with the payload from the
 ## previous stage. Re-entering a stage (DASHBOARD -> HERO -> back) runs this
@@ -103,7 +106,9 @@ func make_label(text: String, role: String, color: Color, scale: float = 1.0) ->
 	return label
 
 
-func make_button(text: String, variant: String, tooltip: String = "", role: String = "title") -> AegisButton:
+func make_button(
+	text: String, variant: String, tooltip: String = "", role: String = "title"
+) -> AegisButton:
 	var button := AegisButton.new()
 	button.text = text
 	button.focus_mode = Control.FOCUS_ALL
@@ -126,7 +131,9 @@ func make_margin() -> MarginContainer:
 
 ## Push a container's margins out to the safe area plus a comfortable inset.
 ## Every menu screen calls this so the reserved edge is defined once.
-func apply_safe_margins(container: MarginContainer, extra_side: float = 28.0, extra_bottom: float = 24.0) -> void:
+func apply_safe_margins(
+	container: MarginContainer, extra_side: float = 28.0, extra_bottom: float = 24.0
+) -> void:
 	var physical := physical_size()
 	var stretch := stretch_factor(physical)
 	var insets := safe_insets(physical)
@@ -139,7 +146,9 @@ func apply_safe_margins(container: MarginContainer, extra_side: float = 28.0, ex
 	container.add_theme_constant_override(
 		"margin_bottom", roundi(to_layout(maxf(insets.z, 0.0) + extra_bottom, stretch))
 	)
-	container.add_theme_constant_override("margin_top", roundi(top_inset(stretch) + to_layout(24.0, stretch)))
+	container.add_theme_constant_override(
+		"margin_top", roundi(top_inset(stretch) + to_layout(24.0, stretch))
+	)
 
 
 ## Grow every font under `root` so it renders at MIN_PHYSICAL_FONT_PX on the
@@ -180,7 +189,7 @@ func make_backdrop(texture_path: String) -> TextureRect:
 	var rect := TextureRect.new()
 	rect.texture = try_texture(texture_path)
 	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVER
+	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return rect
@@ -192,3 +201,11 @@ func try_texture(texture_path: String) -> Texture2D:
 	if texture_path.is_empty() or not ResourceLoader.exists(texture_path):
 		return null
 	return load(texture_path) as Texture2D
+
+
+## The persistent profile the front end owns, or null if this stage is being
+## driven by a test that never attached a FrontEnd.
+func progression_service() -> ProgressionService:
+	if front_end == null:
+		return null
+	return front_end.get("progression_service") as ProgressionService

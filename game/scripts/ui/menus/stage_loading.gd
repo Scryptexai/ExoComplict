@@ -115,7 +115,7 @@ func enter(stage_payload: Dictionary) -> void:
 		_bar.visible = false
 		_indeterminate.visible = true
 		_indeterminate.reduce_motion = _reduce_motion
-		_indeterminate.running = true
+		_indeterminate.set_running(true)
 		_percent.text = ""
 		_status.text = "PREPARING"
 	else:
@@ -134,7 +134,7 @@ func enter(stage_payload: Dictionary) -> void:
 
 func exit() -> void:
 	set_process(false)
-	_indeterminate.running = false
+	_indeterminate.set_running(false)
 
 
 func _process(delta: float) -> void:
@@ -177,7 +177,7 @@ func _finish() -> void:
 		return
 	_done = true
 	set_process(false)
-	_indeterminate.running = false
+	_indeterminate.set_running(false)
 	_bar.value = 1.0
 	_percent.text = "100%"
 	var scene_path := str(payload.get("scene", ""))
@@ -186,7 +186,14 @@ func _finish() -> void:
 			push_error("MenuLoading: %d resource(s) failed; see earlier errors." % _failed.size())
 		call_deferred("_change_scene", scene_path)
 		return
-	completed.emit(StringName(str(payload.get("next", &"DASHBOARD"))), {})
+	# An empty `next` means "wherever the journey goes after the art is in",
+	# which is FrontEnd's decision, not this stage's.
+	var next := StringName(str(payload.get("next", "")))
+	if next == &"" and is_instance_valid(front_end) and front_end.has_method("stage_after_loading"):
+		next = front_end.stage_after_loading()
+	if next == &"":
+		next = &"DASHBOARD"
+	completed.emit(next, {})
 
 
 func _change_scene(scene_path: String) -> void:
@@ -197,5 +204,3 @@ func _change_scene(scene_path: String) -> void:
 	var error := get_tree().change_scene_to_packed(scene)
 	if error != OK:
 		push_error("MenuLoading: change_scene failed (%d)." % error)
-
-

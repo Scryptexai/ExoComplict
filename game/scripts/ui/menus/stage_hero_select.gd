@@ -119,15 +119,17 @@ func _build_operative_card() -> Control:
 	var portrait := TextureRect.new()
 	portrait.texture = try_texture(HERO_PORTRAIT)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVER
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	portrait.custom_minimum_size = Vector2(208.0, 200.0)
 	portrait.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(portrait)
 
 	column.add_child(make_label("EXO OPERATIVE", "title", AegisTokens.INK))
 	var blurb := make_label(
-		"The operative fielded by the AEGIS training programme. Concept art shown; "
-		+ "the playable model is the rig measured in the hero visibility report.",
+		(
+			"The operative fielded by the AEGIS training programme. Concept art shown; "
+			+ "the playable model is the rig measured in the hero visibility report."
+		),
 		"body_s",
 		AegisTokens.INK_2
 	)
@@ -169,16 +171,18 @@ func _build_locked_card(index: int) -> Control:
 
 
 func _on_card_pressed(hero_id: StringName) -> void:
-	if front_end == null or front_end.progression_service == null:
+	var progression := progression_service()
+	if progression == null:
 		return
-	front_end.progression_service.select_hero(hero_id)
+	progression.select_hero(hero_id)
 	Sfx.play_ui(&"ui_click")
 	_refresh()
 
 
 func _on_continue_pressed() -> void:
-	if front_end != null and front_end.progression_service != null:
-		front_end.progression_service.select_hero(_selected)
+	var progression := progression_service()
+	if progression != null:
+		progression.select_hero(_selected)
 	completed.emit(&"WEAPON", {})
 
 

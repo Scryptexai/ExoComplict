@@ -116,7 +116,7 @@ func _build_card(weapon_id: StringName, group: ButtonGroup) -> Control:
 	var plate := TextureRect.new()
 	plate.texture = try_texture(PLATES[weapon_id])
 	plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVER
+	plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	plate.custom_minimum_size = Vector2(150.0, 100.0)
 	row.add_child(plate)
 
@@ -155,7 +155,9 @@ func _stat_line(definition: WeaponDefinition) -> String:
 		"RNG %sm" % _trim(definition.max_range),
 	]
 	if definition.splash_damage > 0.0:
-		parts.append("SPLASH %s / %sm" % [_trim(definition.splash_damage), _trim(definition.splash_radius)])
+		parts.append(
+			"SPLASH %s / %sm" % [_trim(definition.splash_damage), _trim(definition.splash_radius)]
+		)
 	if definition.chain_count > 0:
 		parts.append("CHAIN %d" % definition.chain_count)
 	return "  ·  ".join(parts)
@@ -169,9 +171,9 @@ func _trim(value: float) -> String:
 
 
 func _refresh() -> void:
-	if front_end == null or front_end.progression_service == null:
+	var progression := progression_service()
+	if progression == null:
 		return
-	var progression := front_end.progression_service
 	var owned := 0
 	for weapon_id in ORDER:
 		var unlocked := progression.is_unlocked(weapon_id)
@@ -192,9 +194,9 @@ func _refresh() -> void:
 			var cost := progression.unlock_cost(weapon_id)
 			state.text = "LOCKED · %d BP · UNLOCK IN ARMORY" % cost
 			state.add_theme_color_override("font_color", AegisTokens.ACCENT)
-	_summary.text = "BATTLE POINTS  %d  ·  %d / %d WEAPONS" % [
-		progression.balance, owned, ORDER.size()
-	]
+	_summary.text = (
+		"BATTLE POINTS  %d  ·  %d / %d WEAPONS" % [progression.balance, owned, ORDER.size()]
+	)
 	_detail.text = (
 		"Battle Points are earned by defeating waves. Unlocks are permanent and "
 		+ "stored in your profile."
@@ -211,9 +213,8 @@ func _find_meta(root: Node, key: String) -> Label:
 
 
 func _on_card_pressed(weapon_id: StringName) -> void:
-	if front_end == null or front_end.progression_service == null:
-		return
-	if not front_end.progression_service.select_weapon(weapon_id):
+	var progression := progression_service()
+	if progression == null or not progression.select_weapon(weapon_id):
 		return
 	Sfx.play_ui(&"ui_click")
 	_refresh()

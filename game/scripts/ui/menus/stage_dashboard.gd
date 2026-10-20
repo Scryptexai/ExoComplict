@@ -14,7 +14,6 @@
 ##                again without wiping a profile
 extends MenuStage
 
-var _margin: MarginContainer
 var _balance: Label
 var _best: Label
 var _runs: Label
@@ -128,17 +127,20 @@ func enter(_stage_payload: Dictionary) -> void:
 ## FrontEnd calls this on `profile_changed`, so an unlock made inside the armory
 ## updates the dashboard underneath it without reopening the screen.
 func refresh_profile() -> void:
-	if front_end == null or front_end.progression_service == null:
+	var progression := progression_service()
+	if progression == null:
 		return
-	var progression := front_end.progression_service
 	_balance.text = "BATTLE POINTS  %d" % progression.balance
 	_best.text = "BEST SCORE  %d" % progression.best_score
 	_runs.text = "RUNS COMPLETED  %d" % progression.completed_runs
-	_loadout.text = "LOADOUT  %s  /  %s  /  %s" % [
-		_hero_name(progression.selected_hero_id),
-		_weapon_name(progression.selected_weapon_id),
-		_world_name(progression.selected_world_id),
-	]
+	_loadout.text = (
+		"LOADOUT  %s  /  %s  /  %s"
+		% [
+			_hero_name(progression.selected_hero_id),
+			_weapon_name(progression.selected_weapon_id),
+			_world_name(progression.selected_world_id),
+		]
+	)
 	if _armory.visible:
 		_armory.refresh_profile(
 			progression.balance,
@@ -151,13 +153,9 @@ func refresh_profile() -> void:
 func _on_resized() -> void:
 	var stretch := stretch_factor(physical_size())
 	enforce_font_floor(self, stretch)
-	_armory.custom_minimum_size = Vector2(
-		minf(size.x * 0.92, 420.0), minf(size.y * 0.92, 420.0)
-	)
+	_armory.custom_minimum_size = Vector2(minf(size.x * 0.92, 420.0), minf(size.y * 0.92, 420.0))
 	enforce_font_floor(_armory, stretch)
-	_settings.custom_minimum_size = Vector2(
-		minf(size.x * 0.94, 520.0), minf(size.y * 0.94, 560.0)
-	)
+	_settings.custom_minimum_size = Vector2(minf(size.x * 0.94, 520.0), minf(size.y * 0.94, 560.0))
 	enforce_font_floor(_settings, stretch)
 	_centre(_armory)
 	_centre(_settings)
@@ -197,9 +195,9 @@ func _on_settings_close() -> void:
 func _on_replay_pressed() -> void:
 	# Clearing the flag is what makes the cinematic reachable again; FrontEnd
 	# re-marks it the moment the cinematic completes or is skipped.
-	if front_end == null or front_end.progression_service == null:
+	var progression := progression_service()
+	if progression == null:
 		return
-	var progression := front_end.progression_service
 	progression.reset_intro()
 	completed.emit(&"CINEMATIC", {})
 
@@ -207,8 +205,8 @@ func _on_replay_pressed() -> void:
 ## Same rules as Main._on_armory_weapon_action: buying spends real BP and
 ## equipping only ever selects within what the profile already owns.
 func _on_weapon_action(weapon_id: StringName) -> void:
-	var progression := front_end.progression_service
-	if not ProgressionService.WEAPON_IDS.has(weapon_id):
+	var progression := progression_service()
+	if progression == null or not ProgressionService.WEAPON_IDS.has(weapon_id):
 		return
 	if progression.is_unlocked(weapon_id):
 		progression.select_weapon(weapon_id)
@@ -248,4 +246,3 @@ func _weapon_name(weapon_id: StringName) -> String:
 		&"arc_shooter":
 			return "ARC SHOOTER"
 	return String(weapon_id).to_upper()
-
