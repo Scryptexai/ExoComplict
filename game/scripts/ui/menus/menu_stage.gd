@@ -185,6 +185,21 @@ func relayout() -> void:
 	enforce_font_floor(self, _stretch)
 
 
+## A line of text inside a card.
+##
+## Autowrap plus a zero minimum width lets the container shrink the text to the
+## card instead of the card growing to the text. Measured on a 390x844 frame:
+## an unconstrained stat line inside a 318 px card reported 614 px wide, and a
+## row of three 240 px cards forced every label on the screen -- headers
+## included -- to 753 px, twice the width of the display.
+func card_line(text: String, role: String, color: Color) -> Label:
+	var label := make_label(text, role, color)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	physical_min_size(label, 0.0, 0.0)
+	return label
+
+
 ## Creates the full-rect safe-area container a menu screen lays out in.
 func make_margin() -> MarginContainer:
 	_margin = MarginContainer.new()

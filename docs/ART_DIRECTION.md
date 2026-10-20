@@ -169,15 +169,20 @@ Sizes are the real imported sizes, verified at runtime by
 
 | Key | File | Res | Format | Off-palette | Integration |
 | --- | --- | --- | --- | --- | --- |
-| `wordmark` | `logo_wordmark.png` | 1024×256 | PNG | 1.2% | **not integrated** |
-| `loading_keyart` | `loading_keyart.jpg` | 1920×1080 | JPEG q90 | 0.0% | **not integrated** |
-| `dashboard_bg` | `dashboard_bg.jpg` | 1920×1080 | JPEG q90 | 0.2% | **not integrated** |
-| `hero_portrait` | `portrait_hero.png` | 768×1024 | PNG | 0.2% | **not integrated** |
-| `world_neon_frontier` | `world_neon_frontier.jpg` | 1600×900 | JPEG q90 | 0.0% | **not integrated** |
-| `weapon_pulse_rifle` | `weapon_pulse_rifle.png` | 768×512 | PNG | 0.0% | **not integrated** |
-| `weapon_nova_launcher` | `weapon_nova_launcher.png` | 768×512 | PNG | 1.3% | **not integrated** |
-| `weapon_arc_shooter` | `weapon_arc_shooter.png` | 768×512 | PNG | 0.1% | **not integrated** |
-| `loading_robot` | `loading_robot_sheet.png` | 2048×512 | PNG | 0.0% | **not integrated** |
+| `wordmark` | `logo_wordmark.png` | 1024×256 | PNG | 1.2% | BOOT, CINEMATIC, CHAPTER, DASHBOARD |
+| `loading_keyart` | `loading_keyart.jpg` | 1920×1080 | JPEG q90 | 0.0% | LOADING, PRELOAD, CINEMATIC |
+| `dashboard_bg` | `dashboard_bg.jpg` | 1920×1080 | JPEG q90 | 0.2% | DASHBOARD, HERO, WEAPON |
+| `hero_portrait` | `portrait_hero.png` | 768×1024 | PNG | 0.2% | HERO selection card |
+| `world_neon_frontier` | `world_neon_frontier.jpg` | 1600×900 | JPEG q90 | 0.0% | CHAPTER, WORLD selection |
+| `weapon_pulse_rifle` | `weapon_pulse_rifle.png` | 768×512 | PNG | 0.0% | WEAPON selection card |
+| `weapon_nova_launcher` | `weapon_nova_launcher.png` | 768×512 | PNG | 1.3% | WEAPON selection card |
+| `weapon_arc_shooter` | `weapon_arc_shooter.png` | 768×512 | PNG | 0.1% | WEAPON selection card |
+| `loading_robot` | `loading_robot_sheet.png` | 2048×512 | PNG | 0.0% | LOADING, PRELOAD (4-frame sheet, 8 fps) |
+
+Every texture is loaded through `MenuStage.try_texture()`, which returns null
+for a missing file instead of crashing, so a lost plate is a visual regression
+rather than a boot failure. `game/tests/ui_art_smoke.gd` loads all nine at
+runtime and compares the size the engine reports against this table.
 
 Total on disk: **5.3 MB**. Sources in `generated/` are kept (22 MB) so the build
 is reproducible; without them `build_ui_art.py` cannot run.

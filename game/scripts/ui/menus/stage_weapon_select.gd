@@ -38,8 +38,9 @@ func _ready() -> void:
 	physical_separation(column, 14)
 	make_margin().add_child(column)
 
-	column.add_child(make_label("SELECT WEAPON", "display_l", AegisTokens.INK))
-	_summary = make_label("", "label", AegisTokens.ACCENT)
+	var heading := card_line("SELECT WEAPON", "display_l", AegisTokens.INK)
+	column.add_child(heading)
+	_summary = card_line("", "label", AegisTokens.ACCENT)
 	column.add_child(_summary)
 
 	var scroll := ScrollContainer.new()
@@ -58,8 +59,7 @@ func _ready() -> void:
 		_cards[weapon_id] = card
 		list.add_child(card)
 
-	_detail = make_label("", "body_s", AegisTokens.INK_2)
-	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_detail = card_line("", "body_s", AegisTokens.INK_2)
 	column.add_child(_detail)
 
 	var footer := HBoxContainer.new()
@@ -128,17 +128,14 @@ func _build_card(weapon_id: StringName, group: ButtonGroup) -> Control:
 	row.add_child(column)
 
 	var definition := _definition(weapon_id)
-	column.add_child(make_label(definition.display_name.to_upper(), "title", AegisTokens.INK))
-	var role := make_label(definition.role_description, "caption", AegisTokens.INK_2)
-	role.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	column.add_child(role)
+	column.add_child(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK))
+	column.add_child(card_line(definition.role_description, "caption", AegisTokens.INK_2))
 
-	var stats := make_label("", "mono_s", AegisTokens.INFO)
+	var stats := card_line(_stat_line(definition), "mono_s", AegisTokens.INFO)
 	stats.set_meta("stat_line", true)
-	stats.text = _stat_line(definition)
 	column.add_child(stats)
 
-	var state := make_label("", "label_s", AegisTokens.OK)
+	var state := card_line("", "label_s", AegisTokens.OK)
 	state.set_meta("state_line", true)
 	column.add_child(state)
 	return card

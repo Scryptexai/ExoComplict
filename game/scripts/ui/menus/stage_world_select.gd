@@ -28,8 +28,9 @@ func _ready() -> void:
 	physical_separation(column, 14)
 	make_margin().add_child(column)
 
-	column.add_child(make_label("SELECT THEATRE", "display_l", AegisTokens.INK))
-	_summary = make_label("", "label", AegisTokens.ACCENT)
+	var heading := card_line("SELECT THEATRE", "display_l", AegisTokens.INK)
+	column.add_child(heading)
+	_summary = card_line("", "label", AegisTokens.ACCENT)
 	column.add_child(_summary)
 
 	var scroll := ScrollContainer.new()
@@ -107,7 +108,7 @@ func _build_world_card(group: ButtonGroup) -> Control:
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	physical_separation(column, 4)
 	row.add_child(column)
-	column.add_child(make_label("NEON FRONTIER", "title", AegisTokens.INK))
+	column.add_child(card_line("NEON FRONTIER", "title", AegisTokens.INK))
 	var blurb := make_label(
 		(
 			"An open training arena with raised platforms and sightlines to the edge "
@@ -118,7 +119,7 @@ func _build_world_card(group: ButtonGroup) -> Control:
 	)
 	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(blurb)
-	column.add_child(make_label("STATUS  OPEN", "label_s", AegisTokens.OK))
+	column.add_child(card_line("STATUS  OPEN", "label_s", AegisTokens.OK))
 
 	_cards.append(card)
 	return card
@@ -138,8 +139,8 @@ func _build_locked_card(index: int) -> Control:
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	card.add_child(column)
-	column.add_child(make_label("THEATRE %02d" % (index + 2), "label", AegisTokens.LINE_HI))
-	column.add_child(make_label("IN DEVELOPMENT", "title", AegisTokens.INK_3))
+	column.add_child(card_line("THEATRE %02d" % (index + 2), "label", AegisTokens.LINE_HI))
+	column.add_child(card_line("IN DEVELOPMENT", "title", AegisTokens.INK_3))
 	return card
 
 

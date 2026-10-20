@@ -39,8 +39,8 @@ func _ready() -> void:
 	physical_separation(column, 14)
 	make_margin().add_child(column)
 
-	column.add_child(make_label("SELECT OPERATIVE", "display_l", AegisTokens.INK))
-	_summary = make_label("", "label", AegisTokens.INK_2)
+	column.add_child(card_line("SELECT OPERATIVE", "display_l", AegisTokens.INK))
+	_summary = card_line("", "label", AegisTokens.INK_2)
 	column.add_child(_summary)
 
 	var scroll := ScrollContainer.new()
@@ -48,8 +48,11 @@ func _ready() -> void:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	column.add_child(scroll)
 
-	var list := HBoxContainer.new()
-	physical_separation(list, 16)
+	# One card per row: three 240 px cards side by side need 752 px, and on a
+	# 390 px screen that pushed every label on the screen to twice the display
+	# width. A vertical list scrolls instead of overflowing.
+	var list := VBoxContainer.new()
+	physical_separation(list, 12)
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(list)
 
@@ -106,68 +109,76 @@ func _build_operative_card() -> Control:
 	card.toggle_mode = true
 	card.focus_mode = Control.FOCUS_ALL
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
-	physical_min_size(card, 240.0, 360.0)
+	physical_min_size(card, 0.0, 190.0)
 	card.tooltip_text = "Exo Operative — field ready"
 	card.pressed.connect(_on_card_pressed.bind(OPERATIVE_ID))
 	AegisTheme.set_button_variant(card, "round")
 
-	var column := VBoxContainer.new()
-	column.set_anchors_preset(Control.PRESET_FULL_RECT)
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	physical_separation(column, 8)
-	card.add_child(column)
+	var row := HBoxContainer.new()
+	row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	physical_separation(row, 14)
+	card.add_child(row)
 
 	var portrait := TextureRect.new()
 	portrait.texture = try_texture(HERO_PORTRAIT)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	physical_min_size(portrait, 208.0, 200.0)
-	portrait.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(portrait)
+	physical_min_size(portrait, 130.0, 170.0)
+	row.add_child(portrait)
 
-	column.add_child(make_label("EXO OPERATIVE", "title", AegisTokens.INK))
-	var blurb := make_label(
-		(
-			"The operative fielded by the AEGIS training programme. Concept art shown; "
-			+ "the playable model is the rig measured in the hero visibility report."
-		),
-		"body_s",
-		AegisTokens.INK_2
+	var column := VBoxContainer.new()
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	physical_separation(column, 6)
+	row.add_child(column)
+
+	column.add_child(card_line("EXO OPERATIVE", "title", AegisTokens.INK))
+	column.add_child(
+		card_line(
+			(
+				"The operative fielded by the AEGIS training programme. Concept art"
+				+ " shown; the playable model is the rig measured in the hero"
+				+ " visibility report."
+			),
+			"body_s",
+			AegisTokens.INK_2
+		)
 	)
-	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	column.add_child(blurb)
-	column.add_child(make_label("STATUS  FIELD READY", "label_s", AegisTokens.OK))
-
+	column.add_child(card_line("STATUS  FIELD READY", "label_s", AegisTokens.OK))
 	_cards.append(card)
 	return card
 
 
-## A placeholder slot. Disabled and unlabelled beyond "IN DEVELOPMENT" so it
-## cannot be mistaken for a hero the player nearly has.
+## A placeholder slot, laid out like the real card so the screen does not look
+## broken. Disabled and unlabelled beyond "IN DEVELOPMENT" so it cannot be
+## mistaken for a hero the player nearly has.
 func _build_locked_card(index: int) -> Control:
 	var card := AegisButton.new()
 	card.name = "LockedHeroCard%d" % index
 	card.disabled = true
 	card.focus_mode = Control.FOCUS_NONE
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	physical_min_size(card, 240.0, 360.0)
-	card.set_meta("hero_id", "")
+	physical_min_size(card, 0.0, 110.0)
 	AegisTheme.set_button_variant(card, "round")
 
-	var column := VBoxContainer.new()
-	column.set_anchors_preset(Control.PRESET_FULL_RECT)
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	card.add_child(column)
+	var row := HBoxContainer.new()
+	row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	physical_separation(row, 14)
+	card.add_child(row)
 
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(spacer)
-	column.add_child(make_label("SLOT %02d" % (index + 2), "label", AegisTokens.LINE_HI))
-	column.add_child(make_label("IN DEVELOPMENT", "title", AegisTokens.INK_3))
-	var spacer2 := Control.new()
-	spacer2.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(spacer2)
+	var slot := Control.new()
+	physical_min_size(slot, 130.0, 86.0)
+	row.add_child(slot)
+
+	var column := VBoxContainer.new()
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(column)
+	column.add_child(card_line("SLOT %02d" % (index + 2), "label", AegisTokens.LINE_HI))
+	column.add_child(card_line("IN DEVELOPMENT", "title", AegisTokens.INK_3))
 	return card
 
 
