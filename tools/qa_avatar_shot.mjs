@@ -46,6 +46,9 @@ const settleMs = Number(flag('--settle', '8000'));
 const frames = Math.max(1, Number(flag('--frames', '1')) || 1);
 const frameGapMs = Number(flag('--gap', '2500'));
 const port = Number(flag('--port', '8131'));
+// Serve a different directory so a locally built .pck can be photographed
+// without touching the committed payload.
+const serveDir = path.resolve(ROOT, flag('--serve', '.'));
 
 let chromium;
 let puppeteer;
@@ -72,7 +75,7 @@ if (!fs.existsSync(path.join(LIB_DIR, 'libnss3.so'))) {
 const server = spawn(
     'python3',
     ['-m', 'http.server', String(port), '--bind', '127.0.0.1'],
-    { cwd: ROOT, stdio: 'ignore' }
+    { cwd: serveDir, stdio: 'ignore' }
 );
 const baseUrl = `http://127.0.0.1:${port}`;
 await new Promise((resolve) => setTimeout(resolve, 800));
@@ -131,7 +134,7 @@ server.kill();
 for (const result of results) {
     console.log(`\n=== ${result.viewport} -> ${result.file}`);
     for (const line of result.lines) {
-        if (/Camera QA:|CharacterVisual:|Rig QA:|Encounter:|PAGEERROR|SCRIPT ERROR|ERROR:/.test(line)) {
+        if (/Camera QA:|Touch QA:|CharacterVisual:|Rig QA:|Encounter:|PAGEERROR|SCRIPT ERROR|ERROR:/.test(line)) {
             console.log(`  ${line}`);
         }
     }
