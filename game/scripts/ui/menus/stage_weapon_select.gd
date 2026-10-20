@@ -20,6 +20,18 @@ const PLATES := {
 const ORDER: Array[StringName] = [&"pulse_rifle", &"nova_launcher", &"arc_shooter"]
 
 var _cards: Dictionary = {}
+## Portrait/landscape list pair built by MenuStage._make_card_list().
+var _lists: Dictionary = {}
+## Every control authored with MenuStage._size_both() (cards and plates).
+var _oriented: Array = []
+## The landscape arrangement: heading and summary stay in the info column, the
+## card list moves beside it. See MenuStage._orient_selection().
+var _stack: VBoxContainer
+var _split: HBoxContainer
+var _info: VBoxContainer
+var _scroll: ScrollContainer
+var _above: Array = []
+var _below: Array = []
 var _summary: Label
 var _continue: AegisButton
 var _detail: Label
@@ -34,37 +46,38 @@ func _ready() -> void:
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(scrim)
 
-	var column := VBoxContainer.new()
-	physical_separation(column, 14)
-	make_margin().add_child(column)
+	_stack = VBoxContainer.new()
+	physical_separation(_stack, 14)
+	make_margin().add_child(_stack)
+	var split := _make_selection_split(300.0)
+	_split = split["split"]
+	_info = split["info"]
 
 	var heading := card_line("SELECT WEAPON", "display_l", AegisTokens.INK)
-	column.add_child(heading)
+	_stack.add_child(heading)
 	_summary = card_line("", "label", AegisTokens.ACCENT)
-	column.add_child(_summary)
+	_stack.add_child(_summary)
+	_above = [heading, _summary]
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	column.add_child(scroll)
-
-	var list := VBoxContainer.new()
-	physical_separation(list, 12)
-	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(list)
+	_scroll = ScrollContainer.new()
+	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_stack.add_child(_scroll)
+	_lists = _make_card_list(_scroll)
 
 	var group := ButtonGroup.new()
 	for weapon_id in ORDER:
 		var card := _build_card(weapon_id, group)
 		_cards[weapon_id] = card
-		list.add_child(card)
+		_lists["column"].add_child(card)
 
 	_detail = card_line("", "body_s", AegisTokens.INK_2)
-	column.add_child(_detail)
+	_stack.add_child(_detail)
 
 	var footer := HBoxContainer.new()
 	physical_separation(footer, 12)
-	column.add_child(footer)
+	_stack.add_child(footer)
+	_below = [_detail, footer]
 
 	var back := make_button("BACK", "ghost", "Return to operative selection")
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -103,7 +116,10 @@ func _build_card(weapon_id: StringName, group: ButtonGroup) -> Control:
 	card.toggle_mode = true
 	card.focus_mode = Control.FOCUS_ALL
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
-	physical_min_size(card, 0.0, 132.0)
+	# 216 px holds a plate and four text lines in portrait; a landscape row
+	# only has ~130 px of height, so the card is shorter and fixed-width there.
+	_size_both(card, Vector2(0.0, 216.0), Vector2(LANDSCAPE_CARD_WIDTH, 216.0))
+	_oriented.append(card)
 	card.set_meta("weapon_id", String(weapon_id))
 	card.pressed.connect(_on_card_pressed.bind(weapon_id))
 	AegisTheme.set_button_variant(card, "round")
@@ -118,7 +134,8 @@ func _build_card(weapon_id: StringName, group: ButtonGroup) -> Control:
 	plate.texture = try_texture(PLATES[weapon_id])
 	plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	physical_min_size(plate, 150.0, 100.0)
+	_size_both(plate, Vector2(110.0, 100.0), Vector2(100.0, 100.0))
+	_oriented.append(plate)
 	row.add_child(plate)
 
 	var column := VBoxContainer.new()
@@ -220,3 +237,6 @@ func _on_card_pressed(weapon_id: StringName) -> void:
 
 func _on_resized() -> void:
 	relayout()
+	_orient_nodes(_oriented)
+	_orient_card_list(_lists, _cards.values())
+	_orient_selection(_stack, _split, _info, _scroll, _above, _below)

@@ -1,8 +1,9 @@
 # Front-end journey
 
-status: implemented, pending the first full test run. This file describes what
-is in the tree and what each stage actually does; where a claim could not be
-verified it says so.
+status: implemented. `game/tests/front_end_journey_smoke.gd` walks the whole
+journey and `game/tests/menu_layout_smoke.gd` measures every screen at four
+viewport sizes; both are green. This file describes what is in the tree and what
+each stage actually does; where a claim could not be verified it says so.
 
 Before this work the game booted straight into `scenes/main.tscn`. The journey
 below did not exist at any point — no boot screen, no loading screen, no
@@ -177,6 +178,53 @@ which is the failure BUG 2 was about. Back navigation is wired to `ui_cancel`
 with a per-stage `BACK_TARGET`, plus an on-screen BACK button on each selection
 screen for devices with no Escape key.
 
+## Layout at phone sizes
+
+The project stretches a 1280x720 canvas with `aspect=expand`, so on a 390x844
+phone the canvas is 1280x2770 at 0.305 scale: a button authored as 60 canvas
+units reaches the screen 18 px tall and a 24 px gap lands at 7. Authoring in
+canvas units is why the first pass read as broken rather than small. Every menu
+size is therefore written in **physical pixels** and converted once, through
+`MenuStage.px()`.
+
+| `MenuStage` helper | What it is for |
+| --- | --- |
+| `px()` / `touch_height()` / `gap()` | physical pixels → layout units |
+| `physical_min_size()` / `physical_separation()` | author a size once, re-convert it on resize or rotation |
+| `card_line()` | card text that wraps to the card instead of widening the screen it lives in |
+| `enforce_font_floor()` | nothing renders below `AegisTokens.MIN_PHYSICAL_FONT_PX` |
+| `is_landscape()` | wider than 1.2x taller |
+| `_size_both()` / `_orient_nodes()` | a portrait size and a landscape size for one control |
+| `_make_card_list()` / `_orient_card_list()` | a card column in portrait, a card row in landscape |
+| `_make_selection_split()` / `_orient_selection()` | the landscape layout: text beside the list |
+
+Orientation is handled on `resized`, so rotating a device re-lays out the screen
+without rebuilding it:
+
+* **DASHBOARD** stacks wordmark → stats → actions in portrait (DEPLOY last,
+  bottom-anchored, closest to the thumb). In landscape it splits: stats left,
+  actions right. The stack is ~500 px tall and a landscape phone is 390 px,
+  which is what put DEPLOY at y=444, 114 px past the bottom edge.
+* **HERO / WEAPON / WORLD** scroll one card per row in portrait. In landscape the
+  heading, the summary and the footer move into a fixed-width info column and the
+  card list becomes a row that scrolls sideways beside it: a stacked header
+  leaves the list ~130 px of a 390 px screen, and a 216 px card in a 130 px
+  window is unusable. Locked placeholder slots travel with the real cards and
+  stay disabled.
+
+Measured, in physical pixels, from the browser's own rect report
+(`?qa_menu=1`, touch insets `SAFE=8,8,28`) and from `menu_layout_smoke.gd`:
+
+| Screen | 390x844 | 844x390 |
+| --- | --- | --- |
+| DASHBOARD | `DEPLOY=36,732,320x60` | `DEPLOY=427,278,381x60` (was `36,444` — off screen) |
+| HERO | `OperativeCard=36,132,318x190`, `BACK=36,736,153x56` | `OperativeCard=346,54,340x190`, `BACK=36,282,144x56` |
+| WEAPON | `PulseRifleCard=36,115,316x216`, `CONTINUE=201,736,153x56` | `PulseRifleCard=346,54,340x216`, `CONTINUE=191,282,144x56` |
+| WORLD | `NeonFrontierCard=36,115,318x168`, `LAUNCH=201,736,153x56` | `NeonFrontierCard=346,54,340x168`, `LAUNCH` bottom right |
+
+Every action is 56–60 px tall, and in every measurement above the lowest pixel
+of the last action is at least 24 px clear of the safe area.
+
 ## Verification
 
 `game/tests/front_end_journey_smoke.gd` instantiates the real `front_end.tscn`
@@ -184,5 +232,12 @@ and walks the journey, asserting at each stop that the stage is the one the
 journey asked for, that no enabled button is inert, that no control crosses the
 reserved edge, that absent content is disabled, and that `intro_seen` round-trips
 through a real `ConfigFile`.
+
+`game/tests/menu_layout_smoke.gd` mounts the same scene inside `SubViewport`s
+sized 390x844, 844x390, 360x640 and 1280x720 (sixteen stage/size combinations)
+and asserts, in physical pixels, that nothing outside a scroll container is drawn
+outside the viewport and that no button is under the 56 px touch floor. It prints
+the same rect report as `?qa_menu=1`, so the headless numbers and the browser
+numbers can be read against each other.
 
 Results are recorded in `docs/asset-inspections/` once the suite has been run.

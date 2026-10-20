@@ -21,6 +21,19 @@ var _loadout: Label
 var _armory: HudArmoryUi
 var _settings: AegisSettingsMenu
 var _armory_hint_owner: bool = false
+## The four blocks the layout is built from. Portrait stacks them in `_stack`;
+## landscape moves them into `_split` so the stats sit beside the actions
+## instead of above them -- the stack is ~500 px tall and a landscape phone is
+## 390 px, which is what pushed DEPLOY past the bottom edge.
+var _stack: VBoxContainer
+var _split: HBoxContainer
+var _left: VBoxContainer
+var _right: VBoxContainer
+var _mark: TextureRect
+var _stats: AegisPanel
+var _actions: VBoxContainer
+var _spacer: Control
+var _landscape_built := false
 
 
 func _ready() -> void:
@@ -38,23 +51,37 @@ func _ready() -> void:
 	_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_margin)
 
-	var column := VBoxContainer.new()
-	physical_separation(column, 18)
-	_margin.add_child(column)
+	_stack = VBoxContainer.new()
+	physical_separation(_stack, 18)
+	_margin.add_child(_stack)
 
-	var mark := TextureRect.new()
-	mark.texture = try_texture("res://assets/ui/logo_wordmark.png")
-	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	physical_min_size(mark, 320.0, 80.0)
-	column.add_child(mark)
+	_split = HBoxContainer.new()
+	_split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_split.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	physical_separation(_split, 18)
+	_left = VBoxContainer.new()
+	physical_separation(_left, 18)
+	_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_right = VBoxContainer.new()
+	physical_separation(_right, 12)
+	_right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_split.add_child(_left)
+	_split.add_child(_right)
+
+	_mark = TextureRect.new()
+	_mark.texture = try_texture("res://assets/ui/logo_wordmark.png")
+	_mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_size_both(_mark, Vector2(320.0, 80.0), Vector2(220.0, 56.0))
+	_stack.add_child(_mark)
 
 	var stats := AegisPanel.new()
 	stats.interactive = false
 	stats.accent_side = "top"
 	stats.accent_color = AegisTokens.INFO
 	stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(stats)
+	_stack.add_child(stats)
+	_stats = stats
 
 	var stat_column := VBoxContainer.new()
 	physical_separation(stat_column, 10)
@@ -74,13 +101,14 @@ func _ready() -> void:
 	# so a top-aligned column would leave two thirds of the screen empty and put
 	# DEPLOY out of thumb reach. A spacer pushes the actions to the bottom and
 	# DEPLOY sits last, closest to the edge the hand is already holding.
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(spacer)
+	_spacer = Control.new()
+	_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_stack.add_child(_spacer)
 
 	var actions := VBoxContainer.new()
 	physical_separation(actions, 12)
-	column.add_child(actions)
+	_stack.add_child(actions)
+	_actions = actions
 
 	var row := HBoxContainer.new()
 	physical_separation(row, 12)
@@ -159,8 +187,37 @@ func refresh_profile() -> void:
 		)
 
 
+## Picks the arrangement that fits the screen: one column in portrait, stats
+## beside actions in landscape. Only runs when the orientation actually
+## changes, so a resize inside the same orientation is a re-scale, not a
+## rebuild, and every block is detached before being re-added in reading order
+## so the arrangement never depends on the order it was first built in.
+func _apply_orientation() -> void:
+	var landscape := is_landscape()
+	if landscape == _landscape_built:
+		return
+	_landscape_built = landscape
+	for block in [_mark, _stats, _spacer, _actions]:
+		if block.get_parent() != null:
+			block.get_parent().remove_child(block)
+	if landscape:
+		_stack.add_child(_split)
+		_left.add_child(_mark)
+		_left.add_child(_stats)
+		_right.add_child(_spacer)
+		_right.add_child(_actions)
+	else:
+		_stack.remove_child(_split)
+		_stack.add_child(_mark)
+		_stack.add_child(_stats)
+		_stack.add_child(_spacer)
+		_stack.add_child(_actions)
+
+
 func _on_resized() -> void:
 	relayout()
+	_orient_nodes([_mark])
+	_apply_orientation()
 	# The armory and settings panels are sized in physical pixels too: they are
 	# lists of 56 px rows, and a panel authored in canvas units would be a third
 	# of that on a phone.

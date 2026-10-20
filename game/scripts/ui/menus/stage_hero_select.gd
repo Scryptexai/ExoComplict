@@ -21,6 +21,21 @@ const OPERATIVE_ID := &"exo_operative"
 const LOCKED_SLOTS := 2
 
 var _cards: Array[AegisButton] = []
+## Placeholder slots: not selectable, but they still have to move to the
+## landscape row with the real card.
+var _locked: Array[AegisButton] = []
+## Portrait/landscape list pair built by MenuStage._make_card_list().
+var _lists: Dictionary = {}
+## Every control authored with MenuStage._size_both() (cards and portraits).
+var _oriented: Array = []
+## The landscape arrangement: heading and summary stay in the info column, the
+## card list moves beside it. See MenuStage._orient_selection().
+var _stack: VBoxContainer
+var _split: HBoxContainer
+var _info: VBoxContainer
+var _scroll: ScrollContainer
+var _above: Array = []
+var _below: Array = []
 var _summary: Label
 var _continue: AegisButton
 var _selected := OPERATIVE_ID
@@ -35,26 +50,29 @@ func _ready() -> void:
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(scrim)
 
-	var column := VBoxContainer.new()
-	physical_separation(column, 14)
-	make_margin().add_child(column)
+	_stack = VBoxContainer.new()
+	physical_separation(_stack, 14)
+	make_margin().add_child(_stack)
+	var split := _make_selection_split(300.0)
+	_split = split["split"]
+	_info = split["info"]
 
-	column.add_child(card_line("SELECT OPERATIVE", "display_l", AegisTokens.INK))
+	var heading := card_line("SELECT OPERATIVE", "display_l", AegisTokens.INK)
+	_stack.add_child(heading)
 	_summary = card_line("", "label", AegisTokens.INK_2)
-	column.add_child(_summary)
+	_stack.add_child(_summary)
+	_above = [heading, _summary]
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	column.add_child(scroll)
+	_scroll = ScrollContainer.new()
+	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_stack.add_child(_scroll)
+	_lists = _make_card_list(_scroll)
 
 	# One card per row: three 240 px cards side by side need 752 px, and on a
 	# 390 px screen that pushed every label on the screen to twice the display
 	# width. A vertical list scrolls instead of overflowing.
-	var list := VBoxContainer.new()
-	physical_separation(list, 12)
-	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(list)
+	var list: BoxContainer = _lists["column"]
 
 	list.add_child(_build_operative_card())
 	for index in range(LOCKED_SLOTS):
@@ -62,7 +80,8 @@ func _ready() -> void:
 
 	var footer := HBoxContainer.new()
 	physical_separation(footer, 12)
-	column.add_child(footer)
+	_stack.add_child(footer)
+	_below = [footer]
 
 	var back := make_button("BACK", "ghost", "Return to the dashboard")
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -109,8 +128,9 @@ func _build_operative_card() -> Control:
 	card.toggle_mode = true
 	card.focus_mode = Control.FOCUS_ALL
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
-	physical_min_size(card, 0.0, 190.0)
 	card.tooltip_text = "Exo Operative — field ready"
+	_size_both(card, Vector2(0.0, 190.0), Vector2(LANDSCAPE_CARD_WIDTH, 190.0))
+	_oriented.append(card)
 	card.pressed.connect(_on_card_pressed.bind(OPERATIVE_ID))
 	AegisTheme.set_button_variant(card, "round")
 
@@ -124,7 +144,8 @@ func _build_operative_card() -> Control:
 	portrait.texture = try_texture(HERO_PORTRAIT)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	physical_min_size(portrait, 130.0, 170.0)
+	_size_both(portrait, Vector2(130.0, 170.0), Vector2(100.0, 100.0))
+	_oriented.append(portrait)
 	row.add_child(portrait)
 
 	var column := VBoxContainer.new()
@@ -156,10 +177,12 @@ func _build_operative_card() -> Control:
 func _build_locked_card(index: int) -> Control:
 	var card := AegisButton.new()
 	card.name = "LockedHeroCard%d" % index
+	_locked.append(card)
 	card.disabled = true
 	card.focus_mode = Control.FOCUS_NONE
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	physical_min_size(card, 0.0, 110.0)
+	_size_both(card, Vector2(0.0, 110.0), Vector2(200.0, 96.0))
+	_oriented.append(card)
 	AegisTheme.set_button_variant(card, "round")
 
 	var row := HBoxContainer.new()
@@ -169,7 +192,10 @@ func _build_locked_card(index: int) -> Control:
 	card.add_child(row)
 
 	var slot := Control.new()
-	physical_min_size(slot, 130.0, 86.0)
+	# Landscape keeps only a sliver of the portrait slot: the card is 200 px
+	# wide there, and a 100 px slot would leave 56 px for the words.
+	_size_both(slot, Vector2(130.0, 86.0), Vector2(40.0, 86.0))
+	_oriented.append(slot)
 	row.add_child(slot)
 
 	var column := VBoxContainer.new()
@@ -200,3 +226,6 @@ func _on_continue_pressed() -> void:
 
 func _on_resized() -> void:
 	relayout()
+	_orient_nodes(_oriented)
+	_orient_card_list(_lists, _cards + _locked)
+	_orient_selection(_stack, _split, _info, _scroll, _above, _below)

@@ -12,6 +12,21 @@ const FRONTIER_ID := &"neon_frontier"
 const LOCKED_SLOTS := 2
 
 var _cards: Array[AegisButton] = []
+## Placeholder slots: not selectable, but they still have to move to the
+## landscape row with the real card.
+var _locked: Array[AegisButton] = []
+## Portrait/landscape list pair built by MenuStage._make_card_list().
+var _lists: Dictionary = {}
+## Every control authored with MenuStage._size_both() (cards and plates).
+var _oriented: Array = []
+## The landscape arrangement: heading and summary stay in the info column, the
+## card list moves beside it. See MenuStage._orient_selection().
+var _stack: VBoxContainer
+var _split: HBoxContainer
+var _info: VBoxContainer
+var _scroll: ScrollContainer
+var _above: Array = []
+var _below: Array = []
 var _summary: Label
 
 
@@ -24,25 +39,26 @@ func _ready() -> void:
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(scrim)
 
-	var column := VBoxContainer.new()
-	physical_separation(column, 14)
-	make_margin().add_child(column)
+	_stack = VBoxContainer.new()
+	physical_separation(_stack, 14)
+	make_margin().add_child(_stack)
+	var split := _make_selection_split(300.0)
+	_split = split["split"]
+	_info = split["info"]
 
 	var heading := card_line("SELECT THEATRE", "display_l", AegisTokens.INK)
-	column.add_child(heading)
+	_stack.add_child(heading)
 	_summary = card_line("", "label", AegisTokens.ACCENT)
-	column.add_child(_summary)
+	_stack.add_child(_summary)
+	_above = [heading, _summary]
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	column.add_child(scroll)
+	_scroll = ScrollContainer.new()
+	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_stack.add_child(_scroll)
+	_lists = _make_card_list(_scroll)
 
-	var list := VBoxContainer.new()
-	physical_separation(list, 12)
-	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(list)
-
+	var list: BoxContainer = _lists["column"]
 	var group := ButtonGroup.new()
 	list.add_child(_build_world_card(group))
 	for index in range(LOCKED_SLOTS):
@@ -50,7 +66,8 @@ func _ready() -> void:
 
 	var footer := HBoxContainer.new()
 	physical_separation(footer, 12)
-	column.add_child(footer)
+	_stack.add_child(footer)
+	_below = [footer]
 
 	var back := make_button("BACK", "ghost", "Return to weapon selection")
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -85,7 +102,8 @@ func _build_world_card(group: ButtonGroup) -> Control:
 	card.toggle_mode = true
 	card.focus_mode = Control.FOCUS_ALL
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
-	physical_min_size(card, 0.0, 168.0)
+	_size_both(card, Vector2(0.0, 168.0), Vector2(LANDSCAPE_CARD_WIDTH, 168.0))
+	_oriented.append(card)
 	card.set_meta("world_id", String(FRONTIER_ID))
 	card.pressed.connect(_on_card_pressed.bind(FRONTIER_ID))
 	AegisTheme.set_button_variant(card, "round")
@@ -100,7 +118,8 @@ func _build_world_card(group: ButtonGroup) -> Control:
 	plate.texture = try_texture(WORLD_PLATE)
 	plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	physical_min_size(plate, 240.0, 135.0)
+	_size_both(plate, Vector2(120.0, 100.0), Vector2(100.0, 100.0))
+	_oriented.append(plate)
 	row.add_child(plate)
 
 	var column := VBoxContainer.new()
@@ -109,16 +128,17 @@ func _build_world_card(group: ButtonGroup) -> Control:
 	physical_separation(column, 4)
 	row.add_child(column)
 	column.add_child(card_line("NEON FRONTIER", "title", AegisTokens.INK))
-	var blurb := make_label(
-		(
-			"An open training arena with raised platforms and sightlines to the edge "
-			+ "of the grid. Wave defence, exploration and the weapon range all run here."
-		),
-		"body_s",
-		AegisTokens.INK_2
+	column.add_child(
+		card_line(
+			(
+				"An open training arena with raised platforms and sightlines to the"
+				+ " edge of the grid. Wave defence, exploration and the weapon range"
+				+ " all run here."
+			),
+			"body_s",
+			AegisTokens.INK_2
+		)
 	)
-	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	column.add_child(blurb)
 	column.add_child(card_line("STATUS  OPEN", "label_s", AegisTokens.OK))
 
 	_cards.append(card)
@@ -128,10 +148,12 @@ func _build_world_card(group: ButtonGroup) -> Control:
 func _build_locked_card(index: int) -> Control:
 	var card := AegisButton.new()
 	card.name = "LockedWorldCard%d" % index
+	_locked.append(card)
 	card.disabled = true
 	card.focus_mode = Control.FOCUS_NONE
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	physical_min_size(card, 0.0, 96.0)
+	_size_both(card, Vector2(0.0, 96.0), Vector2(LANDSCAPE_CARD_WIDTH * 0.5, 96.0))
+	_oriented.append(card)
 	AegisTheme.set_button_variant(card, "round")
 
 	var column := VBoxContainer.new()
@@ -190,3 +212,6 @@ func _on_launch_pressed() -> void:
 
 func _on_resized() -> void:
 	relayout()
+	_orient_nodes(_oriented)
+	_orient_card_list(_lists, _cards + _locked)
+	_orient_selection(_stack, _split, _info, _scroll, _above, _below)
