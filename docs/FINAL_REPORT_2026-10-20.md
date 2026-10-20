@@ -146,6 +146,11 @@ measured in [`docs/asset-inspections/MENU_LAYOUT_QA_2026-10-20.md`](asset-inspec
 `menu_layout_smoke.gd` (new) mounts the real `front_end.tscn` in `SubViewport`s of
 390×844, 844×390, 360×640 and 1280×720 — 16 stage/size combinations, all PASS.
 
+Verified against the **shipped** artifact, not only a scratch export: the
+committed `web/index.pck` (refreshed by CI after the layout commit) reports
+`DEPLOY=427,278,381x60` at 844×390 — the same numbers as the scratch build, so
+the payload in the tree carries the fix.
+
 ---
 
 ## 4. The journey — BOOT → … → GAMEPLAY
@@ -265,7 +270,7 @@ Browser measurements (headless Chromium + SwiftShader WebGL 2, via
 | # | Issue | Status |
 | --- | --- | --- |
 | 1 | **Android / any real GPU.** No device, no JDK, no Android SDK, and the sandbox has no GL/EGL/Vulkan library. Every render claim goes through SwiftShader in headless Chromium. | **NOT TESTED** |
-| 2 | **A full `web/` re-export could not be run here.** `engine/web_templates/*.zip` are 133-byte LFS pointers, so the export template cannot be unpacked. Verification uses `--export-pack` (no template needed) against the committed `index.wasm` / `index.js`. CI refreshes the committed `web/index.pck` on push, so the payload in the tree can lag this branch by one CI run. | **NOT TESTED** (full re-export) |
+| 2 | **A full `web/` re-export could not be run here.** `engine/web_templates/*.zip` are 133-byte LFS pointers, so the export template cannot be unpacked; `--export-pack` needs no template and was used instead. CI *does* refresh `web/index.pck` on push, and the refreshed payload was measured this session (§3) — but the refresh is CI's output, not a local export. | **PASS** (payload measured) / **NOT TESTED** (local re-export) |
 | 3 | **Rotation while a screen is open.** The layout probe mounts a fresh viewport per size and the browser build is fixed at one viewport per launch, so no run has driven `resized` from portrait to landscape on a live screen. | **NOT TESTED** |
 | 4 | **Touch-drag scrolling** of the landscape card row. The rects prove the row is laid out and scrollable, not that a thumb moves it. | **NOT TESTED** |
 | 5 | **Assets C and F as video.** No encoder exists in this environment. | **BLOCKED** |
