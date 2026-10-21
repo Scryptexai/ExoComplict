@@ -12,7 +12,7 @@ from.
 | `material_kit.gd` | How a surface behaves. The *palettes* stay in each builder's `_create_materials()`; palettes are content and differ, the factories were plumbing. |
 | `components/props.gd` | Crystal clusters, alien flora, rock outcrops, spawn gates, cover modules — the components that get placed rather than built. |
 | `scenes.gd` | The component scenes and world dimensions the zones share. They were consts at the top of the world builder, which is why a zone could not leave that file. |
-| `zones/` | One file per group of districts: `settlement.gd` (outpost, extraction), `perimeter.gd` (boss platform, defenses), `wilds.gd` (destroyed sector, alien landscape). |
+| `zones/` | One file per group of districts: `arena.gd` (combat floor, hazard markings, spawn gates), `routes.gd` (the ground routes between districts), `settlement.gd` (outpost, extraction), `perimeter.gd` (boss platform, defenses), `wilds.gd` (destroyed sector, alien landscape). |
 | `components/` | The rest of the components, one group per file, as they move out of `neon_frontier_asset.gd`. |
 
 ## Rules

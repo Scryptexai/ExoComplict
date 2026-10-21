@@ -26,3 +26,5 @@ const TRANSPORT_SCENE: PackedScene = preload(
 	"res://scenes/worlds/components/wrecked_transport.tscn"
 )
 const TURRET_SCENE: PackedScene = preload("res://scenes/worlds/components/defense_turret.tscn")
+const REACTOR_SCENE: PackedScene = preload("res://scenes/worlds/components/reactor_core.tscn")
+const COVER_SCENE: PackedScene = preload("res://scenes/worlds/components/cover_module.tscn")

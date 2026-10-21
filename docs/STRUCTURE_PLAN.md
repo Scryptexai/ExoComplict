@@ -172,10 +172,27 @@ Not done yet: `set_paused()`, the one slice left that reaches everything at
 once — scrim, help, desktop hint, fire and skill buttons, HUD editor — and the
 1,391 lines still on the facade. Gates: G1, G2, G3, G4, G5.
 
-**Phase 2 — the world module.**
-`neon_frontier_world.gd` (1,571) and `neon_frontier_asset.gd` (1,570) split
-into `content/world/neon_frontier/{world,geometry,components,kit}`.
-Gates: G1, G2, G3, G4, G5.
+**Phase 2 — the world module.** *Done, 2026-10-21 (commits `16963bc`,
+`0717456`, `4a829c3`, `4d7637c`).*
+
+`neon_frontier_world.gd` 1,571 -> 404 lines. What is left in it is the
+composition root: terrain, world bounds, lighting, spawn beacons and the shape
+helpers. Everything else has a file:
+
+| File | What | Lines |
+| --- | --- | --- |
+| `neon_frontier/material_kit.gd` | How a surface behaves (was two drifting copies) | 41 |
+| `neon_frontier/geometry.gd` | The eight shapes every component is built from | 221 |
+| `neon_frontier/scenes.gd` | The component scenes and world dimensions the zones share | 22 |
+| `neon_frontier/components/props.gd` | Crystals, flora, rock, spawn gates, cover | 300 |
+| `neon_frontier/zones/arena.gd` | Central arena, hazard markings, spawn gates | 255 |
+| `neon_frontier/zones/routes.gd` | The routes between districts | 177 |
+| `neon_frontier/zones/settlement.gd` | Outpost, extraction zone | 226 |
+| `neon_frontier/zones/perimeter.gd` | Boss platform, defense perimeter | 288 |
+| `neon_frontier/zones/wilds.gd` | Destroyed sector, alien landscape | 259 |
+
+Still one file, and the next thing to split if it grows: `neon_frontier_asset.gd`
+(1,355 lines), the component dispatcher, which has nine components left in it.
 
 **Phase 3 — content modules.**
 `hero/`, `weapon/`, `enemy/`, `skill/`, `effects/` folders with the shared
