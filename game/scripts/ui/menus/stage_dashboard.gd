@@ -120,8 +120,12 @@ func _ready() -> void:
 	physical_separation(hero_row, 14)
 	_hero_panel.add_child(hero_row)
 
+	# The portrait and the theatre plate are the definitions' own files, loaded
+	# in `refresh_profile()` from `portrait_path` / `plate_path`. Writing the
+	# path here as a literal is the drift `data_source_smoke` reads this file
+	# for: a renamed portrait would break the dashboard while the HERO card,
+	# which reads the registry, kept working.
 	_hero_plate = TextureRect.new()
-	_hero_plate.texture = try_texture("res://assets/ui/portrait_hero.png")
 	_hero_plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_hero_plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	_hero_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -137,7 +141,7 @@ func _ready() -> void:
 
 	_hero_role = make_label("OPERATIVE", "label", AegisTokens.INK_3)
 	hero_column.add_child(_hero_role)
-	_hero_name_label = make_label("EXO OPERATIVE", "title", AegisTokens.INK)
+	_hero_name_label = make_label("", "title", AegisTokens.INK)
 	_hero_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hero_column.add_child(_hero_name_label)
 	_hero_status = make_label("FIELD READY", "label", AegisTokens.OK)
@@ -156,7 +160,6 @@ func _ready() -> void:
 	_mission_panel.add_child(mission_row)
 
 	_mission_plate = TextureRect.new()
-	_mission_plate.texture = try_texture("res://assets/ui/world_neon_frontier.jpg")
 	_mission_plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_mission_plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	_mission_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -169,7 +172,7 @@ func _ready() -> void:
 	mission_row.add_child(mission_column)
 
 	mission_column.add_child(make_label("DEPLOYMENT THEATRE", "label", AegisTokens.INK_3))
-	_mission_name = make_label("NEON FRONTIER", "title", AegisTokens.INK)
+	_mission_name = make_label("", "title", AegisTokens.INK)
 	_mission_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	mission_column.add_child(_mission_name)
 	_mission_brief = make_label("", "label_s", AegisTokens.INK_2)
@@ -240,20 +243,24 @@ func _ready() -> void:
 	physical_separation(row, 10)
 	_secondary.add_child(row)
 
+	# Every secondary control clears AegisTokens.MIN_TOUCH_PX. They were 52 px
+	# and 44 px, which is under the floor the rest of the front end holds and
+	# under a thumb: `menu_layout_smoke` measures button heights in physical
+	# pixels on four screens and failed on exactly these three.
 	var armory := make_button("ARMORY", "round", "Unlock and equip weapons with Battle Points")
 	armory.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_min_size(armory, 0.0, 52.0)
+	physical_min_size(armory, 0.0, AegisTokens.MIN_TOUCH_PX)
 	armory.pressed.connect(_on_armory_pressed)
 	row.add_child(armory)
 
 	var settings := make_button("SETTINGS", "round", "Audio, HUD and control preferences")
 	settings.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_min_size(settings, 0.0, 52.0)
+	physical_min_size(settings, 0.0, AegisTokens.MIN_TOUCH_PX)
 	settings.pressed.connect(_on_settings_pressed)
 	row.add_child(settings)
 
 	var replay := make_button("REPLAY INTRO", "ghost", "Watch the opening cinematic again")
-	physical_min_size(replay, 0.0, 44.0)
+	physical_min_size(replay, 0.0, AegisTokens.MIN_TOUCH_PX)
 	replay.pressed.connect(_on_replay_pressed)
 	_secondary.add_child(replay)
 
@@ -334,14 +341,19 @@ func refresh_profile() -> void:
 	_hero_status.text = (
 		hero_definition.status_line.to_upper() if hero_definition != null else "FIELD READY"
 	)
+	_hero_plate.texture = (
+		try_texture(hero_definition.portrait_path) if hero_definition != null else null
+	)
 	# The brief is the theatre's own first sentence. The WORLD screen prints the
 	# whole description; a dashboard line is a reminder of where you are going,
 	# not a briefing document.
 	var world_definition := WorldDefinition.load_definition(progression.selected_world_id)
 	if world_definition != null:
 		_mission_brief.text = _first_sentence(world_definition.role_description).to_upper()
+		_mission_plate.texture = try_texture(world_definition.plate_path)
 	else:
 		_mission_brief.text = ""
+		_mission_plate.texture = null
 	if _armory.visible:
 		_armory.refresh_profile(
 			progression.balance,

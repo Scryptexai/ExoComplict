@@ -163,9 +163,68 @@ func _probe(stage_name: StringName, size_name: String, physical: Vector2) -> voi
 			)
 		)
 		_check(control, rect, viewport, "%s %s" % [stage_name, size_name])
+	if stage_name == &"DASHBOARD":
+		_check_dashboard_hierarchy(stage, stretch, "%s %s" % [stage_name, size_name])
 	print("Menu layout: " + " | ".join(lines))
 	await _check_row_scroll(stage, "%s %s" % [stage_name, size_name])
 	await _check_thumb_drag(stage, "%s %s" % [stage_name, size_name])
+
+
+## The dashboard's *order* is the fix, not its contents: DEPLOY used to be the
+## last button on the screen, below the profile numbers and 40 px from the
+## bottom edge, and the first thing a player saw was a wallet balance. On every
+## size this asserts the reading order the audit asked for -- operative, then
+## theatre, then the primary action, and only then the secondary row -- in
+## physical pixels, because the canvas is letterboxed.
+func _check_dashboard_hierarchy(stage: Control, stretch: float, where: String) -> void:
+	var deploy: Button = _find_button(stage, "DEPLOY")
+	if not _expect(deploy != null, "%s: DEPLOY exists" % where):
+		return
+	var secondary := stage.get("_secondary") as Control
+	if not _expect(secondary != null, "%s: the secondary row exists" % where):
+		return
+	var deploy_rect := _physical(deploy.get_global_rect(), stretch)
+	var secondary_rect := _physical(secondary.get_global_rect(), stretch)
+	_expect(
+		deploy_rect.end.y <= secondary_rect.position.y + 1.0,
+		(
+			"%s: DEPLOY (bottom %.0f) sits above ARMORY/SETTINGS (top %.0f)"
+			% [where, deploy_rect.end.y, secondary_rect.position.y]
+		)
+	)
+	_expect(
+		deploy.is_visible_in_tree() and not deploy.disabled,
+		"%s: DEPLOY is enabled and on screen" % where,
+	)
+	# The hero card and the theatre card come before it. A landscape layout puts
+	# them in a left column, so compare against DEPLOY's own column only when
+	# they are stacked -- otherwise "above" is simply "not required".
+	var hero := stage.get("_hero_panel") as Control
+	var mission := stage.get("_mission_panel") as Control
+	if hero != null and mission != null and not is_landscape(stage):
+		_expect(
+			(
+				_physical(hero.get_global_rect(), stretch).end.y
+				<= _physical(mission.get_global_rect(), stretch).position.y + 1.0
+			),
+			"%s: the operative card sits above the theatre card" % where,
+		)
+		_expect(
+			_physical(mission.get_global_rect(), stretch).end.y <= deploy_rect.position.y + 1.0,
+			"%s: the theatre card sits above DEPLOY" % where,
+		)
+
+
+func _physical(rect: Rect2, stretch: float) -> Rect2:
+	return Rect2(rect.position * stretch, rect.size * stretch)
+
+
+func _find_button(root: Control, text: String) -> Button:
+	for child in root.find_children("*", "Button", true, false):
+		var button := child as Button
+		if button != null and button.text == text and button.is_visible_in_tree():
+			return button
+	return null
 
 
 ## The two rules. A control inside a ScrollContainer is allowed to sit outside
