@@ -9,7 +9,9 @@ extends Node3D
 ## drive from the keyboard, and that the browser QA script drives with real key
 ## events so the screenshots are of the shipped build.
 ##
-##   F10        toggle the review camera (simulation pauses while touring)
+##   F10 / P    toggle the review camera (simulation pauses while touring).
+##              F10 is reserved by browsers and never reaches the page, so the
+##              browser QA drives P; both are bound to the same action.
 ##   1 – 8      jump to a vantage point
 ##   F9         hide/show only imported FBX visuals during tour; in the normal
 ##              player camera too, but ONLY with ?qa_fbx=1 on the Web preview
@@ -149,7 +151,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			print("Shot QA: %s next real shot" % ("armed" if _freeze_next_shot else "disarmed"))
 		get_viewport().set_input_as_handled()
 		return
-	if key == KEY_F10:
+	# P is an alias for F10 on purpose. In a browser, F10 is a reserved key:
+	# Chromium swallows it before the page sees it, so the review camera could
+	# not be engaged from tools/web_qa.mjs at all — the eight "tour" frames were
+	# the live game, and the check that compared them reported a pass because
+	# they differed, not because the camera moved (docs/AUDIT_2026-10-21.md
+	# §12.3, the same defect one layer deeper). P is also the key to use on a
+	# laptop where F10 is a system volume/mute key.
+	if key == KEY_F10 or key == KEY_P:
 		if _shot_frozen or _reload_frozen:
 			_shot_frozen = false
 			_reload_frozen = false

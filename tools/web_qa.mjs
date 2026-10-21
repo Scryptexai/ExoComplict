@@ -15,7 +15,7 @@
  *   node tools/web_qa.mjs --menus --settings-tabs # capture Controls, HUD, Access tabs
  *   node tools/web_qa.mjs --menus --settings --editor # HUD tab/editor screenshot
  *   node tools/web_qa.mjs --menus --swipe --viewport 390x844 # portrait sheet gesture
- *   node tools/web_qa.mjs --tour          # world review camera: F10 + keys 1-8
+ *   node tools/web_qa.mjs --tour          # world review camera: P (F10 is browser-reserved) + keys 1-8
  *   node tools/web_qa.mjs --encounter-prep --explore-wait 8000
  *       # safe Explore + deliberate B + preparation; Defense is NOT claimed
  *   node tools/web_qa.mjs --encounter --explore-wait 8000 --encounter-timeout 600
@@ -521,8 +521,22 @@ async function checkPage(target, viewport) {
   /* ---------- optional world tour (last: it pauses the simulation) ---------- */
   const tourFrames = [];
   if (booted && tourMode && inGameplay) {
-    await page.keyboard.press('F10');
+    // Click the canvas first: a Godot window only owns keyboard focus after a
+    // user gesture, and keys sent to an unfocused page go nowhere.
+    const viewportCentre = await page.evaluate(() => {
+      const canvas = document.querySelector('canvas');
+      if (!canvas) return null;
+      const rect = canvas.getBoundingClientRect();
+      return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+    });
+    if (viewportCentre) await page.mouse.click(viewportCentre.x, viewportCentre.y);
+    // P, not F10: F10 is reserved by browsers and never reaches the page, so
+    // the review camera was never engaged while this pass reported that it had
+    // captured a "world tour" (docs/AUDIT_2026-10-21.md §12.3).
+    await page.keyboard.press('KeyP');
     await new Promise((r) => setTimeout(r, 600));
+    const engaged = consoleLines.some((line) => line.includes('World tour: review camera engaged'));
+    if (!engaged) console.log('  tour: the review camera did not engage (no World tour: log line)');
     for (const digit of ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8']) {
       await page.keyboard.press(digit);
       await new Promise((r) => setTimeout(r, tourWaitMs));
@@ -536,7 +550,7 @@ async function checkPage(target, viewport) {
     // problem as §12.3), and the play pass then fired into a paused game while
     // the report blamed the audio pipeline. Ordering beats a key press here;
     // the assertion below still proves the rig was engaged.
-    await page.keyboard.press('F10');
+    await page.keyboard.press('KeyP');
     await new Promise((r) => setTimeout(r, 600));
   }
   await page.close();
