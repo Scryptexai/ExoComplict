@@ -378,18 +378,13 @@ func set_sound_muted(muted: bool) -> void:
 ## The control hint is noise once the player has started playing; the first shot
 ## or the first joystick drag retires it early.
 func hide_help() -> void:
-	if is_instance_valid(_help_panel):
-		_help_panel.visible = false
-	_help_remaining = 0.0
+	HudMenuUi.hide_help(self)
 
 
 ## Bring the control hint back (called on retry and when the run starts).
 func show_help() -> void:
-	if not is_instance_valid(_help_panel):
-		return
 	_help_remaining = HELP_VISIBLE_SECONDS
-	_help_panel.modulate.a = 1.0
-	_help_panel.visible = not (_touch_mode and _narrow and not _portrait)
+	HudMenuUi.show_help(self)
 
 
 ## Switches the HUD between thumb controls and a keyboard/mouse legend. Public
@@ -687,12 +682,9 @@ func show_results(
 	unlocked_ids: Dictionary,
 	was_defeated: bool,
 ) -> void:
-	if not is_instance_valid(_results_panel):
-		return
-	_clear_touch_state()
 	(
 		HudMenuUi
-		. update_results(
+		. show_results(
 			self,
 			wave_reached,
 			survival_time,
@@ -705,62 +697,14 @@ func show_results(
 			was_defeated,
 		)
 	)
-	_results_panel.visible = true
-	if is_instance_valid(_feedback_panel):
-		_feedback_panel.clear_message()
-	_results_retry_button.grab_focus()
-	if is_instance_valid(_scrim):
-		_scrim.visible = true
-	_top_bar.visible = false
-	_help_label.visible = false
-	if is_instance_valid(_help_panel):
-		_help_panel.visible = false
-	for control in [
-		_defense_button,
-		_armory_button,
-		_fire_button,
-		_weapon_button,
-		_skill_button,
-		_aim_button,
-		_pause_button,
-		_sound_button,
-		_compact_card,
-		_score_chip,
-		_run_card,
-		_desktop_hint,
-		_desktop_weapon_card,
-		_emp_chip,
-		_ads_chip,
-		_skill_ring,
-		_touch_ammo_chip,
-	]:
-		if is_instance_valid(control):
-			control.visible = false
-	if is_instance_valid(_pause_panel):
-		_pause_panel.visible = false
-	_aiming = false
-	queue_redraw()
 
 
 func hide_results() -> void:
-	if not is_instance_valid(_results_panel):
-		return
-	_results_panel.visible = false
-	if _results_retry_button.has_focus():
-		_results_retry_button.release_focus()
-	if _results_explore_button.has_focus():
-		_results_explore_button.release_focus()
-	if is_instance_valid(_scrim):
-		_scrim.visible = get_tree().paused
-	_top_bar.visible = true
-	_help_label.visible = true
-	_apply_input_mode()
-	_layout_controls()
-	_refresh_skill_button()
+	HudMenuUi.hide_results(self)
 
 
 func _results_visible() -> bool:
-	return is_instance_valid(_results_panel) and _results_panel.visible
+	return HudMenuUi.results_visible(self)
 
 
 # --------------------------------------------------------------------------- #
@@ -1390,21 +1334,11 @@ func _on_pause_pressed() -> void:
 
 
 func _open_settings() -> void:
-	if not get_tree().paused:
-		return
-	_pause_panel.visible = false
-	_top_bar.visible = false
-	_settings_menu.open()
-	print("HUD: settings opened")
+	HudMenuUi.open_settings(self)
 
 
 func _close_settings() -> void:
-	if not get_tree().paused:
-		return
-	_pause_panel.visible = true
-	_top_bar.visible = true
-	_pause_resume_button.grab_focus()
-	print("HUD: settings closed")
+	HudMenuUi.close_settings(self)
 
 
 func _apply_preferences(values: Dictionary) -> void:

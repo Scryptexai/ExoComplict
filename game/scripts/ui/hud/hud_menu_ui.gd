@@ -1,5 +1,7 @@
-## Construction of modal pause and results cards. The TouchControls facade
-## owns their signals and state; this helper only creates the UI nodes.
+## Construction and behaviour of the modal pause, results, settings and help
+## cards. The TouchControls facade owns their signals and run state; this helper
+## creates the nodes and drives their visibility, which is what kept ~150 lines
+## of panel bookkeeping inside the facade (docs/STRUCTURE_PLAN.md, phase 1).
 class_name HudMenuUi
 extends RefCounted
 
@@ -212,3 +214,133 @@ static func update_results(
 		hud._results_goal_progress_label.text = "ALL LOADOUTS READY · EQUIP IN ARMORY"
 		hud._results_goal_bar.max_value = 1
 		hud._results_goal_bar.value = 1
+
+
+# --------------------------------------------------------------------------- #
+# Behaviour
+# --------------------------------------------------------------------------- #
+
+
+## The control hint is noise once the player has started playing; the first
+## shot or the first joystick drag retires it early.
+static func hide_help(hud) -> void:
+	if is_instance_valid(hud._help_panel):
+		hud._help_panel.visible = false
+	hud._help_remaining = 0.0
+
+
+## Bring the control hint back (called on retry and when the run starts). The
+## countdown itself belongs to the facade, which ticks it every frame.
+static func show_help(hud) -> void:
+	if not is_instance_valid(hud._help_panel):
+		return
+	hud._help_panel.modulate.a = 1.0
+	hud._help_panel.visible = not (hud._touch_mode and hud._narrow and not hud._portrait)
+
+
+static func results_visible(hud) -> bool:
+	return is_instance_valid(hud._results_panel) and hud._results_panel.visible
+
+
+## Results takes the screen: every play control is hidden so the player cannot
+## fire into a dead run, and the retry button takes focus so Enter restarts it.
+static func show_results(
+	hud,
+	wave_reached: int,
+	survival_time: String,
+	eliminations: int,
+	run_score: int,
+	bp_earned: int,
+	wallet_bp: int,
+	best_score: int,
+	unlocked_ids: Dictionary,
+	was_defeated: bool,
+) -> void:
+	if not is_instance_valid(hud._results_panel):
+		return
+	hud._clear_touch_state()
+	update_results(
+		hud,
+		wave_reached,
+		survival_time,
+		eliminations,
+		run_score,
+		bp_earned,
+		wallet_bp,
+		best_score,
+		unlocked_ids,
+		was_defeated,
+	)
+	hud._results_panel.visible = true
+	if is_instance_valid(hud._feedback_panel):
+		hud._feedback_panel.clear_message()
+	hud._results_retry_button.grab_focus()
+	if is_instance_valid(hud._scrim):
+		hud._scrim.visible = true
+	hud._top_bar.visible = false
+	hud._help_label.visible = false
+	if is_instance_valid(hud._help_panel):
+		hud._help_panel.visible = false
+	for control in [
+		hud._defense_button,
+		hud._armory_button,
+		hud._fire_button,
+		hud._weapon_button,
+		hud._skill_button,
+		hud._aim_button,
+		hud._pause_button,
+		hud._sound_button,
+		hud._compact_card,
+		hud._score_chip,
+		hud._run_card,
+		hud._desktop_hint,
+		hud._desktop_weapon_card,
+		hud._emp_chip,
+		hud._ads_chip,
+		hud._skill_ring,
+		hud._touch_ammo_chip,
+	]:
+		if is_instance_valid(control):
+			control.visible = false
+	if is_instance_valid(hud._pause_panel):
+		hud._pause_panel.visible = false
+	hud._aiming = false
+	hud.queue_redraw()
+
+
+static func hide_results(hud) -> void:
+	if not is_instance_valid(hud._results_panel):
+		return
+	hud._results_panel.visible = false
+	if hud._results_retry_button.has_focus():
+		hud._results_retry_button.release_focus()
+	if hud._results_explore_button.has_focus():
+		hud._results_explore_button.release_focus()
+	if is_instance_valid(hud._scrim):
+		hud._scrim.visible = hud.get_tree().paused
+	hud._top_bar.visible = true
+	hud._help_label.visible = true
+	hud._apply_input_mode()
+	hud._layout_controls()
+	hud._refresh_skill_button()
+
+
+## Both settings transitions only exist while the game is paused: outside a
+## pause the pause card is not the thing on screen, so there is nothing to
+## give the screen back to.
+static func open_settings(hud) -> void:
+	if not hud.get_tree().paused:
+		return
+	hud._pause_panel.visible = false
+	hud._top_bar.visible = false
+	hud._settings_menu.open()
+	print("HUD: settings opened")
+
+
+static func close_settings(hud) -> void:
+	if not hud.get_tree().paused:
+		return
+	hud._pause_panel.visible = true
+	hud._top_bar.visible = true
+	hud._pause_resume_button.grab_focus()
+	print("HUD: settings closed")
