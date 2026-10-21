@@ -103,35 +103,83 @@ const SIZE := {
 
 ## Palette: cool dark plating contrasts with sparse warm route markers and
 ## cyan energy fixtures. Model-aware policy retains the user's FBX silhouettes.
+## The world's palette, derived from the same tokens the UI is built from.
+##
+## This is the fix for the largest visual defect the audit found (docs/
+## UX_AUDIT_2026-10-22.md 5.1): the menus were near-black cinematic and the
+## arena was bright pastel, because the world kept a private palette that had
+## never been compared with `AegisTokens`.
+##
+## The values below are `AegisTokens.LINE / ACCENT / INFO` darkened by the
+## amount written next to each one. They are literals only because GDScript
+## constant expressions cannot call `Color.darkened()`; `palette_drift()`
+## recomputes the derivation from the tokens and returns every key that no
+## longer matches, and `world_palette_smoke.gd` fails if it returns anything.
+## That is the part that keeps this honest -- editing a token cannot silently
+## leave the world behind, which is how the two palettes drifted apart before.
+##
+## Albedo here is much darker than the UI's on purpose: these surfaces fill the
+## whole screen at close range under a lit sky, while a UI panel is seen as a
+## flat rectangle lit by nothing.
 const COLORS := {
-	"orange": Color(0.82, 0.35, 0.14),
-	"steel": Color(0.34, 0.4, 0.45),
-	"steel_light": Color(0.43, 0.49, 0.53),
-	"panel": Color(0.24, 0.3, 0.36),
-	"trim": Color(0.15, 0.2, 0.25),
-	"floor": Color(0.285, 0.3, 0.315),
-	"floor_alt": Color(0.225, 0.25, 0.275),
-	"glass": Color(0.22, 0.59, 0.72),
-	"light": Color(0.34, 0.73, 0.84),
+	# ACCENT.darkened(0.18) -- hazard paint; only ever a stripe, never a wall.
+	"hazard": Color(0.82, 0.56596, 0.10290),
+	# LINE.darkened(0.22) -- the world's structural metal.
+	"steel": Color(0.11929, 0.17130, 0.22635),
+	# LINE.darkened(0.02) -- machined edges and grates, the lightest structure.
+	"steel_light": Color(0.14988, 0.21522, 0.28440),
+	# LINE.darkened(0.42) -- recessed panels and crates.
+	"panel": Color(0.08870, 0.12737, 0.16832),
+	# LINE.darkened(0.62) -- the darkest structural trim, door frames.
+	"trim": Color(0.05812, 0.08345, 0.11028),
+	# LINE.darkened(0.34) -- deck plates (tinted over the panel texture).
+	"floor": Color(0.10094, 0.14494, 0.19153),
+	# LINE.darkened(0.46) -- the alternate deck plate.
+	"floor_alt": Color(0.08259, 0.11859, 0.15671),
+	# INFO.darkened(0.24) -- reactor and window glass.
+	"glass": Color(0.25035, 0.59608, 0.76000),
+	# INFO, undarkened -- every emissive strip. The only saturated hue that is
+	# allowed to be bright, because it is the light source in the composition.
+	"light": Color(0.32941, 0.78431, 1.00000),
+}
+
+## The derivation, in one place, for `palette_drift()`. Keys map to
+## [token colour, darken amount]; the smoke test recomputes and compares.
+const COLOR_DERIVATION := {
+	"hazard": ["ACCENT", 0.18],
+	"steel": ["LINE", 0.22],
+	"steel_light": ["LINE", 0.02],
+	"panel": ["LINE", 0.42],
+	"trim": ["LINE", 0.62],
+	"floor": ["LINE", 0.34],
+	"floor_alt": ["LINE", 0.46],
+	"glass": ["INFO", 0.24],
+	"light": ["INFO", 0.0],
 }
 
 ## Per-model policy, because the pack's material names are not reliable on their
 ## own: every floor tile, wall and crate shares a material literally named
 ## "Orange". Mapping that name straight to orange painted the whole arena orange,
 ## so the *model* decides what its "Orange" surface means.
+## Colours on a wall follow the audit's composition rule rather than the model's
+## material names: structure is steel, the pack's "Orange" surface is the trim
+## band, and the only thing painted hazard amber is the crate/sign family. In
+## the shipped build every wall surface was orange, which made the arena's
+## perimeter the brightest thing on screen and pulled the eye away from the
+## reactor -- the landmark the world is built around.
 const POLICY := {
 	"floor": {"all": "floor"},
 	"floor_alt": {"all": "floor_alt"},
 	"floor_grate": {"all": "steel_light"},
-	"wall": {"Orange": "orange"},
-	"wall_b": {"Orange": "orange"},
-	"wall_c": {"Orange": "orange"},
-	"wall_cube": {"Orange": "orange"},
-	"wall_low": {"Orange": "orange"},
-	"doorway": {"Orange": "steel_light"},
+	"wall": {"Orange": "hazard", "all": "steel"},
+	"wall_b": {"Orange": "hazard", "all": "steel"},
+	"wall_c": {"Orange": "hazard", "all": "steel"},
+	"wall_cube": {"Orange": "hazard", "all": "steel"},
+	"wall_low": {"Orange": "hazard", "all": "panel"},
+	"doorway": {"Orange": "steel_light", "all": "trim"},
 	"column": {"all": "steel"},
 	"pillar": {"all": "steel"},
-	"crate": {"Orange": "orange", "all": "panel"},
+	"crate": {"Orange": "hazard", "all": "panel"},
 	"console": {"Orange": "light", "all": "panel"},
 	"console_large": {"Orange": "light", "all": "panel"},
 	"light_strip": {"all": "light"},
@@ -139,13 +187,13 @@ const POLICY := {
 	"pipes": {"all": "steel_light"},
 	"wall_pipes": {"all": "steel"},
 	"fence": {"all": "steel"},
-	"sign_danger": {"all": "orange"},
+	"sign_danger": {"all": "hazard"},
 	"word_zone": {"all": "light"},
 	"beam": {"all": "steel"},
 }
 
 const DEFAULT_MATERIAL_KEYS := {
-	"orange": "orange",
+	"orange": "hazard",
 	"glass": "glass",
 	"light": "light",
 	"hd_wall": "steel",
@@ -158,6 +206,43 @@ const DEFAULT_MATERIAL_KEYS := {
 
 static var _scenes: Dictionary = {}
 static var _materials: Dictionary = {}
+
+
+## A class reference in GDScript is a `GDScript` resource, not an instance, so
+## `AegisTokens.get("LINE")` would ask the resource object and return null.
+## Static access by name, resolved at compile time, is the only reliable way to
+## read a constant from another class.
+static func token_color(token_name: String) -> Color:
+	match token_name:
+		"ACCENT":
+			return AegisTokens.ACCENT
+		"LINE":
+			return AegisTokens.LINE
+		"INFO":
+			return AegisTokens.INFO
+		"VOID":
+			return AegisTokens.VOID
+		"OK":
+			return AegisTokens.OK
+		"DANGER":
+			return AegisTokens.DANGER
+	push_error("ScifiKitLibrary: unknown design token '%s'" % token_name)
+	return Color.MAGENTA
+
+
+## Recomputes the palette from `AegisTokens` and returns the keys that no
+## longer match `COLORS`. Empty means the world and the UI are still one
+## palette; an entry means someone changed a token and did not carry the world
+## with it.
+static func palette_drift() -> Array[String]:
+	var drifted: Array[String] = []
+	for key in COLOR_DERIVATION:
+		var spec: Array = COLOR_DERIVATION[key]
+		var expected := token_color(spec[0]).darkened(float(spec[1]))
+		var actual: Color = COLORS[key]
+		if not expected.is_equal_approx(actual):
+			drifted.append("%s: world %s vs token %s" % [key, actual, expected])
+	return drifted
 
 
 static func color_key_for(material_name: String) -> String:
@@ -210,18 +295,24 @@ static func material(color_key: String) -> StandardMaterial3D:
 			material.emission_enabled = true
 			material.emission = COLORS.light
 			material.emission_energy_multiplier = 0.95
-		"orange":
-			material.albedo_color = COLORS.orange
+		"orange", "hazard":
+			material.albedo_color = COLORS.hazard
 			material.metallic = 0.05
 			material.roughness = 0.55
 		"floor", "floor_alt":
 			# Both original FBX floor meshes have UVs but lost texture links on
 			# export. Apply a restrained manufactured-panel map on those same
 			# imported surfaces, not a substitute floor mesh or glowing decal.
-			material.albedo_color = Color.WHITE
+			#
+			# The map is a light blue-grey, and rendering it untinted (albedo
+			# WHITE) made it the brightest surface in the game -- the arena read
+			# as graph paper and the cinematic key art's deep navy had no
+			# counterpart in play. The tint is the palette colour, so the deck
+			# darkens with everything else while keeping its panel detail.
+			material.albedo_color = COLORS[color_key].lightened(0.34)
 			material.albedo_texture = (DECK_TEXTURE if color_key == "floor" else CAUTION_TEXTURE)
-			material.metallic = 0.10
-			material.roughness = 0.66
+			material.metallic = 0.16
+			material.roughness = 0.62
 		_:
 			material.albedo_color = COLORS.get(color_key, COLORS.steel)
 			material.metallic = 0.06
