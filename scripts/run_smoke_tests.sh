@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 # Run every GDScript smoke test headlessly with the pinned Godot editor build.
 #
+# The tests live in tests/ at the repository root, deliberately OUTSIDE game/.
+# Godot can only see files under the project directory, so a test inside game/
+# is an export candidate: it ships to players unless an export filter excludes
+# it, and that filter is one hand-edited preset away from being dropped. A test
+# outside the project cannot be packed by construction. Godot still runs it:
+# --script accepts an absolute path, and preload("res://...") inside the test
+# resolves against --path game.
+#
 # Usage:
 #   scripts/run_smoke_tests.sh                  # import once, then run all tests
 #   scripts/run_smoke_tests.sh --no-import      # skip the headless editor import
@@ -73,10 +81,10 @@ if [[ "${SKIP_VERSION_CHECK:-0}" != "1" && "$GODOT_VERSION" != "$EXPECTED_VERSIO
 fi
 
 shopt -s nullglob
-ALL_TESTS=("$GAME_DIR"/tests/*_smoke.gd)
+ALL_TESTS=("$ROOT_DIR"/tests/*_smoke.gd)
 shopt -u nullglob
 if (( ${#ALL_TESTS[@]} == 0 )); then
-  printf 'ERROR: no smoke tests found under game/tests.\n' >&2
+  printf 'ERROR: no smoke tests found under tests/.\n' >&2
   exit 2
 fi
 
@@ -112,6 +120,7 @@ mkdir -p "$LOG_DIR"
 printf 'Project Overdrive — headless smoke test run\n'
 printf 'Godot:   %s (%s)\n' "$GODOT_VERSION" "$GODOT"
 printf 'Project: %s\n' "$GAME_DIR"
+printf 'Tests:   %s (outside res://, cannot be exported)\n' "$ROOT_DIR/tests"
 printf 'Logs:    %s\n\n' "$LOG_DIR"
 
 if (( DO_IMPORT == 1 )); then
@@ -146,8 +155,9 @@ for test_path in "${TESTS[@]}"; do
   # A hung test must fail the job with a readable reason instead of blocking CI
   # forever; the timeout is generous because the first test pays the shader warm-up.
   test_status=0
+  # Absolute path, not res:// — the test is outside the project on purpose.
   timeout "${TEST_TIMEOUT}" "$GODOT" --headless --path "$GAME_DIR" \
-    --script "res://tests/$test_name" >"$test_log" 2>&1 || test_status=$?
+    --script "$test_path" >"$test_log" 2>&1 || test_status=$?
   if (( test_status == 0 )); then
     printf 'PASS\n'
     PASSED=$((PASSED + 1))

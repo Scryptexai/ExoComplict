@@ -8,7 +8,7 @@ is still NOT TESTED.
 Everything here comes from numbers the engine reports, not from looking at a
 picture: `?qa_menu=1` prints each visible control's rect in physical pixels
 (`Menu QA: STAGE=… | CANVAS=… PHYSICAL=… STRETCH=… | SAFE=… | label=x,y,w×h`),
-and `game/tests/menu_layout_smoke.gd` prints the same report inside a
+and `tests/menu_layout_smoke.gd` prints the same report inside a
 `SubViewport` of a known size.
 
 ---

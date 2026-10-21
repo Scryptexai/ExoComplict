@@ -2,7 +2,7 @@
 
 Frames from the **exported WebAssembly build** in headless Chromium, captured by
 the browser QA gate. They document what a phone actually sees; the numbers behind
-them are asserted in `game/tests/playability_hud_smoke.gd`.
+them are asserted in `tests/playability_hud_smoke.gd`.
 
 ## How these were produced
 

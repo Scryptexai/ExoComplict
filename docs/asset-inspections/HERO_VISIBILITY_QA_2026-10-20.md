@@ -18,7 +18,7 @@ now open — §3 uses the committed `web/` payload in the pinned headless Chromi
 
 ## 1. The runtime test that would have caught it
 
-`game/tests/hero_visibility_smoke.gd` (new, 21 assertions, all passing). It
+`tests/hero_visibility_smoke.gd` (new, 21 assertions, all passing). It
 measures, inside the real `main.tscn`, every mechanism that decides whether the
 avatar reaches the screen:
 

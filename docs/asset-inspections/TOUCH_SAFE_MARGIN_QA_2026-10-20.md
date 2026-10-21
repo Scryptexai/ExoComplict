@@ -87,11 +87,11 @@ Frames: [`touch-safe-margins-390x844-browser.png`](qa-frames/touch-safe-margins-
 
 ## 4. Tests
 
-* `game/tests/hud_safe_margin_smoke.gd` (new) — measures physical-pixel edge
+* `tests/hud_safe_margin_smoke.gd` (new) — measures physical-pixel edge
   clearance and pairwise overlap on 390×844, 375×667, 844×390 and 667×375,
   including the status toast. **PASS on all four.** It failed with 5 real
   collisions before the fix (FIRE∩JOY twice, EMP∩AMMO, EMP∩ARMORY, START∩JOY).
-* `game/tests/playability_hud_smoke.gd` — went from **5 failing assertions to 0**.
+* `tests/playability_hud_smoke.gd` — went from **5 failing assertions to 0**.
 * `./scripts/run_smoke_tests.sh` — **21 passed, 0 failed**.
 
 ## 5. NOT TESTED

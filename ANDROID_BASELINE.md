@@ -88,7 +88,7 @@ Catatan penting tentang `scaffold`: berkas yang dihasilkan memakai set option ya
 ./scripts/export_android_debug.sh
 ```
 
-Skrip ini: menjalankan `check_toolchain.sh` → import Editor headless → menjalankan seluruh `game/tests/*_smoke.gd` → `--export-debug "Android" exports/project-overdrive-debug.apk` → memeriksa arsip APK. Override dengan `ANDROID_EXPORT_PRESET`, `ANDROID_APK_PATH`, `GODOT_BIN`.
+Skrip ini: menjalankan `check_toolchain.sh` → import Editor headless → menjalankan seluruh `tests/*_smoke.gd` → `--export-debug "Android" exports/project-overdrive-debug.apk` → memeriksa arsip APK. Override dengan `ANDROID_EXPORT_PRESET`, `ANDROID_APK_PATH`, `GODOT_BIN`.
 
 ## 6. Langkah E — Pasang dan uji di perangkat
 

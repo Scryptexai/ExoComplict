@@ -165,7 +165,7 @@ manifest records the format per asset.
 
 Produced by `tools/art/build_ui_art.py` from `game/assets/ui/generated/`.
 Sizes are the real imported sizes, verified at runtime by
-`game/tests/ui_art_smoke.gd` — not the sizes claimed by the generator.
+`tests/ui_art_smoke.gd` — not the sizes claimed by the generator.
 
 | Key | File | Res | Format | Off-palette | Integration |
 | --- | --- | --- | --- | --- | --- |
@@ -181,7 +181,7 @@ Sizes are the real imported sizes, verified at runtime by
 
 Every texture is loaded through `MenuStage.try_texture()`, which returns null
 for a missing file instead of crashing, so a lost plate is a visual regression
-rather than a boot failure. `game/tests/ui_art_smoke.gd` loads all nine at
+rather than a boot failure. `tests/ui_art_smoke.gd` loads all nine at
 runtime and compares the size the engine reports against this table.
 
 Total on disk: **5.3 MB**. Sources in `generated/` are kept (22 MB) so the build

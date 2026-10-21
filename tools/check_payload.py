@@ -49,7 +49,22 @@ FORBIDDEN = {
     "scripts/qa/": ("QA-only code (keyboard review rig)", False),
 }
 # Extensions Godot should never pack: editor metadata.
-FORBIDDEN_SUFFIXES = (".import", ".uid", ".godot")
+#
+# ".import" is deliberately NOT in this list even though it looks like editor
+# metadata, because it is not: it is the runtime lookup table that turns
+# `res://hero.glb` into the resource the exporter actually converted. Verified in
+# the engine source rather than assumed:
+#   * core/io/resource_importer.cpp:46 and :331 — `ResourceFormatImporter` opens
+#     `p_path + ".import"` when loading and when resolving a resource path, so a
+#     pack without them cannot load a single imported asset.
+#   * editor/export/editor_export_platform.cpp:1632 and :1699 — the exporter
+#     writes each imported file's ".import" itself, rewritten to point at
+#     .godot/exported/, through the save proxy. Export filters are applied when
+#     the file list is built, not in the writer, so `exclude_filter="*.import"`
+#     would silently not remove them anyway.
+# Flagging them as a failure here was a false positive of exactly the kind that
+# gets a gate ignored, so they are reported, with the reason, and never failed.
+FORBIDDEN_SUFFIXES = (".uid",)
 
 
 def read_directory(data: bytes, start: int, count: int) -> list[tuple[str, int, int]]:
@@ -152,6 +167,13 @@ def main() -> int:
 
     problems: list[str] = []
     findings: list[str] = []
+    # Reported, not failed: see FORBIDDEN_SUFFIXES for why these must ship.
+    import_maps = [p for p, _, _ in entries if p.endswith(".import")]
+    if import_maps:
+        findings.append(
+            "%d .import file(s) — required at runtime, not editor metadata "
+            "(they map each source asset to its converted resource)" % len(import_maps)
+        )
     for pattern, (description, hard_fail) in FORBIDDEN.items():
         hits = [(p, s) for p, _, s in entries if pattern in p]
         if hits:

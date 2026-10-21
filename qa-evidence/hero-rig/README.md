@@ -9,7 +9,7 @@ that. Full pipeline: [`../../HERO_RIG_PIPELINE.md`](../../HERO_RIG_PIPELINE.md).
 
 ## What was checked automatically
 
-`game/tests/hero_rig_smoke.gd` ran headlessly on the real engine and passed with
+`tests/hero_rig_smoke.gd` ran headlessly on the real engine and passed with
 these measurements printed by the engine itself:
 
 | Check | Result |

@@ -58,7 +58,7 @@ node up at runtime and stays silent when audio is absent.
 
 ## Verification
 
-- `game/tests/audio_smoke.gd` checks the sound set, that no sound is silence,
+- `tests/audio_smoke.gd` checks the sound set, that no sound is silence,
   the weapon→sound mapping, the mute path, the throttle, and that firing a
   weapon in the real `main.tscn` actually reaches the singleton.
 - `Audio: first voice played (<id>) …` in any log proves the pipeline ran; the

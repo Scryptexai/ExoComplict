@@ -1,7 +1,7 @@
 # Front-end journey
 
-status: implemented. `game/tests/front_end_journey_smoke.gd` walks the whole
-journey and `game/tests/menu_layout_smoke.gd` measures every screen at four
+status: implemented. `tests/front_end_journey_smoke.gd` walks the whole
+journey and `tests/menu_layout_smoke.gd` measures every screen at four
 viewport sizes; both are green. This file describes what is in the tree and what
 each stage actually does; where a claim could not be verified it says so.
 
@@ -236,13 +236,13 @@ of the last action is at least 24 px clear of the safe area.
 
 ## Verification
 
-`game/tests/front_end_journey_smoke.gd` instantiates the real `front_end.tscn`
+`tests/front_end_journey_smoke.gd` instantiates the real `front_end.tscn`
 and walks the journey, asserting at each stop that the stage is the one the
 journey asked for, that no enabled button is inert, that no control crosses the
 reserved edge, that absent content is disabled, and that `intro_seen` round-trips
 through a real `ConfigFile`.
 
-`game/tests/video_asset_smoke.gd` loads both videos the way the stages do and
+`tests/video_asset_smoke.gd` loads both videos the way the stages do and
 compares the size and length the engine reports against
 `game/assets/ui/video_manifest.json`, then checks that CINEMATIC and LOADING
 really did select the video over their composed fallbacks.
@@ -257,7 +257,7 @@ robot at `36,590,318x160`); both are cover rects now. A loading stage can only
 be photographed via `?qa_stage=LOADING|PRELOAD` because with no targets it leaves
 on the next frame.
 
-`game/tests/menu_layout_smoke.gd` mounts the same scene once and then rotates
+`tests/menu_layout_smoke.gd` mounts the same scene once and then rotates
 the live viewport through 390x844, 844x390, 360x640 and 1280x720 (sixteen
 stage/size combinations, twelve of them reached by rotation) and asserts, in
 physical pixels, that nothing outside a scroll container is drawn outside the

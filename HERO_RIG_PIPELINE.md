@@ -133,7 +133,7 @@ the source GLB).
 
 | Evidence | What it proves |
 |---|---|
-| `game/tests/hero_rig_smoke.gd` (13th smoke test) | the avatar is rigged, all five clips exist, the socket rides the hand (0.088 m from the bone), the `Muzzle` marker is on `MuzzlePoint`, the flash node is on the muzzle, the barrel is angled down when carried and level with the player's facing when aimed (dot 1.00), a shot spawns at the barrel (0.000 m), and `fire` returns to `aim` |
+| `tests/hero_rig_smoke.gd` (13th smoke test) | the avatar is rigged, all five clips exist, the socket rides the hand (0.088 m from the bone), the `Muzzle` marker is on `MuzzlePoint`, the flash node is on the muzzle, the barrel is angled down when carried and level with the player's facing when aimed (dot 1.00), a shot spawns at the barrel (0.000 m), and `fire` returns to `aim` |
 | `tools/render/pose_shot.mjs` | 8 still frames of the baked clips, rendered through three.js in headless Chromium with the same socket transform the game uses |
 | `tools/web_qa.mjs --play --hold … --touch` | the exported WebAssembly build boots, the hero renders in-game, and the touch AIM button puts the rig into the aim pose (camera zoom + arm silhouette) |
 | `qa-evidence/hero-rig/` | committed copies of the above frames |

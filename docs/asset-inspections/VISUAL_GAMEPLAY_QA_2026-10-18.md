@@ -33,7 +33,7 @@
 ## 4. Files changed in this review slice
 
 - **Blender & export:** `tools/blender/author_hero.py`, `source-assets/characters/hero/hero_source.blend`, `game/assets/characters/hero/hero.glb`, `docs/asset-inspections/hero-blender.json`.
-- **Runtime, world, HUD/QA:** `game/scripts/player/character_visual.gd`, `game/scripts/player/player_controller.gd`, `game/scripts/weapons/weapon_controller.gd`, `game/scripts/worlds/neon_frontier_world.gd`, `game/scripts/worlds/neon_frontier_asset.gd`, `game/scripts/worlds/scifi_kit_library.gd`, `game/tests/hero_rig_smoke.gd`, `game/tests/weapon_system_smoke.gd`, `game/tests/neon_frontier_world_smoke.gd`, `tools/render/pose_shot.mjs`, `tools/render/pose_viewer.html`, `tools/web_qa.mjs`, `WEB_PREVIEW.md`, `docs/REBASE_VISUAL_GAMEPLAY_2026-10-18.md`. Hasil komit CI `web/index.pck` adalah output ekspor, bukan perubahan kode tangan.
+- **Runtime, world, HUD/QA:** `game/scripts/player/character_visual.gd`, `game/scripts/player/player_controller.gd`, `game/scripts/weapons/weapon_controller.gd`, `game/scripts/worlds/neon_frontier_world.gd`, `game/scripts/worlds/neon_frontier_asset.gd`, `game/scripts/worlds/scifi_kit_library.gd`, `tests/hero_rig_smoke.gd`, `tests/weapon_system_smoke.gd`, `tests/neon_frontier_world_smoke.gd`, `tools/render/pose_shot.mjs`, `tools/render/pose_viewer.html`, `tools/web_qa.mjs`, `WEB_PREVIEW.md`, `docs/REBASE_VISUAL_GAMEPLAY_2026-10-18.md`. Hasil komit CI `web/index.pck` adalah output ekspor, bukan perubahan kode tangan.
 - Alur Explore/HUD, FX muzzle/impact, dan dress FBX pada komit terdahulu juga diuji di sini; rincian awal serta acuan dari game live ada di `docs/REBASE_VISUAL_GAMEPLAY_2026-10-18.md`.
 
 ## 5. Godot integration

@@ -541,7 +541,7 @@ nama signal di tengah refactor.
 
 ### 12.2 Tambahan smoke test
 
-`game/tests/playability_hud_smoke.gd`:
+`tests/playability_hud_smoke.gd`:
 
 1. Di 390×844 touch: setiap `Button` yang terlihat berukuran ≥44px.
 2. FIRE/AIM/EMP/SWAP tidak saling beririsan (cek rect + radius).

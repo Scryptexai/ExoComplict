@@ -194,12 +194,14 @@ printf '\n'
 
 printf '[5/5] Smoke-test inventory\n'
 shopt -s nullglob
-SMOKE_TESTS=("$GAME_DIR"/tests/*_smoke.gd)
+# Outside game/ on purpose: a test file inside the project is an export
+# candidate and ships to players (see scripts/run_smoke_tests.sh header).
+SMOKE_TESTS=("$ROOT_DIR"/tests/*_smoke.gd)
 shopt -u nullglob
 if (( ${#SMOKE_TESTS[@]} == 0 )); then
-  step_failed 'no smoke tests found under game/tests/'
+  step_failed 'no smoke tests found under tests/'
 else
-  step_passed "${#SMOKE_TESTS[@]} smoke test(s) present: $(printf '%s ' "${SMOKE_TESTS[@]##*/}")"
+  step_passed "${#SMOKE_TESTS[@]} smoke test(s) present outside res://: $(printf '%s ' "${SMOKE_TESTS[@]##*/}")"
 fi
 
 if ! command -v "${GODOT_BIN:-godot}" >/dev/null 2>&1 && ! command -v godot4 >/dev/null 2>&1; then
