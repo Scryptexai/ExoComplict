@@ -4,6 +4,7 @@
 
 ## Start here
 
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — **read this first if you are new to the code**: where every subsystem lives, what a file may import, where a change of yours goes, and what has to pass before a merge. The module map in it is generated from the tree, so it cannot go stale.
 - [`game/scenes/worlds/neon_frontier.tscn`](game/scenes/worlds/neon_frontier.tscn) — complete playable frontier environment.
 - [`game/scenes/worlds/components/`](game/scenes/worlds/components/) — reusable 3D components for the reactor, outpost, laboratory, depot, extraction plant, gates, defenses, wrecks, rocks, crystals, and alien flora.
 - [`game/assets/world/kenney_space_kit/ASSET_PROVENANCE.md`](game/assets/world/kenney_space_kit/ASSET_PROVENANCE.md) — downloaded Kenney GLB candidates, CC0/source provenance, hashes, and rig inspection; not yet instantiated by gameplay scenes.

@@ -32,7 +32,7 @@ fi
 # --------------------------------------------------------------------------- #
 # 1. GDScript static analysis (gdtoolkit)
 # --------------------------------------------------------------------------- #
-printf '[1/5] GDScript static analysis\n'
+printf '[1/6] GDScript static analysis\n'
 
 PYTHON_BIN=""
 if [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
@@ -100,7 +100,7 @@ printf '\n'
 # --------------------------------------------------------------------------- #
 # 2. Static project doctor
 # --------------------------------------------------------------------------- #
-printf '[2/5] Static project doctor (references, contracts, assets, docs)\n'
+printf '[2/6] Static project doctor (references, contracts, assets, docs)\n'
 DOCTOR="$ROOT_DIR/tools/project_doctor.py"
 if [[ ! -f "$DOCTOR" ]]; then
   step_failed 'tools/project_doctor.py is missing'
@@ -121,7 +121,7 @@ printf '\n'
 # --------------------------------------------------------------------------- #
 # 3. Smoke-test inventory
 # --------------------------------------------------------------------------- #
-printf '[3/5] Tooling self-tests\n'
+printf '[3/6] Tooling self-tests\n'
 TOOLS_DIR="$ROOT_DIR/tools"
 if [[ ! -d "$TOOLS_DIR/tests" ]]; then
   step_skipped 'no tools/tests directory'
@@ -173,7 +173,7 @@ printf '\n'
 # violations from the phase-0 audit are recorded in the baseline so the check
 # enforces "no new ones" from today, and the baseline shrinks phase by phase
 # until it is empty (docs/STRUCTURE_PLAN.md §5).
-printf '[4/5] Module and layer boundaries\n'
+printf '[4/6] Module and layer boundaries\n'
 ARCH_CHECK="$ROOT_DIR/tools/check_architecture.py"
 ARCH_BASELINE="$ROOT_DIR/tools/architecture_baseline.json"
 if [[ ! -f "$ARCH_CHECK" ]]; then
@@ -192,7 +192,7 @@ else
 fi
 printf '\n'
 
-printf '[5/5] Smoke-test inventory\n'
+printf '[5/6] Smoke-test inventory\n'
 shopt -s nullglob
 # Outside game/ on purpose: a test file inside the project is an export
 # candidate and ships to players (see scripts/run_smoke_tests.sh header).
@@ -208,6 +208,20 @@ if ! command -v "${GODOT_BIN:-godot}" >/dev/null 2>&1 && ! command -v godot4 >/d
   step_skipped 'Godot engine not on PATH; run scripts/install_godot.sh then scripts/run_smoke_tests.sh'
 else
   step_passed 'Godot engine detected on PATH; scripts/run_smoke_tests.sh can execute the tests'
+fi
+printf '\n'
+
+printf '[6/6] Handover map\n'
+MAP_CHECK="$ROOT_DIR/tools/module_map.py"
+if [[ -z "$PYTHON_BIN" ]]; then
+  step_skipped 'no python3 interpreter available for the handover map check'
+elif [[ ! -f "$MAP_CHECK" ]]; then
+  step_failed 'tools/module_map.py is missing'
+elif map_output="$("$PYTHON_BIN" "$MAP_CHECK" --check 2>&1)"; then
+  step_passed 'docs/ARCHITECTURE.md matches the tree'
+else
+  step_failed 'docs/ARCHITECTURE.md is out of date; regenerate it with tools/module_map.py'
+  printf '%s\n' "$map_output" | sed 's/^/         /' | head -25
 fi
 printf '\n'
 
