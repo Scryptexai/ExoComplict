@@ -56,14 +56,40 @@ const WARNING_HEALTH_COLOR: Color = AegisTokens.ACCENT
 const CRITICAL_HEALTH_COLOR: Color = AegisTokens.DANGER
 
 # --- Interaction state ----------------------------------------------------- #
-var _move_touch_id: int = -1
-var _look_touch_id: int = -1
-var _fire_touch_id: int = -1
-## Debug breadcrumb for the smoke test: what the last touch resolved to.
-var _last_touch_debug: String = ""
-var _pressed_touch_buttons: Dictionary = {}
-var _move_origin: Vector2 = Vector2.ZERO
-var _move_position: Vector2 = Vector2.ZERO
+## The touch dispatcher owns which finger is the stick, which is the look drag
+## and which buttons are held. These are read-only views onto it, kept because
+## main.gd, hud_armory_bridge.gd and the smoke tests reach for the HUD's
+## members by name and a rename would buy nothing.
+var _touch: HudTouchInput
+
+var _move_touch_id: int:
+	get:
+		return _touch.move_touch_id if _touch else -1
+
+var _look_touch_id: int:
+	get:
+		return _touch.look_touch_id if _touch else -1
+
+var _fire_touch_id: int:
+	get:
+		return _touch.fire_touch_id if _touch else -1
+
+var _pressed_touch_buttons: Dictionary:
+	get:
+		return _touch.pressed_buttons if _touch else {}
+
+var _last_touch_debug: String:
+	get:
+		return _touch.last_touch_debug if _touch else ""
+
+var _move_origin: Vector2:
+	get:
+		return _touch.move_origin if _touch else Vector2.ZERO
+
+var _move_position: Vector2:
+	get:
+		return _touch.move_position if _touch else Vector2.ZERO
+
 var _touch_mode: bool = false
 var _narrow: bool = false
 var _portrait: bool = false
@@ -192,6 +218,11 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_touch = HudTouchInput.new()
+	_touch.hud = self
+	_touch.movement_changed.connect(movement_changed.emit)
+	_touch.look_delta.connect(look_delta.emit)
+	_touch.fire_changed.connect(fire_changed.emit)
 	_touch_mode = DisplayServer.is_touchscreen_available()
 	if OS.has_feature("web") and not _touch_mode:
 		_touch_mode = bool(
@@ -254,11 +285,11 @@ func _input(event: InputEvent) -> void:
 			# first tap should still get the thumb controls.
 			set_touch_mode(true)
 		if event.pressed:
-			_begin_touch(event.index, event.position)
+			_touch.begin(event.index, event.position)
 		else:
-			_end_touch(event.index, event.position)
+			_touch.end(event.index, event.position)
 	elif event is InputEventScreenDrag:
-		_update_touch(event.index, event.position, event.relative)
+		_touch.update(event.index, event.position, event.relative)
 	elif event is InputEventKey and event.pressed and not event.echo:
 		if event.is_action_pressed("ui_cancel") and get_tree().paused:
 			# ESC closes a submenu first; only the next press resumes the run.
@@ -1229,182 +1260,13 @@ func _parse_status_fallback(text: String) -> void:
 # --------------------------------------------------------------------------- #
 
 
-func _begin_touch(touch_id: int, position: Vector2) -> void:
-	var touched_button := _find_touch_button(position)
-	_last_touch_debug = (
-		"id=%d pos=%s hit=%s"
-		% [touch_id, position, touched_button.name if is_instance_valid(touched_button) else "none"]
-	)
-	if is_instance_valid(touched_button):
-		get_viewport().set_input_as_handled()
-		if (
-			touched_button == _fire_button
-			and not touched_button.disabled
-			and not _player_down
-			and not get_tree().paused
-			and _fire_touch_id == -1
-		):
-			_fire_touch_id = touch_id
-			# Synthetic touches skip Godot Button GUI. Forward both edges so
-			# the glyph rim and actual shot agree with native button_down/up.
-			touched_button.emit_signal("button_down")
-		else:
-			_pressed_touch_buttons[touch_id] = touched_button
-			if not touched_button.disabled:
-				# Godot buttons only fire `pressed` on release, so a hold button
-				# (AIM) also needs its press forwarded here.
-				touched_button.emit_signal("button_down")
-		return
-	if (
-		_player_down
-		or get_tree().paused
-		or _is_over_hud(position)
-		or (is_instance_valid(_scrim) and _scrim.visible)
-	):
-		return
-	if position.y < size.y * 0.2:
-		return
-	var move_zone := position.x > size.x * 0.53 if _left_handed else position.x < size.x * 0.47
-	var look_zone := position.x < size.x * 0.53 if _left_handed else position.x >= size.x * 0.47
-	if move_zone and _move_touch_id == -1:
-		# Movement is a fixed thumb zone, not any tap on the left half. Offset
-		# starts at the painted ring; touching its edge gives immediate motion.
-		if position.distance_to(_joystick_center) > _joystick_radius + _to_layout(20.0):
-			return
-		_move_touch_id = touch_id
-		_move_origin = _joystick_center
-		_move_position = position
-		var offset := (position - _move_origin) / maxf(_joystick_radius, 1.0)
-		movement_changed.emit(offset.limit_length(1.0))
-		queue_redraw()
-	elif look_zone and _look_touch_id == -1:
-		_look_touch_id = touch_id
-
-
-func _update_touch(touch_id: int, position: Vector2, relative: Vector2) -> void:
-	if touch_id == _fire_touch_id or _pressed_touch_buttons.has(touch_id):
-		get_viewport().set_input_as_handled()
-		return
-	if _player_down or get_tree().paused:
-		_clear_touch_state()
-		return
-	if touch_id == _move_touch_id:
-		_move_position = position
-		var radius := maxf(_joystick_radius, 1.0)
-		var offset := (position - _move_origin) / radius
-		if offset.length() > 0.25:
-			hide_help()
-		movement_changed.emit(offset.limit_length(1.0))
-		queue_redraw()
-	elif touch_id == _look_touch_id:
-		look_delta.emit(relative)
-
-
-func _end_touch(touch_id: int, position: Vector2) -> void:
-	if touch_id == _fire_touch_id:
-		_fire_touch_id = -1
-		_fire_button.emit_signal("button_up")
-		get_viewport().set_input_as_handled()
-		return
-	if _pressed_touch_buttons.has(touch_id):
-		var button := _pressed_touch_buttons[touch_id] as Button
-		_pressed_touch_buttons.erase(touch_id)
-		get_viewport().set_input_as_handled()
-		if is_instance_valid(button):
-			button.emit_signal("button_up")
-		if (
-			is_instance_valid(button)
-			and not button.disabled
-			and button.get_global_rect().has_point(position)
-		):
-			_activate_touch_button(button)
-		return
-	if touch_id == _move_touch_id:
-		_move_touch_id = -1
-		movement_changed.emit(Vector2.ZERO)
-		queue_redraw()
-	elif touch_id == _look_touch_id:
-		_look_touch_id = -1
-
-
 func _clear_touch_state() -> void:
-	# Blur/pause can skip finger release; restore gameplay input and visual
-	# button-down state rather than stranding AIM or the FIRE rim.
-	if _fire_touch_id != -1 and is_instance_valid(_fire_button):
-		_fire_button.emit_signal("button_up")
-	for held_button in _pressed_touch_buttons.values():
-		if is_instance_valid(held_button):
-			held_button.emit_signal("button_up")
-	_move_touch_id = -1
-	_look_touch_id = -1
-	_fire_touch_id = -1
-	_pressed_touch_buttons.clear()
-	_move_origin = Vector2.ZERO
-	_move_position = Vector2.ZERO
-	_soft_lock = false
-	movement_changed.emit(Vector2.ZERO)
-	fire_changed.emit(false)
-	queue_redraw()
+	_touch.clear()
 
 
+## Public because the smoke test hit-tests the thumb targets through it.
 func _find_touch_button(position: Vector2) -> Button:
-	# Only the foreground menu accepts touches while a submenu is open.
-	var candidates: Array[Button] = _touch_buttons
-	if is_instance_valid(_settings_menu) and _settings_menu.visible:
-		candidates = []
-		for node in _settings_menu.find_children("*", "Button", true, false):
-			candidates.append(node as Button)
-	elif is_instance_valid(_armory_panel) and _armory_panel.visible:
-		candidates = []
-		for node in _armory_panel.find_children("*", "Button", true, false):
-			candidates.append(node as Button)
-	# Pick the smallest target containing the touch: the AIM button sits close to
-	# FIRE and an overlapping (larger) control must not steal the press.
-	var best: Button = null
-	var best_area := INF
-	for button in candidates:
-		if not is_instance_valid(button) or not button.is_visible_in_tree():
-			continue
-		var rect := button.get_global_rect()
-		if not rect.has_point(position):
-			continue
-		var area := rect.size.x * rect.size.y
-		if area < best_area:
-			best_area = area
-			best = button
-	return best
-
-
-func _activate_touch_button(button: Button) -> void:
-	if button == _defense_button:
-		_on_defense_pressed()
-	elif button == _armory_button:
-		button.pressed.emit()
-	elif is_instance_valid(_armory_panel) and _armory_panel.is_ancestor_of(button):
-		button.pressed.emit()
-	elif button == _results_explore_button:
-		_on_return_to_explore_pressed()
-	elif button == _weapon_button:
-		_on_weapon_switch_pressed()
-	elif button == _skill_button or button == _emp_chip:
-		_on_skill_pressed()
-	elif button == _pause_button:
-		_on_pause_pressed()
-	elif button == _sound_button:
-		_on_sound_pressed()
-	elif button == _results_retry_button:
-		_on_results_retry_pressed()
-	elif button == _pause_resume_button:
-		_on_pause_pressed()
-	elif button == _pause_restart_button:
-		_on_restart_pressed()
-	elif button == _pause_settings_button:
-		_open_settings()
-	elif is_instance_valid(_settings_menu) and _settings_menu.is_ancestor_of(button):
-		if button.toggle_mode:
-			button.button_pressed = not button.button_pressed
-		else:
-			button.pressed.emit()
+	return _touch.find_button(position)
 
 
 func _is_over_hud(position: Vector2) -> bool:

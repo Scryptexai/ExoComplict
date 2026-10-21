@@ -37,7 +37,26 @@ var _defeat_hold_process_at: int = -1
 @onready var touch_controls: TouchControlsScript = $HUD/TouchControls
 
 
+## The F10 review camera used to be a node inside main.tscn, so every player
+## downloaded it and it sat in the shipped scene graph. It is built here
+## instead, and only where QA actually runs: the browser preview (the
+## automated screenshot pass drives it over a keyboard) and any editor/debug
+## run. A release APK never builds it.
+func _add_qa_rig() -> void:
+	if not (OS.is_debug_build() or OS.has_feature("web")):
+		return
+	# load(), not preload(): the script must not be resident in a build that
+	# never uses it.
+	var rig_script: GDScript = load("res://scripts/qa/world_tour.gd")
+	if rig_script == null:
+		return
+	var rig: Node = rig_script.new()
+	rig.name = "WorldTour"
+	add_child(rig)
+
+
 func _ready() -> void:
+	_add_qa_rig()
 	touch_controls.movement_changed.connect(player.set_touch_movement)
 	touch_controls.look_delta.connect(player.apply_touch_look)
 	touch_controls.fire_changed.connect(player.set_touch_fire_pressed)
