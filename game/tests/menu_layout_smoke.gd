@@ -165,6 +165,7 @@ func _probe(stage_name: StringName, size_name: String, physical: Vector2) -> voi
 		_check(control, rect, viewport, "%s %s" % [stage_name, size_name])
 	print("Menu layout: " + " | ".join(lines))
 	await _check_row_scroll(stage, "%s %s" % [stage_name, size_name])
+	await _check_thumb_drag(stage, "%s %s" % [stage_name, size_name])
 
 
 ## The two rules. A control inside a ScrollContainer is allowed to sit outside
@@ -272,14 +273,82 @@ func _check_row_scroll(stage: Control, where: String) -> void:
 		await process_frame
 
 
-## A thumb drag is deliberately *not* simulated. Godot gates touch panning on
-## the platform: `scroll_container.cpp` returns early unless
-## `DisplayServer::is_touchscreen_available()`, and the headless dummy display
-## server never reports one -- so a synthetic `InputEventScreenDrag` moves
-## nothing here no matter how it is sent. (Input events themselves do reach the
-## controls: a synthetic click pushed the same way fires a Button's `pressed`.)
-## What this test can prove is that the row has somewhere to scroll and that
-## scrolling it moves the cards, which `_check_row_scroll` does.
+## A thumb drag, now that the menus scroll the card list themselves.
+##
+## This used to be impossible to test, and the reason matters: `ScrollContainer`
+## pans on mouse events and nothing else, so on a phone it only works while
+## `emulate_mouse_from_touch` synthesises them -- which this project switches
+## off on purpose for the combat HUD. The row therefore could not be dragged at
+## all, and no headless test could say so, because a synthetic screen drag moved
+## 0 px. `MenuStage._input` now pans the list from the screen events directly,
+## which makes the gesture testable here: `push_input` delivers real screen
+## events to the stage, and the row has to move -- without the drag also
+## selecting the card it started on, which is the other half of the contract.
+func _check_thumb_drag(stage: Control, where: String) -> void:
+	var sideways := is_landscape(stage)
+	for child in stage.find_children("*", "ScrollContainer", true, false):
+		var scroll := child as ScrollContainer
+		if scroll == null or not scroll.is_visible_in_tree():
+			continue
+		var bar: ScrollBar = scroll.get_h_scroll_bar() if sideways else scroll.get_v_scroll_bar()
+		if not bar.visible or bar.max_value <= 0.0:
+			continue
+		if sideways:
+			scroll.scroll_horizontal = 0
+		else:
+			scroll.scroll_vertical = 0
+		# The bar's range is only final once the container has been laid out
+		# after the programmatic scroll above; read it too early and the drag is
+		# measured against a range the row did not have yet.
+		for _frame in range(4):
+			await process_frame
+		# A bar's value can only reach max_value - page, so that is the most a
+		# drag can cover no matter how far the thumb travels.
+		var range_now := maxf(0.0, bar.max_value - bar.page)
+		var service := _front_end.get_node_or_null("ProgressionService")
+		var selected_before: Variant = service.get("selected_weapon_id") if service != null else ""
+		var point := scroll.get_global_rect().get_center()
+		var step := Vector2(-30.0, 0.0) if sideways else Vector2(0.0, -30.0)
+
+		var press := InputEventScreenTouch.new()
+		press.index = 0
+		press.pressed = true
+		press.position = point
+		_viewport.push_input(press)
+		await process_frame
+
+		var travelled := 0.0
+		for _index in range(6):
+			var drag := InputEventScreenDrag.new()
+			drag.index = 0
+			drag.relative = step
+			drag.position = point + step * float(_index + 1)
+			_viewport.push_input(drag)
+			travelled += absf(step.x if sideways else step.y)
+			await process_frame
+
+		var release := InputEventScreenTouch.new()
+		release.index = 0
+		release.pressed = false
+		release.position = point + step * 6.0
+		_viewport.push_input(release)
+		await process_frame
+		await process_frame
+
+		var moved := float(scroll.scroll_horizontal if sideways else scroll.scroll_vertical)
+		var axis := "sideways" if sideways else "down"
+		# A short list reaches its end before the thumb does; landing on the end
+		# is still a scroll, so compare against whichever ran out first.
+		var reachable := minf(travelled, range_now)
+		var message := "%s: a thumb drag scrolls the list %s (%.0f of %.0f px, range %.0f px)"
+		_expect(moved >= reachable * 0.9, message % [where, axis, moved, reachable, range_now])
+		if service != null:
+			_expect(
+				service.get("selected_weapon_id") == selected_before,
+				"%s: dragging the list does not also select the card it started on" % where
+			)
+
+
 func _first_card(scroll: ScrollContainer) -> Control:
 	for child in scroll.find_children("*", "Control", true, false):
 		var control := child as Control

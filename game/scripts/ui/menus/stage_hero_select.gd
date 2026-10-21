@@ -15,7 +15,9 @@ extends MenuStage
 const HERO_PORTRAIT := "res://assets/ui/portrait_hero.png"
 
 ## The only id ProgressionService.HERO_IDS recognises.
-const OPERATIVE_ID := &"exo_operative"
+## The id is the progression service's, not a copy kept in the screen: a second
+## spelling of "exo_operative" is a second thing to keep in step.
+const OPERATIVE_ID := ProgressionService.DEFAULT_HERO_ID
 ## How many slots the screen shows. Two are placeholders so the layout is not a
 ## single lonely card on a tablet; they are disabled, never selectable.
 const LOCKED_SLOTS := 2
@@ -64,6 +66,7 @@ func _ready() -> void:
 	_above = [heading, _summary]
 
 	_scroll = ScrollContainer.new()
+	_scroll.name = &"CardScroll"
 	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_stack.add_child(_scroll)
@@ -95,7 +98,7 @@ func _ready() -> void:
 	_continue.pressed.connect(_on_continue_pressed)
 	footer.add_child(_continue)
 
-	resized.connect(_on_resized)
+	_connect_resized(_on_resized)
 	relayout()
 
 

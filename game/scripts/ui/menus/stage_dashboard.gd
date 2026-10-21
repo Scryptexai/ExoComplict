@@ -149,7 +149,7 @@ func _ready() -> void:
 	_settings.close_requested.connect(_on_settings_close)
 	add_child(_settings)
 
-	resized.connect(_on_resized)
+	_connect_resized(_on_resized)
 	relayout()
 
 
@@ -291,26 +291,25 @@ func _on_weapon_action(weapon_id: StringName) -> void:
 	refresh_profile()
 
 
+## Heroes and worlds have no data model -- there is no per-hero health or speed
+## -- so a display name is all there is to look up, and it is keyed off the id
+## the progression service owns rather than a literal spelled out here too.
 func _hero_name(hero_id: StringName) -> String:
-	match hero_id:
-		&"exo_operative":
-			return "EXO OPERATIVE"
+	if hero_id == ProgressionService.DEFAULT_HERO_ID:
+		return "EXO OPERATIVE"
 	return String(hero_id).to_upper()
 
 
 func _world_name(world_id: StringName) -> String:
-	match world_id:
-		&"neon_frontier":
-			return "NEON FRONTIER"
+	if world_id == ProgressionService.DEFAULT_WORLD_ID:
+		return "NEON FRONTIER"
 	return String(world_id).to_upper()
 
 
+## The weapon names itself: `WeaponDefinition.display_name` is the same string
+## the selection card prints, so the dashboard cannot call it something else.
 func _weapon_name(weapon_id: StringName) -> String:
-	match weapon_id:
-		&"pulse_rifle":
-			return "PULSE RIFLE"
-		&"nova_launcher":
-			return "NOVA LAUNCHER"
-		&"arc_shooter":
-			return "ARC SHOOTER"
+	var definition := WeaponDefinition.load_definition(weapon_id)
+	if definition != null and not definition.display_name.strip_edges().is_empty():
+		return definition.display_name.to_upper()
 	return String(weapon_id).to_upper()

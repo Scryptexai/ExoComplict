@@ -7,17 +7,17 @@
 ## happens in the Armory, which is the single place that spends Battle Points.
 extends MenuStage
 
-const DEFINITIONS := {
-	&"pulse_rifle": "res://resources/weapons/pulse_rifle.tres",
-	&"nova_launcher": "res://resources/weapons/nova_launcher.tres",
-	&"arc_shooter": "res://resources/weapons/arc_shooter.tres",
-}
+## The paths are not written out here a second time: `WeaponDefinition` owns
+## them, and the player scene's weapon controller is authored from the same
+## files. `data_source_smoke.gd` checks both sides agree.
+const DEFINITIONS := WeaponDefinition.DEFINITION_PATHS
 const PLATES := {
 	&"pulse_rifle": "res://assets/ui/weapon_pulse_rifle.png",
 	&"nova_launcher": "res://assets/ui/weapon_nova_launcher.png",
 	&"arc_shooter": "res://assets/ui/weapon_arc_shooter.png",
 }
-const ORDER: Array[StringName] = [&"pulse_rifle", &"nova_launcher", &"arc_shooter"]
+## Presentation order, taken from the same registry rather than retyped.
+const ORDER: Array[StringName] = WeaponDefinition.DEFINITION_IDS
 
 var _cards: Dictionary = {}
 ## Portrait/landscape list pair built by MenuStage._make_card_list().
@@ -35,6 +35,8 @@ var _below: Array = []
 var _summary: Label
 var _continue: AegisButton
 var _detail: Label
+var _qa_scroll_hooked := false
+var _qa_scroll := false
 
 
 func _ready() -> void:
@@ -60,6 +62,7 @@ func _ready() -> void:
 	_above = [heading, _summary]
 
 	_scroll = ScrollContainer.new()
+	_scroll.name = &"CardScroll"
 	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_stack.add_child(_scroll)
@@ -91,7 +94,7 @@ func _ready() -> void:
 	_continue.pressed.connect(func() -> void: completed.emit(&"WORLD", {}))
 	footer.add_child(_continue)
 
-	resized.connect(_on_resized)
+	_connect_resized(_on_resized)
 	relayout()
 
 
@@ -106,7 +109,7 @@ func refresh_profile() -> void:
 
 
 func _definition(weapon_id: StringName) -> WeaponDefinition:
-	return load(DEFINITIONS[weapon_id]) as WeaponDefinition
+	return WeaponDefinition.load_definition(weapon_id)
 
 
 func _build_card(weapon_id: StringName, group: ButtonGroup) -> Control:
@@ -228,6 +231,8 @@ func _find_meta(root: Node, key: String) -> Label:
 
 
 func _on_card_pressed(weapon_id: StringName) -> void:
+	if _qa_scroll:
+		print("MenuScroll: card pressed %s" % weapon_id)
 	var progression := progression_service()
 	if progression == null or not progression.select_weapon(weapon_id):
 		return
@@ -237,6 +242,101 @@ func _on_card_pressed(weapon_id: StringName) -> void:
 
 func _on_resized() -> void:
 	relayout()
+	_hook_qa_scroll()
+	if _qa_scroll:
+		_report_qa_scroll("resized")
 	_orient_nodes(_oriented)
 	_orient_card_list(_lists, _cards.values())
 	_orient_selection(_stack, _split, _info, _scroll, _above, _below)
+
+
+## QA hook, web only: `?qa_scroll=1` prints the card row's horizontal offset
+## whenever it moves.
+##
+## This exists because the gesture could not be tested any other way.
+## `ScrollContainer` gates touch panning on `DisplayServer::is_touchscreen_
+## available()` (`scene/gui/scroll_container.cpp`), which every headless display
+## server reports as false, so a synthetic drag in a smoke test moves the row
+## 0 px and proves nothing about a thumb. A browser with touch emulation does
+## report it, and the offset printed here is what a drag in
+## `tools/qa_touch_scroll.mjs` is measured against.
+func _hook_qa_scroll() -> void:
+	if _qa_scroll_hooked or not OS.has_feature("web"):
+		return
+	var wanted: Variant = JavaScriptBridge.eval(
+		"new URLSearchParams(location.search).has('qa_scroll')"
+	)
+	if not bool(wanted):
+		return
+	var bar := _scroll.get_h_scroll_bar()
+	if bar == null:
+		return
+	_qa_scroll = true
+	# `ScrollContainer` pans on a screen drag only when the display server says
+	# a touchscreen exists (scene/gui/scroll_container.cpp:237). Every headless
+	# display server answers false; whether an emulated one answers true is the
+	# difference between "the gesture is untested" and "the gesture is broken",
+	# so the probe has to be able to read it.
+	print("MenuScroll: is_touchscreen_available = %s" % DisplayServer.is_touchscreen_available())
+	bar.value_changed.connect(_on_qa_scroll_changed)
+	# Log the raw input too. "The row did not move" has two causes that look
+	# identical from outside -- the drag never arrived, and the drag arrived and
+	# was ignored -- and only the event log tells them apart.
+	set_process_input(true)
+	_qa_scroll_hooked = true
+	_report_qa_scroll("hooked")
+
+
+## Counts what actually reached the engine during a QA run.
+func _input(event: InputEvent) -> void:
+	# The base class drags the card list from these same events; overriding
+	# `_input` without calling super silently switched that off.
+	super._input(event)
+	if not _qa_scroll:
+		return
+	if (
+		event is InputEventScreenTouch
+		or event is InputEventScreenDrag
+		or event is InputEventMouseButton
+		or event is InputEventPanGesture
+		or (event is InputEventMouseMotion and (event as InputEventMouseMotion).button_mask != 0)
+	):
+		if event is InputEventScreenDrag:
+			# Position and relative are the whole question: a drag that arrives
+			# with no delta is an input-emulation artefact, a drag with a delta
+			# that the row ignores is the game's problem.
+			print(
+				(
+					"MenuScroll: input ScreenDrag index=%d pos=%s rel=%s"
+					% [event.index, event.position, event.relative]
+				)
+			)
+		else:
+			print("MenuScroll: input %s" % event.as_text())
+
+
+func _on_qa_scroll_changed(value: float) -> void:
+	_report_qa_scroll("offset %.1f" % value)
+
+
+## The container's own numbers, printed whenever the layout changes and whenever
+## the bar moves, because "the row did not scroll" and "the row cannot scroll"
+## look identical from outside and only the range tells them apart.
+func _report_qa_scroll(what: String) -> void:
+	# A frame late on purpose. `resized` fires before the containers have been
+	# sorted for this frame, so a rect read inside it is still the previous
+	# one -- 0x0 on the first pass, which is what made an unscrollable row and
+	# an unmeasured row look the same.
+	await get_tree().process_frame
+	var bar := _scroll.get_h_scroll_bar()
+	print(
+		(
+			"MenuScroll: %s, row %s, range %.1f, page %.1f"
+			% [
+				what,
+				_scroll.get_global_rect(),
+				bar.max_value if bar != null else -1.0,
+				bar.page if bar != null else -1.0
+			]
+		)
+	)

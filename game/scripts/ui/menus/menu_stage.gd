@@ -14,6 +14,10 @@ extends Control
 ## handed to the next stage's `enter()` untouched.
 signal completed(next_stage: StringName, payload: Dictionary)
 
+## How far a thumb has to travel before this is a scroll and not a tap. The
+## engine's own default for the same decision (`gui/common/scroll_deadzone`).
+const SCROLL_DEADZONE := 10.0
+
 ## Widest a landscape card may be. Wide enough for a plate and two lines of
 ## text, narrow enough that two of them fit on an 844 px wide screen.
 const LANDSCAPE_CARD_WIDTH := 340.0
@@ -24,6 +28,13 @@ const LANDSCAPE_CARD_WIDTH := 340.0
 var front_end: Node = null
 ## Whatever the previous stage passed along. Empty on the first stage.
 var payload: Dictionary = {}
+## The card list's scroll container, registered by `_make_card_list()`.
+var _card_scroll: ScrollContainer = null
+## Thumb-drag state for `_card_scroll`. See `_input()` for why this exists.
+var _card_drag_index := -1
+var _card_drag_start := Vector2.ZERO
+var _card_drag_active := false
+
 ## Full-rect safe-area container every screen lays out in, created by
 ## `make_margin()`. Stored so `enter()` can re-apply the margins on a resize or
 ## a rotation without searching the tree for it.
@@ -41,6 +52,19 @@ var _stretch := 1.0
 ## Called every time the stage becomes visible, with the payload from the
 ## previous stage. Re-entering a stage (DASHBOARD -> HERO -> back) runs this
 ## again, so it must be safe to call twice.
+## Connects `resized` once per stage, however many times the stage is entered.
+##
+## Stages are entered over and over in one session -- HERO to DASHBOARD and
+## back, WEAPON to HERO and back -- and every one of them connected `resized`
+## from `enter()`. The second visit stacked a second handler: Godot printed
+## "Signal 'resized' is already connected to given callable" and every later
+## resize ran that stage's layout twice, once more per revisit. Guarding it here
+## keeps the connect where it is and makes the mistake hard to repeat.
+func _connect_resized(callable: Callable) -> void:
+	if not resized.is_connected(callable):
+		resized.connect(callable)
+
+
 func enter(_stage_payload: Dictionary) -> void:
 	pass
 
@@ -245,6 +269,9 @@ func _make_card_list(scroll: ScrollContainer) -> Dictionary:
 	row.visible = false
 	physical_separation(row, 12)
 	host.add_child(row)
+	_card_scroll = scroll
+	# Screen events only reach `_input()` on a node that processes input.
+	set_process_input(true)
 	return {"scroll": scroll, "column": column, "row": row}
 
 
@@ -477,3 +504,74 @@ func progression_service() -> ProgressionService:
 	if front_end == null:
 		return null
 	return front_end.get("progression_service") as ProgressionService
+
+
+## Thumb scrolling for the card list, because the engine will not do it here.
+##
+## Godot 4.7's `ScrollContainer` pans on `InputEventMouseButton` +
+## `InputEventMouseMotion` and on nothing else (scene/gui/scroll_container.cpp,
+## from line 237): the screen-drag path is gone. On a phone that still works
+## while `input_devices/pointing/emulate_mouse_from_touch` is on, because
+## `Input` translates every screen event into a mouse event
+## (core/input/input.cpp:908). This project turns that off deliberately -- the
+## combat HUD reads raw screen events, and translating them would feed the
+## joystick and the fire button twice -- so the row cannot be dragged: measured
+## in a browser build with touch emulation, 24 screen drags with real deltas
+## (rel = -36.9 px each) arrived at the engine, `is_touchscreen_available()`
+## was true, the row had 1074 px of range, and it moved 0 px.
+##
+## Consequence without this: the third weapon card sits at canvas x 1050..1390
+## in a window that ends at 809, and no thumb can reach it.
+##
+## It disables itself the moment the engine's own path is available again, so
+## turning the project setting on later cannot produce double-speed scrolling.
+func _input(event: InputEvent) -> void:
+	if _card_scroll == null or Input.is_emulating_mouse_from_touch():
+		return
+	if not is_instance_valid(_card_scroll) or not _card_scroll.is_visible_in_tree():
+		return
+	if event is InputEventScreenTouch:
+		_input_screen_touch(event)
+	elif event is InputEventScreenDrag:
+		_input_screen_drag(event)
+
+
+func _input_screen_touch(event: InputEventScreenTouch) -> void:
+	if event.is_pressed():
+		if _card_drag_index != -1:
+			return
+		if not _card_scroll.get_global_rect().has_point(event.position):
+			return
+		# Not claimed: a press with no movement behind it is a tap, and the card
+		# under the thumb has to be allowed to select.
+		_card_drag_index = event.index
+		_card_drag_start = event.position
+		_card_drag_active = false
+		return
+	if event.index != _card_drag_index:
+		return
+	var dragged := _card_drag_active
+	_card_drag_index = -1
+	_card_drag_active = false
+	if dragged:
+		# Claim the release so the drag does not also select the card it started
+		# on, and re-run the stage's refresh so no card is left looking pressed.
+		get_viewport().set_input_as_handled()
+		if has_method("refresh_profile"):
+			call("refresh_profile")
+
+
+func _input_screen_drag(event: InputEventScreenDrag) -> void:
+	if event.index != _card_drag_index:
+		return
+	var travelled := event.position - _card_drag_start
+	if not _card_drag_active and travelled.length() < SCROLL_DEADZONE:
+		return
+	_card_drag_active = true
+	var horizontal := _card_scroll.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED
+	var vertical := _card_scroll.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED
+	if horizontal:
+		_card_scroll.scroll_horizontal -= event.relative.x
+	if vertical:
+		_card_scroll.scroll_vertical -= event.relative.y
+	get_viewport().set_input_as_handled()

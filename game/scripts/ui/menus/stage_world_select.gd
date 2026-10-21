@@ -8,7 +8,8 @@
 extends MenuStage
 
 const WORLD_PLATE := "res://assets/ui/world_neon_frontier.jpg"
-const FRONTIER_ID := &"neon_frontier"
+## Same reasoning as the hero id: one owner for the id.
+const FRONTIER_ID := ProgressionService.DEFAULT_WORLD_ID
 const LOCKED_SLOTS := 2
 
 var _cards: Array[AegisButton] = []
@@ -53,6 +54,7 @@ func _ready() -> void:
 	_above = [heading, _summary]
 
 	_scroll = ScrollContainer.new()
+	_scroll.name = &"CardScroll"
 	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_stack.add_child(_scroll)
@@ -81,7 +83,7 @@ func _ready() -> void:
 	launch.pressed.connect(_on_launch_pressed)
 	footer.add_child(launch)
 
-	resized.connect(_on_resized)
+	_connect_resized(_on_resized)
 	relayout()
 
 

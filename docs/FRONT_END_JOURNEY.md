@@ -263,4 +263,28 @@ can be scrolled to the end with the cards moving with it. It prints the same rec
 report as `?qa_menu=1`, so the headless numbers and the browser numbers can be
 read against each other.
 
+### The card row could not be dragged on a phone
+
+Godot 4.7's `ScrollContainer` pans on `InputEventMouseButton` /
+`InputEventMouseMotion`, or on screen events that `Input` has emulated into mouse
+events (`core/input/input.cpp:908`, gated on `emulate_mouse_from_touch`). This
+project sets `pointing/emulate_mouse_from_touch=false` deliberately, because the
+combat HUD reads raw screen events — so on a real phone the row did not move at
+all, and the third weapon card (canvas x 1050-1390 in an 809 px window) could not
+be reached by touch. `MenuStage` now reads `InputEventScreenTouch` /
+`InputEventScreenDrag` itself, with a 10 px deadzone, and hands the container the
+same deltas; it claims the release and re-runs `refresh_profile()` so a drag that
+starts on a card does not also select it. The handler begins with
+`if Input.is_emulating_mouse_from_touch(): return`, so if that project setting is
+ever turned back on, this code steps aside instead of scrolling at double speed.
+
+Measured in a served browser build, 844x390, `tools/qa_touch_scroll.mjs
+--serve web --viewport 844x390 --drag 240`: before the change 24 `ScreenDrag`
+events arrived with `rel=(-36.92, 0.0)` and the row moved **0.0 px**; after it
+moves **396.0 px** whether the drag starts on a card or on empty space, the wheel
+still moves it, and a tap still reaches the engine (`card pressed pulse_rifle`).
+`menu_layout_smoke.gd` now drives the same gesture headlessly — 7 cases, each
+scrolling as far as its range allows — and it reports 0 px against the unfixed
+build, so it fails for the right reason.
+
 Results are recorded in `docs/asset-inspections/` once the suite has been run.

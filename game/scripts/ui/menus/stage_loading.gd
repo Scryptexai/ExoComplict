@@ -118,7 +118,7 @@ func _ready() -> void:
 	column.add_child(_indeterminate)
 
 	_percent = make_label("", "mono_m", AegisTokens.INFO)
-	resized.connect(_on_resized)
+	_connect_resized(_on_resized)
 	relayout()
 	column.add_child(_percent)
 

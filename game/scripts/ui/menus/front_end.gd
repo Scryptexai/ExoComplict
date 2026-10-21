@@ -195,6 +195,7 @@ func report_menu_rects() -> void:
 			or control is Label
 			or control is ProgressBar
 			or control is VideoStreamPlayer
+			or control is ScrollContainer
 		):
 			continue
 		var label := str(control.name)

@@ -1,6 +1,30 @@
 class_name WeaponDefinition
 extends Resource
 
+## Where every weapon lives, in one place.
+##
+## Two other places need this list, and they are not the same list: `player.tscn`
+## authors `WeaponController.weapon_definitions` from these files (that array is
+## what actually fires), and the front end's WEAPON screen prints its numbers
+## from them. When each side kept its own copy, a card could quote one file
+## while the controller loaded another -- a screen that states 18 damage for a
+## gun that fires 20. `data_source_smoke.gd` asserts both sides still resolve to
+## the same resource, so a fourth weapon added to one list and not the other
+## fails the suite instead of failing silently in somebody's HUD.
+const DEFINITION_PATHS := {
+	&"pulse_rifle": "res://resources/weapons/pulse_rifle.tres",
+	&"nova_launcher": "res://resources/weapons/nova_launcher.tres",
+	&"arc_shooter": "res://resources/weapons/arc_shooter.tres",
+}
+
+## Stable iteration order for the registry (GDScript dictionaries keep
+## insertion order, but a named list is what a screen should read).
+const DEFINITION_IDS: Array[StringName] = [
+	&"pulse_rifle",
+	&"nova_launcher",
+	&"arc_shooter",
+]
+
 @export var weapon_id: StringName = &""
 @export var display_name: String = ""
 @export_multiline var role_description: String = ""
@@ -40,3 +64,19 @@ func is_valid_definition() -> bool:
 		and chain_damage_multiplier <= 1.0
 		and (chain_count <= 0 or chain_damage_multiplier > 0.0)
 	)
+
+
+static func load_definition(weapon_id: StringName) -> WeaponDefinition:
+	if not DEFINITION_PATHS.has(weapon_id):
+		return null
+	return load(DEFINITION_PATHS[weapon_id]) as WeaponDefinition
+
+
+## Canonical order: the registry's, not a second hand-written one.
+static func load_all_definitions() -> Array[WeaponDefinition]:
+	var out: Array[WeaponDefinition] = []
+	for weapon_id in DEFINITION_PATHS:
+		var definition := load_definition(weapon_id)
+		if definition != null:
+			out.append(definition)
+	return out

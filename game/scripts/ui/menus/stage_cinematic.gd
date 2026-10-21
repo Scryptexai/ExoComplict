@@ -134,7 +134,7 @@ func _ready() -> void:
 	_skip = make_button("SKIP", "ghost", "Skip the opening cinematic")
 	physical_min_size(_skip, 160.0, 56.0)
 	_skip.pressed.connect(_on_skip_pressed)
-	resized.connect(_on_resized)
+	_connect_resized(_on_resized)
 	relayout()
 	column.add_child(_skip)
 

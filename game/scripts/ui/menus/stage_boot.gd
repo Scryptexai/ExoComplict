@@ -78,7 +78,7 @@ func enter(_stage_payload: Dictionary) -> void:
 	_hold_remaining = MINIMUM_SECONDS
 	_bar.set_running(true)
 	_status.text = STATUS
-	resized.connect(_on_resized)
+	_connect_resized(_on_resized)
 	relayout()
 	set_process(true)
 

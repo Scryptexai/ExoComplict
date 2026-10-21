@@ -58,7 +58,7 @@ func _ready() -> void:
 	physical_min_size(button, 220.0, 56.0)
 	button.pressed.connect(_on_continue_pressed)
 	_column.add_child(button)
-	resized.connect(_on_resized)
+	_connect_resized(_on_resized)
 	relayout()
 
 
