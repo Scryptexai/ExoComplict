@@ -83,6 +83,13 @@ SCAFFOLD_OPTIONS: list[tuple[str, str]] = [
     ("permissions/custom_permissions", "PackedStringArray()"),
 ]
 
+# Files that must never reach a player. `tests/*` is the whole smoke suite: 26
+# scripts, 8,141 lines, found packed into the shipped web payload as compiled
+# `.gdc` + `.remap` pairs because no preset carried an exclude filter
+# (docs/AUDIT_2026-10-21.md §5). `tools/check_payload.py` is the gate that
+# catches a regression here; it reads the exported .pck, not this file.
+EXCLUDE_FROM_EXPORT = "tests/*"
+
 PRESET_HEADER_OPTIONS: list[tuple[str, str]] = [
     ("runnable", "true"),
     ("advanced_options", "false"),
@@ -90,7 +97,7 @@ PRESET_HEADER_OPTIONS: list[tuple[str, str]] = [
     ("custom_features", '""'),
     ("export_filter", '"all_resources"'),
     ("include_filter", '""'),
-    ("exclude_filter", '""'),
+    ("exclude_filter", '"%s"' % EXCLUDE_FROM_EXPORT),
     ("export_path", '""'),
     ("patches", "PackedStringArray()"),
     ("encryption_include_filters", '""'),

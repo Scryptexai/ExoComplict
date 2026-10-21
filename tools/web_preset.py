@@ -75,6 +75,12 @@ def build_preset_block(index: int, name: str, shell: str, threads: bool, export_
     for key, value in base.PRESET_HEADER_OPTIONS:
         if key == "export_path" and export_path:
             lines.append(f"export_path={base.quote(export_path)}")
+        elif key == "exclude_filter":
+            # Keep the shared default but never drop tests from it: a hand-edited
+            # preset that loses this filter ships the suite to players.
+            patterns = [p for p in [base.unquote(value), base.EXCLUDE_FROM_EXPORT] if p]
+            merged = ", ".join(dict.fromkeys(patterns))
+            lines.append(f"exclude_filter={base.quote(merged)}")
         else:
             lines.append(f"{key}={value}")
     lines.append("")

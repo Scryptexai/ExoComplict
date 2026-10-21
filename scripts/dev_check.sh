@@ -5,6 +5,7 @@
 #   1. GDScript syntax parse + style lint + format check (gdtoolkit)
 #   2. Static project doctor (references, contracts, docs, assets)
 #   3. Smoke-test inventory and documentation cross-check
+#   4. Module and layer boundaries (tools/check_architecture.py)
 #
 # The engine itself is still required for gameplay verification; use
 # scripts/run_smoke_tests.sh once Godot is installed (scripts/install_godot.sh).
@@ -31,7 +32,7 @@ fi
 # --------------------------------------------------------------------------- #
 # 1. GDScript static analysis (gdtoolkit)
 # --------------------------------------------------------------------------- #
-printf '[1/4] GDScript static analysis\n'
+printf '[1/5] GDScript static analysis\n'
 
 PYTHON_BIN=""
 if [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
@@ -99,7 +100,7 @@ printf '\n'
 # --------------------------------------------------------------------------- #
 # 2. Static project doctor
 # --------------------------------------------------------------------------- #
-printf '[2/4] Static project doctor (references, contracts, assets, docs)\n'
+printf '[2/5] Static project doctor (references, contracts, assets, docs)\n'
 DOCTOR="$ROOT_DIR/tools/project_doctor.py"
 if [[ ! -f "$DOCTOR" ]]; then
   step_failed 'tools/project_doctor.py is missing'
@@ -120,7 +121,7 @@ printf '\n'
 # --------------------------------------------------------------------------- #
 # 3. Smoke-test inventory
 # --------------------------------------------------------------------------- #
-printf '[3/4] Tooling self-tests\n'
+printf '[3/5] Tooling self-tests\n'
 TOOLS_DIR="$ROOT_DIR/tools"
 if [[ ! -d "$TOOLS_DIR/tests" ]]; then
   step_skipped 'no tools/tests directory'
@@ -165,7 +166,33 @@ else
 fi
 printf '\n'
 
-printf '[4/4] Smoke-test inventory\n'
+# --------------------------------------------------------------------------- #
+# 4. Module and layer boundaries
+# --------------------------------------------------------------------------- #
+# A folder tree is a suggestion; this is the part that holds. The known
+# violations from the phase-0 audit are recorded in the baseline so the check
+# enforces "no new ones" from today, and the baseline shrinks phase by phase
+# until it is empty (docs/STRUCTURE_PLAN.md §5).
+printf '[4/5] Module and layer boundaries\n'
+ARCH_CHECK="$ROOT_DIR/tools/check_architecture.py"
+ARCH_BASELINE="$ROOT_DIR/tools/architecture_baseline.json"
+if [[ ! -f "$ARCH_CHECK" ]]; then
+  step_failed 'tools/check_architecture.py is missing'
+elif [[ ! -f "$ARCH_BASELINE" ]]; then
+  step_failed 'tools/architecture_baseline.json is missing (write it with --write-baseline)'
+elif [[ -z "$PYTHON_BIN" ]]; then
+  step_skipped 'no python3 interpreter available for the architecture check'
+else
+  if arch_output="$("$PYTHON_BIN" "$ARCH_CHECK" --baseline "$ARCH_BASELINE" --strict 2>&1)"; then
+    step_passed 'no new layer or module boundary violations'
+  else
+    step_failed 'new layer or module boundary violations (see above)'
+    printf '%s\n' "$arch_output" | sed 's/^/         /' | head -25
+  fi
+fi
+printf '\n'
+
+printf '[5/5] Smoke-test inventory\n'
 shopt -s nullglob
 SMOKE_TESTS=("$GAME_DIR"/tests/*_smoke.gd)
 shopt -u nullglob

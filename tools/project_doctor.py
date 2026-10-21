@@ -298,7 +298,15 @@ def resolve_relative_path(base: str, target: str) -> str | None:
 # --------------------------------------------------------------------------- #
 
 SCRIPT_REF_RE = re.compile(r'\b(?:preload|load)\(\s*"([^"]+)"\s*\)')
-EXTENDS_RE = re.compile(r"^extends\s+([A-Za-z_][A-Za-z0-9_]*)", re.MULTILINE)
+# `extends` on its own line, or inline after `class_name` — both are legal
+# GDScript and both appear in this project (`class_name ScifiKitLibrary
+# extends RefCounted`). Matching only the first form left those scripts with no
+# base class at all, so every check that compares one silently skipped them.
+EXTENDS_RE = re.compile(
+    r"^extends\s+([A-Za-z_][A-Za-z0-9_]*)"
+    r"|^class_name\s+[A-Za-z_][A-Za-z0-9_]*\s+extends\s+([A-Za-z_][A-Za-z0-9_]*)",
+    re.MULTILINE,
+)
 CLASS_NAME_RE = re.compile(r"^class_name\s+([A-Za-z_][A-Za-z0-9_]*)", re.MULTILINE)
 SIGNAL_RE = re.compile(r"^signal\s+([A-Za-z_][A-Za-z0-9_]*)", re.MULTILINE)
 FUNC_RE = re.compile(r"^func\s+([A-Za-z_][A-Za-z0-9_]*)", re.MULTILINE)
@@ -337,7 +345,7 @@ def parse_script(path: Path, res_path: str) -> ScriptInfo:
     if match := CLASS_NAME_RE.search(text):
         info.class_name = match.group(1)
     if match := EXTENDS_RE.search(text):
-        info.extends = match.group(1)
+        info.extends = match.group(1) or match.group(2) or ""
     info.signals = set(SIGNAL_RE.findall(text))
     info.functions = set(FUNC_RE.findall(text))
     info.groups_declared = set(ADD_GROUP_RE.findall(text))
@@ -443,11 +451,34 @@ def check_scene_structure(report: Report, scenes: dict[str, SceneInfo], game_roo
         report.ok(check, f"{len(scenes)} scene/resource file(s) have resolvable references and node trees")
 
 
+def resolve_extends(extends: str, by_class_name: dict[str, ScriptInfo]) -> str:
+    """Follow a `class_name` chain down to a built-in type.
+
+    A script that says `extends MenuStage` is attached to a Control, and
+    MenuStage extends Control — but the chain has to be followed before the
+    comparison means anything. Without this, every menu stage in the project
+    was reported as "script base 'MenuStage' cannot be attached to node type
+    'Control'", which is false and was failing the CI static job.
+    """
+    seen: set[str] = set()
+    current = extends
+    while current in by_class_name and current not in seen:
+        seen.add(current)
+        parent = by_class_name[current].extends
+        if not parent:
+            break
+        current = parent
+    return current
+
+
 def check_script_attachment(
     report: Report, scenes: dict[str, SceneInfo], scripts: dict[str, ScriptInfo]
 ) -> None:
     check = "script/node types"
     problems = 0
+    by_class_name: dict[str, ScriptInfo] = {
+        script.class_name: script for script in scripts.values() if script.class_name
+    }
     for res_path, scene in sorted(scenes.items()):
         for node in scene.nodes:
             attrs = node.attrs
@@ -463,11 +494,12 @@ def check_script_attachment(
             if script is None or not node_type or not script.extends:
                 continue
             chain = base_class_of(node_type)
-            if script.extends not in chain:
+            base = resolve_extends(script.extends, by_class_name)
+            if base not in chain:
                 report.fail(
                     check,
-                    f"script base '{script.extends}' cannot be attached to node type '{node_type}' "
-                    f"(node '{attrs.get('name', '?')}')",
+                    f"script base '{script.extends}' (resolved to '{base}') cannot be attached to "
+                    f"node type '{node_type}' (node '{attrs.get('name', '?')}')",
                     f"{res_path} → {script.res_path}",
                 )
                 problems += 1

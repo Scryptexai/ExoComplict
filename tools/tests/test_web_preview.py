@@ -90,21 +90,35 @@ class WebPresetTests(unittest.TestCase):
         self.assertEqual(self.run_tool("check"), 2)
 
 
-def write_build(directory: Path, wasm_size: int = 6 * 1024 * 1024) -> None:
+def write_build(directory: Path, wasm_size: int = 6 * 1024 * 1024, declared_pck_size: int | None = None) -> None:
+    """A build directory that passes every check.
+
+    The `fileSizes` map is generated from the files actually written, because
+    `verify_web_build` compares the declared sizes against the disk: a fixture
+    that hard-codes 100 for a 516-byte pack is a fixture that fails, and the
+    point of `declared_pck_size` is to let a test break that on purpose.
+    """
     directory.mkdir(parents=True, exist_ok=True)
+    (directory / "index.js").write_text("// engine js library\n" * 200, encoding="utf-8")
+    (directory / "index.wasm").write_bytes(b"\x00asm" + struct.pack("<I", 1) + b"\x00" * wasm_size)
+    (directory / "index.pck").write_bytes(b"GDPC" + struct.pack("<I", 4) + b"\x00" * 512)
+    (directory / "index.audio.worklet.js").write_text("// audio worklet\n", encoding="utf-8")
+    # Declared sizes are read off the files, not off the requested payload size:
+    # the wasm file carries an 8-byte header on top of `wasm_size`.
+    pck_size = (directory / "index.pck").stat().st_size
+    real_wasm_size = (directory / "index.wasm").stat().st_size
     (directory / "index.html").write_text(
         '<html><body id="overdrive-shell"><canvas id="canvas"></canvas>\n'
         '<script src="index.js"></script>\n'
-        'const GODOT_CONFIG = {"fileSizes":{"index.pck":100,"index.wasm":' + str(wasm_size) + '}};\n'
+        "const GODOT_CONFIG = {"
+        '"fileSizes":{"index.pck":'
+        + str(pck_size if declared_pck_size is None else declared_pck_size)
+        + ',"index.wasm":' + str(real_wasm_size) + "}};\n"
         "const engine = new Engine(GODOT_CONFIG);\n"
         '<!-- index.wasm index.pck -->\n'
         "</body></html>\n",
         encoding="utf-8",
     )
-    (directory / "index.js").write_text("// engine js library\n" * 200, encoding="utf-8")
-    (directory / "index.wasm").write_bytes(b"\x00asm" + struct.pack("<I", 1) + b"\x00" * wasm_size)
-    (directory / "index.pck").write_bytes(b"GDPC" + struct.pack("<I", 4) + b"\x00" * 512)
-    (directory / "index.audio.worklet.js").write_text("// audio worklet\n", encoding="utf-8")
 
 
 class VerifyWebBuildTests(unittest.TestCase):
@@ -121,6 +135,21 @@ class VerifyWebBuildTests(unittest.TestCase):
         self.assertEqual(problems, [])
         self.assertIn("index.pck", sizes)
         self.assertIn("index.audio.worklet.js", sizes)
+
+    def test_stale_file_sizes_fail(self) -> None:
+        # The engine sizes its loading bar from this map. A pack swapped in
+        # without re-exporting the shell leaves a percentage computed from a
+        # size that is not there -- a progress number that is not progress.
+        write_build(self.build, declared_pck_size=100)
+        problems, _, _ = verify_web_build.verify(self.build)
+        self.assertTrue(any("declares index.pck" in problem for problem in problems))
+
+    def test_missing_file_sizes_fail(self) -> None:
+        write_build(self.build)
+        html = (self.build / "index.html").read_text(encoding="utf-8")
+        (self.build / "index.html").write_text(html.replace('"fileSizes":{', '"sizes":{'), encoding="utf-8")
+        problems, _, _ = verify_web_build.verify(self.build)
+        self.assertTrue(any("fileSizes" in problem for problem in problems))
 
     def test_missing_file_fails(self) -> None:
         write_build(self.build)
