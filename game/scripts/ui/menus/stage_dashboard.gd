@@ -291,19 +291,23 @@ func _on_weapon_action(weapon_id: StringName) -> void:
 	refresh_profile()
 
 
-## Heroes and worlds have no data model -- there is no per-hero health or speed
-## -- so a display name is all there is to look up, and it is keyed off the id
-## the progression service owns rather than a literal spelled out here too.
+## Heroes and worlds have no *numeric* model -- there is no per-hero health or
+## speed -- but they do have a name, and it lives in the `HeroDefinition` /
+## `WorldDefinition` registries exactly as a weapon's does. Reading it from
+## there instead of typing it out here is what stops the dashboard calling the
+## loadout something the HERO and WORLD cards do not.
 func _hero_name(hero_id: StringName) -> String:
-	if hero_id == ProgressionService.DEFAULT_HERO_ID:
-		return "EXO OPERATIVE"
-	return String(hero_id).to_upper()
+	var definition := HeroDefinition.load_definition(hero_id)
+	if definition != null:
+		return definition.display_name.to_upper()
+	return String(hero_id).replace("_", " ").to_upper()
 
 
 func _world_name(world_id: StringName) -> String:
-	if world_id == ProgressionService.DEFAULT_WORLD_ID:
-		return "NEON FRONTIER"
-	return String(world_id).to_upper()
+	var definition := WorldDefinition.load_definition(world_id)
+	if definition != null:
+		return definition.display_name.to_upper()
+	return String(world_id).replace("_", " ").to_upper()
 
 
 ## The weapon names itself: `WeaponDefinition.display_name` is the same string

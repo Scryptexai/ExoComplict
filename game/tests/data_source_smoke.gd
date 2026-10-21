@@ -29,6 +29,7 @@ extends SceneTree
 
 const FrontEndScene = preload("res://scenes/ui/front_end.tscn")
 const PlayerScene = preload("res://scenes/player/player.tscn")
+const CinematicStage = preload("res://scripts/ui/menus/stage_cinematic.gd")
 
 ## Distinct from the real `user://progression.cfg` so the suite never spends or
 ## unlocks anything in a profile a developer might care about.
@@ -67,6 +68,9 @@ func _run_smoke_test() -> void:
 	await _check_dashboard_matches_the_service()
 	await _check_dashboard_names_come_from_the_definition()
 	await _check_referenced_art_exists()
+	await _check_hero_roster_is_one_list()
+	await _check_world_roster_is_one_list()
+	_check_no_roster_literals_in_screens()
 	await _check_unlock_economics()
 	_finish()
 
@@ -370,6 +374,21 @@ func _art_paths_in(stage: Node) -> Array[String]:
 		var path := found_match.get_string(0)
 		if not found.has(path):
 			found.append(path)
+	# The hero portrait and the world plate are no longer literals in the stage
+	# script -- they arrive with the definition the card was built from -- so the
+	# script scan above cannot see them. Read them off the resources the cards
+	# actually hold, which is the same thing the scan was always trying to do.
+	for child in stage.find_children("*", "Button", true, false):
+		if child.has_meta("hero_id"):
+			var hero := HeroDefinition.load_definition(StringName(str(child.get_meta("hero_id"))))
+			if hero != null:
+				_collect_art_paths(hero.portrait_path, found)
+		elif child.has_meta("world_id"):
+			var world := WorldDefinition.load_definition(
+				StringName(str(child.get_meta("world_id")))
+			)
+			if world != null:
+				_collect_art_paths(world.plate_path, found)
 	return found
 
 
@@ -463,6 +482,244 @@ func _check_unlock_economics() -> void:
 		)
 
 
+# --- the hero and world rosters ----------------------------------------------
+
+
+## The hero's name used to live in three places: the HERO card, the dashboard's
+## loadout line and `ProgressionService.HERO_IDS`. Every one of them is now read
+## out of `HeroDefinition`, so what is checked here is that they still are --
+## the card prints the definition's name, the dashboard's `_hero_name()` returns
+## the same string, and the service's id list and the registry are the same list.
+func _check_hero_roster_is_one_list() -> void:
+	for hero_id in HeroDefinition.DEFINITION_PATHS:
+		var definition := HeroDefinition.load_definition(hero_id)
+		if not _expect(definition != null, "%s: the registry entry loads" % hero_id):
+			continue
+		_expect(
+			definition.hero_id == hero_id,
+			"%s: the file's own id matches the key it is registered under" % hero_id
+		)
+		_expect(
+			definition.is_valid_definition(),
+			"%s: the definition is complete (name, blurb, status, portrait on disk)" % hero_id
+		)
+	_expect(
+		ProgressionService.HERO_IDS == HeroDefinition.DEFINITION_IDS,
+		(
+			(
+				"ProgressionService.HERO_IDS and HeroDefinition.DEFINITION_IDS are the same list"
+				+ " (%d vs %d)"
+			)
+			% [ProgressionService.HERO_IDS.size(), HeroDefinition.DEFINITION_IDS.size()]
+		)
+	)
+	_expect(
+		HeroDefinition.DEFINITION_IDS.has(ProgressionService.DEFAULT_HERO_ID),
+		"the default hero is a real registry entry, not an id that was deleted"
+	)
+
+	if _front_end == null:
+		return
+	_front_end.go_to(&"HERO", {})
+	await process_frame
+	await process_frame
+	var stage: Control = _front_end.get_node_or_null("StageHost/HERO")
+	if not _expect(stage != null, "the HERO stage is instantiated"):
+		return
+	var cards := 0
+	for child in stage.find_children("*", "Button", true, false):
+		var button := child as Button
+		if button == null or not button.has_meta("hero_id"):
+			continue
+		cards += 1
+		var hero_id := StringName(str(button.get_meta("hero_id")))
+		var definition := HeroDefinition.load_definition(hero_id)
+		if not _expect(definition != null, "%s: the card reads a hero from the registry" % hero_id):
+			continue
+		_expect(
+			text_of(button).contains(definition.display_name.to_upper()),
+			(
+				"%s: the card names the hero the definition names (%s)"
+				% [hero_id, definition.display_name]
+			)
+		)
+		_expect(
+			text_of(button).to_upper().contains(
+				definition.role_description.substr(0, 24).to_upper()
+			),
+			"%s: the card's blurb is the definition's, not the screen's own" % hero_id
+		)
+	_expect(
+		cards == HeroDefinition.DEFINITION_IDS.size(),
+		(
+			"every hero in the registry gets a card (%d of %d)"
+			% [cards, HeroDefinition.DEFINITION_IDS.size()]
+		)
+	)
+
+	var dashboard: Control = _front_end.get_node_or_null("StageHost/DASHBOARD")
+	if dashboard != null:
+		for hero_id in HeroDefinition.DEFINITION_IDS:
+			var shown := String(dashboard.call("_hero_name", hero_id))
+			var definition := HeroDefinition.load_definition(hero_id)
+			_expect(
+				shown == definition.display_name.to_upper(),
+				"the dashboard calls %s '%s', the name in its own definition" % [hero_id, shown]
+			)
+
+
+## Same argument for worlds, plus the one that actually bites: the WORLD card
+## advertises a theatre and LAUNCH loads `main.tscn`, and nothing tied the two
+## together. The definition declares which scene the theatre *is*, and this
+## check instantiates the gameplay scene and looks for a node whose
+## `scene_file_path` is that file. A card naming a world the launcher does not
+## contain fails here instead of loading an empty arena on a player's phone.
+func _check_world_roster_is_one_list() -> void:
+	for world_id in WorldDefinition.DEFINITION_PATHS:
+		var definition := WorldDefinition.load_definition(world_id)
+		if not _expect(definition != null, "%s: the registry entry loads" % world_id):
+			continue
+		_expect(
+			definition.world_id == world_id,
+			"%s: the file's own id matches the key it is registered under" % world_id
+		)
+		_expect(
+			definition.is_valid_definition(),
+			"%s: the definition is complete (name, blurb, status, scene, plate on disk)" % world_id
+		)
+		if definition.world_scene == null:
+			continue
+		var gameplay := (load(FrontEnd.GAMEPLAY_SCENE) as PackedScene).instantiate()
+		if not _expect(gameplay != null, "the gameplay scene FrontEnd launches instantiates"):
+			continue
+		var paths: Array[String] = []
+		_collect_scene_paths(gameplay, paths)
+		_expect(
+			paths.has(definition.world_scene.resource_path),
+			(
+				"%s: the scene the card advertises is inside %s (%d scenes found)"
+				% [world_id, FrontEnd.GAMEPLAY_SCENE, paths.size()]
+			)
+		)
+		# Never added to the tree, so the run never starts; freed so the suite
+		# does not leave a whole arena in ObjectDB behind it.
+		gameplay.free()
+
+	_expect(
+		ProgressionService.WORLD_IDS == WorldDefinition.DEFINITION_IDS,
+		(
+			(
+				"ProgressionService.WORLD_IDS and WorldDefinition.DEFINITION_IDS are the same list"
+				+ " (%d vs %d)"
+			)
+			% [ProgressionService.WORLD_IDS.size(), WorldDefinition.DEFINITION_IDS.size()]
+		)
+	)
+	_expect(
+		WorldDefinition.DEFINITION_IDS.has(ProgressionService.DEFAULT_WORLD_ID),
+		"the default world is a real registry entry, not an id that was deleted"
+	)
+
+	if _front_end == null:
+		return
+	_front_end.go_to(&"WORLD", {})
+	await process_frame
+	await process_frame
+	var stage: Control = _front_end.get_node_or_null("StageHost/WORLD")
+	if not _expect(stage != null, "the WORLD stage is instantiated"):
+		return
+	var cards := 0
+	for child in stage.find_children("*", "Button", true, false):
+		var button := child as Button
+		if button == null or not button.has_meta("world_id"):
+			continue
+		cards += 1
+		var world_id := StringName(str(button.get_meta("world_id")))
+		var definition := WorldDefinition.load_definition(world_id)
+		if not _expect(
+			definition != null, "%s: the card reads a world from the registry" % world_id
+		):
+			continue
+		_expect(
+			text_of(button).contains(definition.display_name.to_upper()),
+			(
+				"%s: the card names the world the definition names (%s)"
+				% [world_id, definition.display_name]
+			)
+		)
+	_expect(
+		cards == WorldDefinition.DEFINITION_IDS.size(),
+		(
+			"every world in the registry gets a card (%d of %d)"
+			% [cards, WorldDefinition.DEFINITION_IDS.size()]
+		)
+	)
+
+	var dashboard: Control = _front_end.get_node_or_null("StageHost/DASHBOARD")
+	if dashboard != null:
+		for world_id in WorldDefinition.DEFINITION_IDS:
+			var shown := String(dashboard.call("_world_name", world_id))
+			var definition := WorldDefinition.load_definition(world_id)
+			_expect(
+				shown == definition.display_name.to_upper(),
+				"the dashboard calls %s '%s', the name in its own definition" % [world_id, shown]
+			)
+
+	# The cinematic names the theatre in its second caption. This is a wiring
+	# check, not a drift check: renaming the definition moves both sides
+	# together, so what it proves is that the line is still *derived*. Drift is
+	# what `_check_no_roster_literals_in_screens` catches -- a name typed into
+	# the cinematic instead of read from the registry fails there.
+	var caption := String(CinematicStage._beat_caption(1))
+	for world_id in WorldDefinition.DEFINITION_IDS:
+		var definition := WorldDefinition.load_definition(world_id)
+		if definition == null:
+			continue
+		_expect(
+			caption.contains(definition.display_name.to_upper()),
+			"the opening names the theatre it drops into ('%s')" % caption
+		)
+
+
+## The other half of the same rule, and the half that can actually fail.
+## "The card prints the definition's name" is close to a tautology when both
+## read the same file -- rename the file and they agree again. What has to be
+## impossible is the screen spelling the name *itself*: that is the copy that
+## drifts, because a rename touches the card and the registry but not the
+## literal. So this reads each screen's own source and fails if it contains any
+## roster name or portrait/plate path as a string literal.
+func _check_no_roster_literals_in_screens() -> void:
+	var screens := {
+		"HERO": "res://scripts/ui/menus/stage_hero_select.gd",
+		"WORLD": "res://scripts/ui/menus/stage_world_select.gd",
+		"DASHBOARD": "res://scripts/ui/menus/stage_dashboard.gd",
+		"CINEMATIC": "res://scripts/ui/menus/stage_cinematic.gd",
+	}
+	var owned: Array[String] = []
+	for definition in HeroDefinition.load_all_definitions():
+		owned.append(definition.display_name)
+		owned.append(definition.portrait_path)
+	for definition in WorldDefinition.load_all_definitions():
+		owned.append(definition.display_name)
+		owned.append(definition.plate_path)
+	for screen_name in screens:
+		var path: String = screens[screen_name]
+		var source := FileAccess.get_file_as_string(path)
+		if not _expect(not source.is_empty(), "%s: the screen's source can be read" % screen_name):
+			continue
+		var upper := source.to_upper()
+		for literal in owned:
+			if literal.is_empty():
+				continue
+			_expect(
+				not upper.contains(literal.to_upper()),
+				(
+					"%s: '%s' is not spelled out in the screen -- it belongs to the registry"
+					% [screen_name, literal]
+				)
+			)
+
+
 ## Back to "owns the starter weapon and nothing else".
 func _reset_unlocks() -> void:
 	_profile.set("unlocked_ids", {String(ProgressionService.DEFAULT_WEAPON_ID): true})
@@ -490,6 +747,14 @@ func _definitions_match(a: WeaponDefinition, b: WeaponDefinition) -> bool:
 		and is_equal_approx(a.chain_radius, b.chain_radius)
 		and is_equal_approx(a.chain_damage_multiplier, b.chain_damage_multiplier)
 	)
+
+
+## Every PackedScene-node in a subtree, by the file it was instantiated from.
+func _collect_scene_paths(node: Node, found: Array[String]) -> void:
+	if node.scene_file_path != "" and not found.has(node.scene_file_path):
+		found.append(node.scene_file_path)
+	for child in node.get_children():
+		_collect_scene_paths(child, found)
 
 
 ## Compared by path, not identity: the two lists load the same file through

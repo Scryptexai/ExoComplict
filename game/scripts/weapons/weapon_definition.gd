@@ -25,6 +25,12 @@ const DEFINITION_IDS: Array[StringName] = [
 	&"arc_shooter",
 ]
 
+## The weapon a fresh profile equips, and the one `ProgressionService` falls
+## back to when a save names an id that no longer exists. It is read from here
+## rather than typed again in the service so that deleting a weapon from the
+## registry cannot leave a default pointing at nothing.
+const DEFAULT_WEAPON_ID := &"pulse_rifle"
+
 @export var weapon_id: StringName = &""
 @export var display_name: String = ""
 @export_multiline var role_description: String = ""

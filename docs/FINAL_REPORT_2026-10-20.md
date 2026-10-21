@@ -292,6 +292,7 @@ frame and cannot be photographed at all.
 | `hero_visibility_smoke` | 54 | **PASS** | BUG 1: the hero is skinned, in frustum, unoccluded, on screen |
 | `hud_safe_margin_smoke` | 246 | **PASS** | BUG 2: every docked control clears the reserved edge at 3 viewports |
 | `menu_layout_smoke` | 47 | **PASS** | nothing outside the viewport, no button under 56 px, every card list scrolls to the end and moves its cards, and a synthetic thumb drag scrolls every list as far as its range allows (7 stage/size cases) — at 4 sizes, 12 of the 16 combinations reached by rotating a live screen |
+| `data_source_smoke` | 186 | **PASS** | one source of truth: the weapon card, the player scene's controller and the `.tres` files agree; the hero and world registries, `ProgressionService`, the HERO/WORLD cards, the dashboard and the cinematic caption are all the same list; the world a card advertises is inside the scene LAUNCH loads; and no screen spells out a roster name of its own |
 | `ui_art_smoke` | 48 | **PASS** | all nine textures load in-engine at the documented size |
 | `video_asset_smoke` | 17 | **PASS** | both OGVs decode in-engine: measured sizes 512×512 / 1280×720, lengths 0.50 s / 9.58 s matching the manifest, playback advances, both stages bind the file, a missing file loads as `null` instead of crashing |
 | `hero_rig_smoke`, `weapon_system_smoke`, `arc_weapon_smoke`, `wave_director_smoke`, `shooter_enemy_smoke`, `runner_standoff_smoke`, `enemy_visual_smoke`, `effects_smoke`, `combat_feedback_smoke`, `exploration_flow_smoke`, `progression_smoke`, `reward_loop_smoke`, `playability_hud_smoke`, `pause_gesture_smoke`, `hud_editor_smoke`, `ui_settings_smoke`, `neon_frontier_world_smoke`, `arena_blockout_smoke`, `audio_smoke` | (single summary line each) | **PASS** | no regression from this session's work |
@@ -315,7 +316,69 @@ above, and carry the video evidence:
 
 ---
 
-## 8. Remaining issues
+## 8. One source of truth for hero, weapon and world data
+
+The brief asked for one place where hero, weapon, world, resource and
+progression data lives. Auditing it turned up three separate copies of the same
+facts, in three different shapes:
+
+| Fact | Where it lived | What that allowed |
+| --- | --- | --- |
+| Weapon numbers | `stage_weapon_select.gd` (printed on the card) and `player.tscn`'s `weapon_definitions` (what actually fires) | a card quoting 18 damage for a gun that fires 20 |
+| Hero name | the HERO card, `stage_dashboard.gd`'s loadout line, and `ProgressionService.HERO_IDS` | a rename that catches two of the three |
+| World name | the WORLD card, the dashboard, the cinematic's theatre caption, and `ProgressionService.WORLD_IDS` | the same, in four places |
+
+Weapons were already fixed this session (`WeaponDefinition` is now read by both
+sides). Heroes and worlds had no resource at all: the names were string literals
+and the ids were a hand-typed array.
+
+**What changed.**
+
+- `game/scripts/progression/hero_definition.gd` and `world_definition.gd` — new
+  `HeroDefinition` / `WorldDefinition` resources with the same registry shape as
+  `WeaponDefinition` (`DEFINITION_PATHS`, `DEFINITION_IDS`, `load_definition()`,
+  `load_all_definitions()`), plus `.tres` files under `game/resources/heroes/`
+  and `game/resources/worlds/`.
+- `ProgressionService.HERO_IDS` / `WORLD_IDS` / `WEAPON_IDS` and the three
+  `DEFAULT_*` ids are now *read from* those registries instead of being typed
+  again. Adding a hero is one `.tres`; every screen and the save system pick it
+  up, and a save naming an id that was deleted falls back to the registry's
+  default instead of to nothing.
+- The HERO and WORLD cards are built by iterating the registries, so the name,
+  blurb, status line, portrait and plate come from the resource. The locked
+  placeholder slots number themselves from the roster size (`SLOT 02`,
+  `THEATRE 02` today).
+- `stage_dashboard.gd`'s `_hero_name()` / `_world_name()` no longer contain an
+  `if id == DEFAULT: return "EXO OPERATIVE"` branch; they read the definition,
+  exactly as `_weapon_name()` already did.
+- The cinematic's theatre caption is built at runtime from `WorldDefinition`.
+- `WorldDefinition.world_scene` declares which arena the card is selling, and
+  LAUNCH's payload names `FrontEnd.GAMEPLAY_SCENE` rather than a third copy of
+  `res://scenes/main.tscn`.
+
+**What is deliberately *not* in them.** No per-hero health, speed or ability
+block and no per-world wave count or difficulty: neither has a model in this
+project, and a number a player can read that nothing in the game uses is exactly
+the decorative stat the brief rules out. The hero's portrait and the world's
+plate are paths to real files, and `is_valid_definition()` refuses a definition
+whose art does not exist on disk.
+
+**How drift is caught.** "The card prints the definition's name" is close to a
+tautology when both sides read the same file, so the suite checks the thing that
+can actually fail: `data_source_smoke.gd` reads each screen's *source* and fails
+if it spells out any roster name or art path as a literal. Two negative
+controls, run and then reverted: putting `const CONTROL_LITERAL :=
+"EXO OPERATIVE"` back into the HERO stage fails it ("'Exo Operative' is not
+spelled out in the screen"), and pointing a world's `world_scene` at a scene
+`main.tscn` does not contain fails the launch check. The suite went from 142 to
+186 assertions; the web payload was re-exported and the HERO, WORLD and
+DASHBOARD screens were re-measured in a browser build
+(`ExoOperativeCard`, `EXO OPERATIVE`, `NeonFrontierCard`, `NEON FRONTIER`,
+`STATUS  OPEN`, `THEATRE 02`).
+
+---
+
+## 9. Remaining issues
 
 | # | Issue | Status |
 | --- | --- | --- |

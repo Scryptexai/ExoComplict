@@ -10,13 +10,15 @@
 ## decoration that disagrees with gameplay. What the portrait shows is the
 ## concept art for the operative; docs/ART_DIRECTION.md §4 is explicit that the
 ## portrait is not the in-game model.
+##
+## The name, the blurb, the status line and the portrait path all come from the
+## `HeroDefinition` registry, so this screen cannot call the operative one thing
+## while the dashboard's loadout line calls it another.
 extends MenuStage
 
-const HERO_PORTRAIT := "res://assets/ui/portrait_hero.png"
-
-## The only id ProgressionService.HERO_IDS recognises.
-## The id is the progression service's, not a copy kept in the screen: a second
-## spelling of "exo_operative" is a second thing to keep in step.
+## The id the screen starts on. The roster is read from `HeroDefinition`, not
+## from a second list kept here: a second spelling of "exo_operative" is a
+## second thing to keep in step.
 const OPERATIVE_ID := ProgressionService.DEFAULT_HERO_ID
 ## How many slots the screen shows. Two are placeholders so the layout is not a
 ## single lonely card on a tablet; they are disabled, never selectable.
@@ -77,7 +79,8 @@ func _ready() -> void:
 	# width. A vertical list scrolls instead of overflowing.
 	var list: BoxContainer = _lists["column"]
 
-	list.add_child(_build_operative_card())
+	for definition in HeroDefinition.load_all_definitions():
+		list.add_child(_build_hero_card(definition))
 	for index in range(LOCKED_SLOTS):
 		list.add_child(_build_locked_card(index))
 
@@ -114,27 +117,34 @@ func refresh_profile() -> void:
 
 
 func _refresh() -> void:
-	_summary.text = "1 OPERATIVE FIELD READY · %d IN DEVELOPMENT" % LOCKED_SLOTS
+	var ready := HeroDefinition.DEFINITION_IDS.size()
+	_summary.text = (
+		"%d OPERATIVE%s FIELD READY · %d IN DEVELOPMENT"
+		% [ready, "" if ready == 1 else "S", LOCKED_SLOTS]
+	)
 	for card in _cards:
 		var id := StringName(str(card.get_meta("hero_id", "")))
-		var selectable := id == OPERATIVE_ID
+		# The service owns which heroes exist; a card for an id it does not
+		# know about is disabled even if a definition was written for it.
+		var selectable := ProgressionService.HERO_IDS.has(id)
 		card.disabled = not selectable
 		card.edge_active = selectable
 		card.set_pressed_no_signal(selectable)
 
 
-func _build_operative_card() -> Control:
+func _build_hero_card(definition: HeroDefinition) -> Control:
+	var hero_id := definition.hero_id
 	var card := AegisButton.new()
-	card.name = "OperativeCard"
+	card.name = "%sCard" % String(hero_id).to_pascal_case()
 	card.button_group = ButtonGroup.new()
-	card.set_meta("hero_id", String(OPERATIVE_ID))
+	card.set_meta("hero_id", String(hero_id))
 	card.toggle_mode = true
 	card.focus_mode = Control.FOCUS_ALL
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
-	card.tooltip_text = "Exo Operative — field ready"
+	card.tooltip_text = "%s — %s" % [definition.display_name, definition.status_line.to_lower()]
 	_size_both(card, Vector2(0.0, 190.0), Vector2(LANDSCAPE_CARD_WIDTH, 190.0))
 	_oriented.append(card)
-	card.pressed.connect(_on_card_pressed.bind(OPERATIVE_ID))
+	card.pressed.connect(_on_card_pressed.bind(hero_id))
 	AegisTheme.set_button_variant(card, "round")
 
 	var row := HBoxContainer.new()
@@ -144,7 +154,7 @@ func _build_operative_card() -> Control:
 	card.add_child(row)
 
 	var portrait := TextureRect.new()
-	portrait.texture = try_texture(HERO_PORTRAIT)
+	portrait.texture = try_texture(definition.portrait_path)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	_size_both(portrait, Vector2(130.0, 170.0), Vector2(100.0, 100.0))
@@ -157,19 +167,11 @@ func _build_operative_card() -> Control:
 	physical_separation(column, 6)
 	row.add_child(column)
 
-	column.add_child(card_line("EXO OPERATIVE", "title", AegisTokens.INK))
+	column.add_child(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK))
+	column.add_child(card_line(definition.role_description, "body_s", AegisTokens.INK_2))
 	column.add_child(
-		card_line(
-			(
-				"The operative fielded by the AEGIS training programme. Concept art"
-				+ " shown; the playable model is the rig measured in the hero"
-				+ " visibility report."
-			),
-			"body_s",
-			AegisTokens.INK_2
-		)
+		card_line("STATUS  %s" % definition.status_line.to_upper(), "label_s", AegisTokens.OK)
 	)
-	column.add_child(card_line("STATUS  FIELD READY", "label_s", AegisTokens.OK))
 	_cards.append(card)
 	return card
 
@@ -206,7 +208,14 @@ func _build_locked_card(index: int) -> Control:
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(column)
-	column.add_child(card_line("SLOT %02d" % (index + 2), "label", AegisTokens.LINE_HI))
+	# Slot numbers follow the roster: two heroes would make this SLOT 03.
+	column.add_child(
+		card_line(
+			"SLOT %02d" % (HeroDefinition.DEFINITION_IDS.size() + index + 1),
+			"label",
+			AegisTokens.LINE_HI
+		)
+	)
 	column.add_child(card_line("IN DEVELOPMENT", "title", AegisTokens.INK_3))
 	return card
 

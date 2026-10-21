@@ -68,7 +68,10 @@ moved between containers.
 | Screen | Key rects | Clearance |
 | --- | --- | --- |
 | DASHBOARD | `ARMORY=36,596,154x56` `SETTINGS=202,596,154x56` `REPLAY INTRO=36,664,320x56` `DEPLOY=36,732,320x60` | DEPLOY bottom 792, **52 px** clear of 844 |
-| HERO | `OperativeCard=36,132,318x190`, labels 174 px wide (was 753), `BACK=36,736,153x56` `CONTINUE=201,736,153x56` | buttons bottom 792, 52 px clear |
+> Node names in this table were recorded before the HERO card was named from the
+> hero id; the card is now `ExoOperativeCard`, and the rects are unchanged.
+
+| HERO | `ExoOperativeCard=36,132,318x190`, labels 174 px wide (was 753), `BACK=36,736,153x56` `CONTINUE=201,736,153x56` | buttons bottom 792, 52 px clear |
 | WEAPON | `PulseRifleCard=36,115,316x216` with all four lines ending inside the card (was 132, text 100 px past it), `BACK=36,736,153x56` `CONTINUE=201,736,153x56` | 52 px clear |
 | WORLD | `NeonFrontierCard=36,115,318x168`, blurb `184x83` (was `64x284`), `BACK=36,736,153x56` `LAUNCH=201,736,153x56` | 52 px clear |
 
@@ -77,7 +80,7 @@ moved between containers.
 | Screen | Key rects | Clearance |
 | --- | --- | --- |
 | DASHBOARD | `PROFILE=36,120,381x16` (stats left) · `ARMORY=427,141,185x56` `SETTINGS=623,141,185x56` `REPLAY INTRO=427,210,381x56` `DEPLOY=427,278,381x60` | DEPLOY bottom 338, **52 px** clear of 390 (was y=444, off screen) |
-| HERO | info column 300 px: `SELECT OPERATIVE=36,54,300x20`, `BACK=36,282,144x56` `CONTINUE=191,282,144x56` · cards `OperativeCard=346,54,340x190`, `LockedHeroCard0=698,54,200x190`, `LockedHeroCard1=910,54,200x190` | 52 px clear |
+| HERO | info column 300 px: `SELECT OPERATIVE=36,54,300x20`, `BACK=36,282,144x56` `CONTINUE=191,282,144x56` · cards `ExoOperativeCard=346,54,340x190`, `LockedHeroCard0=698,54,200x190`, `LockedHeroCard1=910,54,200x190` | 52 px clear |
 | WEAPON | `BACK=36,282,144x56` `CONTINUE=191,282,144x56` · cards `340x216` at x=346 / 698 / 1050, scrolling sideways | 52 px clear |
 | WORLD | `BACK=36,282,144x56` `LAUNCH=191,282,144x56` · `NeonFrontierCard=346,54,340x168`, locked `170x168` | 52 px clear |
 

@@ -31,12 +31,18 @@ const STALL_SECONDS := 2.5
 ## Assumed until the decoder reports the real frame size.
 const DEFAULT_FRAME_SIZE := Vector2(1280.0, 720.0)
 
+## Three of the four caption beats. The missing one is the theatre line, and it
+## is built at runtime (see `_beat_caption`) because the theatre's name is the
+## world definition's, not a literal kept here as well.
 const CAPTIONS := [
 	"AEGIS TRAINING FACILITY",
-	"NEON FRONTIER — SECTOR 01",
 	"HOSTILE WAVES INBOUND",
 	"SURVIVE · EARN BATTLE POINTS · UNLOCK",
 ]
+
+## The sector the opening drops into. There is no sector data model, so this
+## half of the theatre line stays a literal; the theatre's name does not.
+const CAPTION_SECTOR := "SECTOR 01"
 
 var _video: VideoStreamPlayer
 var _plate: TextureRect
@@ -142,7 +148,7 @@ func _ready() -> void:
 func enter(_stage_payload: Dictionary) -> void:
 	_reduce_motion = bool(AegisPreferences.read().get("reduce_motion", false))
 	_elapsed = 0.0
-	_total = CAPTIONS.size() * BEAT_SECONDS
+	_total = _captions_count() * BEAT_SECONDS
 	_beat = -1
 	_finished = false
 	_position.value = 0.0
@@ -206,7 +212,7 @@ func _process(delta: float) -> void:
 		_plate.scale = Vector2.ONE * lerpf(1.0, PUSH_SCALE, eased)
 		_plate.pivot_offset = _plate.size * 0.5
 	var beat := int(_elapsed / BEAT_SECONDS)
-	if beat != _beat and beat < CAPTIONS.size():
+	if beat != _beat and beat < _captions_count():
 		_beat = beat
 		_advance_beat()
 	if _elapsed >= _total:
@@ -214,12 +220,12 @@ func _process(delta: float) -> void:
 
 
 func _advance_beat() -> void:
-	if _beat < 0 or _beat >= CAPTIONS.size():
+	if _beat < 0 or _beat >= _captions_count():
 		return
-	_caption.text = CAPTIONS[_beat]
+	_caption.text = _beat_caption(_beat)
 	# The wordmark only lands with the last caption, so the title is revealed
 	# by the intro rather than competing with it for the first eight seconds.
-	if _beat == CAPTIONS.size() - 1:
+	if _beat == _captions_count() - 1:
 		_fade(_mark, 1.0)
 	if _reduce_motion:
 		_caption.modulate.a = 1.0
@@ -258,7 +264,7 @@ func _watch_video(delta: float) -> bool:
 func _fallback_to_composed() -> void:
 	_video.visible = false
 	_video.stop()
-	_total = CAPTIONS.size() * BEAT_SECONDS
+	_total = _captions_count() * BEAT_SECONDS
 	_elapsed = _last_position
 	_stall = 0.0
 
@@ -308,3 +314,28 @@ func _finish() -> void:
 func _on_resized() -> void:
 	relayout()
 	_layout_video()
+
+
+## Four beats: the facility line, then the theatre, then the two closing lines.
+static func _captions_count() -> int:
+	return CAPTIONS.size() + 1
+
+
+## The theatre line is built from `WorldDefinition` rather than typed out, so
+## the opening cannot name one world while the WORLD card and the dashboard
+## name another. If the definition is ever missing the id is spelled out
+## instead -- never a remembered copy of the name.
+static func _beat_caption(beat: int) -> String:
+	if beat <= 0:
+		return CAPTIONS[0]
+	if beat == 1:
+		var world := WorldDefinition.load_definition(WorldDefinition.DEFAULT_WORLD_ID)
+		var theatre := (
+			String(WorldDefinition.DEFAULT_WORLD_ID).replace("_", " ").to_upper()
+			if world == null
+			else world.display_name.to_upper()
+		)
+		return "%s — %s" % [theatre, CAPTION_SECTOR]
+	if beat - 1 < CAPTIONS.size():
+		return CAPTIONS[beat - 1]
+	return ""

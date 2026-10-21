@@ -14,14 +14,21 @@ const MAX_VALUE := 99999999
 
 ## The only content that actually exists. The selection screens show these as
 ## pickable and everything else as LOCKED, so the front end cannot offer a hero,
-## weapon or world the game cannot load. Add an id here *only* when the matching
-## rig / WeaponDefinition / scene exists.
-const HERO_IDS: Array[StringName] = [&"exo_operative"]
-const WEAPON_IDS: Array[StringName] = [&"pulse_rifle", &"nova_launcher", &"arc_shooter"]
-const WORLD_IDS: Array[StringName] = [&"neon_frontier"]
-const DEFAULT_HERO_ID := &"exo_operative"
-const DEFAULT_WEAPON_ID := &"pulse_rifle"
-const DEFAULT_WORLD_ID := &"neon_frontier"
+## weapon or world the game cannot load.
+##
+## These lists are read out of the definition registries rather than typed here
+## as well. They used to be: an id added to one and not the other left
+## `select_weapon()` accepting an id no definition exists for, or a card
+## printing a name the service had never heard of. One direction of travel now:
+## add the rig / WeaponDefinition / scene, add the `.tres`, and every screen and
+## this service pick it up. `data_source_smoke.gd` asserts the registries and
+## these constants still describe the same content.
+const HERO_IDS: Array[StringName] = HeroDefinition.DEFINITION_IDS
+const WEAPON_IDS: Array[StringName] = WeaponDefinition.DEFINITION_IDS
+const WORLD_IDS: Array[StringName] = WorldDefinition.DEFINITION_IDS
+const DEFAULT_HERO_ID := HeroDefinition.DEFAULT_HERO_ID
+const DEFAULT_WEAPON_ID := WeaponDefinition.DEFAULT_WEAPON_ID
+const DEFAULT_WORLD_ID := WorldDefinition.DEFAULT_WORLD_ID
 
 ## Empty for isolated smoke fixtures; the shipped scene uses PROFILE_PATH.
 @export var profile_path: String = PROFILE_PATH

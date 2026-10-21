@@ -224,7 +224,10 @@ Measured, in physical pixels, from the browser's own rect report
 | Screen | 390x844 | 844x390 |
 | --- | --- | --- |
 | DASHBOARD | `DEPLOY=36,732,320x60` | `DEPLOY=427,278,381x60` (was `36,444` — off screen) |
-| HERO | `OperativeCard=36,132,318x190`, `BACK=36,736,153x56` | `OperativeCard=346,54,340x190`, `BACK=36,282,144x56` |
+> Node names in this table were recorded before the HERO card was named from the
+> hero id; the card is now `ExoOperativeCard`, and the rects are unchanged.
+
+| HERO | `ExoOperativeCard=36,132,318x190`, `BACK=36,736,153x56` | `ExoOperativeCard=346,54,340x190`, `BACK=36,282,144x56` |
 | WEAPON | `PulseRifleCard=36,115,316x216`, `CONTINUE=201,736,153x56` | `PulseRifleCard=346,54,340x216`, `CONTINUE=191,282,144x56` |
 | WORLD | `NeonFrontierCard=36,115,318x168`, `LAUNCH=201,736,153x56` | `NeonFrontierCard=346,54,340x168`, `LAUNCH` bottom right |
 
@@ -286,5 +289,30 @@ still moves it, and a tap still reaches the engine (`card pressed pulse_rifle`).
 `menu_layout_smoke.gd` now drives the same gesture headlessly — 7 cases, each
 scrolling as far as its range allows — and it reports 0 px against the unfixed
 build, so it fails for the right reason.
+
+## The roster is one list
+
+The HERO, WEAPON and WORLD screens, the dashboard's loadout line, the
+cinematic's theatre caption and `ProgressionService` used to each keep their own
+copy of the same names -- the world's name in four places, the hero's in three.
+They now read `HeroDefinition`, `WeaponDefinition` and `WorldDefinition`, and
+the progression service's id lists and defaults are read *out of* those
+registries rather than typed again beside them. The screens are built by
+iterating the registries, so a second hero or world is one `.tres` file, not a
+hunt through five scripts.
+
+What the suite can prove about that is narrower than it looks, and it is worth
+saying so: "the card prints the definition's name" is nearly a tautology when
+both sides read one file -- rename it and they agree again. The check that can
+actually fail reads each screen's *source* and fails if it spells out a roster
+name or an art path as a literal, which is the copy that drifts. Two controls
+were run and reverted: a `const` naming "EXO OPERATIVE" added back to the HERO
+stage fails it, and a world whose `world_scene` is not inside `main.tscn` fails
+the launch check. `data_source_smoke.gd` carries all of it, 186 assertions.
+
+No hero or world stat block was created along the way. There is no per-hero
+health, speed or ability in this project and no per-world wave count in data, so
+a number in the resource would be decoration -- readable by the player, used by
+nothing.
 
 Results are recorded in `docs/asset-inspections/` once the suite has been run.

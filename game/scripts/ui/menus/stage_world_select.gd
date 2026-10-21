@@ -5,11 +5,14 @@
 ## button that looked playable but loaded nothing would be the exact failure
 ## this project is trying to avoid, so the placeholders are disabled and never
 ## hand an id to the preloader.
+##
+## The name, blurb, plate, status and *scene* come from the `WorldDefinition`
+## registry, and the launch payload names the scene `FrontEnd.GAMEPLAY_SCENE`
+## rather than a third copy of the path. `data_source_smoke.gd` instantiates
+## the gameplay scene and looks for the world the card advertises, so a card
+## naming a theatre the launcher does not contain fails the suite.
 extends MenuStage
 
-const WORLD_PLATE := "res://assets/ui/world_neon_frontier.jpg"
-## Same reasoning as the hero id: one owner for the id.
-const FRONTIER_ID := ProgressionService.DEFAULT_WORLD_ID
 const LOCKED_SLOTS := 2
 
 var _cards: Array[AegisButton] = []
@@ -33,7 +36,11 @@ var _summary: Label
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(make_backdrop(WORLD_PLATE))
+	# The backdrop is the first theatre's own plate, read from the registry the
+	# cards are built from, so the screen cannot fade in behind one image while
+	# the card below it shows another.
+	var definitions := WorldDefinition.load_all_definitions()
+	add_child(make_backdrop("" if definitions.is_empty() else definitions[0].plate_path))
 	var scrim := ColorRect.new()
 	scrim.color = Color(AegisTokens.VOID, 0.55)
 	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -62,7 +69,8 @@ func _ready() -> void:
 
 	var list: BoxContainer = _lists["column"]
 	var group := ButtonGroup.new()
-	list.add_child(_build_world_card(group))
+	for definition in definitions:
+		list.add_child(_build_world_card(group, definition))
 	for index in range(LOCKED_SLOTS):
 		list.add_child(_build_locked_card(index))
 
@@ -97,17 +105,18 @@ func refresh_profile() -> void:
 	_refresh()
 
 
-func _build_world_card(group: ButtonGroup) -> Control:
+func _build_world_card(group: ButtonGroup, definition: WorldDefinition) -> Control:
+	var world_id := definition.world_id
 	var card := AegisButton.new()
-	card.name = "NeonFrontierCard"
+	card.name = "%sCard" % String(world_id).to_pascal_case()
 	card.button_group = group
 	card.toggle_mode = true
 	card.focus_mode = Control.FOCUS_ALL
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
 	_size_both(card, Vector2(0.0, 168.0), Vector2(LANDSCAPE_CARD_WIDTH, 168.0))
 	_oriented.append(card)
-	card.set_meta("world_id", String(FRONTIER_ID))
-	card.pressed.connect(_on_card_pressed.bind(FRONTIER_ID))
+	card.set_meta("world_id", String(world_id))
+	card.pressed.connect(_on_card_pressed.bind(world_id))
 	AegisTheme.set_button_variant(card, "round")
 
 	var row := HBoxContainer.new()
@@ -117,7 +126,7 @@ func _build_world_card(group: ButtonGroup) -> Control:
 	card.add_child(row)
 
 	var plate := TextureRect.new()
-	plate.texture = try_texture(WORLD_PLATE)
+	plate.texture = try_texture(definition.plate_path)
 	plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	_size_both(plate, Vector2(120.0, 100.0), Vector2(100.0, 100.0))
@@ -129,19 +138,11 @@ func _build_world_card(group: ButtonGroup) -> Control:
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	physical_separation(column, 4)
 	row.add_child(column)
-	column.add_child(card_line("NEON FRONTIER", "title", AegisTokens.INK))
+	column.add_child(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK))
+	column.add_child(card_line(definition.role_description, "body_s", AegisTokens.INK_2))
 	column.add_child(
-		card_line(
-			(
-				"An open training arena with raised platforms and sightlines to the"
-				+ " edge of the grid. Wave defence, exploration and the weapon range"
-				+ " all run here."
-			),
-			"body_s",
-			AegisTokens.INK_2
-		)
+		card_line("STATUS  %s" % definition.status_line.to_upper(), "label_s", AegisTokens.OK)
 	)
-	column.add_child(card_line("STATUS  OPEN", "label_s", AegisTokens.OK))
 
 	_cards.append(card)
 	return card
@@ -163,7 +164,14 @@ func _build_locked_card(index: int) -> Control:
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	card.add_child(column)
-	column.add_child(card_line("THEATRE %02d" % (index + 2), "label", AegisTokens.LINE_HI))
+	# Theatre numbers follow the roster: two worlds would make this THEATRE 03.
+	column.add_child(
+		card_line(
+			"THEATRE %02d" % (WorldDefinition.DEFINITION_IDS.size() + index + 1),
+			"label",
+			AegisTokens.LINE_HI
+		)
+	)
 	column.add_child(card_line("IN DEVELOPMENT", "title", AegisTokens.INK_3))
 	return card
 
@@ -178,7 +186,11 @@ func _refresh() -> void:
 		var is_selected := id == selected
 		card.edge_active = is_selected
 		card.set_pressed_no_signal(is_selected)
-	_summary.text = "1 THEATRE OPEN · %d IN DEVELOPMENT" % LOCKED_SLOTS
+	var open_count := WorldDefinition.DEFINITION_IDS.size()
+	_summary.text = (
+		"%d THEATRE%s OPEN · %d IN DEVELOPMENT"
+		% [open_count, "" if open_count == 1 else "S", LOCKED_SLOTS]
+	)
 
 
 func _on_card_pressed(world_id: StringName) -> void:
@@ -202,9 +214,9 @@ func _on_launch_pressed() -> void:
 		. emit(
 			&"PRELOAD",
 			{
-				"scene": "res://scenes/main.tscn",
+				"scene": FrontEnd.GAMEPLAY_SCENE,
 				"title": "PREPARING DROP",
-				"targets": ["res://scenes/main.tscn"],
+				"targets": [FrontEnd.GAMEPLAY_SCENE],
 				"weapon_id": String(progression.selected_weapon_id),
 				"world_id": String(progression.selected_world_id),
 			}
