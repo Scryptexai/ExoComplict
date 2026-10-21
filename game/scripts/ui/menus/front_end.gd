@@ -166,8 +166,8 @@ func report_menu_rects() -> void:
 	if not bool(JavaScriptBridge.eval("new URLSearchParams(location.search).has('qa_menu')")):
 		return
 	var physical := Vector2(get_window().size)
-	var stretch := HudLayout.compute_stretch(self, physical)
-	var insets := HudLayout.measure_safe_insets(physical, DisplayServer.is_touchscreen_available())
+	var stretch := UiLayout.compute_stretch(self, physical)
+	var insets := UiLayout.measure_safe_insets(physical, DisplayServer.is_touchscreen_available())
 	var lines := PackedStringArray()
 	lines.append("STAGE=%s" % _current_name)
 	(

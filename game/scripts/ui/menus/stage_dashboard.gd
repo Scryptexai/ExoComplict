@@ -18,7 +18,7 @@ var _balance: Label
 var _best: Label
 var _runs: Label
 var _loadout: Label
-var _armory: HudArmoryUi
+var _armory: ArmoryUi
 var _settings: AegisSettingsMenu
 var _armory_hint_owner: bool = false
 ## The four blocks the layout is built from. Portrait stacks them in `_stack`;
@@ -136,7 +136,7 @@ func _ready() -> void:
 	deploy.pressed.connect(_on_deploy_pressed)
 	actions.add_child(deploy)
 
-	_armory = HudArmoryUi.new()
+	_armory = ArmoryUi.new()
 	_armory.name = "ArmoryPanel"
 	_armory.visible = false
 	_armory.weapon_action_requested.connect(_on_weapon_action)

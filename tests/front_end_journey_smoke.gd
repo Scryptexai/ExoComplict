@@ -207,7 +207,7 @@ func _check_buttons_have_actions(stage: Node, label: String) -> void:
 
 ## The menus inherit the combat HUD's reserved edge. Headless reports no safe
 ## area, so this catches overflow past the viewport rather than past a notch --
-## the notch maths is shared with HudLayout and covered by
+## the notch maths is shared with UiLayout and covered by
 ## hud_safe_margin_smoke.gd.
 func _check_safe_area(stage: Control, label: String) -> void:
 	var bounds := Rect2(Vector2.ZERO, stage.size).grow(-4.0)

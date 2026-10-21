@@ -40,7 +40,7 @@ func _run() -> void:
 	var wallet := main.get_node("ProgressionService") as ProgressionService
 	var player := main.get_node("Player") as PlayerController
 	var hud := main.get_node("HUD/TouchControls") as TouchControls
-	var armory := hud.get("_armory_panel") as HudArmoryUi
+	var armory := hud.get("_armory_panel") as ArmoryUi
 	var open_button := hud.get("_armory_button") as Button
 	_expect(
 		(

@@ -1,8 +1,8 @@
 [
   {
     "file": "scripts/weapons/nova_projectile.gd",
-    "imports": "scripts/ui/aegis_preferences.gd",
-    "rule": "content may not import ui (scripts/ui/aegis_preferences.gd)"
+    "imports": "scripts/ui/settings/aegis_preferences.gd",
+    "rule": "content may not import ui (scripts/ui/settings/aegis_preferences.gd)"
   },
   {
     "file": "scripts/weapons/arc_projectile.gd",

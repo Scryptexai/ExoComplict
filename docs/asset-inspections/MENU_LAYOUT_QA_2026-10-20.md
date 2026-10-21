@@ -114,7 +114,7 @@ to have moved with it:
 | Gap | Why |
 | --- | --- |
 | A thumb drag on the landscape card row | **Engine-level blocker.** Godot gates touch panning on the platform: `scene/gui/scroll_container.cpp:237` returns early unless `DisplayServer::is_touchscreen_available()`, and the headless dummy display server never reports one. A synthetic `InputEventScreenDrag` moved the scroll by 0 px however it was sent — while a synthetic *click* pushed the same way does fire a Button's `pressed`, so input reaches the controls and it is specifically the touch-pan gate that is closed. The row's scroll range and the fact that scrolling moves the cards are measured (§3); that a finger produces the gesture is not. |
-| Real device safe areas | No Android device and no emulator (no JDK, no Android SDK). Insets come from `HudLayout.measure_safe_insets()`, whose synthetic model reports 8/8/28 in touch mode; a real notch or gesture bar may report more. |
+| Real device safe areas | No Android device and no emulator (no JDK, no Android SDK). Insets come from `UiLayout.measure_safe_insets()`, whose synthetic model reports 8/8/28 in touch mode; a real notch or gesture bar may report more. |
 | A physical rotation | The probe resizes the live viewport, which is what a rotation does to the layout; it does not exercise the platform's `DisplayServer` orientation signal, the OS re-layout or a real sensor. |
 | Touch scroll *momentum / deacceleration* | The same gate, plus it needs a device to observe. |
 | 120 Hz / very tall (21:9) displays | Not measured. |

@@ -19,7 +19,7 @@ static func install_entry(hud) -> void:
 
 
 static func install_panel(hud) -> void:
-	hud._armory_panel = HudArmoryUi.new()
+	hud._armory_panel = ArmoryUi.new()
 	hud._armory_panel.name = "ArmoryPanel"
 	hud.add_child(hud._armory_panel)
 	hud._armory_panel.weapon_action_requested.connect(hud.armory_weapon_action_requested.emit)

@@ -67,6 +67,9 @@ PATH_LAYERS: list[tuple[str, str, str]] = [
     (r"^core/", "core", ""),
     (r"^systems/", "systems", ""),
     (r"^ui/design/", "ui", "design"),
+    (r"^ui/hud/", "ui", "hud"),
+    (r"^ui/menus/", "ui", "menus"),
+    (r"^ui/settings/", "ui", "settings"),
     (r"^ui/", "ui", ""),
     (r"^content/([^/]+)/", "content", r"\1"),
     (r"^scenes/", FREE, ""),
@@ -87,7 +90,15 @@ PATH_LAYERS: list[tuple[str, str, str]] = [
     (r"^scripts/player/", "systems", ""),
     (r"^scripts/camera/", "systems", ""),
     (r"^scripts/waves/", "systems", ""),
-    (r"^scripts/ui/(aegis_tokens|aegis_theme|aegis_panel|aegis_button|aegis_ammo_chip)\.gd$", "ui", "design"),
+    # ui sub-modules, current tree. The old one-line rule named aegis_panel /
+    # aegis_button / aegis_ammo_chip at the top of scripts/ui/, where they have
+    # never lived (they are in widgets/), so it matched nothing at all and the
+    # design module was empty. Matching the folder is what was intended.
+    (r"^scripts/ui/hud/", "ui", "hud"),
+    (r"^scripts/ui/menus/", "ui", "menus"),
+    (r"^scripts/ui/settings/", "ui", "settings"),
+    (r"^scripts/ui/widgets/", "ui", "design"),
+    (r"^scripts/ui/(aegis_tokens|aegis_theme|aegis_preferences)\.gd$", "ui", "design"),
     (r"^scripts/ui/", "ui", ""),
     (r"^scripts/qa/", FREE, ""),
     (r"^scripts/main\.gd$", FREE, ""),
@@ -98,6 +109,13 @@ PATH_LAYERS: list[tuple[str, str, str]] = [
 ORDER = {"core": 0, "systems": 1, "content": 2, "ui": 3}
 
 ALLOWED_UPWARD = {("content", "ui")}  # content may use the design system only
+
+# Modules inside the ui layer that are shared by every screen. `design` is the
+# design system (tokens, theme, widgets, shared layout geometry); `settings` is
+# the preferences model plus the settings panel, which the HUD opens from pause
+# and the dashboard opens from its own page. Everything else in ui is one
+# screen's private code.
+SHARED_UI_MODULES = frozenset({"design", "settings"})
 
 
 def strip_gdscript(text: str) -> str:
@@ -251,6 +269,13 @@ def violation(src_layer: str, src_module: str, dst_layer: str, dst_module: str, 
             # Cross-module is allowed only into the other module's data/.
             if "/data/" not in target and not target.endswith("_definition.gd"):
                 return "content/%s reaches into content/%s internals" % (src_module, dst_module)
+        if src_layer == "ui" and src_module and dst_module and src_module != dst_module:
+            # The HUD and the front-end menus are two different screens and
+            # must not reach into each other: a HUD that imports menu stage code
+            # cannot be tested, previewed or shipped on its own, which is the
+            # whole point of separating them. Shared modules are exempt.
+            if dst_module not in SHARED_UI_MODULES:
+                return "ui/%s reaches into ui/%s (%s)" % (src_module, dst_module, target)
         return ""
     if dst_layer == "ui":
         if (src_layer, dst_layer) in ALLOWED_UPWARD and dst_module == "design":

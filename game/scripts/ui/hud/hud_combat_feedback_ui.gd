@@ -123,9 +123,9 @@ func layout_for(hud) -> void:
 				left = maxf(hud._to_layout(202.0), emp_limit - width)
 				if left + width > emp_limit:
 					width = maxf(hud._to_layout(96.0), emp_limit - left)
-		HudLayout.place(hud, self, 0.0, 0.0, 0.0, 0.0, Rect2(left, top, width, height))
+		UiLayout.place(hud, self, 0.0, 0.0, 0.0, 0.0, Rect2(left, top, width, height))
 	else:
-		HudLayout.place(
+		UiLayout.place(
 			hud,
 			self,
 			0.5,

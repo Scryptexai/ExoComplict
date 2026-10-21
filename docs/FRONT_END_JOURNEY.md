@@ -111,7 +111,7 @@ sixth row would be decoration disagreeing with gameplay.
 | Button | Action |
 | --- | --- |
 | DEPLOY | starts HERO → WEAPON → WORLD → PRELOAD |
-| ARMORY | `HudArmoryUi`, the in-game shop widget, spending real BP for real unlocks |
+| ARMORY | `ArmoryUi`, the in-game shop widget, spending real BP for real unlocks |
 | SETTINGS | `AegisSettingsMenu`, writing `user://aegis.cfg` |
 | REPLAY INTRO | clears `intro_seen` so the cinematic can be seen again without wiping anything |
 
@@ -178,7 +178,7 @@ overwritten by the saved choice.
 ## Safe area
 
 Menu screens call `MenuStage.apply_safe_margins()`, which uses
-`HudLayout.measure_safe_insets()` — the same function the combat HUD uses. The
+`UiLayout.measure_safe_insets()` — the same function the combat HUD uses. The
 pure form was extracted from `resolve_safe_insets()` so the two cannot drift,
 which is the failure BUG 2 was about. Back navigation is wired to `ui_cancel`
 with a per-stage `BACK_TARGET`, plus an on-screen BACK button on each selection

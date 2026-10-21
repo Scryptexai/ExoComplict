@@ -81,7 +81,7 @@ func exit() -> void:
 
 ## Physical window size, falling back to the viewport when there is no real
 ## window (headless runs report a 64x64 dummy, which would make every layout
-## decision wrong in the same way HudLayout guards against it).
+## decision wrong in the same way UiLayout guards against it).
 func physical_size() -> Vector2:
 	var window := get_window()
 	if is_instance_valid(window):
@@ -93,7 +93,7 @@ func physical_size() -> Vector2:
 
 ## Uniform canvas scale: how many physical pixels one layout unit occupies.
 func _stretch_factor(physical: Vector2) -> float:
-	return HudLayout.compute_stretch(self, physical)
+	return UiLayout.compute_stretch(self, physical)
 
 
 func _to_layout(physical_pixels: float, stretch: float) -> float:
@@ -104,7 +104,7 @@ func _to_layout(physical_pixels: float, stretch: float) -> float:
 ## combat HUD uses, so a notch or a gesture bar is respected in both instead of
 ## being handled twice and drifting apart.
 func _safe_insets(physical: Vector2) -> Vector3:
-	return HudLayout.measure_safe_insets(physical, _touch_mode())
+	return UiLayout.measure_safe_insets(physical, _touch_mode())
 
 
 func _touch_mode() -> bool:

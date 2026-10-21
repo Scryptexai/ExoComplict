@@ -6,7 +6,7 @@
 ## TouchControls would create a cyclic script reference, and the HUD is the only
 ## caller. Positions are expressed in physical design pixels and converted with
 ## the host's `_to_layout()` so the same numbers work at 390 px and at 1280 px.
-class_name HudLayout
+class_name UiLayout
 extends RefCounted
 
 

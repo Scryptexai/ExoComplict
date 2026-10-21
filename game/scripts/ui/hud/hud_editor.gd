@@ -60,7 +60,7 @@ func apply_layout(stretch: float, font_scale: float, physical_size: Vector2) -> 
 		if physical_size.x >= 1000.0
 		else (physical_size.x - width_px) * 0.5
 	)
-	HudLayout.place(
+	UiLayout.place(
 		_hud,
 		_inspector,
 		0.0,

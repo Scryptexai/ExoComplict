@@ -127,7 +127,7 @@ func _probe(stage_name: StringName, size_name: String, physical: Vector2) -> voi
 	var stage: Control = _front_end.get_node_or_null("StageHost/" + str(stage_name)) as Control
 	if not _expect(is_instance_valid(stage), "%s %s: stage is mounted" % [stage_name, size_name]):
 		return
-	var stretch: float = HudLayout.compute_stretch(stage, physical)
+	var stretch: float = UiLayout.compute_stretch(stage, physical)
 	var viewport := Rect2(Vector2.ZERO, physical)
 	var lines := PackedStringArray()
 	lines.append("STAGE=%s %s" % [stage_name, size_name])

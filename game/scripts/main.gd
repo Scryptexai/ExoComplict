@@ -5,7 +5,7 @@ enum SessionMode { EXPLORE, PREPARING, DEFENSE, RESULTS }
 const PlayerControllerScript = preload("res://scripts/player/player_controller.gd")
 const TrainingDroneScript = preload("res://scripts/enemies/training_drone.gd")
 const WaveDirectorScript = preload("res://scripts/waves/wave_director.gd")
-const TouchControlsScript = preload("res://scripts/ui/touch_controls.gd")
+const TouchControlsScript = preload("res://scripts/ui/hud/touch_controls.gd")
 const RunStatsScript = preload("res://scripts/progression/run_stats.gd")
 const RewardServiceScript = preload("res://scripts/progression/reward_service.gd")
 const ProgressionServiceScript = preload("res://scripts/progression/progression_service.gd")

@@ -72,7 +72,7 @@ var _stretch: float = 1.0
 var _ui_scale: float = 1.0
 var _top_inset: float = 0.0
 ## Usable-area margins in layout units, resolved per relayout by
-## HudLayout.resolve_safe_insets(). `_top_inset` is separate: the top bar
+## UiLayout.resolve_safe_insets(). `_top_inset` is separate: the top bar
 ## has its own web/editor chrome allowance.
 var _safe_left: float = 0.0
 var _safe_right: float = 0.0
@@ -98,7 +98,7 @@ var _score_chip: AegisPanel
 var _compact_card: AegisPanel
 var _help_panel: AegisPanel
 var _feedback_panel: HudCombatFeedbackUi
-var _armory_panel: HudArmoryUi
+var _armory_panel: ArmoryUi
 var _armory_button: AegisButton
 var _desktop_weapon_card: AegisPanel
 var _ads_chip: AegisPanel
@@ -1067,11 +1067,11 @@ func _layout_controls(
 	var physical_width := maxf(physical.x, 320.0)
 	var physical_height := maxf(physical.y, 320.0)
 	_stretch = (
-		stretch_override if stretch_override > 0.0 else HudLayout.compute_stretch(self, physical)
+		stretch_override if stretch_override > 0.0 else UiLayout.compute_stretch(self, physical)
 	)
 	_ui_scale = clampf(minf(physical_width, physical_height) / 720.0, 0.64, 1.0)
 	_top_inset = _resolve_top_inset()
-	HudLayout.resolve_safe_insets(self, physical)
+	UiLayout.resolve_safe_insets(self, physical)
 	_narrow = physical_width < NARROW_WIDTH
 	_portrait = physical_height > physical_width
 	if is_instance_valid(_desktop_hint):
@@ -1086,11 +1086,11 @@ func _layout_controls(
 	_refresh_card_styles()
 	_apply_font_scale()
 	if not _touch_mode and not _narrow:
-		HudLayout.desktop(self)
+		UiLayout.desktop(self)
 	elif _portrait:
-		HudLayout.touch_portrait(self)
+		UiLayout.touch_portrait(self)
 	else:
-		HudLayout.touch_landscape(self)
+		UiLayout.touch_landscape(self)
 	HudArmoryBridge.refresh_entry_label(self)
 
 	_layout_overlays()
@@ -1120,7 +1120,7 @@ func _layout_overlays() -> void:
 		_scrim.anchor_bottom = 1.0
 		_scrim.offset_right = 0.0
 		_scrim.offset_bottom = 0.0
-	HudLayout.overlays(self)
+	UiLayout.overlays(self)
 	if is_instance_valid(_feedback_panel):
 		_feedback_panel.layout_for(self)
 	if is_instance_valid(_armory_panel):
@@ -1130,7 +1130,7 @@ func _layout_overlays() -> void:
 		var width := minf(_to_layout(700.0), size.x * 0.94)
 		var height := minf(_to_layout(520.0), size.y * 0.90)
 		_settings_menu.custom_minimum_size = Vector2(width, height)
-		HudLayout.place(
+		UiLayout.place(
 			self,
 			_settings_menu,
 			0.5,
@@ -1408,7 +1408,7 @@ func _activate_touch_button(button: Button) -> void:
 
 
 func _is_over_hud(position: Vector2) -> bool:
-	return HudLayout.over_hud(self, position)
+	return UiLayout.over_hud(self, position)
 
 
 # --------------------------------------------------------------------------- #

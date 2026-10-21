@@ -1,7 +1,7 @@
 ## Small in-game economy screen. No submenu maze: the three actual weapon
 ## definitions are presented as buy/equip actions and the wallet is always in
 ## view. Main/ProgressionService validate every purchase; the UI owns no BP.
-class_name HudArmoryUi
+class_name ArmoryUi
 extends AegisPanel
 
 signal weapon_action_requested(weapon_id: StringName)
@@ -87,7 +87,7 @@ func layout_for(hud) -> void:
 	var width := minf(hud._to_layout(360.0 if sheet else 540.0), hud.size.x * 0.92)
 	var height := minf(hud._to_layout(406.0 if sheet else 348.0), hud.size.y * 0.92)
 	custom_minimum_size = Vector2(width, height)
-	HudLayout.place(
+	UiLayout.place(
 		hud, self, 0.5, 0.5, 0.5, 0.5, Rect2(-width * 0.5, -height * 0.5, width, height)
 	)
 	_column.add_theme_constant_override("separation", roundi(hud._to_layout(8.0 if sheet else 5.0)))
