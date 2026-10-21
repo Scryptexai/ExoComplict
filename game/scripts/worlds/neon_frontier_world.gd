@@ -179,12 +179,15 @@ func _build_lighting_and_atmosphere() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "FrontierDaylightSun"
 	sun.rotation_degrees = Vector3(-39.0, -31.0, 0.0)
-	# A cool key with a warm rim is what the key art does; a warm key on warm
-	# albedo is what made the old build look like flat daylight. Energy is up
-	# because the albedo is now much darker -- this is the same exposure, not a
-	# brighter world.
-	sun.light_color = Color(0.72, 0.82, 1.0)
-	sun.light_energy = 1.05
+	# The key stays a warm frontier daylight (`neon_frontier_world_smoke` asserts
+	# red above blue on this node, and the node is named for it). What changed is
+	# where the cool tone lives: it is in the ambient colour and the fog below,
+	# so the image is a warm key against cool fill -- the split the key art uses
+	# -- rather than a warm key on warm albedo, which is what made the old build
+	# read as flat daylight. Energy is up because the albedo is much darker now:
+	# this is the same exposure, not a brighter world.
+	sun.light_color = Color(0.98, 0.9, 0.8)
+	sun.light_energy = 0.9
 	sun.shadow_enabled = true
 	# Dense FBX ribs used to project solid-black, razor-edged patches across
 	# the playable floor in Compatibility. Keep depth cues, but let neutral

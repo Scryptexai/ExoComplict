@@ -167,16 +167,22 @@ const COLOR_DERIVATION := {
 ## the shipped build every wall surface was orange, which made the arena's
 ## perimeter the brightest thing on screen and pulled the eye away from the
 ## reactor -- the landmark the world is built around.
+##
+## The band is `trim`, not `hazard`, and that is load-bearing: painting the
+## "Orange" surface of every wall amber is exactly the defect above with a
+## narrower brush, since that surface covers most of the wall's face.
+## `world_palette_smoke.gd` fails if any `wall*` policy names hazard, so the
+## rule cannot quietly come back when someone re-tints a room.
 const POLICY := {
 	"floor": {"all": "floor"},
 	"floor_alt": {"all": "floor_alt"},
 	"floor_grate": {"all": "steel_light"},
-	"wall": {"Orange": "hazard", "all": "steel"},
-	"wall_b": {"Orange": "hazard", "all": "steel"},
-	"wall_c": {"Orange": "hazard", "all": "steel"},
-	"wall_cube": {"Orange": "hazard", "all": "steel"},
-	"wall_low": {"Orange": "hazard", "all": "panel"},
-	"doorway": {"Orange": "steel_light", "all": "trim"},
+	"wall": {"Orange": "trim", "all": "steel"},
+	"wall_b": {"Orange": "trim", "all": "steel"},
+	"wall_c": {"Orange": "trim", "all": "steel"},
+	"wall_cube": {"Orange": "trim", "all": "steel"},
+	"wall_low": {"Orange": "trim", "all": "panel"},
+	"doorway": {"Orange": "trim", "all": "trim"},
 	"column": {"all": "steel"},
 	"pillar": {"all": "steel"},
 	"crate": {"Orange": "hazard", "all": "panel"},
