@@ -19,6 +19,15 @@
 # Third-party archives (already LFS before this pass).
 *.zip filter=lfs diff=lfs merge=lfs -text
 
+# The web export templates are NOT under LFS either, same reason: they exist
+# so a local `godot --export-release` needs no 1.2 GB template download, and a
+# pointer is exactly what makes that impossible (all four are committed as
+# 133-byte pointers today — see docs/FINAL_REPORT_2026-10-20.md, which could
+# not unpack them). They are also what the web-preview job stages and pushes
+# on every run, and an LFS-filtered path is the one thing in that step that
+# needs git-lfs *and* a working LFS upload at push time.
+engine/web_templates/*.zip -filter -diff -merge
+
 # The web preview payload is deliberately NOT under LFS.
 #
 # It was, once, and it broke the thing it existed for: `web/index.wasm` and

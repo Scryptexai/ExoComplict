@@ -288,6 +288,10 @@ jobs:
           git commit -m "Refresh the committed web payload and templates [skip ci]" \
             -m "Exported by the web-preview job of run ${GITHUB_RUN_ID} from ${GITHUB_SHA:0:7}." \
             -m "Generated output only; no source changes belong here."
+          # The job log is not always retrievable through the API, so whatever
+          # decides this step is echoed as an annotation as well.
+          state() { git status --short | tr '\n' '|'; }
+          echo "::notice title=Payload commit::worktree=$(state)"
           for attempt in 1 2 3; do
             git fetch origin "$GITHUB_REF_NAME"
             # Parallel CI runs must not replace a newer source build with a
@@ -297,12 +301,20 @@ jobs:
               echo "::notice title=Stale preview skipped::A newer source commit needs its own Web export"
               exit 0
             fi
-            if git rebase "origin/${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}"; then
+            # autoStash: the export leaves machine-local files behind in the
+            # worktree, and rebase refuses to start on a dirty tree.
+            # -X theirs: the only files that can conflict here are the binary
+            # payload and the templates, and this run's fresh export is the
+            # newer truth for both.
+            if git -c rebase.autoStash=true rebase -X theirs "origin/${GITHUB_REF_NAME}" \
+              && git push origin "HEAD:${GITHUB_REF_NAME}"; then
               exit 0
             fi
+            echo "::warning title=Payload push retry ${attempt}::$(state)"
+            git rebase --abort 2>/dev/null || true
             sleep 4
           done
-          echo "::error title=Preview push failed::source branch moved during export"
+          echo "::error title=Preview push failed::$(state)"
           exit 1
 
       - name: Publish web preview summary
