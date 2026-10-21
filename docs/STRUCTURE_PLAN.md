@@ -158,11 +158,18 @@ stop shipping · Android CI workflow · 42 MB of root `.glb` into `source-assets
 · root Markdown consolidated under `docs/` with an `ARCHITECTURE.md` entry
 point. Gates: G1, G2, G4, G5.
 
-**Phase 1 — break up the HUD.**
-`ui/touch_controls.gd` (1,600 lines, fan-out 23) split into `ui/hud/`:
-`hud_layout` (geometry), `hud_renderer` (draw), `hud_input` (gestures),
-`hud_state` (what the HUD reflects), plus the existing widgets. UI files renamed
-to one convention. Gates: G1, G2, G3, G4, G5.
+**Phase 1 — break up the HUD.** *Partly done, 2026-10-21 (commits `8294bd4`,
+`f092fd3`).*
+
+Done: `scripts/ui/` split into `hud/`, `menus/`, `settings/` and shared
+(`ui_layout.gd`, `widgets/`); `touch_controls.gd` 1,600 → 1,462 lines with the
+touch dispatcher extracted to `hud/hud_touch_input.gd` (211 lines); the F10 QA
+rig taken out of `scenes/main.tscn`.
+
+Not done yet: `hud_state` (the run data the HUD reflects — health, wave, score,
+skill cooldown, phase — is still ~25 member variables on the facade), and the
+help/results/pause/settings panel callbacks. Those are the remaining 1,462
+lines, and they are the part that should shrink next. Gates: G1, G2, G3, G4, G5.
 
 **Phase 2 — the world module.**
 `neon_frontier_world.gd` (1,571) and `neon_frontier_asset.gd` (1,570) split
