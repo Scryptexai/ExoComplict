@@ -11,30 +11,39 @@ extends RefCounted
 
 static func build_outpost(world) -> void:
 	world._place_component(
-		COMMAND_SCENE, "OutpostCommandCenter", Vector3(-52.0, 0.0, -4.0), Vector3(0.0, 90.0, 0.0)
+		NeonFrontierScenes.COMMAND_SCENE,
+		"OutpostCommandCenter",
+		Vector3(-52.0, 0.0, -4.0),
+		Vector3(0.0, 90.0, 0.0)
 	)
 	world._place_component(
-		LAB_SCENE, "WeaponResearchLaboratory", Vector3(-47.0, 0.0, -28.0), Vector3(0.0, 90.0, 0.0)
+		NeonFrontierScenes.LAB_SCENE,
+		"WeaponResearchLaboratory",
+		Vector3(-47.0, 0.0, -28.0),
+		Vector3(0.0, 90.0, 0.0)
 	)
 	world._place_component(
-		DEPOT_SCENE, "FieldEquipmentDepot", Vector3(-49.0, 0.0, 19.0), Vector3(0.0, -90.0, 0.0)
+		NeonFrontierScenes.DEPOT_SCENE,
+		"FieldEquipmentDepot",
+		Vector3(-49.0, 0.0, 19.0),
+		Vector3(0.0, -90.0, 0.0)
 	)
 	world._place_component(
-		SENSOR_SCENE,
+		NeonFrontierScenes.SENSOR_SCENE,
 		"WestObservationTower",
 		Vector3(-72.0, 0.0, -22.0),
 		Vector3(0.0, 18.0, 0.0),
 		Vector3(0.9, 1.0, 0.9)
 	)
 	world._place_component(
-		SENSOR_SCENE,
+		NeonFrontierScenes.SENSOR_SCENE,
 		"SouthwestSignalTower",
 		Vector3(-69.0, 0.0, 31.0),
 		Vector3(0.0, -14.0, 0.0),
 		Vector3(0.82, 0.88, 0.82)
 	)
 	world._place_component(
-		LANDING_PAD_SCENE,
+		NeonFrontierScenes.LANDING_PAD_SCENE,
 		"EastVehicleLandingPlatform",
 		Vector3(52.0, 0.0, 5.0),
 		Vector3(0.0, -12.0, 0.0),
@@ -80,7 +89,7 @@ static func build_outpost(world) -> void:
 		Vector3(0.18, 0.04, 40.0),
 		world._materials["yellow"]
 	)
-	ScifiBayBuilder.place(
+	NeonFrontierScenes.ScifiBayBuilder.place(
 		world,
 		"console_large",
 		"SciFiOutpostServiceBay",
@@ -93,7 +102,7 @@ static func build_outpost(world) -> void:
 	for crate_index in range(6):
 		var x := -37.0 + float(crate_index % 3) * 2.2
 		var z := 14.0 + float(crate_index / 3) * 2.0
-		ScifiBayBuilder.place(
+		NeonFrontierScenes.ScifiBayBuilder.place(
 			world,
 			"crate",
 			"SciFiOutpostSupply_%02d" % crate_index,
@@ -136,12 +145,12 @@ static func build_outpost(world) -> void:
 
 static func build_extraction_zone(world) -> void:
 	world._place_component(
-		GENERATOR_SCENE,
+		NeonFrontierScenes.GENERATOR_SCENE,
 		"FrontierEnergyExtractionBank",
 		Vector3(43.0, 0.0, -35.0),
 		Vector3(0.0, 180.0, 0.0)
 	)
-	ScifiBayBuilder.place(
+	NeonFrontierScenes.ScifiBayBuilder.place(
 		world,
 		"wall_pipes",
 		"SciFiExtractionPipeArray",
@@ -151,7 +160,7 @@ static func build_extraction_zone(world) -> void:
 		true,
 		true
 	)
-	ScifiBayBuilder.place(
+	NeonFrontierScenes.ScifiBayBuilder.place(
 		world,
 		"console_large",
 		"SciFiExtractionController",
@@ -162,7 +171,7 @@ static func build_extraction_zone(world) -> void:
 		true
 	)
 	world._place_component(
-		SENSOR_SCENE,
+		NeonFrontierScenes.SENSOR_SCENE,
 		"ExtractionSensorMast",
 		Vector3(66.0, 0.0, -43.0),
 		Vector3(0.0, 42.0, 0.0),

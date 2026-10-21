@@ -114,7 +114,9 @@ static func build_boss_encounter_zone(world) -> void:
 		Vector3(2.5, 0.0, 0.0),
 		true
 	)
-	world._place_component(BOSS_GATE_SCENE, "ColossalDockingGate", Vector3(0.0, 0.0, -83.0))
+	world._place_component(
+		NeonFrontierScenes.BOSS_GATE_SCENE, "ColossalDockingGate", Vector3(0.0, 0.0, -83.0)
+	)
 	for side in [-1.0, 1.0]:
 		world._add_box(
 			"BossArenaSupportPillar",
@@ -147,7 +149,7 @@ static func build_defense_perimeter(world) -> void:
 	]
 	for turret_index in range(turret_positions.size()):
 		world._place_component(
-			TURRET_SCENE,
+			NeonFrontierScenes.TURRET_SCENE,
 			"PerimeterDefenseTurret_%02d" % turret_index,
 			turret_positions[turret_index],
 			Vector3(0.0, float(turret_index) * 53.0, 0.0),
@@ -174,7 +176,7 @@ static func build_defense_perimeter(world) -> void:
 	]
 	for gate_data in perimeter_gate_data:
 		world._place_component(
-			SPAWN_GATE_SCENE,
+			NeonFrontierScenes.SPAWN_GATE_SCENE,
 			str(gate_data.name),
 			gate_data.position,
 			gate_data.rotation,
@@ -182,14 +184,14 @@ static func build_defense_perimeter(world) -> void:
 		)
 
 	world._place_component(
-		SENSOR_SCENE,
+		NeonFrontierScenes.SENSOR_SCENE,
 		"EastPerimeterSensor",
 		Vector3(79.0, 0.0, 6.0),
 		Vector3(0.0, -15.0, 0.0),
 		Vector3(0.9, 1.1, 0.9)
 	)
 	world._place_component(
-		SENSOR_SCENE,
+		NeonFrontierScenes.SENSOR_SCENE,
 		"NorthPerimeterSensor",
 		Vector3(41.0, 0.0, -73.0),
 		Vector3(0.0, 26.0, 0.0),
@@ -251,14 +253,14 @@ static func build_defense_perimeter(world) -> void:
 		)
 
 	world._place_component(
-		SENSOR_SCENE,
+		NeonFrontierScenes.SENSOR_SCENE,
 		"NorthwestRadarTower",
 		Vector3(-73.0, 0.0, -66.0),
 		Vector3.ZERO,
 		Vector3(0.72, 0.75, 0.72)
 	)
 	world._place_component(
-		SENSOR_SCENE,
+		NeonFrontierScenes.SENSOR_SCENE,
 		"SoutheastRadarTower",
 		Vector3(70.0, 0.0, 57.0),
 		Vector3(0.0, 70.0, 0.0),

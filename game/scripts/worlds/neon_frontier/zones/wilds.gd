@@ -15,28 +15,28 @@ extends RefCounted
 
 static func build_destroyed_frontier_sector(world) -> void:
 	world._place_component(
-		TRANSPORT_SCENE,
+		NeonFrontierScenes.TRANSPORT_SCENE,
 		"CrashedFrontierTransport",
 		Vector3(-48.0, 0.0, 46.0),
 		Vector3(0.0, 33.0, 0.0),
 		Vector3(1.2, 1.0, 1.1)
 	)
 	world._place_component(
-		DRONE_WRECK_SCENE,
+		NeonFrontierScenes.DRONE_WRECK_SCENE,
 		"AlienDroneWreck",
 		Vector3(-28.0, 0.0, 47.0),
 		Vector3(0.0, -18.0, 0.0),
 		Vector3(1.2, 1.0, 1.1)
 	)
 	world._place_component(
-		TURRET_SCENE,
+		NeonFrontierScenes.TURRET_SCENE,
 		"DisabledCheckpointTurret",
 		Vector3(-64.0, 0.0, 47.0),
 		Vector3(0.0, 42.0, 72.0),
 		Vector3(0.9, 0.72, 0.9)
 	)
 	world._place_component(
-		DEPOT_SCENE,
+		NeonFrontierScenes.DEPOT_SCENE,
 		"AbandonedLoadingModule",
 		Vector3(-34.0, 0.0, 64.0),
 		Vector3(0.0, -14.0, 0.0),
@@ -162,7 +162,7 @@ static func build_alien_landscape(world) -> void:
 	for rock_index in range(rock_positions.size()):
 		var rock_position: Vector3 = rock_positions[rock_index]
 		var key := "wall_cube" if rock_index % 3 == 0 else "column"
-		ScifiBayBuilder.place(
+		NeonFrontierScenes.ScifiBayBuilder.place(
 			world,
 			key,
 			"SciFiFrontierRuin_%02d" % rock_index,
@@ -189,7 +189,7 @@ static func build_alien_landscape(world) -> void:
 	]
 	for crystal_index in range(crystal_positions.size()):
 		world._place_component(
-			CRYSTAL_SCENE,
+			NeonFrontierScenes.CRYSTAL_SCENE,
 			"FrontierCrystalCluster_%02d" % crystal_index,
 			crystal_positions[crystal_index],
 			Vector3(0.0, crystal_index * 41.0, 0.0),
@@ -219,7 +219,7 @@ static func build_alien_landscape(world) -> void:
 	]
 	for flora_index in range(flora_positions.size()):
 		world._place_component(
-			FLORA_SCENE,
+			NeonFrontierScenes.FLORA_SCENE,
 			"LuminousAlienFlora_%02d" % flora_index,
 			flora_positions[flora_index],
 			Vector3(0.0, flora_index * 23.0, 0.0),
