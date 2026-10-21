@@ -238,6 +238,23 @@ func _set_active(value: bool) -> void:
 		_set_uploaded_fbx_visible(true)
 	_active = value
 	_camera.current = value
+	# Printed so a browser run can prove the rig was left, not only entered: a
+	# tour that is never released keeps the simulation paused, and the play pass
+	# that follows then fails to fire for a reason that looks like a combat bug
+	# (tools/web_qa.mjs asserts on this line).
+	print(
+		(
+			"World tour: %s · %s"
+			% [
+				(
+					"review camera engaged, simulation paused"
+					if value
+					else "review camera released, gameplay resumed"
+				),
+				vantage_name() if value else "player camera",
+			]
+		)
+	)
 	# Freeze the simulation while reviewing. Without this the enemies keep
 	# shooting the idle player and the run-results panel lands on top of the
 	# district you are trying to look at.

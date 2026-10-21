@@ -173,7 +173,7 @@ once — scrim, help, desktop hint, fire and skill buttons, HUD editor — and t
 1,391 lines still on the facade. Gates: G1, G2, G3, G4, G5.
 
 **Phase 2 — the world module.** *Done, 2026-10-21 (commits `16963bc`,
-`0717456`, `4a829c3`, `4d7637c`).*
+`0717456`, `4a829c3`, `4d7637c`), verified 2026-10-22.*
 
 `neon_frontier_world.gd` 1,571 -> 404 lines. What is left in it is the
 composition root: terrain, world bounds, lighting, spawn beacons and the shape
@@ -193,6 +193,16 @@ helpers. Everything else has a file:
 
 Still one file, and the next thing to split if it grows: `neon_frontier_asset.gd`
 (1,355 lines), the component dispatcher, which has nine components left in it.
+
+**The split shipped unloadable, and that is now a gate.** `0884658` passed every
+static check while `zones/arena.gd` had lost the `static` keyword on its three
+builders, so `NeonFrontierArena.build_central_arena(self)` was a call to an
+instance method on a class name. Godot refused to load the world script and CI
+reported 23/26 smoke tests, with `arena_blockout_smoke` failing on reactor,
+ramp and deck assertions that had nothing to do with the cause. Fixed in the
+next commit; `tools/check_static_calls.py` now compares call sites against
+declarations across files (step 4 of `dev_check.sh`), with the regression itself
+as a negative-control fixture. Gates: G1–G5.
 
 **Phase 3 — content modules.**
 `hero/`, `weapon/`, `enemy/`, `skill/`, `effects/` folders with the shared
