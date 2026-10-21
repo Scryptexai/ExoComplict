@@ -160,9 +160,13 @@ rather than of live gameplay relabelled as a tour.
 Not defects yet — observations from looking at the images, recorded so the next
 session does not have to rediscover them. No fix has been attempted.
 
-* **Vantage 1 (arena) is framed through geometry.** A pale slab sits across the
-  bottom third of the frame and an orange platform disc fills the centre
-  foreground. The vantage point is inside the structure it is meant to review.
+* **Vantage 1 (arena) was framed through geometry.** *(Fixed, measured.)* At
+  `(-27, 14, 27)` a pale perimeter slab crossed the bottom third of the frame
+  and the hazard disc filled the centre. The vantage is now `(-44, 30, 44)` at
+  55 deg FOV: the whole 42 m deck, its spawn structures, the reactor behind it
+  and the neighbouring districts are in frame, and nothing occludes the deck.
+  `qa-evidence/world-tour-2026-10-22/01-arena-vantage.png` is the frame after
+  the change, exported by CI and captured from the shipped payload.
 * **Two palettes are still in the tree.** `qa-evidence/scifi-bay/01-gameplay.png`
   and `qa-evidence/world-kit/01-arena.png` are the older pale-blue/cream build;
   the current payload is dark navy with orange accent bands and cyan emissives.
