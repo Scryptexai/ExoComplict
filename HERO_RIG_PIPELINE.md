@@ -2,8 +2,8 @@
 
 **Date:** 2026-10-17
 
-**Scope:** the rigged hero (`HERO+3d+model.glb`, 24.4 MB) and the rifle
-(`futuristic gun 3d model.glb`, 17.3 MB) that were uploaded to the repository
+**Scope:** the rigged hero (`source-assets/characters/hero/hero_rigged_source.glb`, 24.4 MB) and the rifle
+(`source-assets/weapons/rifle_source.glb`, 17.3 MB) that were uploaded to the repository
 root are now runtime assets with aiming/firing animation, wired into the player
 scene. This document records what was produced, how, and what is still
 unverified.
@@ -29,8 +29,8 @@ data.
 
 | | Source | Runtime | Notes |
 |---|---|---|---|
-| Hero | `HERO+3d+model.glb` · 482,282 tris · 24.4 MB · 3 textures @2048 | `game/assets/characters/hero/hero.glb` · **36,170 tris** · **2.4 MB** · textures @1024 | meshoptimizer simplify + texture resize; **79/79 joints kept**, 3 clips kept |
-| Rifle | `futuristic gun 3d model.glb` · 487,100 tris · 17.3 MB | `game/assets/weapons/futuristic_rifle/rifle.glb` · **12,176 tris** · **0.49 MB** · textures @512 | baked into a canonical frame, `MuzzlePoint`/`GripPoint` added |
+| Hero | `source-assets/characters/hero/hero_rigged_source.glb` · 482,282 tris · 24.4 MB · 3 textures @2048 | `game/assets/characters/hero/hero.glb` · **36,170 tris** · **2.4 MB** · textures @1024 | meshoptimizer simplify + texture resize; **79/79 joints kept**, 3 clips kept |
+| Rifle | `source-assets/weapons/rifle_source.glb` · 487,100 tris · 17.3 MB | `game/assets/weapons/futuristic_rifle/rifle.glb` · **12,176 tris** · **0.49 MB** · textures @512 | baked into a canonical frame, `MuzzlePoint`/`GripPoint` added |
 
 Both outputs drop the non-standard `FB_ngon_encoding` extension and
 `KHR_materials_volume`, so Godot's importer only sees core glTF. The reduction

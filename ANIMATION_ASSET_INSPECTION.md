@@ -1,7 +1,7 @@
 # Character and weapon asset inspection
 
-> **2026-10-17 update — resolved.** The rigged hero (`HERO+3d+model.glb`) and the
-> rifle (`futuristic gun 3d model.glb`) were integrated into the player scene.
+> **2026-10-17 update — resolved.** The rigged hero (`source-assets/characters/hero/hero_rigged_source.glb`) and the
+> rifle (`source-assets/weapons/rifle_source.glb`) were integrated into the player scene.
 > The hero ships 79 joints and five clips (`idle`, `run`, `walk` plus baked
 > `aim`/`fire`), the rifle carries a baked `MuzzlePoint`, and the muzzle flash,
 > projectile spawn and `Muzzle` marker all use it. The sections below describe
