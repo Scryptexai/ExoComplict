@@ -26,10 +26,14 @@ extends Node3D
 
 const VANTAGES := [
 	{
+		# Raised and pulled back off the 42 m deck: at (-27, 14, 27) the pale
+		# perimeter structure crossed the bottom third of the frame and the
+		# hazard disc filled the centre, so the vantage meant to review the
+		# arena was framed through it (docs/VERIFICATION_2026-10-22.md §5).
 		"name": "arena",
-		"from": Vector3(-27.0, 14.0, 27.0),
-		"at": Vector3(0.0, 1.0, -2.0),
-		"fov": 60.0,
+		"from": Vector3(-44.0, 30.0, 44.0),
+		"at": Vector3(0.0, 0.5, 0.0),
+		"fov": 55.0,
 	},
 	{
 		"name": "outpost",
