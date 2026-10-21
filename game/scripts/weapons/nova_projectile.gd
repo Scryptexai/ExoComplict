@@ -1,8 +1,8 @@
 class_name NovaProjectile
 extends Node3D
 
-const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
-const NovaShockwaveScript = preload("res://scripts/effects/nova_shockwave.gd")
+const ImpactBurstScript = preload("res://scripts/weapons/impact_burst.gd")
+const NovaShockwaveScript = preload("res://scripts/weapons/nova_shockwave.gd")
 
 ## The round collides at the muzzle, but its mesh waits until clear of camera.
 const VISUAL_CLEARANCE: float = 1.4

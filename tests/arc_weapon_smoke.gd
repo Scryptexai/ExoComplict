@@ -1,7 +1,7 @@
 extends SceneTree
 
 const MainScene = preload("res://scenes/main.tscn")
-const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
+const ImpactBurstScript = preload("res://scripts/weapons/impact_burst.gd")
 
 
 class DamageReceiver:

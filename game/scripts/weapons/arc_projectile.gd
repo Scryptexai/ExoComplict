@@ -1,7 +1,7 @@
 class_name ArcProjectile
 extends Node3D
 
-const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
+const ImpactBurstScript = preload("res://scripts/weapons/impact_burst.gd")
 const EFFECT_DURATION: float = 0.14
 
 var _start_position: Vector3 = Vector3.ZERO

@@ -79,9 +79,17 @@ PATH_LAYERS: list[tuple[str, str, str]] = [
     (r"^scripts/progression/(progression_service|reward_service|run_stats)\.gd$", "systems", ""),
     (r"^scripts/progression/hero_definition\.gd$", "content", "hero"),
     (r"^scripts/progression/world_definition\.gd$", "content", "world"),
+    # WeaponController is the player's weapon handling — cooldowns, ammo,
+    # switching — driven by PlayerController. The projectiles it fires are
+    # content; the thing that decides when they fire is a system.
+    (r"^scripts/weapons/weapon_controller\.gd$", "systems", ""),
     (r"^scripts/weapons/", "content", "weapon"),
     (r"^scripts/worlds/", "content", "world"),
     (r"^scripts/enemies/", "content", "enemy"),
+    # MuzzleFlash is a component the player scene owns and drives (it sits at
+    # VisualRoot/WeaponSocket), not a world effect the player asks for. Same
+    # reasoning as scripts/visual/: shared visual plumbing is core.
+    (r"^scripts/effects/muzzle_flash\.gd$", "core", ""),
     (r"^scripts/effects/", "content", "effects"),
     (r"^scripts/arena/", "content", "world"),
     # ModelFitter fits GLB models for the player *and* the enemies: shared
@@ -96,6 +104,13 @@ PATH_LAYERS: list[tuple[str, str, str]] = [
     # design module was empty. Matching the folder is what was intended.
     (r"^scripts/ui/hud/", "ui", "hud"),
     (r"^scripts/ui/menus/", "ui", "menus"),
+    # aegis_preferences.gd is the preferences *model*: systems, content (the
+    # reduce-motion and reduce-flash flags) and every screen read it. Only the
+    # panel that edits it is screen code, so the model is core and the rest of
+    # ui/settings stays in the ui layer.
+    (r"^scripts/ui/settings/aegis_preferences\.gd$", "core", ""),
+    (r"^scripts/ui/settings/", "ui", "settings"),
+    (r"^scripts/ui/widgets/", "ui", "design"),
     (r"^scripts/ui/settings/", "ui", "settings"),
     (r"^scripts/ui/widgets/", "ui", "design"),
     (r"^scripts/ui/(aegis_tokens|aegis_theme|aegis_preferences)\.gd$", "ui", "design"),

@@ -9,9 +9,9 @@ extends SceneTree
 
 const MainScene = preload("res://scenes/main.tscn")
 const PulseScene = preload("res://scenes/weapons/pulse_projectile.tscn")
-const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
-const PulseAfterglowScript = preload("res://scripts/effects/pulse_afterglow.gd")
-const NovaShockwaveScript = preload("res://scripts/effects/nova_shockwave.gd")
+const ImpactBurstScript = preload("res://scripts/weapons/impact_burst.gd")
+const PulseAfterglowScript = preload("res://scripts/weapons/pulse_afterglow.gd")
+const NovaShockwaveScript = preload("res://scripts/weapons/nova_shockwave.gd")
 const ModelFitterScript = preload("res://scripts/visual/model_fitter.gd")
 
 

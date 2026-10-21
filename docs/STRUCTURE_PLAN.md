@@ -93,6 +93,7 @@ game/
     weapon/
       data/weapon_definition.gd + resources/weapons/*.tres                             (now)
       runtime/weapon_controller.gd, projectiles/                                       (now)
+      effects/impact_burst, nova_shockwave, pulse_afterglow  (moved out of effects/ 2026-10-21)
       view/                        # muzzle flash, weapon model hookups
     enemy/
       data/enemy_definition.gd     # NEW: today shooter.gd/runner.gd hardcode their stats
@@ -103,7 +104,6 @@ game/
       neon_frontier/world, geometry, components/                                       (now, to be split)
       kit/scifi_kit_library.gd                                                         (now)
     skill/                         # NEW shell + README: no skill system exists yet
-    effects/impact_burst, nova_shockwave, pulse_afterglow                              (now)
   ui/
     design/aegis_tokens, aegis_theme, aegis_panel, aegis_button, ...                   (now)
     hud/layout, renderer, styles, widgets, editor                                      (now, to be split)
@@ -152,24 +152,25 @@ Every phase ends in a commit. A phase is done when all gates pass.
 | G6 APK export | the device path builds (CI; needs SDK + templates) |
 
 **Phase 0 — hygiene and enforcement, no code moves.**
-Docs (audit + this plan) · architecture checker in report mode (baseline
-published, not yet enforced) · payload checker · export filters so tests and QA
+Docs (audit + this plan) · architecture checker, enforced (baseline
+emptied 2026-10-21, so any new violation fails dev_check and CI) · payload checker · export filters so tests and QA
 stop shipping · Android CI workflow · 42 MB of root `.glb` into `source-assets/`
 · root Markdown consolidated under `docs/` with an `ARCHITECTURE.md` entry
 point. Gates: G1, G2, G4, G5.
 
 **Phase 1 — break up the HUD.** *Partly done, 2026-10-21 (commits `8294bd4`,
-`f092fd3`).*
+`f092fd3`, `92312a2`, `cf9a86c`).*
 
 Done: `scripts/ui/` split into `hud/`, `menus/`, `settings/` and shared
-(`ui_layout.gd`, `widgets/`); `touch_controls.gd` 1,600 → 1,462 lines with the
-touch dispatcher extracted to `hud/hud_touch_input.gd` (211 lines); the F10 QA
-rig taken out of `scenes/main.tscn`.
+(`ui_layout.gd`, `widgets/`); `touch_controls.gd` 1,600 → 1,391 lines in four
+slices — the touch dispatcher (`hud/hud_touch_input.gd`, 211 lines), the run
+read model (`hud/hud_state.gd`), the modal panel behaviour (`hud/hud_menu_ui.gd`,
+which now builds *and* drives the help, pause, results and settings cards), and
+the F10 QA rig taken out of `scenes/main.tscn`.
 
-Not done yet: `hud_state` (the run data the HUD reflects — health, wave, score,
-skill cooldown, phase — is still ~25 member variables on the facade), and the
-help/results/pause/settings panel callbacks. Those are the remaining 1,462
-lines, and they are the part that should shrink next. Gates: G1, G2, G3, G4, G5.
+Not done yet: `set_paused()`, the one slice left that reaches everything at
+once — scrim, help, desktop hint, fire and skill buttons, HUD editor — and the
+1,391 lines still on the facade. Gates: G1, G2, G3, G4, G5.
 
 **Phase 2 — the world module.**
 `neon_frontier_world.gd` (1,571) and `neon_frontier_asset.gd` (1,570) split

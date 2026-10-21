@@ -1,8 +1,8 @@
 class_name PulseProjectile
 extends Node3D
 
-const ImpactBurstScript = preload("res://scripts/effects/impact_burst.gd")
-const PulseAfterglowScript = preload("res://scripts/effects/pulse_afterglow.gd")
+const ImpactBurstScript = preload("res://scripts/weapons/impact_burst.gd")
+const PulseAfterglowScript = preload("res://scripts/weapons/pulse_afterglow.gd")
 # Thicker, shorter-than-target travel streak: the old 0.022 m core occupied
 # only a few pixels in the real 390 px WebGL firing sequence. Never invent a
 # beam past a hit or draw backwards through the hero at launch.
