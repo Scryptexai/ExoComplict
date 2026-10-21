@@ -291,21 +291,22 @@ func enter(_stage_payload: Dictionary) -> void:
 
 ## FrontEnd calls this on `profile_changed`, so an unlock made inside the armory
 ## updates the dashboard underneath it without reopening the screen.
-## One number with its label above it, sized to a third of the row. Returns
-## [container, value_label] because the caller needs both: the container goes
-## into the row, the label is what `refresh_profile()` writes.
+## One number, sized to a third of the row. Returns [container, label] because
+## the caller needs both: the container goes into the row, the label is what
+## `refresh_profile()` writes.
+##
+## It is deliberately *one* label holding "CAPTION  value". The first cut had a
+## caption above a value, and `refresh_profile()` wrote the caption again inside
+## the value -- so the screen read "BATTLE POINTS" over "BATTLE POINTS 0" and
+## printed every label twice. The two-space string is what the data-source test
+## reads and what a screen reader reads as one phrase, so it belongs in one
+## label; a third of a phone is too narrow for caption-and-number columns, and
+## the wrapping at the double space reads as a caption and a figure anyway.
 func _make_stat_cell(caption: String, color: Color) -> Array:
-	var cell := VBoxContainer.new()
-	physical_separation(cell, 2)
-	cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var caption_label := make_label(caption, "label_s", AegisTokens.INK_3)
-	caption_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	caption_label.clip_text = true
-	cell.add_child(caption_label)
-	var value := make_label("0", "title", color)
-	value.clip_text = true
-	cell.add_child(value)
-	return [cell, value]
+	var label := make_label(caption, "label_s", color)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return [label, label]
 
 
 func refresh_profile() -> void:
@@ -349,7 +350,7 @@ func refresh_profile() -> void:
 	# not a briefing document.
 	var world_definition := WorldDefinition.load_definition(progression.selected_world_id)
 	if world_definition != null:
-		_mission_brief.text = _first_sentence(world_definition.role_description).to_upper()
+		_mission_brief.text = _first_sentence(world_definition.role_description)
 		_mission_plate.texture = try_texture(world_definition.plate_path)
 	else:
 		_mission_brief.text = ""
@@ -417,8 +418,8 @@ func _apply_density() -> void:
 	# "PROFILE . FIELD READY" restates what the three cells below it already say
 	# on a screen this short; the header is the one line that can go.
 	_rank_line.visible = not compact
-	_clamp_to_one_line(_mission_brief, compact)
-	_clamp_to_one_line(_loadout, compact)
+	_limit_lines(_mission_brief, 1 if compact else 2)
+	_limit_lines(_loadout, 1 if compact else 2)
 	# Only the compact sizes are set here. Every other size comes from
 	# `_orient_nodes()`, so a rotation back to a tall screen restores the
 	# authored values instead of keeping whatever this pass last wrote.
@@ -433,10 +434,14 @@ func _apply_density() -> void:
 		physical_min_size(_mission_plate, 84.0, 72.0)
 
 
-func _clamp_to_one_line(label: Label, clamp: bool) -> void:
-	label.max_lines_visible = 1 if clamp else -1
+## Holds a descriptive line to `limit` lines with an ellipsis. The theatre
+## brief is a full sentence and the loadout is three names joined by slashes:
+## untrimmed they turned a 390 px card into five lines of shouting, which is
+## not a reminder of where you are going, it is the WORLD screen again.
+func _limit_lines(label: Label, limit: int) -> void:
+	label.max_lines_visible = limit
 	label.text_overrun_behavior = (
-		TextServer.OVERRUN_TRIM_ELLIPSIS if clamp else TextServer.OVERRUN_NO_TRIMMING
+		TextServer.OVERRUN_TRIM_ELLIPSIS if limit > 0 else TextServer.OVERRUN_NO_TRIMMING
 	)
 
 
