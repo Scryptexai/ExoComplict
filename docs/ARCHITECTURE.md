@@ -142,6 +142,7 @@ negative controls, including the exact regression above.
 | --- | --- |
 | [`STRUCTURE_PLAN.md`](STRUCTURE_PLAN.md) | The ordered plan: what each phase moves, and what is done |
 | [`AUDIT_2026-10-21.md`](AUDIT_2026-10-21.md) | Measured findings, including the mistakes — read this before changing the tooling |
+| [`VERIFICATION_2026-10-22.md`](VERIFICATION_2026-10-22.md) | What was measured after the phase-2 repair: CI, the browser run, and the frames |
 | [`LFS_ASSET_MANIFEST.md`](LFS_ASSET_MANIFEST.md) | What is under Git LFS, and what deliberately is not |
 | [`../WEB_PREVIEW.md`](../WEB_PREVIEW.md) | Running and exporting the browser preview |
 | [`../TOOLCHAIN_SETUP.md`](../TOOLCHAIN_SETUP.md) | Installing Godot 4.7.2 and the export templates |
