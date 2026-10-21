@@ -12,6 +12,21 @@
 ##   SETTINGS     the shared AegisSettingsMenu, which writes user://aegis.cfg
 ##   REPLAY INTRO clears intro_seen, which is how the cinematic can be seen
 ##                again without wiping a profile
+##
+## The screen is ordered the way a player decides, not the way a profile is
+## stored (docs/UX_AUDIT_2026-10-22.md 5.2 had the old order as DEPLOY last,
+## with no hero and no mission on the screen at all):
+##
+##   1. the operative, with the portrait the HERO screen will also show
+##   2. the theatre this run will be deployed into
+##   3. DEPLOY -- the only amber control on the screen
+##   4. profile: rank line + best score + runs
+##   5. resources: the Battle Points wallet, which ARMORY spends
+##   6. secondary navigation: ARMORY, SETTINGS, REPLAY INTRO
+##
+## Everything above reads from ProgressionService / the definition registries.
+## The portrait and the theatre plate are the same files the selection screens
+## use, so the dashboard cannot promise art the next screen does not have.
 extends MenuStage
 
 var _balance: Label
@@ -34,6 +49,21 @@ var _stats: AegisPanel
 var _actions: VBoxContainer
 var _spacer: Control
 var _landscape_built := false
+## Screen 1: the operative. Portrait, name, role, status.
+var _hero_panel: AegisPanel
+var _hero_plate: TextureRect
+var _hero_name_label: Label
+var _hero_role: Label
+var _hero_status: Label
+## Screen 2: the theatre and the chapter this run belongs to.
+var _mission_panel: AegisPanel
+var _mission_plate: TextureRect
+var _mission_name: Label
+var _mission_brief: Label
+## Rank line, above the numbers: the profile's own identity.
+var _rank_line: Label
+## Secondary navigation, grouped so it can move as one block.
+var _secondary: VBoxContainer
 
 
 func _ready() -> void:
@@ -72,69 +102,160 @@ func _ready() -> void:
 	_mark.texture = try_texture("res://assets/ui/logo_wordmark.png")
 	_mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_size_both(_mark, Vector2(320.0, 80.0), Vector2(220.0, 56.0))
+	_size_both(_mark, Vector2(300.0, 74.0), Vector2(210.0, 52.0))
 	_stack.add_child(_mark)
 
-	var stats := AegisPanel.new()
-	stats.interactive = false
-	stats.accent_side = "top"
-	stats.accent_color = AegisTokens.INFO
-	stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_stack.add_child(stats)
-	_stats = stats
+	# --- 1. the operative ------------------------------------------------ #
+	# Portrait on the left, identity on the right. This is the same portrait
+	# file the HERO screen sells, at the same crop, so the first thing the
+	# dashboard shows is the character the run will actually use.
+	_hero_panel = AegisPanel.new()
+	_hero_panel.interactive = false
+	_hero_panel.accent_side = "left"
+	_hero_panel.accent_color = AegisTokens.INFO
+	_hero_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stack.add_child(_hero_panel)
 
-	var stat_column := VBoxContainer.new()
-	physical_separation(stat_column, 10)
-	stats.add_child(stat_column)
-	stat_column.add_child(make_label("PROFILE", "label", AegisTokens.INK_2))
-	_balance = make_label("BATTLE POINTS  0", "mono_l", AegisTokens.ACCENT)
-	stat_column.add_child(_balance)
-	_best = make_label("BEST SCORE  0", "body", AegisTokens.INK)
-	stat_column.add_child(_best)
-	_runs = make_label("RUNS COMPLETED  0", "body", AegisTokens.INK)
-	stat_column.add_child(_runs)
-	_loadout = make_label("LOADOUT", "label_s", AegisTokens.INK_2)
-	_loadout.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	stat_column.add_child(_loadout)
+	var hero_row := HBoxContainer.new()
+	physical_separation(hero_row, 14)
+	_hero_panel.add_child(hero_row)
 
-	# On a phone the canvas is ~3x taller than it is wide (1280x2770 at 390x844),
-	# so a top-aligned column would leave two thirds of the screen empty and put
-	# DEPLOY out of thumb reach. A spacer pushes the actions to the bottom and
-	# DEPLOY sits last, closest to the edge the hand is already holding.
+	_hero_plate = TextureRect.new()
+	_hero_plate.texture = try_texture("res://assets/ui/portrait_hero.png")
+	_hero_plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_hero_plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	_hero_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# A 3:4 portrait at 92 px wide is 123 px tall, which leaves the identity
+	# column room for three lines inside a 150 px panel on a 390 px screen.
+	_size_both(_hero_plate, Vector2(96.0, 128.0), Vector2(78.0, 104.0))
+	hero_row.add_child(_hero_plate)
+
+	var hero_column := VBoxContainer.new()
+	hero_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	physical_separation(hero_column, 6)
+	hero_row.add_child(hero_column)
+
+	_hero_role = make_label("OPERATIVE", "label", AegisTokens.INK_3)
+	hero_column.add_child(_hero_role)
+	_hero_name_label = make_label("EXO OPERATIVE", "title", AegisTokens.INK)
+	_hero_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hero_column.add_child(_hero_name_label)
+	_hero_status = make_label("FIELD READY", "label", AegisTokens.OK)
+	hero_column.add_child(_hero_status)
+
+	# --- 2. the theatre --------------------------------------------------- #
+	_mission_panel = AegisPanel.new()
+	_mission_panel.interactive = false
+	_mission_panel.accent_side = "left"
+	_mission_panel.accent_color = AegisTokens.ACCENT
+	_mission_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stack.add_child(_mission_panel)
+
+	var mission_row := HBoxContainer.new()
+	physical_separation(mission_row, 14)
+	_mission_panel.add_child(mission_row)
+
+	_mission_plate = TextureRect.new()
+	_mission_plate.texture = try_texture("res://assets/ui/world_neon_frontier.jpg")
+	_mission_plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_mission_plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	_mission_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_size_both(_mission_plate, Vector2(112.0, 96.0), Vector2(92.0, 78.0))
+	mission_row.add_child(_mission_plate)
+
+	var mission_column := VBoxContainer.new()
+	mission_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	physical_separation(mission_column, 6)
+	mission_row.add_child(mission_column)
+
+	mission_column.add_child(make_label("DEPLOYMENT THEATRE", "label", AegisTokens.INK_3))
+	_mission_name = make_label("NEON FRONTIER", "title", AegisTokens.INK)
+	_mission_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	mission_column.add_child(_mission_name)
+	_mission_brief = make_label("", "label_s", AegisTokens.INK_2)
+	_mission_brief.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	mission_column.add_child(_mission_brief)
+
+	# --- 3. DEPLOY -------------------------------------------------------- #
+	# A spacer above it, not below: the primary action sits in the lower thumb
+	# arc but never at the very edge, and nothing scrolls off a short screen.
 	_spacer = Control.new()
 	_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_stack.add_child(_spacer)
 
 	var actions := VBoxContainer.new()
-	physical_separation(actions, 12)
+	physical_separation(actions, 10)
 	_stack.add_child(actions)
 	_actions = actions
 
+	var deploy := make_button("DEPLOY", "primary", "Choose your loadout and start a run")
+	physical_min_size(deploy, 0.0, 62.0)
+	deploy.pressed.connect(_on_deploy_pressed)
+	actions.add_child(deploy)
+
+	# --- 4/5. profile and resources --------------------------------------- #
+	# One panel, ordered: identity, then the wallet, then the record. Three
+	# numbers side by side instead of four stacked lines -- the old column spent
+	# 130 px of a 844 px phone screen on four single-value rows.
+	_stats = AegisPanel.new()
+	_stats.interactive = false
+	_stats.accent_side = "top"
+	_stats.accent_color = AegisTokens.INFO
+	_stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	actions.add_child(_stats)
+
+	var stat_column := VBoxContainer.new()
+	physical_separation(stat_column, 8)
+	_stats.add_child(stat_column)
+
+	_rank_line = make_label("PROFILE", "label", AegisTokens.INK_3)
+	stat_column.add_child(_rank_line)
+
+	var numbers := HBoxContainer.new()
+	physical_separation(numbers, 8)
+	stat_column.add_child(numbers)
+
+	# The wallet is the only number a player acts on, so it is the only one in
+	# amber; score and runs are the record and stay neutral.
+	var wallet := _make_stat_cell("BATTLE POINTS", AegisTokens.ACCENT)
+	numbers.add_child(wallet[0])
+	_balance = wallet[1]
+	var best := _make_stat_cell("BEST SCORE", AegisTokens.INK)
+	numbers.add_child(best[0])
+	_best = best[1]
+	var runs := _make_stat_cell("RUNS COMPLETED", AegisTokens.INK)
+	numbers.add_child(runs[0])
+	_runs = runs[1]
+
+	_loadout = make_label("LOADOUT", "label_s", AegisTokens.INK_2)
+	_loadout.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	stat_column.add_child(_loadout)
+
+	# --- 6. secondary navigation ------------------------------------------ #
+	_secondary = VBoxContainer.new()
+	physical_separation(_secondary, 8)
+	actions.add_child(_secondary)
+
 	var row := HBoxContainer.new()
-	physical_separation(row, 12)
-	actions.add_child(row)
+	physical_separation(row, 10)
+	_secondary.add_child(row)
 
 	var armory := make_button("ARMORY", "round", "Unlock and equip weapons with Battle Points")
 	armory.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_min_size(armory, 0.0, 56.0)
+	physical_min_size(armory, 0.0, 52.0)
 	armory.pressed.connect(_on_armory_pressed)
 	row.add_child(armory)
 
 	var settings := make_button("SETTINGS", "round", "Audio, HUD and control preferences")
 	settings.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_min_size(settings, 0.0, 56.0)
+	physical_min_size(settings, 0.0, 52.0)
 	settings.pressed.connect(_on_settings_pressed)
 	row.add_child(settings)
 
 	var replay := make_button("REPLAY INTRO", "ghost", "Watch the opening cinematic again")
-	physical_min_size(replay, 0.0, 56.0)
+	physical_min_size(replay, 0.0, 44.0)
 	replay.pressed.connect(_on_replay_pressed)
-	actions.add_child(replay)
-
-	var deploy := make_button("DEPLOY", "primary", "Choose your loadout and start a run")
-	physical_min_size(deploy, 0.0, 60.0)
-	deploy.pressed.connect(_on_deploy_pressed)
-	actions.add_child(deploy)
+	_secondary.add_child(replay)
 
 	_armory = ArmoryUi.new()
 	_armory.name = "ArmoryPanel"
@@ -163,21 +284,64 @@ func enter(_stage_payload: Dictionary) -> void:
 
 ## FrontEnd calls this on `profile_changed`, so an unlock made inside the armory
 ## updates the dashboard underneath it without reopening the screen.
+## One number with its label above it, sized to a third of the row. Returns
+## [container, value_label] because the caller needs both: the container goes
+## into the row, the label is what `refresh_profile()` writes.
+func _make_stat_cell(caption: String, color: Color) -> Array:
+	var cell := VBoxContainer.new()
+	physical_separation(cell, 2)
+	cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var caption_label := make_label(caption, "label_s", AegisTokens.INK_3)
+	caption_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	caption_label.clip_text = true
+	cell.add_child(caption_label)
+	var value := make_label("0", "title", color)
+	value.clip_text = true
+	cell.add_child(value)
+	return [cell, value]
+
+
 func refresh_profile() -> void:
 	var progression := progression_service()
 	if progression == null:
 		return
+	# The labels keep the "CAPTION  value" shape they have always had: the
+	# smoke tests and the data-source test both assert on that string, and it is
+	# also what a screen reader reads as one phrase. What changed is the
+	# arrangement -- three cells side by side instead of four stacked rows.
 	_balance.text = "BATTLE POINTS  %d" % progression.balance
 	_best.text = "BEST SCORE  %d" % progression.best_score
 	_runs.text = "RUNS COMPLETED  %d" % progression.completed_runs
-	_loadout.text = (
-		"LOADOUT  %s  /  %s  /  %s"
-		% [
-			_hero_name(progression.selected_hero_id),
-			_weapon_name(progression.selected_weapon_id),
-			_world_name(progression.selected_world_id),
-		]
+	var hero := _hero_name(progression.selected_hero_id)
+	var weapon := _weapon_name(progression.selected_weapon_id)
+	var world := _world_name(progression.selected_world_id)
+	_loadout.text = "LOADOUT  %s  /  %s  /  %s" % [hero, weapon, world]
+	_hero_name_label.text = hero
+	_mission_name.text = world
+	# The rank is the profile's own identity line. There is no rank ladder in
+	# the save file, so this states the operative's readiness and the record
+	# rather than inventing a level: "NO RUNS" on a fresh profile is true, and
+	# "SQUAD LEADER Lv 4" would not be.
+	_rank_line.text = (
+		"PROFILE  ·  FIELD READY"
+		if progression.completed_runs == 0
+		else "PROFILE  ·  %d RUNS" % progression.completed_runs
 	)
+	# Both status lines come from the definitions, not from literals here: the
+	# HERO and WORLD cards print the same strings, so the dashboard cannot say an
+	# operative is ready when their card says otherwise.
+	var hero_definition := HeroDefinition.load_definition(progression.selected_hero_id)
+	_hero_status.text = (
+		hero_definition.status_line.to_upper() if hero_definition != null else "FIELD READY"
+	)
+	# The brief is the theatre's own first sentence. The WORLD screen prints the
+	# whole description; a dashboard line is a reminder of where you are going,
+	# not a briefing document.
+	var world_definition := WorldDefinition.load_definition(progression.selected_world_id)
+	if world_definition != null:
+		_mission_brief.text = _first_sentence(world_definition.role_description).to_upper()
+	else:
+		_mission_brief.text = ""
 	if _armory.visible:
 		_armory.refresh_profile(
 			progression.balance,
@@ -197,26 +361,31 @@ func _apply_orientation() -> void:
 	if landscape == _landscape_built:
 		return
 	_landscape_built = landscape
-	for block in [_mark, _stats, _spacer, _actions]:
+	for block in [_mark, _hero_panel, _mission_panel, _spacer, _actions]:
 		if block.get_parent() != null:
 			block.get_parent().remove_child(block)
 	if landscape:
+		# A landscape phone is 390 px tall in physical terms, so the hero and
+		# the theatre go side by side with DEPLOY beneath them instead of in one
+		# 700 px column that would push the primary action off the screen.
 		_stack.add_child(_split)
 		_left.add_child(_mark)
-		_left.add_child(_stats)
+		_left.add_child(_hero_panel)
+		_left.add_child(_mission_panel)
 		_right.add_child(_spacer)
 		_right.add_child(_actions)
 	else:
 		_stack.remove_child(_split)
 		_stack.add_child(_mark)
-		_stack.add_child(_stats)
+		_stack.add_child(_hero_panel)
+		_stack.add_child(_mission_panel)
 		_stack.add_child(_spacer)
 		_stack.add_child(_actions)
 
 
 func _on_resized() -> void:
 	relayout()
-	_orient_nodes([_mark])
+	_orient_nodes([_mark, _hero_plate, _mission_plate])
 	_apply_orientation()
 	# The armory and settings panels are sized in physical pixels too: they are
 	# lists of 56 px rows, and a panel authored in canvas units would be a third
@@ -289,6 +458,17 @@ func _on_weapon_action(weapon_id: StringName) -> void:
 		Sfx.play_ui(&"session_clear")
 		_armory.show_hint("%s UNLOCKED & EQUIPPED" % String(weapon_id).to_upper())
 	refresh_profile()
+
+
+## The theatre's own blurb, cut to its first sentence. The WORLD screen prints
+## the whole paragraph; a dashboard line is a reminder of where you are going,
+## not a briefing document.
+func _first_sentence(text: String) -> String:
+	var trimmed := text.strip_edges()
+	var stop := trimmed.find(".")
+	if stop <= 0:
+		return trimmed
+	return trimmed.substr(0, stop)
 
 
 ## Heroes and worlds have no *numeric* model -- there is no per-hero health or
