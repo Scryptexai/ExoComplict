@@ -395,10 +395,45 @@ func _apply_orientation() -> void:
 		_stack.add_child(_actions)
 
 
+## Below ~700 px of height there is not room for the full card set in one
+## column: at 360x640 the stack measured 754 px and pushed the ARMORY row off the
+## bottom edge, which `menu_layout_smoke` catches at that exact size. Rather than
+## let it clip -- or hide the primary action inside a scroll view -- the screen
+## gets shorter, not different: the wordmark, the two plates and the gaps
+## shrink, the redundant profile line goes away, and the two descriptive lines
+## stay to one line each with an ellipsis.
+##
+## Nothing that survives is reworded and DEPLOY keeps its size and position
+## above the secondary row, so the hierarchy the audit asked for is identical on
+## a small phone. Landscape never takes this branch: it is already two columns.
+func _apply_density() -> void:
+	var compact := not is_landscape() and physical_size().y < 700.0
+	# The safe margins also come in on a short screen: 8 px top and bottom is
+	# worth more to the content than to the composition at that size.
+	apply_safe_margins(_margin, 18.0 if compact else 28.0, 16.0 if compact else 24.0)
+	physical_separation(_stack, 10.0 if compact else 18.0)
+	physical_min_size(_mark, 220.0 if compact else 300.0, 48.0 if compact else 74.0)
+	physical_min_size(_hero_plate, 72.0 if compact else 96.0, 92.0 if compact else 128.0)
+	physical_min_size(_mission_plate, 84.0 if compact else 112.0, 72.0 if compact else 96.0)
+	# "PROFILE . FIELD READY" restates what the three cells below it already say
+	# on a screen this short; the header is the one line that can go.
+	_rank_line.visible = not compact
+	_clamp_to_one_line(_mission_brief, compact)
+	_clamp_to_one_line(_loadout, compact)
+
+
+func _clamp_to_one_line(label: Label, clamp: bool) -> void:
+	label.max_lines_visible = 1 if clamp else -1
+	label.text_overrun_behavior = (
+		TextServer.OVERRUN_TRIM_ELLIPSIS if clamp else TextServer.OVERRUN_NO_TRIMMING
+	)
+
+
 func _on_resized() -> void:
 	relayout()
 	_orient_nodes([_mark, _hero_plate, _mission_plate])
 	_apply_orientation()
+	_apply_density()
 	# The armory and settings panels are sized in physical pixels too: they are
 	# lists of 56 px rows, and a panel authored in canvas units would be a third
 	# of that on a phone.
