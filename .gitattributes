@@ -1,31 +1,42 @@
 # Git LFS tracking.
 #
-# Why: the repository is 217 MB of tracked files, and 80 % of the .git object
-# database is build output that CI regenerates and uploads as an artifact on
-# every push (docs/AUDIT_2026-10-21.md §4). `web/index.pck` alone has been
-# committed 19 times at ~35 MB each. Tracking these under LFS keeps new commits
-# light without rewriting history: the old blobs stay where they are.
+# Scope, as measured on 2026-10-21: of the 239 tracked files these rules used
+# to cover, exactly ONE is stored as an LFS object today (`3DScifiStarterKitFree
+# .zip`). The other 238 are ordinary blobs, because the migration that was
+# supposed to move them never ran. That gap was not cosmetic — see below — so
+# the rules have been narrowed to what is actually in effect, and the rest is
+# recorded as intent rather than pretence.
 #
-# What is deliberately NOT tracked: anything the game loads at runtime from a
-# normal clone (`game/assets/**`, fonts, the .ogv videos, .gd/.tscn/.py).
-# Those are 6 MB of GLB, 1.4 MB of fonts and 1.7 MB of video — moving them to
-# LFS would make a plain `git clone` produce a project that will not run
-# without git-lfs installed, which is a worse handover than 9 MB of history.
+# Why the gap was dangerous, not just inaccurate:
+#   * any machine WITH git-lfs sees all 238 files as permanently modified,
+#     because clean(real file) = pointer != the raw blob in HEAD. CI is such a
+#     machine, and a dirty worktree is why the web-preview job's payload commit
+#     could not rebase or push (measured: three retries, then failure);
+#   * the next `git add` of one of those files would have replaced a real
+#     35 MB of evidence images with a 133-byte pointer. A plain clone would
+#     then be missing the files and nobody local would notice, because
+#     without git-lfs the filter is inert and everything looks fine.
+#
+# Rules of thumb now written down rather than assumed:
+#   * anything the game or the preview loads from a plain `git clone` must NOT
+#     be LFS-tracked (`web/index.pck`, `web/index.wasm`,
+#     `engine/web_templates/*.zip`, `game/assets/**`, fonts, videos, sources);
+#   * everything else may be tracked, but only once the blobs have actually
+#     been migrated — otherwise the attributes lie, and the lie is what bites.
 #
 # Setup on a machine that has git-lfs:
-#     scripts/setup_lfs.sh            # verify + track (no history rewrite)
+#     scripts/setup_lfs.sh            # verify + report (no history rewrite)
 #     scripts/setup_lfs.sh --migrate  # rewrite history (destructive, off by default)
 
-# Third-party archives (already LFS before this pass).
+# Third-party archives. `3DScifiStarterKitFree.zip` is the one file these
+# rules genuinely apply to.
 *.zip filter=lfs diff=lfs merge=lfs -text
 
-# The web export templates are NOT under LFS either, same reason: they exist
-# so a local `godot --export-release` needs no 1.2 GB template download, and a
-# pointer is exactly what makes that impossible (all four are committed as
-# 133-byte pointers today — see docs/FINAL_REPORT_2026-10-20.md, which could
-# not unpack them). They are also what the web-preview job stages and pushes
-# on every run, and an LFS-filtered path is the one thing in that step that
-# needs git-lfs *and* a working LFS upload at push time.
+# The web export templates are NOT under LFS, even though they are zips: they
+# exist so a local `godot --export-release` needs no 1.2 GB template download,
+# and a pointer is exactly what makes that impossible. All four are committed
+# as 133-byte pointers today; the web-preview job copies the real archives in,
+# so the first run that gets to push will replace them.
 engine/web_templates/*.zip -filter -diff -merge
 
 # The web preview payload is deliberately NOT under LFS.
@@ -45,16 +56,15 @@ engine/web_templates/*.zip -filter -diff -merge
 # fix is to stop committing it and publish the CI artifact, not to hide it
 # behind a filter that makes the repository un-runnable.
 
-# Source art: 42 MB of rigged GLB and the Blender file, moved out of the
-# repository root into source-assets/ during the phase-0 cleanup.
-source-assets/**/*.glb filter=lfs diff=lfs merge=lfs -text
-source-assets/**/*.blend filter=lfs diff=lfs merge=lfs -text
-
-# Evidence and inspection images: 35 MB under docs/, 15 MB under qa-evidence/.
-# Records, never compiled or loaded by anything.
-docs/asset-inspections/**/*.png filter=lfs diff=lfs merge=lfs -text
-docs/asset-inspections/**/*.jpg filter=lfs diff=lfs merge=lfs -text
-docs/ui-redesign/**/*.png filter=lfs diff=lfs merge=lfs -text
-qa-evidence/**/*.png filter=lfs diff=lfs merge=lfs -text
-qa-evidence/**/*.jpg filter=lfs diff=lfs merge=lfs -text
-exports/**/*.png filter=lfs diff=lfs merge=lfs -text
+# INTENDED for LFS, not yet migrated — do not re-add these lines until
+# `scripts/setup_lfs.sh --migrate` has actually moved the blobs (see the
+# header). Listing them while the objects are raw is what produced the
+# phantom modifications above:
+#   source-assets/**/*.glb            (42 MB of rigged source art)
+#   source-assets/**/*.blend
+#   docs/asset-inspections/**/*.png   (35 MB of records)
+#   docs/asset-inspections/**/*.jpg
+#   docs/ui-redesign/**/*.png
+#   qa-evidence/**/*.png              (35 MB of records)
+#   qa-evidence/**/*.jpg
+#   exports/**/*.png                  (generated; exports/ is git-ignored)
