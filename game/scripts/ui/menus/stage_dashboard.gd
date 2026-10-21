@@ -395,31 +395,42 @@ func _apply_orientation() -> void:
 		_stack.add_child(_actions)
 
 
-## Below ~700 px of height there is not room for the full card set in one
-## column: at 360x640 the stack measured 754 px and pushed the ARMORY row off the
-## bottom edge, which `menu_layout_smoke` catches at that exact size. Rather than
-## let it clip -- or hide the primary action inside a scroll view -- the screen
-## gets shorter, not different: the wordmark, the two plates and the gaps
-## shrink, the redundant profile line goes away, and the two descriptive lines
-## stay to one line each with an ellipsis.
+## Two height budgets, one rule: the stack has to fit what it is given.
 ##
-## Nothing that survives is reworded and DEPLOY keeps its size and position
-## above the secondary row, so the hierarchy the audit asked for is identical on
-## a small phone. Landscape never takes this branch: it is already two columns.
+## Portrait below 700 px (a 360x640 phone) has no room for the full card set in
+## one column -- the stack measured 754 px -- and landscape is always short (a
+## rotated phone is 390 px tall), so both get the same treatment: tighter
+## margins and gaps, smaller wordmark and plates, the redundant PROFILE header
+## dropped, and the two descriptive lines held to one line each with an
+## ellipsis. Nothing is reworded, DEPLOY keeps its size, and the hierarchy is
+## identical -- the screen gets shorter, not different.
 func _apply_density() -> void:
-	var compact := not is_landscape() and physical_size().y < 700.0
+	var landscape := is_landscape()
+	var compact := physical_size().y < (520.0 if landscape else 700.0)
 	# The safe margins also come in on a short screen: 8 px top and bottom is
 	# worth more to the content than to the composition at that size.
 	apply_safe_margins(_margin, 18.0 if compact else 28.0, 16.0 if compact else 24.0)
 	physical_separation(_stack, 10.0 if compact else 18.0)
-	physical_min_size(_mark, 220.0 if compact else 300.0, 48.0 if compact else 74.0)
-	physical_min_size(_hero_plate, 72.0 if compact else 96.0, 92.0 if compact else 128.0)
-	physical_min_size(_mission_plate, 84.0 if compact else 112.0, 72.0 if compact else 96.0)
+	physical_separation(_left, 10.0 if compact else 18.0)
+	physical_separation(_right, 8.0 if compact else 12.0)
+	physical_separation(_actions, 8.0 if compact else 10.0)
 	# "PROFILE . FIELD READY" restates what the three cells below it already say
 	# on a screen this short; the header is the one line that can go.
 	_rank_line.visible = not compact
 	_clamp_to_one_line(_mission_brief, compact)
 	_clamp_to_one_line(_loadout, compact)
+	# Only the compact sizes are set here. Every other size comes from
+	# `_orient_nodes()`, so a rotation back to a tall screen restores the
+	# authored values instead of keeping whatever this pass last wrote.
+	if landscape:
+		if compact:
+			physical_min_size(_mark, 180.0, 44.0)
+			physical_min_size(_hero_plate, 64.0, 84.0)
+			physical_min_size(_mission_plate, 76.0, 64.0)
+	elif compact:
+		physical_min_size(_mark, 220.0, 48.0)
+		physical_min_size(_hero_plate, 72.0, 92.0)
+		physical_min_size(_mission_plate, 84.0, 72.0)
 
 
 func _clamp_to_one_line(label: Label, clamp: bool) -> void:
