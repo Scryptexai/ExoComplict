@@ -325,6 +325,61 @@ static func hide_results(hud) -> void:
 	hud._refresh_skill_button()
 
 
+## Pause is a whole-screen state, not one panel: it decides the scrim, the
+## control hint, the desktop legend, which buttons are dead, and whether the
+## pause card gets the focus. Keeping all of it in one function is the point —
+## a half-applied pause is worse than none — but the function belongs with the
+## panels it drives, not on the facade.
+
+
+static func apply_paused(hud, paused: bool) -> void:
+	if paused:
+		hud._clear_touch_state()
+	elif is_instance_valid(hud._settings_menu):
+		hud._settings_menu.visible = false
+		if is_instance_valid(hud._hud_editor):
+			hud._hud_editor.close()
+		hud._top_bar.visible = true
+	if is_instance_valid(hud._pause_button):
+		hud._pause_button.icon = AegisTheme.icon("play" if paused else "pause", true)
+		hud._pause_button.text = ""
+		hud._pause_button.set_meta("aegis_state", "resume" if paused else "pause")
+		hud._pause_button.tooltip_text = "Resume (Esc)" if paused else "Pause (Esc)"
+		hud._pause_button.disabled = false
+	if is_instance_valid(hud._pause_panel):
+		hud._pause_panel.visible = paused and not hud._player_down
+		if hud._pause_panel.visible and is_instance_valid(hud._pause_resume_button):
+			hud._pause_resume_button.grab_focus()
+		elif is_instance_valid(hud._pause_resume_button) and hud._pause_resume_button.has_focus():
+			hud._pause_resume_button.release_focus()
+	if is_instance_valid(hud._pause_stats_label):
+		hud._pause_stats_label.text = (
+			"SAFE ZONE · NO WAVES UNTIL YOU START"
+			if hud._state.play_phase == "explore"
+			else "SCORE %s  ·  %s" % [hud._format_number(hud._state.score), hud._state.run_time]
+		)
+	if is_instance_valid(hud._scrim):
+		hud._scrim.visible = (paused or hud._player_down) and not hud._results_visible()
+	if is_instance_valid(hud._help_panel):
+		hud._help_panel.visible = (
+			not paused and hud._help_remaining > 0.0 and not hud._results_visible()
+		)
+	if is_instance_valid(hud._desktop_hint):
+		hud._desktop_hint.visible = (
+			not paused and not hud._touch_mode and not hud._results_visible()
+		)
+	if is_instance_valid(hud._fire_button):
+		hud._fire_button.disabled = paused or hud._player_down
+	if is_instance_valid(hud._weapon_button):
+		hud._weapon_button.disabled = paused or hud._player_down
+	if is_instance_valid(hud._aim_button):
+		hud._aim_button.disabled = paused or hud._player_down
+	if paused and hud._aiming:
+		hud._on_aim_up()
+	hud._refresh_skill_button()
+	hud._apply_context_visibility()
+
+
 ## Both settings transitions only exist while the game is paused: outside a
 ## pause the pause card is not the thing on screen, so there is nothing to
 ## give the screen back to.

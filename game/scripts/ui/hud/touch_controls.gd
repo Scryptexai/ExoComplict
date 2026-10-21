@@ -604,47 +604,7 @@ func _apply_aim_visual(aiming: bool) -> void:
 
 
 func set_paused(paused: bool) -> void:
-	if paused:
-		_clear_touch_state()
-	elif is_instance_valid(_settings_menu):
-		_settings_menu.visible = false
-		if is_instance_valid(_hud_editor):
-			_hud_editor.close()
-		_top_bar.visible = true
-	if is_instance_valid(_pause_button):
-		_pause_button.icon = AegisTheme.icon("play" if paused else "pause", true)
-		_pause_button.text = ""
-		_pause_button.set_meta("aegis_state", "resume" if paused else "pause")
-		_pause_button.tooltip_text = "Resume (Esc)" if paused else "Pause (Esc)"
-		_pause_button.disabled = false
-	if is_instance_valid(_pause_panel):
-		_pause_panel.visible = paused and not _player_down
-		if _pause_panel.visible and is_instance_valid(_pause_resume_button):
-			_pause_resume_button.grab_focus()
-		elif is_instance_valid(_pause_resume_button) and _pause_resume_button.has_focus():
-			_pause_resume_button.release_focus()
-	if is_instance_valid(_pause_stats_label):
-		_pause_stats_label.text = (
-			"SAFE ZONE · NO WAVES UNTIL YOU START"
-			if _state.play_phase == "explore"
-			else "SCORE %s  ·  %s" % [_format_number(_state.score), _state.run_time]
-		)
-	if is_instance_valid(_scrim):
-		_scrim.visible = (paused or _player_down) and not _results_visible()
-	if is_instance_valid(_help_panel):
-		_help_panel.visible = not paused and _help_remaining > 0.0 and not _results_visible()
-	if is_instance_valid(_desktop_hint):
-		_desktop_hint.visible = not paused and not _touch_mode and not _results_visible()
-	if is_instance_valid(_fire_button):
-		_fire_button.disabled = paused or _player_down
-	if is_instance_valid(_weapon_button):
-		_weapon_button.disabled = paused or _player_down
-	if is_instance_valid(_aim_button):
-		_aim_button.disabled = paused or _player_down
-	if paused and _aiming:
-		_on_aim_up()
-	_refresh_skill_button()
-	_apply_context_visibility()
+	HudMenuUi.apply_paused(self, paused)
 
 
 func set_player_down(down: bool) -> void:
