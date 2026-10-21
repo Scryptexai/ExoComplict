@@ -75,6 +75,11 @@ func enter(_stage_payload: Dictionary) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# The base class turns ui_accept into this stage's primary action; call it
+	# first so Enter works here too, then keep the click-to-continue fallback.
+	super._unhandled_input(event)
+	if get_viewport().is_input_handled():
+		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_on_continue_pressed()
 

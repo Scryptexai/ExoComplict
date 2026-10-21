@@ -81,10 +81,12 @@ if [[ "$answer" != "rewrite" ]]; then
   exit 0
 fi
 
+# web/index.pck and web/index.wasm are NOT migrated on purpose. They are what
+# the browser loads, and a plain `git clone` without git-lfs checks out 133-byte
+# pointers instead, which killed the preview with "expected magic word 00 61 73
+# 6d". See the comment in .gitattributes.
 patterns=(
   --include="*.zip"
-  --include="web/index.pck"
-  --include="web/index.wasm"
   --include="source-assets/**/*.glb"
   --include="source-assets/**/*.blend"
   --include="docs/asset-inspections/**/*.png"

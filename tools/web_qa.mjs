@@ -327,33 +327,50 @@ async function checkPage(target, viewport) {
   // pressed F10 in the front-end menu, where the review camera does not exist,
   // and reported eight menu frames as a success (docs/AUDIT_2026-10-21.md
   // §12.3).
-  // No coordinate to click: a Godot canvas is one DOM element, every menu
-  // stage sets mouse_filter = MOUSE_FILTER_STOP so the GUI absorbs a click
-  // before the stage's `_unhandled_input()` fallback sees it, and the primary
-  // button's global rect is degenerate (0,0 with an unstyled width) while the
-  // stage is inside the front-end's viewport. Keyboard navigation does work —
-  // the QA already relies on it inside the pause menu — so walk the focus ring
-  // instead: ESC closes anything a wrong Enter may have opened, then Tab*k
-  // followed by Enter until the stage changes.
+  // Each stage opens with its primary action focused, so ui_accept (Enter)
+  // activates it: one Enter per stage, no coordinates and no guessing. A Godot
+  // canvas has no DOM to query, a stage's mouse_filter = MOUSE_FILTER_STOP
+  // means the GUI absorbs a click before the stage's _unhandled_input() sees
+  // it, and the button's global rect reads 0,0 while the stage sits in the
+  // front-end viewport — all three measured, see
+  // docs/AUDIT_2026-10-21.md §12.3.
   const advanceToGameplay = async () => {
-    const stageOf = () =>
-      (consoleLines.filter((l) => l.includes('FrontEnd: stage')).pop() || '').split('stage ')[1] || '';
     const reached = () => consoleLines.some((line) => line.includes('Encounter: Explore safe'));
-    for (let pass = 0; pass < 4 && !reached(); pass += 1) {
-      for (let tabs = 1; tabs <= 8 && !reached(); tabs += 1) {
-        const before = stageOf();
-        await page.keyboard.press('Escape');
-        await new Promise((r) => setTimeout(r, 150));
-        for (let k = 0; k < tabs; k += 1) await page.keyboard.press('Tab');
+    const stageLine = () => consoleLines.filter((l) => l.includes('FrontEnd: stage')).pop() || '';
+    // A Control only owns GUI focus while the Godot window has keyboard focus,
+    // and headless Chromium does not hand it over on its own: without this
+    // click the grab_focus() in the stage is a no-op and every Enter below is
+    // swallowed by the document.
+    const canvas = await page.$('canvas');
+    if (canvas) await canvas.click();
+    // The opening cinematic is 9.58 s of video and ignores Enter entirely.
+    // Software WebGL decodes it at roughly a fifth of real time, so the wait
+    // is measured in minutes, not seconds.
+    for (let i = 0; i < 240 && !/stage (CHAPTER|DASHBOARD|HERO|WEAPON|WORLD|PRELOAD)/.test(stageLine()); i += 1) {
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    if (!reached()) console.log(`  journey: front-end at ${stageLine().trim() || '(no stage yet)'}`);
+    for (let press = 0; press < 16 && !reached(); press += 1) {
+      const before = stageLine();
+      // Enter first: a stage built while the window already had focus owns it.
+      await page.keyboard.press('Enter');
+      await new Promise((r) => setTimeout(r, 1000));
+      if (stageLine() === before) {
+        // Fall back to the focus ring. grab_focus() cannot take effect while
+        // the Godot window has no keyboard focus, and headless Chromium only
+        // hands it over on a click — so a stage created before that click
+        // (the first one, CHAPTER) has no focused control at all.
+        await page.keyboard.press('Tab');
         await page.keyboard.press('Enter');
-        await new Promise((r) => setTimeout(r, 1200));
-        if (stageOf() === before && tabs > 1) {
-          // Nothing moved: this stop is not the primary action.
-          await page.keyboard.press('Escape');
-          await new Promise((r) => setTimeout(r, 150));
-        }
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+      if (stageLine() === before) {
+        // Still nothing: a panel may be open on top of the stage.
+        await page.keyboard.press('Escape');
+        await new Promise((r) => setTimeout(r, 400));
       }
     }
+    if (!reached()) console.log(`  journey stalled at: ${stageLine().trim() || '(unknown)'}`);
     return reached();
   };
 

@@ -30,6 +30,9 @@ var front_end: Node = null
 var payload: Dictionary = {}
 ## The card list's scroll container, registered by `_make_card_list()`.
 var _card_scroll: ScrollContainer = null
+## The stage's primary action (DEPLOY, CONTINUE, LAUNCH), remembered by
+## `make_button()` so it can take focus when the stage opens.
+var _primary_button: AegisButton = null
 ## Thumb-drag state for `_card_scroll`. See `_input()` for why this exists.
 var _card_drag_index := -1
 var _card_drag_start := Vector2.ZERO
@@ -151,9 +154,46 @@ func make_button(
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
 	button.set_meta("aegis_role", role)
 	AegisTheme.set_button_variant(button, variant)
+	if variant == "primary":
+		_primary_button = button
+		# Open the stage with its primary action focused, so ui_accept
+		# (Enter/Space) activates it. Two reasons, both measured:
+		#   * a keyboard or gamepad player gets a default action instead of
+		#     having to Tab to it, which is what every other screen does;
+		#   * the browser QA can then walk the front-end journey with one Enter
+		#     per stage. A Godot canvas has no DOM to query, the stages set
+		#     mouse_filter = MOUSE_FILTER_STOP so a click is absorbed by the
+		#     GUI before the stage's _unhandled_input() sees it, and the
+		#     button's global rect reads 0,0 while it is inside the front-end
+		#     viewport — see docs/AUDIT_2026-10-21.md §12.3 for the three
+		#     approaches that were measured and did not work.
+		# Deferred: the button has to be in the tree before it can take focus.
+		button.grab_focus.call_deferred()
 	if not tooltip.is_empty():
 		button.tooltip_text = tooltip
 	return button
+
+
+## Enter activates the primary action even when nothing holds GUI focus.
+##
+## `grab_focus()` above is best effort: `Control.grab_focus()` refuses unless
+## the OS window already owns keyboard focus (Godot's own error is "Can't grab
+## focus on control outside the focused window"), and a freshly loaded web
+## page is exactly that case — the canvas has not been clicked yet. `ui_accept`
+## is therefore caught at the scene level as well, or a menu would be
+## keyboard-dead until the player clicks it. When a button *does* hold focus
+## the GUI consumes the event first, so this never double-fires.
+func _unhandled_input(event: InputEvent) -> void:
+	if not event.is_action_pressed("ui_accept"):
+		return
+	if (
+		not is_instance_valid(_primary_button)
+		or _primary_button.disabled
+		or not _primary_button.is_visible_in_tree()
+	):
+		return
+	_primary_button.pressed.emit()
+	get_viewport().set_input_as_handled()
 
 
 func _refresh_metrics() -> float:
