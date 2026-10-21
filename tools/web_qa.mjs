@@ -45,6 +45,7 @@
  *
  * Exit code 0 = every page booted; 1 = at least one check failed.
  */
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
@@ -315,9 +316,54 @@ async function checkPage(target, viewport) {
     }
   }
 
+  /* ---------- reach the gameplay scene ---------- */
+  // A Godot canvas is one DOM element with no children, so a button cannot be
+  // queried, and every menu stage sets mouse_filter = MOUSE_FILTER_STOP: the
+  // GUI absorbs the click and the stage's `_unhandled_input()` fallback never
+  // fires, so "tap anywhere to continue" does not work from a click at an
+  // arbitrary point. Each stage therefore prints its primary button's rect
+  // (`MenuCTA: x,y,w,h in <viewport w>,<viewport h>`) and this pass clicks it,
+  // stage by stage, until the gameplay scene reports in. Without it the tour
+  // pressed F10 in the front-end menu, where the review camera does not exist,
+  // and reported eight menu frames as a success (docs/AUDIT_2026-10-21.md
+  // §12.3).
+  // No coordinate to click: a Godot canvas is one DOM element, every menu
+  // stage sets mouse_filter = MOUSE_FILTER_STOP so the GUI absorbs a click
+  // before the stage's `_unhandled_input()` fallback sees it, and the primary
+  // button's global rect is degenerate (0,0 with an unstyled width) while the
+  // stage is inside the front-end's viewport. Keyboard navigation does work —
+  // the QA already relies on it inside the pause menu — so walk the focus ring
+  // instead: ESC closes anything a wrong Enter may have opened, then Tab*k
+  // followed by Enter until the stage changes.
+  const advanceToGameplay = async () => {
+    const stageOf = () =>
+      (consoleLines.filter((l) => l.includes('FrontEnd: stage')).pop() || '').split('stage ')[1] || '';
+    const reached = () => consoleLines.some((line) => line.includes('Encounter: Explore safe'));
+    for (let pass = 0; pass < 4 && !reached(); pass += 1) {
+      for (let tabs = 1; tabs <= 8 && !reached(); tabs += 1) {
+        const before = stageOf();
+        await page.keyboard.press('Escape');
+        await new Promise((r) => setTimeout(r, 150));
+        for (let k = 0; k < tabs; k += 1) await page.keyboard.press('Tab');
+        await page.keyboard.press('Enter');
+        await new Promise((r) => setTimeout(r, 1200));
+        if (stageOf() === before && tabs > 1) {
+          // Nothing moved: this stop is not the primary action.
+          await page.keyboard.press('Escape');
+          await new Promise((r) => setTimeout(r, 150));
+        }
+      }
+    }
+    return reached();
+  };
+
   /* ---------- optional world tour ---------- */
   const tourFrames = [];
-  if (booted && tourMode) {
+  let inGameplay = false;
+  if (booted && (tourMode || encounterMode)) {
+    inGameplay = await advanceToGameplay();
+  }
+  if (booted && tourMode && inGameplay) {
     await page.keyboard.press('F10');
     await new Promise((r) => setTimeout(r, 600));
     for (const digit of ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8']) {
@@ -479,7 +525,17 @@ async function checkPage(target, viewport) {
     ['no failure card shown', state.failureVisible === false],
   ];
   if (tourMode) {
+    checks.push(['front-end journey reached the gameplay scene', inGameplay]);
     checks.push(['world tour captured frames', tourFrames.length === 8]);
+    // Eight identical files mean the camera never moved, which is what this
+    // pass reported as a success for as long as nobody compared the frames.
+    const hashes = new Set(
+      tourFrames.map((f) => crypto.createHash('md5').update(fs.readFileSync(path.join(ROOT, f))).digest('hex')),
+    );
+    checks.push([
+      `world tour frames differ (${hashes.size} distinct of ${tourFrames.length})`,
+      tourFrames.length > 0 && hashes.size >= 2,
+    ]);
   }
   if (encounterMode) {
     const encounterLines = consoleLines.filter((line) => line.includes('Encounter:'));

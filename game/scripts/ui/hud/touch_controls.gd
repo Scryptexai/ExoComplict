@@ -61,6 +61,9 @@ const CRITICAL_HEALTH_COLOR: Color = AegisTokens.DANGER
 ## main.gd, hud_armory_bridge.gd and the smoke tests reach for the HUD's
 ## members by name and a rename would buy nothing.
 var _touch: HudTouchInput
+## What the game has told this HUD: the run's numbers, the encounter phase and
+## the weapon in hand. Rendering stays here; the data lives in hud_state.gd.
+var _state := HudState.new()
 
 var _move_touch_id: int:
 	get:
@@ -184,7 +187,9 @@ var _compact_wave_text: String = "ENEMIES  0 ACTIVE  ·  0 LEFT"
 var _joystick_center: Vector2 = Vector2.ZERO
 var _joystick_radius: float = 64.0
 var _joystick_visual_radius: float = 64.0
-# --- Run state ------------------------------------------------------------- #
+# --- Feedback and targeting state ----------------------------------------- #
+# The run's numbers moved to HudState (hud_state.gd); what is left here is
+# short-lived: timers that decay in _process() and the hostile-bearing source.
 var _player_down: bool = false
 var _hit_confirm_remaining: float = 0.0
 var _damage_flash_remaining: float = 0.0
@@ -202,16 +207,6 @@ var _soft_lock: bool = false:
 var _hostile_camera: Camera3D
 var _hostile_source: Node
 var _help_remaining: float = HELP_VISIBLE_SECONDS
-var _run_score: int = 0
-var _run_bp: int = 0
-var _wallet_bp: int = 0
-var _available_weapon_count: int = 1
-var _weapon_display_name: String = ""
-var _run_kos: int = 0
-var _run_time: String = "00:00"
-var _run_shots: int = 0
-var _play_phase: String = "explore"
-var _preparation_seconds: int = 0
 
 
 func _ready() -> void:
@@ -263,7 +258,7 @@ func _process(delta: float) -> void:
 			_help_panel.modulate.a = clampf(_help_remaining / HELP_FADE_SECONDS, 0.0, 1.0)
 		if _help_remaining <= 0.0 and _hud_preset != "ADVANCED":
 			_help_panel.visible = false
-	if (_aiming or _play_phase == "defense") and not get_tree().paused:
+	if (_aiming or _state.play_phase == "defense") and not get_tree().paused:
 		needs_redraw = true
 	if needs_redraw:
 		queue_redraw()
@@ -351,18 +346,18 @@ func set_wave_status(
 ## Explicit run numbers: the score chip needs the key figure, and parsing the
 ## three-line status string would be fragile. main.gd calls this every update.
 func set_run_summary(score: int, bp: int, kos: int, time_text: String, shots: int) -> void:
-	_run_score = score
-	_run_bp = bp
-	_run_kos = kos
-	_run_time = time_text
-	_run_shots = shots
+	_state.score = score
+	_state.bp = bp
+	_state.kos = kos
+	_state.run_time = time_text
+	_state.shots = shots
 	_refresh_score_chip()
 
 
 func _refresh_score_chip() -> void:
 	if not is_instance_valid(_score_value_label):
 		return
-	_score_value_label.text = "SCORE %s  ·  %s" % [_format_number(_run_score), _run_time]
+	_score_value_label.text = "SCORE %s  ·  %s" % [_format_number(_state.score), _state.run_time]
 
 
 ## Reflects the audio state on the HUD button, wherever the change came from
@@ -417,10 +412,10 @@ func is_touch_mode() -> bool:
 ## scoreboard. Explore has one explicit start action; run data lives in pause
 ## and results. This keeps the scenery and the crosshair free of status noise.
 func _set_play_phase(phase: String, seconds: int = 0) -> void:
-	if phase == _play_phase and seconds == _preparation_seconds:
+	if phase == _state.play_phase and seconds == _state.preparation_seconds:
 		return
-	_play_phase = phase
-	_preparation_seconds = seconds
+	_state.play_phase = phase
+	_state.preparation_seconds = seconds
 	if phase != "defense":
 		set_wave_status(0, 0, 0, "")
 	_apply_context_visibility()
@@ -515,7 +510,7 @@ func _refresh_compact_label(source: String = "") -> void:
 
 
 func set_weapon_label(display_name: String) -> void:
-	_weapon_display_name = display_name
+	_state.weapon_display_name = display_name
 	HudEncounterUi.refresh_weapon_action(self)
 	if is_instance_valid(_touch_ammo_chip):
 		_touch_ammo_chip.set_weapon(display_name.get_slice(" ", 0).to_upper())
@@ -528,7 +523,7 @@ func _update_weapon_ammo(remaining: int, capacity: int, reloading: bool) -> void
 	if is_instance_valid(_desktop_weapon_meta):
 		_desktop_weapon_meta.text = (
 			"%s · G RELOAD · %s"
-			% [text, "E/Q SWAP" if _available_weapon_count > 1 else "U ARMORY TO UNLOCK"]
+			% [text, "E/Q SWAP" if _state.available_weapons > 1 else "U ARMORY TO UNLOCK"]
 		)
 	if is_instance_valid(_touch_ammo_chip):
 		_touch_ammo_chip.set_ammo(remaining, capacity, reloading)
@@ -636,8 +631,8 @@ func set_paused(paused: bool) -> void:
 	if is_instance_valid(_pause_stats_label):
 		_pause_stats_label.text = (
 			"SAFE ZONE · NO WAVES UNTIL YOU START"
-			if _play_phase == "explore"
-			else "SCORE %s  ·  %s" % [_format_number(_run_score), _run_time]
+			if _state.play_phase == "explore"
+			else "SCORE %s  ·  %s" % [_format_number(_state.score), _state.run_time]
 		)
 	if is_instance_valid(_scrim):
 		_scrim.visible = (paused or _player_down) and not _results_visible()
@@ -1241,8 +1236,8 @@ func _format_number(value: int) -> String:
 ## Fallback for callers that only hand the HUD its three-line status string
 ## (the smoke test does). main.gd calls set_run_summary with exact numbers.
 func _parse_status_fallback(text: String) -> void:
-	var score := _run_score
-	var time_text := _run_time
+	var score := _state.score
+	var time_text := _state.run_time
 	var parts := text.replace("\n", " · ").split("·")
 	for part in parts:
 		var piece := part.strip_edges()
@@ -1250,8 +1245,8 @@ func _parse_status_fallback(text: String) -> void:
 			score = int(piece.trim_prefix("Score:").strip_edges())
 		elif piece.begins_with("Time:"):
 			time_text = piece.trim_prefix("Time:").strip_edges()
-	_run_score = score
-	_run_time = time_text
+	_state.score = score
+	_state.run_time = time_text
 	_refresh_score_chip()
 
 
@@ -1290,7 +1285,7 @@ func _draw() -> void:
 	if _results_visible() or (is_instance_valid(_scrim) and _scrim.visible and _player_down):
 		return
 	if (
-		_play_phase == "defense"
+		_state.play_phase == "defense"
 		and not get_tree().paused
 		and is_instance_valid(_hostile_camera)
 		and is_instance_valid(_hostile_source)
@@ -1432,7 +1427,7 @@ func _apply_preferences(values: Dictionary) -> void:
 
 
 func _on_defense_pressed() -> void:
-	if _play_phase != "explore" or get_tree().paused or _player_down:
+	if _state.play_phase != "explore" or get_tree().paused or _player_down:
 		return
 	Sfx.play_ui(&"ui_click")
 	defense_start_requested.emit()
@@ -1450,9 +1445,9 @@ func _on_results_retry_pressed() -> void:
 
 func _on_restart_pressed() -> void:
 	Sfx.play_ui(&"ui_click")
-	if _play_phase == "explore":
+	if _state.play_phase == "explore":
 		retry_requested.emit()
-	elif _play_phase == "defense":
+	elif _state.play_phase == "defense":
 		finish_run_requested.emit()
 	else:
 		return_to_explore_requested.emit()

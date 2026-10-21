@@ -90,7 +90,7 @@ func layout_for(hud) -> void:
 			hud._to_layout(8.0)
 		)
 	)
-	_compact_explore = hud._touch_mode and hud._portrait and hud._play_phase == "explore"
+	_compact_explore = hud._touch_mode and hud._portrait and hud._state.play_phase == "explore"
 	_compact_landscape = hud._touch_mode and not hud._portrait and hud._narrow
 	_refresh_message()
 	var width: float = minf(hud._to_layout(272.0), hud.size.x - hud._to_layout(24.0))

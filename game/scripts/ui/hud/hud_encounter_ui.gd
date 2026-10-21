@@ -10,17 +10,17 @@ static func update_objective(
 ) -> void:
 	if not is_instance_valid(hud._wave_title_label):
 		return
-	if hud._play_phase == "explore":
+	if hud._state.play_phase == "explore":
 		hud._wave_title_label.text = "EXPLORE THE FRONTIER"
 		hud._wave_enemy_label.text = "SAFE ZONE · MOVE FREELY"
 		hud._wave_state_label.text = "NO HOSTILES"
 		hud._wave_chip_label.text = "EXPLORE\nSAFE"
-	elif hud._play_phase == "preparing":
-		hud._wave_title_label.text = "DEFENSE IN %d" % hud._preparation_seconds
+	elif hud._state.play_phase == "preparing":
+		hud._wave_title_label.text = "DEFENSE IN %d" % hud._state.preparation_seconds
 		# Keep the promise readable in a 390 px portrait objective card.
 		hud._wave_enemy_label.text = "GET READY · SPAWNS MARKED"
 		hud._wave_state_label.text = "PREPARE"
-		hud._wave_chip_label.text = "DEFENSE\nIN %d" % hud._preparation_seconds
+		hud._wave_chip_label.text = "DEFENSE\nIN %d" % hud._state.preparation_seconds
 	else:
 		hud._wave_title_label.text = (
 			"WAVE %02d" % wave_number if wave_number > 0 else "FRONTIER DEFENSE"
@@ -29,7 +29,7 @@ static func update_objective(
 		# The action earns visible currency now; the full accounting stays in
 		# Results. Active count remains in the wave state (ACTIVE n/max).
 		hud._wave_enemy_label.text = (
-			"%d LEFT · %d KO · +%d BP" % [remaining_enemies, hud._run_kos, hud._run_bp]
+			"%d LEFT · %d KO · +%d BP" % [remaining_enemies, hud._state.kos, hud._state.bp]
 		)
 		hud._wave_chip_label.text = (
 			"WAVE %02d\n%d LEFT" % [wave_number, remaining_enemies]
@@ -46,8 +46,8 @@ static func apply_context(hud) -> void:
 	var active: bool = (
 		not hud._results_visible() and not hud._player_down and not hud.get_tree().paused
 	)
-	var exploring: bool = hud._play_phase == "explore"
-	var preparing: bool = hud._play_phase == "preparing"
+	var exploring: bool = hud._state.play_phase == "explore"
+	var preparing: bool = hud._state.play_phase == "preparing"
 	hud._defense_button.visible = active and (exploring or preparing)
 	if is_instance_valid(hud._armory_button):
 		# On a short landscape phone the expanded WEAPON plate occupies the
@@ -56,11 +56,11 @@ static func apply_context(hud) -> void:
 		hud._armory_button.visible = active and exploring and not weapon_acts_as_armory(hud)
 	hud._defense_button.disabled = not exploring
 	hud._defense_button.text = (
-		"DEFENSE IN %d" % hud._preparation_seconds
+		"DEFENSE IN %d" % hud._state.preparation_seconds
 		if preparing
 		else ("START DEFENSE" if hud._touch_mode else "START DEFENSE  [B]")
 	)
-	hud._wave_card.visible = not hud._results_visible() and hud._play_phase != "results"
+	hud._wave_card.visible = not hud._results_visible() and hud._state.play_phase != "results"
 	# The old three-line run panel competed with the horizon. Detailed score,
 	# BP and shots remain available in pause and results.
 	hud._run_card.visible = false
@@ -73,7 +73,9 @@ static func apply_context(hud) -> void:
 		hud._pause_restart_button.text = (
 			"RESET EXPLORATION"
 			if exploring
-			else ("FINISH RUN · RESULTS" if hud._play_phase == "defense" else "CANCEL DEFENSE")
+			else (
+				"FINISH RUN · RESULTS" if hud._state.play_phase == "defense" else "CANCEL DEFENSE"
+			)
 		)
 	if is_instance_valid(hud._pause_stats_label) and exploring:
 		hud._pause_stats_label.text = "SAFE ZONE · NO WAVES UNTIL YOU START"
@@ -84,20 +86,22 @@ static func apply_context(hud) -> void:
 
 
 static func weapon_acts_as_armory(hud) -> bool:
-	return hud._touch_mode and hud._narrow and not hud._portrait and hud._play_phase == "explore"
+	return (
+		hud._touch_mode and hud._narrow and not hud._portrait and hud._state.play_phase == "explore"
+	)
 
 
 static func refresh_weapon_action(hud) -> void:
 	if not is_instance_valid(hud._weapon_button):
 		return
 	var compact_armory: bool = weapon_acts_as_armory(hud)
-	var can_swap: bool = hud._available_weapon_count > 1 and not compact_armory
+	var can_swap: bool = hud._state.available_weapons > 1 and not compact_armory
 	hud._weapon_button.text = ""
 	hud._weapon_button.icon = AegisTheme.icon("rifle" if compact_armory else "swap")
 	hud._weapon_button.set_meta("aegis_state", "swap" if can_swap else "armory")
 	hud._weapon_button.tooltip_text = (
 		("Tap to swap · Equipped: " if can_swap else "Open Armory · Equipped: ")
-		+ hud._weapon_display_name
+		+ hud._state.weapon_display_name
 	)
 
 
@@ -184,7 +188,7 @@ static func finish_layout(hud) -> void:
 			% [
 				roundi(hud._physical_size.x),
 				roundi(hud._physical_size.y),
-				hud._play_phase,
+				hud._state.play_phase,
 				roundi(hud._safe_left * hud._stretch),
 				roundi(hud._top_inset * hud._stretch),
 				roundi(hud._safe_right * hud._stretch),
