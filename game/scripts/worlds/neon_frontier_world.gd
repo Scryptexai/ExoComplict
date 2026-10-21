@@ -58,40 +58,24 @@ func _create_materials() -> void:
 	_materials = {
 		# Slate metal should read as material under the cool key, not a single
 		# saturated cornflower-blue expanse. Warm signals stay sparse on the lane.
-		"ground": _make_material(Color(0.26, 0.3, 0.34), 0.04, 0.9),
-		"ground_light": _make_material(Color(0.32, 0.37, 0.41), 0.06, 0.84),
-		"ground_rose": _make_material(Color(0.29, 0.3, 0.35), 0.05, 0.88),
-		"silver": _make_material(Color(0.36, 0.43, 0.48), 0.56, 0.43),
-		"pearl": _make_material(Color(0.58, 0.65, 0.7), 0.15, 0.5),
-		"ceramic": _make_material(Color(0.43, 0.52, 0.58), 0.23, 0.5),
-		"blue": _make_material(Color(0.06, 0.18, 0.36), 0.46, 0.4),
-		"deep_blue": _make_material(Color(0.025, 0.09, 0.21), 0.5, 0.44),
-		"cyan": _make_emissive(Color(0.02, 0.56, 0.73), 0.82),
-		"turquoise": _make_emissive(Color(0.015, 0.62, 0.55), 0.72),
-		"green": _make_emissive(Color(0.13, 0.64, 0.4), 0.75),
-		"yellow": _make_emissive(Color(0.9, 0.54, 0.065), 0.43),
-		"orange": _make_emissive(Color(1.0, 0.27, 0.04), 0.9),
-		"red": _make_emissive(Color(0.98, 0.05, 0.06), 1.0),
-		"dark_trim": _make_material(Color(0.11, 0.18, 0.2), 0.66, 0.38),
-		"copper": _make_material(Color(0.76, 0.32, 0.13), 0.65, 0.34),
-		"rock": _make_material(Color(0.59, 0.43, 0.34), 0.02, 0.93),
+		"ground": NeonFrontierMaterialKit.make_material(Color(0.26, 0.3, 0.34), 0.04, 0.9),
+		"ground_light": NeonFrontierMaterialKit.make_material(Color(0.32, 0.37, 0.41), 0.06, 0.84),
+		"ground_rose": NeonFrontierMaterialKit.make_material(Color(0.29, 0.3, 0.35), 0.05, 0.88),
+		"silver": NeonFrontierMaterialKit.make_material(Color(0.36, 0.43, 0.48), 0.56, 0.43),
+		"pearl": NeonFrontierMaterialKit.make_material(Color(0.58, 0.65, 0.7), 0.15, 0.5),
+		"ceramic": NeonFrontierMaterialKit.make_material(Color(0.43, 0.52, 0.58), 0.23, 0.5),
+		"blue": NeonFrontierMaterialKit.make_material(Color(0.06, 0.18, 0.36), 0.46, 0.4),
+		"deep_blue": NeonFrontierMaterialKit.make_material(Color(0.025, 0.09, 0.21), 0.5, 0.44),
+		"cyan": NeonFrontierMaterialKit.make_emissive(Color(0.02, 0.56, 0.73), 0.82),
+		"turquoise": NeonFrontierMaterialKit.make_emissive(Color(0.015, 0.62, 0.55), 0.72),
+		"green": NeonFrontierMaterialKit.make_emissive(Color(0.13, 0.64, 0.4), 0.75),
+		"yellow": NeonFrontierMaterialKit.make_emissive(Color(0.9, 0.54, 0.065), 0.43),
+		"orange": NeonFrontierMaterialKit.make_emissive(Color(1.0, 0.27, 0.04), 0.9),
+		"red": NeonFrontierMaterialKit.make_emissive(Color(0.98, 0.05, 0.06), 1.0),
+		"dark_trim": NeonFrontierMaterialKit.make_material(Color(0.11, 0.18, 0.2), 0.66, 0.38),
+		"copper": NeonFrontierMaterialKit.make_material(Color(0.76, 0.32, 0.13), 0.65, 0.34),
+		"rock": NeonFrontierMaterialKit.make_material(Color(0.59, 0.43, 0.34), 0.02, 0.93),
 	}
-
-
-func _make_material(color: Color, metallic: float, roughness: float) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.metallic = metallic
-	material.roughness = roughness
-	return material
-
-
-func _make_emissive(color: Color, strength: float) -> StandardMaterial3D:
-	var material := _make_material(color, 0.25, 0.3)
-	material.emission_enabled = true
-	material.emission = color
-	material.emission_energy_multiplier = strength
-	return material
 
 
 func _build_terrain_and_floor() -> void:

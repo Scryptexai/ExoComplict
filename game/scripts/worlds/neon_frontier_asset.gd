@@ -70,56 +70,38 @@ func _ready() -> void:
 
 func _create_materials() -> void:
 	_materials = {
-		"silver": _make_material(Color(0.36, 0.43, 0.48), 0.56, 0.43),
-		"pearl": _make_material(Color(0.58, 0.65, 0.7), 0.15, 0.5),
-		"ceramic": _make_material(Color(0.43, 0.52, 0.58), 0.23, 0.5),
-		"blue": _make_material(Color(0.055, 0.15, 0.28), 0.46, 0.4),
-		"deep_blue": _make_material(Color(0.025, 0.08, 0.18), 0.5, 0.44),
-		"cyan": _make_emissive(Color(0.02, 0.53, 0.7), 0.78),
-		"turquoise": _make_emissive(Color(0.015, 0.6, 0.52), 0.7),
+		"silver": NeonFrontierMaterialKit.make_material(Color(0.36, 0.43, 0.48), 0.56, 0.43),
+		"pearl": NeonFrontierMaterialKit.make_material(Color(0.58, 0.65, 0.7), 0.15, 0.5),
+		"ceramic": NeonFrontierMaterialKit.make_material(Color(0.43, 0.52, 0.58), 0.23, 0.5),
+		"blue": NeonFrontierMaterialKit.make_material(Color(0.055, 0.15, 0.28), 0.46, 0.4),
+		"deep_blue": NeonFrontierMaterialKit.make_material(Color(0.025, 0.08, 0.18), 0.5, 0.44),
+		"cyan": NeonFrontierMaterialKit.make_emissive(Color(0.02, 0.53, 0.7), 0.78, 0.28, 0.28),
+		"turquoise":
 		# The reactor's big glass and energy shapes were becoming a white/cyan
+		NeonFrontierMaterialKit.make_emissive(Color(0.015, 0.6, 0.52), 0.7, 0.28, 0.28),
 		# billboard in portrait; reserve the brightest values for slim halos.
-		"reactor_core": _make_emissive(Color(0.02, 0.3, 0.37), 0.27),
-		"reactor_spine": _make_material(Color(0.07, 0.16, 0.19), 0.62, 0.38),
-		"reactor_coils": _make_emissive(Color(0.08, 0.64, 0.58), 0.75),
-		"emerald": _make_emissive(Color(0.08, 0.53, 0.33), 0.58),
-		"yellow": _make_emissive(Color(0.9, 0.54, 0.065), 0.43),
-		"orange": _make_emissive(Color(1.0, 0.27, 0.035), 0.95),
-		"red": _make_emissive(Color(0.98, 0.045, 0.055), 1.25),
-		"dark_trim": _make_material(Color(0.105, 0.17, 0.2), 0.66, 0.36),
-		"rock": _make_material(Color(0.59, 0.43, 0.34), 0.02, 0.93),
-		"rock_light": _make_material(Color(0.76, 0.58, 0.42), 0.02, 0.88),
-		"rock_rose": _make_material(Color(0.64, 0.39, 0.37), 0.03, 0.9),
-		"glass": _make_translucent(Color(0.09, 0.48, 0.61, 0.2), 0.25, 0.2),
-		"reactor_glass": _make_translucent(Color(0.07, 0.34, 0.42, 0.085), 0.25, 0.2),
-		"flora": _make_material(Color(0.19, 0.64, 0.35), 0.0, 0.72),
-		"flora_lime": _make_emissive(Color(0.51, 0.87, 0.17), 0.25),
-		"flora_teal": _make_material(Color(0.04, 0.58, 0.54), 0.05, 0.52),
-		"copper": _make_material(Color(0.76, 0.32, 0.13), 0.65, 0.34),
+		"reactor_core":
+		NeonFrontierMaterialKit.make_emissive(Color(0.02, 0.3, 0.37), 0.27, 0.28, 0.28),
+		"reactor_spine": NeonFrontierMaterialKit.make_material(Color(0.07, 0.16, 0.19), 0.62, 0.38),
+		"reactor_coils":
+		NeonFrontierMaterialKit.make_emissive(Color(0.08, 0.64, 0.58), 0.75, 0.28, 0.28),
+		"emerald": NeonFrontierMaterialKit.make_emissive(Color(0.08, 0.53, 0.33), 0.58, 0.28, 0.28),
+		"yellow": NeonFrontierMaterialKit.make_emissive(Color(0.9, 0.54, 0.065), 0.43, 0.28, 0.28),
+		"orange": NeonFrontierMaterialKit.make_emissive(Color(1.0, 0.27, 0.035), 0.95, 0.28, 0.28),
+		"red": NeonFrontierMaterialKit.make_emissive(Color(0.98, 0.045, 0.055), 1.25, 0.28, 0.28),
+		"dark_trim": NeonFrontierMaterialKit.make_material(Color(0.105, 0.17, 0.2), 0.66, 0.36),
+		"rock": NeonFrontierMaterialKit.make_material(Color(0.59, 0.43, 0.34), 0.02, 0.93),
+		"rock_light": NeonFrontierMaterialKit.make_material(Color(0.76, 0.58, 0.42), 0.02, 0.88),
+		"rock_rose": NeonFrontierMaterialKit.make_material(Color(0.64, 0.39, 0.37), 0.03, 0.9),
+		"glass": NeonFrontierMaterialKit.make_translucent(Color(0.09, 0.48, 0.61, 0.2), 0.25, 0.2),
+		"reactor_glass":
+		NeonFrontierMaterialKit.make_translucent(Color(0.07, 0.34, 0.42, 0.085), 0.25, 0.2),
+		"flora": NeonFrontierMaterialKit.make_material(Color(0.19, 0.64, 0.35), 0.0, 0.72),
+		"flora_lime":
+		NeonFrontierMaterialKit.make_emissive(Color(0.51, 0.87, 0.17), 0.25, 0.28, 0.28),
+		"flora_teal": NeonFrontierMaterialKit.make_material(Color(0.04, 0.58, 0.54), 0.05, 0.52),
+		"copper": NeonFrontierMaterialKit.make_material(Color(0.76, 0.32, 0.13), 0.65, 0.34),
 	}
-
-
-func _make_material(color: Color, metallic: float, roughness: float) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.metallic = metallic
-	material.roughness = roughness
-	return material
-
-
-func _make_emissive(color: Color, strength: float) -> StandardMaterial3D:
-	var material := _make_material(color, 0.28, 0.28)
-	material.emission_enabled = true
-	material.emission = color
-	material.emission_energy_multiplier = strength
-	return material
-
-
-func _make_translucent(color: Color, metallic: float, roughness: float) -> StandardMaterial3D:
-	var material := _make_material(color, metallic, roughness)
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
-	return material
 
 
 func _box(
