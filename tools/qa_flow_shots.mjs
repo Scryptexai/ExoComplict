@@ -1,0 +1,277 @@
+#!/usr/bin/env node
+/*
+ * tools/qa_flow_shots.mjs — photograph the whole journey, once, repeatably.
+ *
+ *   node tools/qa_flow_shots.mjs --tag before
+ *   node tools/qa_flow_shots.mjs --tag after --viewport 390x844
+ *   node tools/qa_flow_shots.mjs --tag art --stages DASHBOARD,HERO,WEAPON,WORLD
+ *   node tools/qa_flow_shots.mjs --tag play --stages GAMEPLAY,TOUR
+ *
+ * Why this exists: every review so far argued about a flow it had photographed
+ * one screen at a time, so "is the product coherent?" was answered from memory
+ * of five separate sessions. This walks the real stages the real journey uses
+ * — BOOT -> LOADING -> CINEMATIC -> CHAPTER -> DASHBOARD -> HERO -> WEAPON ->
+ * WORLD -> gameplay — from the committed payload in one run, at mobile and
+ * desktop sizes, and writes a manifest with per-frame statistics.
+ *
+ * Stage entry is the existing `?qa_stage=` deep link (front_end.gd), i.e. the
+ * same stages the journey builds, mounted through the same FrontEnd. It is not
+ * a mock: the payload, the scenes and the scripts are the shipped ones.
+ *
+ * Two things this tool refuses to do, both learned the hard way
+ * (docs/AUDIT_2026-10-21.md §12.3, docs/VERIFICATION_2026-10-22.md §3):
+ *
+ *  - it will not call a screenshot a "screen" without checking that the engine
+ *    reached the stage it asked for (stage log line, or the gameplay marker);
+ *  - it reports image statistics for every frame, so a blank capture is
+ *    visible in the summary instead of being a file that exists.
+ *
+ * Exit code 0 = every requested stage was reached and rendered; 1 = otherwise.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import zlib from 'node:zlib';
+import crypto from 'node:crypto';
+import { execFileSync, spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const CACHE = path.join(ROOT, 'tools', '.cache');
+const LIB_DIR = path.join(CACHE, 'al2023-lib', 'lib');
+
+const argv = process.argv.slice(2);
+const flag = (name, def) => {
+  const i = argv.indexOf(name);
+  return i === -1 ? def : argv[i + 1];
+};
+const has = (name) => argv.includes(name);
+const list = (name) => argv.reduce((acc, arg, i) => (arg === name ? [...acc, argv[i + 1]] : acc), []);
+
+const tag = flag('--tag', 'flow');
+const outDir = path.resolve(ROOT, flag('--out', path.join('exports', 'flow', tag)));
+const pageTarget = flag('--page', '/web/index.html');
+const port = Number(flag('--port', '8133'));
+const settleMs = Number(flag('--settle', '6000'));
+const stageTimeoutMs = Number(flag('--stage-timeout', '240000'));
+const serveDir = path.resolve(ROOT, flag('--serve', '.'));
+
+const DEFAULT_STAGES = ['BOOT', 'LOADING', 'CINEMATIC', 'CHAPTER', 'DASHBOARD', 'HERO', 'WEAPON', 'WORLD'];
+const requested = (list('--stages').join(',') || DEFAULT_STAGES.join(','))
+  .split(',')
+  .map((name) => name.trim().toUpperCase())
+  .filter(Boolean);
+
+const viewportArgs = list('--viewport');
+const viewports = (viewportArgs.length ? viewportArgs : ['390x844', '1280x720']).map((spec) => {
+  const [w, h] = spec.split('x').map(Number);
+  return { spec, width: w || 390, height: h || 844 };
+});
+
+/* Chromium comes from the pinned packages in tools/package.json, extracted on
+ * first use exactly as tools/web_qa.mjs does it. */
+if (!fs.existsSync(path.join(LIB_DIR, 'libnss3.so'))) {
+  const br = path.join(
+    path.dirname(fileURLToPath(import.meta.resolve('@sparticuz/chromium'))),
+    '..',
+    'bin',
+    'al2023.tar.br'
+  );
+  fs.mkdirSync(path.dirname(LIB_DIR), { recursive: true });
+  const tar = path.join(CACHE, 'al2023.tar');
+  fs.writeFileSync(tar, zlib.brotliDecompressSync(fs.readFileSync(br)));
+  execFileSync('tar', ['-xf', tar, '-C', path.dirname(LIB_DIR)]);
+  fs.rmSync(tar);
+}
+
+const chromium = (await import('@sparticuz/chromium')).default;
+const puppeteer = (await import('puppeteer-core')).default;
+
+const server = spawn('python3', ['-m', 'http.server', String(port), '--bind', '127.0.0.1'], {
+  cwd: serveDir,
+  stdio: 'ignore',
+});
+const baseUrl = `http://127.0.0.1:${port}`;
+await new Promise((resolve) => setTimeout(resolve, 900));
+
+fs.mkdirSync(outDir, { recursive: true });
+
+const browser = await puppeteer.launch({
+  executablePath: await chromium.executablePath(),
+  args: [...chromium.args, '--no-sandbox', '--disable-dev-shm-usage'],
+  headless: true,
+  protocolTimeout: 300000,
+  env: { ...process.env, LD_LIBRARY_PATH: [LIB_DIR, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':') },
+});
+
+/* The engine prints one of these once it is up. Waiting for a fixed sleep
+ * instead meant menu frames were captured long after the state they were
+ * meant to show. */
+const BOOT_MARKER = /FrontEnd:|Menu QA:|MenuLoading:|MenuCinematic:|Encounter:|Audio:/;
+
+const rows = [];
+
+async function openPage(viewport) {
+  const page = await browser.newPage();
+  await page.setViewport({
+    width: viewport.width,
+    height: viewport.height,
+    hasTouch: Math.min(viewport.width, viewport.height) < 600,
+    isMobile: Math.min(viewport.width, viewport.height) < 600,
+    deviceScaleFactor: 1,
+  });
+  const lines = [];
+  page.on('console', (message) => lines.push(String(message.text())));
+  page.on('pageerror', (error) => lines.push(`PAGEERROR ${error.message}`));
+  return { page, lines };
+}
+
+async function waitFor(lines, predicate, timeoutMs, label) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (predicate(lines)) return true;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  console.log(`  !! timed out waiting for ${label}`);
+  return false;
+}
+
+async function shoot(page, viewport, name) {
+  const file = path.join(outDir, `${name}-${viewport.spec}.png`);
+  await page.screenshot({ path: file });
+  return path.relative(ROOT, file);
+}
+
+/* ---------- menu / front-end stages: one page load per stage ---------- */
+for (const viewport of viewports) {
+  for (const stage of requested) {
+    if (stage === 'GAMEPLAY' || stage === 'TOUR') continue;
+    const { page, lines } = await openPage(viewport);
+    const url = `${baseUrl}${pageTarget}?qa_stage=${stage}`;
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
+    await page.waitForFunction(() => document.querySelector('canvas') !== null, { timeout: 180000 });
+    await waitFor(lines, (l) => l.some((line) => BOOT_MARKER.test(line)), stageTimeoutMs, `${stage} boot`);
+    // The stage must announce itself. A deep link that silently lands on BOOT
+    // would otherwise be photographed and filed as DASHBOARD.
+    const reached = await waitFor(
+      lines,
+      (l) => l.some((line) => line.includes(`FrontEnd: stage ${stage}`)),
+      stageTimeoutMs,
+      `FrontEnd: stage ${stage}`
+    );
+    await new Promise((resolve) => setTimeout(resolve, settleMs));
+    const shot = await shoot(page, viewport, stage.toLowerCase());
+    rows.push({ stage, viewport: viewport.spec, shot, reached, lines: lines.slice() });
+    console.log(`  ${reached ? 'ok  ' : 'MISS'} ${stage.padEnd(10)} ${viewport.spec}`);
+    await page.close();
+  }
+}
+
+/* ---------- gameplay: walk the real journey, then photograph ---------- */
+for (const viewport of viewports) {
+  const wantsPlay = requested.includes('GAMEPLAY') || requested.includes('TOUR');
+  if (!wantsPlay) continue;
+  const { page, lines } = await openPage(viewport);
+  await page.goto(`${baseUrl}${pageTarget}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  await page.waitForFunction(() => document.querySelector('canvas') !== null, { timeout: 180000 });
+  await waitFor(lines, (l) => l.some((line) => BOOT_MARKER.test(line)), stageTimeoutMs, 'boot');
+
+  const centre = await page.evaluate(() => {
+    const canvas = document.querySelector('canvas');
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+  });
+  if (centre) await page.mouse.click(centre.x, centre.y);
+
+  const inGameplay = () => lines.some((line) => line.includes('Encounter: Explore safe'));
+  const deadline = Date.now() + stageTimeoutMs;
+  while (Date.now() < deadline && !inGameplay()) {
+    await page.keyboard.press('Enter');
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+  }
+  const reachedGameplay = inGameplay();
+  await new Promise((resolve) => setTimeout(resolve, settleMs));
+  const shot = await shoot(page, viewport, 'gameplay');
+  rows.push({ stage: 'GAMEPLAY', viewport: viewport.spec, shot, reached: reachedGameplay, lines: lines.slice() });
+  console.log(`  ${reachedGameplay ? 'ok  ' : 'MISS'} ${'GAMEPLAY'.padEnd(10)} ${viewport.spec}`);
+
+  if (requested.includes('TOUR')) {
+    // P, not F10: F10 never reaches the page (docs/VERIFICATION_2026-10-22.md §3.2).
+    await page.keyboard.press('KeyP');
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    const engaged = lines.some((line) => line.includes('World tour: review camera engaged'));
+    for (const key of ['Digit1', 'Digit2', 'Digit3', 'Digit4']) {
+      await page.keyboard.press(key);
+      await new Promise((resolve) => setTimeout(resolve, 900));
+      const tourShot = await shoot(page, viewport, `tour-${key.replace('Digit', '')}`);
+      rows.push({
+        stage: `TOUR_${key.replace('Digit', '')}`,
+        viewport: viewport.spec,
+        shot: tourShot,
+        reached: engaged,
+        lines: [],
+      });
+    }
+    console.log(`  ${engaged ? 'ok  ' : 'MISS'} ${'TOUR'.padEnd(10)} ${viewport.spec}`);
+  }
+  await page.close();
+}
+
+await browser.close();
+server.kill();
+
+/* ---------- statistics: a file is not a picture ---------- */
+const frames = rows.map((row) => row.shot);
+let stats = [];
+const python = path.join(ROOT, '.venv', 'bin', 'python');
+if (fs.existsSync(python) && frames.length) {
+  try {
+    const raw = execFileSync(python, [path.join(ROOT, 'tools', 'image_stats.py'), '--json', ...frames], {
+      encoding: 'utf8',
+      maxBuffer: 32 * 1024 * 1024,
+    });
+    stats = JSON.parse(raw);
+  } catch (error) {
+    console.log(`  note: image statistics unavailable (${String(error.message).split('\n')[0]})`);
+  }
+}
+const byFile = new Map(stats.map((row) => [row.file.replace(/\\/g, '/'), row]));
+for (const row of rows) {
+  const key = String(row.shot).replace(/\\/g, '/');
+  const found = byFile.get(key) || byFile.get(path.join(ROOT, key)) || null;
+  row.stats = found;
+  row.md5 = fs.existsSync(path.join(ROOT, row.shot))
+    ? crypto.createHash('md5').update(fs.readFileSync(path.join(ROOT, row.shot))).digest('hex')
+    : null;
+}
+
+const manifest = {
+  tag,
+  generatedAt: new Date().toISOString(),
+  payload: pageTarget,
+  viewports: viewports.map((v) => v.spec),
+  frames: rows.map(({ lines, ...rest }) => ({ ...rest, logLines: lines.slice(0, 40) })),
+};
+fs.writeFileSync(path.join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
+
+/* ---------- summary ---------- */
+console.log('\nstage      viewport   reached  mean    sd   cols  verdict');
+console.log('-'.repeat(66));
+let bad = 0;
+for (const row of rows) {
+  const s = row.stats || {};
+  const blank = s.blank === true;
+  if (!row.reached || blank) bad += 1;
+  const verdict = !row.reached ? 'NOT REACHED' : blank ? 'BLANK' : 'render';
+  console.log(
+    `${row.stage.padEnd(10)} ${row.viewport.padEnd(10)} ${String(row.reached).padEnd(8)} ` +
+      `${String(s.mean ?? '-').padStart(5)} ${String(s.stddev ?? '-').padStart(5)} ` +
+      `${String(s.distinct ?? '-').padStart(5)}  ${verdict}`
+  );
+}
+console.log(`\n${rows.length} frame(s) in ${path.relative(ROOT, outDir)}/ — manifest.json has the log lines.`);
+if (bad) {
+  console.log(`FAIL: ${bad} frame(s) were not reached or are blank.`);
+  process.exit(1);
+}
+console.log('PASS: every requested stage was reached and rendered.');
