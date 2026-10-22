@@ -647,7 +647,9 @@ func _build_ceiling(parent: Node3D) -> void:
 			while x < bounds["max"].x:
 				var open := false
 				if room == "hangar":
-					open = absf(x) < 4.0 and (absf(z) < 4.0 or absf(z + 12.0) < 4.0)
+					# Only the outer ring is roofed: the middle of a gantry hall is
+					# open to the sky, which is also where the key light comes from.
+					open = absf(x) < 10.0 and absf(z) < 10.0
 				elif room == "reactor":
 					open = absf(x) < 4.0 and absf(z + 27.0) < 4.0
 				if open:
@@ -1163,10 +1165,10 @@ func _build_catwalks(parent: Node3D) -> void:
 func _build_lighting(parent: Node3D) -> void:
 	var cold := Color(0.72, 0.86, 1.0)
 	var warm := Color(1.0, 0.62, 0.28)
-	_light(parent, "HangarLightNW", Vector3(-9.0, 3.7, -9.0), cold, 2.6, 26.0)
-	_light(parent, "HangarLightNE", Vector3(9.0, 3.7, -9.0), cold, 2.6, 26.0)
-	_light(parent, "HangarLightSW", Vector3(-9.0, 3.7, 9.0), cold, 2.6, 26.0)
-	_light(parent, "HangarLightSE", Vector3(9.0, 3.7, 9.0), cold, 2.6, 26.0)
+	_light(parent, "HangarLightNW", Vector3(-9.0, 4.2, -9.0), cold, 3.6, 30.0)
+	_light(parent, "HangarLightNE", Vector3(9.0, 4.2, -9.0), cold, 3.6, 30.0)
+	_light(parent, "HangarLightSW", Vector3(-9.0, 4.2, 9.0), cold, 3.6, 30.0)
+	_light(parent, "HangarLightSE", Vector3(9.0, 4.2, 9.0), cold, 3.6, 30.0)
 	_light(parent, "HangarGateLight", Vector3(0.0, 3.6, 16.5), warm, 2.2, 18.0)
 	_light(parent, "ReactorLight", Vector3(0.0, 3.7, -28.0), Color(0.45, 0.8, 1.0), 3.2, 24.0)
 	_light(parent, "CargoLight", Vector3(-28.0, 3.5, 0.0), cold, 1.8, 18.0)
