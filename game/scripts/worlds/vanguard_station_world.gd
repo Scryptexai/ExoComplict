@@ -46,6 +46,8 @@ const CATWALK_Y := 3.4
 
 ## Rooms, as axis-aligned rectangles on the deck. One list, read by the floor, the
 ## roof, the lights and the smoke test, so a room cannot be half built.
+const SIGN_WIDTH := {"word": 3.4, "sign": 1.8, "num": 0.7}
+
 const ROOMS := {
 	"hangar": {"min": Vector2(-19.0, -19.0), "max": Vector2(19.0, 19.0)},
 	"reactor": {"min": Vector2(-13.0, -37.0), "max": Vector2(13.0, -19.0)},
@@ -100,7 +102,6 @@ func build() -> Dictionary:
 
 # --- placement ------------------------------------------------------------
 
-
 ## One imported module, centred on its own measured footprint.
 ##
 ## `ScifiBayBuilder.place` positions a module by the pack's own origin, which for
@@ -113,6 +114,31 @@ func build() -> Dictionary:
 ## `collide` is `""` for scenery, `"box"` for anything the player bumps into, and
 ## `"floor"` for deck plates, which get a thin box under the origin so the player
 ## stands on the surface rather than inside a 6 m tall block.
+## A sign, decal or numeral, sized by what it is for rather than by a scale
+## someone typed.
+##
+## The pack's word decals are authored enormous — `Word_Zone` is 21.9 m long and
+## `Word_Warning` 37 m — because they are meant to be stretched along a hangar
+## wall. Placed at a numeric scale they became 14 m flat panels with text on
+## them, which is what the second capture of the hall was mostly made of. Here
+## each one is scaled to a stated width in metres.
+
+
+func _sign(
+	parent: Node3D, key: String, node_name: String, at: Vector3, yaw: float, room: String
+) -> Node3D:
+	var family := "word"
+	if key.begins_with("sign_"):
+		family = "sign"
+	elif key.begins_with("num_"):
+		family = "num"
+	var target: float = SIGN_WIDTH[family]
+	var size: Vector3 = ScifiKitLibrary.size(key)
+	var longest := maxf(size.z, maxf(size.x, 0.01))
+	var scale := target / longest
+	return _place(parent, key, node_name, at, yaw, scale, "", Vector3.ONE, room)
+
+
 func _place(
 	parent: Node3D,
 	key: String,
@@ -514,28 +540,8 @@ func _build_reactor_walls(parent: Node3D) -> void:
 		Vector3.ONE,
 		"hangar"
 	)
-	_place(
-		parent,
-		"num_0",
-		"HallNumeralZero",
-		Vector3(-1.4, 3.0, -18.6),
-		0.0,
-		0.4,
-		"",
-		Vector3.ONE,
-		"hangar"
-	)
-	_place(
-		parent,
-		"num_7",
-		"HallNumeralSeven",
-		Vector3(1.4, 3.0, -18.6),
-		0.0,
-		0.4,
-		"",
-		Vector3.ONE,
-		"hangar"
-	)
+	_sign(parent, "num_0", "HallNumeralZero", Vector3(-1.4, 3.0, -18.6), 0.0, "hangar")
+	_sign(parent, "num_7", "HallNumeralSeven", Vector3(1.4, 3.0, -18.6), 0.0, "hangar")
 	# The shared wall with the hangar already exists; a frame on this side of it
 	# makes the threshold read from inside the reactor hall too.
 	_place(
@@ -756,39 +762,9 @@ func _build_gatehouse(parent: Node3D) -> void:
 		"hangar"
 	)
 	# "07" over the gate, in the pack's own numeral modules.
-	_place(
-		parent,
-		"num_0",
-		"DockNumeralZero",
-		Vector3(-1.5, 2.9, 18.4),
-		0.0,
-		0.45,
-		"",
-		Vector3.ONE,
-		"hangar"
-	)
-	_place(
-		parent,
-		"num_7",
-		"DockNumeralSeven",
-		Vector3(1.5, 2.9, 18.4),
-		0.0,
-		0.45,
-		"",
-		Vector3.ONE,
-		"hangar"
-	)
-	_place(
-		parent,
-		"sign_caution",
-		"GateCautionSign",
-		Vector3(-6.5, 2.6, 18.3),
-		0.0,
-		0.5,
-		"",
-		Vector3.ONE,
-		"hangar"
-	)
+	_sign(parent, "num_0", "DockNumeralZero", Vector3(-1.5, 2.9, 18.4), 0.0, "hangar")
+	_sign(parent, "num_7", "DockNumeralSeven", Vector3(1.5, 2.9, 18.4), 0.0, "hangar")
+	_sign(parent, "sign_caution", "GateCautionSign", Vector3(-6.5, 2.6, 18.3), 0.0, "hangar")
 
 
 ## The reactor: the pack's turbine face on the back wall, a stack of fin columns
@@ -888,28 +864,10 @@ func _build_reactor(parent: Node3D) -> void:
 		Vector3.ONE,
 		"reactor"
 	)
-	_place(
-		parent,
-		"word_warning",
-		"ReactorWarningDecal",
-		Vector3(-11.9, 2.9, -30.0),
-		90.0,
-		0.6,
-		"",
-		Vector3.ONE,
-		"reactor"
+	_sign(
+		parent, "word_warning", "ReactorWarningDecal", Vector3(-11.9, 2.9, -30.0), 90.0, "reactor"
 	)
-	_place(
-		parent,
-		"sign_danger",
-		"ReactorDangerSign",
-		Vector3(11.9, 2.6, -22.0),
-		-90.0,
-		0.7,
-		"",
-		Vector3.ONE,
-		"reactor"
-	)
+	_sign(parent, "sign_danger", "ReactorDangerSign", Vector3(11.9, 2.6, -22.0), -90.0, "reactor")
 
 
 func _build_cargo_bay(parent: Node3D) -> void:
@@ -963,28 +921,8 @@ func _build_cargo_bay(parent: Node3D) -> void:
 		Vector3.ONE,
 		"cargo"
 	)
-	_place(
-		parent,
-		"sign_caution",
-		"CargoCautionSign",
-		Vector3(-19.9, 2.6, 0.0),
-		180.0,
-		0.55,
-		"",
-		Vector3.ONE,
-		"cargo"
-	)
-	_place(
-		parent,
-		"word_zone",
-		"CargoZoneDecal",
-		Vector3(-24.0, 2.4, 6.7),
-		0.0,
-		0.5,
-		"",
-		Vector3.ONE,
-		"cargo"
-	)
+	_sign(parent, "sign_caution", "CargoCautionSign", Vector3(-19.9, 2.6, 0.0), 180.0, "cargo")
+	_sign(parent, "word_zone", "CargoZoneDecal", Vector3(-24.0, 2.4, 6.7), 0.0, "cargo")
 
 
 func _build_corridor_dressing(parent: Node3D) -> void:
@@ -1023,28 +961,8 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 		Vector3.ONE,
 		"corridor"
 	)
-	_place(
-		parent,
-		"sign_danger",
-		"CorridorSign",
-		Vector3(38.0, 2.6, 3.7),
-		180.0,
-		0.6,
-		"",
-		Vector3.ONE,
-		"corridor"
-	)
-	_place(
-		parent,
-		"word_exit",
-		"CorridorExitDecal",
-		Vector3(41.6, 2.4, -3.6),
-		180.0,
-		0.4,
-		"",
-		Vector3.ONE,
-		"corridor"
-	)
+	_sign(parent, "sign_danger", "CorridorSign", Vector3(38.0, 2.6, 3.7), 180.0, "corridor")
+	_sign(parent, "word_exit", "CorridorExitDecal", Vector3(41.6, 2.4, -3.6), 180.0, "corridor")
 	_place(
 		parent,
 		"console_half",
@@ -1113,28 +1031,8 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 		Vector3.ONE,
 		"hangar"
 	)
-	_place(
-		parent,
-		"word_zone",
-		"HangarZoneDecal",
-		Vector3(17.7, 2.6, -2.0),
-		-90.0,
-		0.62,
-		"",
-		Vector3.ONE,
-		"hangar"
-	)
-	_place(
-		parent,
-		"sign_danger",
-		"HangarDangerSign",
-		Vector3(-17.7, 2.6, -6.0),
-		90.0,
-		0.7,
-		"",
-		Vector3.ONE,
-		"hangar"
-	)
+	_sign(parent, "word_zone", "HangarZoneDecal", Vector3(17.7, 2.6, -2.0), -90.0, "hangar")
+	_sign(parent, "sign_danger", "HangarDangerSign", Vector3(-17.7, 2.6, -6.0), 90.0, "hangar")
 	for x in [-15.0, -9.0, 9.0, 15.0]:
 		for side in [-1.0, 1.0]:
 			_place(
