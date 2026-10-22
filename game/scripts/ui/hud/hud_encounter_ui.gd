@@ -12,7 +12,10 @@ static var _zone_copy_id: StringName = &""
 
 static func zone_copy(hud) -> Array:
 	var world_id := WorldSelection.selected(hud)
-	if _zone_copy_id != world_id:
+	# `_zone_copy_id` starts empty and so can a real selection: the HUD also runs
+	# outside the gameplay tree, where no service answers. The emptiness check is
+	# what keeps that first call from returning an array that was never filled.
+	if _zone_copy.is_empty() or _zone_copy_id != world_id:
 		_zone_copy_id = world_id
 		var definition := WorldDefinition.load_definition(world_id)
 		if definition != null:
