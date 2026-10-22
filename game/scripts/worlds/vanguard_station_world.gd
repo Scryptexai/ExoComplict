@@ -850,16 +850,33 @@ func _build_hall_dressing(parent: Node3D) -> void:
 				Vector3.ONE,
 				"hangar"
 			)
-		# Hanging ceiling runs over the side decks, under the roof ring.
+		# Lamps mounted against the underside of the roof ring. At 3.95 they hung
+		# in the open air inside the skylight, where nothing held them up and they
+		# read as pale slabs floating over the hall.
 		for index in range(3):
 			_place(
 				parent,
 				"light_corridor",
 				"HallCeilingLamp_%s_%d" % [str(side), index],
-				Vector3(side * 12.0, 3.95, 6.0 - 8.0 * float(index)),
+				Vector3(side * 13.0, ROOF_Y - 0.1, 6.0 - 8.0 * float(index)),
 				90.0,
-				1.0,
+				0.8,
 				"",
+				Vector3.ONE,
+				"hangar"
+			)
+		# Piers under the roof edge, framing the open centre. The hall is 36 m of
+		# flat wall either side; four 4 m beams at the skylight's corners give the
+		# space a structure to read instead of an enclosure.
+		for index in range(2):
+			_place(
+				parent,
+				"beam",
+				"HangarPier_%s_%d" % [str(side), index],
+				Vector3(side * 10.0, 0.0, -9.0 + 18.0 * float(index)),
+				0.0,
+				1.0,
+				"box",
 				Vector3.ONE,
 				"hangar"
 			)
