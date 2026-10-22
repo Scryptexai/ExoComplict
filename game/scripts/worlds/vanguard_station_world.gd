@@ -528,7 +528,7 @@ func _build_reactor_walls(parent: Node3D) -> void:
 		Vector3(0.0, 0.0, -19.0),
 		90.0,
 		1.0,
-		"box",
+		"portal",
 		Vector3.ONE,
 		"reactor"
 	)
@@ -567,7 +567,7 @@ func _build_cargo_walls(parent: Node3D) -> void:
 		Vector3(-19.0, 0.0, 0.0),
 		90.0,
 		1.0,
-		"box",
+		"portal",
 		Vector3.ONE,
 		"cargo"
 	)
@@ -677,7 +677,7 @@ func _build_gatehouse(parent: Node3D) -> void:
 		Vector3(0.0, 0.0, 19.0),
 		90.0,
 		1.0,
-		"box",
+		"portal",
 		Vector3.ONE,
 		"hangar"
 	)

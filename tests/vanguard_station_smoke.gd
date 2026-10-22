@@ -93,8 +93,17 @@ func _run() -> void:
 		"the roof clears the 4 m wall modules"
 	)
 
-	# 6. A body can walk the route. Capsule at player proportions, sampled every
-	#    0.5 m along four legs, and nothing may intersect it.
+	# 6. A body can walk the route. The player is parked out of the way first: a
+	#    capsule sweep down the room's centre line hits whatever stands at the
+	#    spawn point, and the first run of this test reported every route blocked
+	#    "by Main" — which was the player, standing exactly where the player does.
+	var player: Node3D = main.get_node("Player")
+	var player_was := player.global_position
+	player.global_position = Vector3(0.0, 60.0, 0.0)
+	player.set_physics_process(false)
+	await physics_frame
+	# Capsule at player proportions, sampled every 0.5 m along four legs, and
+	# nothing may intersect it.
 	var space := root.world_3d.direct_space_state
 	_check_route(space, "spawn to gate", Vector3(0.0, 1.0, 0.0), Vector3(0.0, 1.0, 17.5))
 	_check_route(space, "hangar to reactor", Vector3(0.0, 1.0, 0.0), Vector3(0.0, 1.0, -31.0))
