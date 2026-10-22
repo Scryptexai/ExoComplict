@@ -1,105 +1,82 @@
-## HERO SELECTION.
+## HERO SELECTION — a full-screen 3D showcase of the operative gameplay spawns.
 ##
-## One operative exists. The rig in `assets/characters/hero/` is the only
-## skinned hero in the project, so one card is selectable and the rest are
-## marked IN DEVELOPMENT rather than populated with invented names, invented
-## portraits and invented stat blocks.
+## This screen used to be a painted card list. The card was honest about what
+## existed (one playable operative, two slots marked IN DEVELOPMENT) but it sold
+## the hero with concept art while the game spawned a rigged GLB. `showcase_smoke`
+## asserts the model on this screen is the exact resource `player.tscn` attaches,
+## so the first thing a player sees is the thing that will be holding the rifle.
 ##
-## The card carries no numeric stats on purpose. There is no hero data model --
-## no per-hero health, speed or damage -- so any number printed here would be
-## decoration that disagrees with gameplay. What the portrait shows is the
-## concept art for the operative; docs/ART_DIRECTION.md §4 is explicit that the
-## portrait is not the in-game model.
+## The composition follows the showcase brief: carousel and identity at the top,
+## the model filling the middle, information and actions at the bottom, and
+## deliberate space around the silhouette rather than panels over it.
 ##
-## The name, the blurb, the status line and the portrait path all come from the
-## `HeroDefinition` registry, so this screen cannot call the operative one thing
-## while the dashboard's loadout line calls it another.
+## What it does *not* show is a stat block. This project has no per-hero gameplay
+## model -- every operative runs the same controller and the same `CharacterVisual`
+## -- so health, shield, mobility and skills would be decoration a player can read
+## that nothing in the game uses. `HeroDefinition` documents that decision; the
+## panel shows what is real: the operative's status and the loadout they will
+## deploy with.
 extends MenuStage
 
+const ShowcaseViewportScript = preload("res://scripts/ui/widgets/showcase_viewport.gd")
+
 ## The id the screen starts on. The roster is read from `HeroDefinition`, not
-## from a second list kept here: a second spelling of "exo_operative" is a
-## second thing to keep in step.
+## from a second list kept here.
 const OPERATIVE_ID := ProgressionService.DEFAULT_HERO_ID
-## How many slots the screen shows. Two are placeholders so the layout is not a
-## single lonely card on a tablet; they are disabled, never selectable.
+## Placeholder slots, so the layout is not one lonely chip on a tablet. They are
+## disabled and never selectable: the project ships one operative.
 const LOCKED_SLOTS := 2
+## Showcase model height in metres. The same value `CharacterVisual` fits the
+## avatar to, so the showcase and the arena agree about how tall this hero is.
+const SHOWCASE_HEIGHT := 1.78
 
 var _cards: Array[AegisButton] = []
-## Placeholder slots: not selectable, but they still have to move to the
-## landscape row with the real card.
 var _locked: Array[AegisButton] = []
-## Portrait/landscape list pair built by MenuStage._make_card_list().
-var _lists: Dictionary = {}
-## Every control authored with MenuStage._size_both() (cards and portraits).
-var _oriented: Array = []
-## The landscape arrangement: heading and summary stay in the info column, the
-## card list moves beside it. See MenuStage._orient_selection().
-var _stack: VBoxContainer
-var _split: HBoxContainer
-var _info: VBoxContainer
-var _scroll: ScrollContainer
-var _above: Array = []
-var _below: Array = []
-var _summary: Label
+var _showcase: ShowcaseViewport
+var _carousel: ScrollContainer
+var _heading: Label
+var _name_label: Label
+var _status_label: Label
+var _role_label: Label
+var _loadout_label: Label
+var _select_button: AegisButton
 var _continue: AegisButton
 var _selected := OPERATIVE_ID
+var _select_requested := false
+
+# Containers that move between the portrait and landscape arrangements.
+var _stack: VBoxContainer
+var _header: HBoxContainer
+var _body_portrait: VBoxContainer
+var _body_landscape: HBoxContainer
+var _col_left: VBoxContainer
+var _col_right: VBoxContainer
+var _showcase_holder: Control
+var _panel: AegisPanel
+var _carousel_wrap: VBoxContainer
+var _landscape_built := false
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(make_backdrop("res://assets/ui/dashboard_bg.jpg"))
 	var scrim := ColorRect.new()
-	scrim.color = Color(AegisTokens.VOID, 0.58)
+	# Darker than the dashboard's scrim on purpose: the model is the subject, and
+	# a busy backdrop directly behind a silhouette is what the brief forbids.
+	scrim.color = Color(AegisTokens.VOID, 0.74)
 	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(scrim)
 
 	_stack = VBoxContainer.new()
-	physical_separation(_stack, 14)
+	physical_separation(_stack, 10)
 	make_margin().add_child(_stack)
-	var split := _make_selection_split(300.0)
-	_split = split["split"]
-	_info = split["info"]
 
-	var heading := card_line("SELECT OPERATIVE", "display_l", AegisTokens.INK)
-	_stack.add_child(heading)
-	_summary = card_line("", "label", AegisTokens.INK_2)
-	_stack.add_child(_summary)
-	_above = [heading, _summary]
-
-	_scroll = ScrollContainer.new()
-	_scroll.name = &"CardScroll"
-	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_stack.add_child(_scroll)
-	_lists = _make_card_list(_scroll)
-
-	# One card per row: three 240 px cards side by side need 752 px, and on a
-	# 390 px screen that pushed every label on the screen to twice the display
-	# width. A vertical list scrolls instead of overflowing.
-	var list: BoxContainer = _lists["column"]
-
-	for definition in HeroDefinition.load_all_definitions():
-		list.add_child(_build_hero_card(definition))
-	for index in range(LOCKED_SLOTS):
-		list.add_child(_build_locked_card(index))
-
-	var footer := HBoxContainer.new()
-	physical_separation(footer, 12)
-	_stack.add_child(footer)
-	_below = [footer]
-
-	var back := make_button("BACK", "ghost", "Return to the dashboard")
-	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_min_size(back, 0.0, 56.0)
-	back.pressed.connect(func() -> void: completed.emit(&"DASHBOARD", {}))
-	footer.add_child(back)
-
-	_continue = make_button("CONTINUE", "primary", "Choose a weapon")
-	_continue.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_min_size(_continue, 0.0, 56.0)
-	_continue.pressed.connect(_on_continue_pressed)
-	footer.add_child(_continue)
+	_build_header()
+	_build_body_containers()
+	_build_carousel()
+	_build_showcase()
+	_build_panel()
 
 	_connect_resized(_on_resized)
 	relayout()
@@ -108,131 +85,333 @@ func _ready() -> void:
 func enter(_stage_payload: Dictionary) -> void:
 	apply_safe_margins(_margin)
 	_selected = OPERATIVE_ID
+	_select_requested = false
 	_on_resized()
 	_refresh()
+	# The reveal runs on entry, not only on a change: the brief's first beat is
+	# the hero arriving, and a screen that is already fully composed when the
+	# transition ends has no reveal at all.
+	_present_selected(true)
+
+
+func exit() -> void:
+	if is_instance_valid(_showcase):
+		_showcase.clear_model()
 
 
 func refresh_profile() -> void:
 	_refresh()
 
 
-func _refresh() -> void:
-	var ready := HeroDefinition.DEFINITION_IDS.size()
-	_summary.text = (
-		"%d OPERATIVE%s FIELD READY · %d IN DEVELOPMENT"
-		% [ready, "" if ready == 1 else "S", LOCKED_SLOTS]
-	)
-	for card in _cards:
-		var id := StringName(str(card.get_meta("hero_id", "")))
-		# The service owns which heroes exist; a card for an id it does not
-		# know about is disabled even if a definition was written for it.
-		var selectable := ProgressionService.HERO_IDS.has(id)
-		card.disabled = not selectable
-		card.edge_active = selectable
-		card.set_pressed_no_signal(selectable)
+# --- construction ----------------------------------------------------------- #
 
 
-func _build_hero_card(definition: HeroDefinition) -> Control:
-	var hero_id := definition.hero_id
-	var card := AegisButton.new()
-	card.name = "%sCard" % String(hero_id).to_pascal_case()
-	card.button_group = ButtonGroup.new()
-	card.set_meta("hero_id", String(hero_id))
-	card.toggle_mode = true
-	card.focus_mode = Control.FOCUS_ALL
-	card.mouse_filter = Control.MOUSE_FILTER_STOP
-	card.tooltip_text = "%s — %s" % [definition.display_name, definition.status_line.to_lower()]
-	_size_both(card, Vector2(0.0, 190.0), Vector2(LANDSCAPE_CARD_WIDTH, 190.0))
-	# The card is the boundary for its own copy: see the weapon card.
-	card.clip_contents = true
-	_oriented.append(card)
-	card.pressed.connect(_on_card_pressed.bind(hero_id))
-	AegisTheme.set_button_variant(card, "round")
+func _build_header() -> void:
+	_header = HBoxContainer.new()
+	physical_separation(_header, 12)
+	_stack.add_child(_header)
+
+	var back := make_button("BACK", "ghost", "Return to the dashboard")
+	physical_min_size(back, 120.0, AegisTokens.MIN_TOUCH_PX)
+	back.pressed.connect(func() -> void: completed.emit(&"DASHBOARD", {}))
+	_header.add_child(back)
+
+	_heading = make_label("SELECT OPERATIVE", "display_m", AegisTokens.INK)
+	_heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_heading.clip_text = true
+	_header.add_child(_heading)
+
+	_status_label = make_label("", "label", AegisTokens.OK)
+	_status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_status_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_header.add_child(_status_label)
+
+
+func _build_body_containers() -> void:
+	_body_portrait = VBoxContainer.new()
+	_body_portrait.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	physical_separation(_body_portrait, 10)
+
+	_body_landscape = HBoxContainer.new()
+	_body_landscape.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	physical_separation(_body_landscape, 14)
+
+	_col_left = VBoxContainer.new()
+	_col_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_col_left.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	physical_separation(_col_left, 10)
+
+	_col_right = VBoxContainer.new()
+	_col_right.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	physical_separation(_col_right, 10)
+
+	_stack.add_child(_body_portrait)
+
+
+func _build_carousel() -> void:
+	_carousel_wrap = VBoxContainer.new()
+	physical_separation(_carousel_wrap, 6)
+	_body_portrait.add_child(_carousel_wrap)
+
+	_carousel = ScrollContainer.new()
+	_carousel.name = &"HeroCarousel"
+	_carousel.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_carousel.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_carousel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	physical_min_size(_carousel, 0.0, 96.0)
+	_carousel_wrap.add_child(_carousel)
 
 	var row := HBoxContainer.new()
-	row.set_anchors_preset(Control.PRESET_FULL_RECT)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	physical_separation(row, 14)
-	card.add_child(row)
+	row.name = &"HeroChips"
+	physical_separation(row, 10)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_carousel.add_child(row)
+
+	for definition in HeroDefinition.load_all_definitions():
+		row.add_child(_build_chip(definition))
+	for index in range(LOCKED_SLOTS):
+		row.add_child(_build_locked_chip(index))
+	_name_label = make_label("", "display_m", AegisTokens.INK)
+	_name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_carousel_wrap.add_child(_name_label)
+
+
+## One small portrait per operative. Small on purpose: the model is the subject,
+## and the portrait is how a player recognises which one is selected without
+## reading a name. It keeps `hero_id` metadata because the data-source test reads
+## the roster back out of these buttons.
+func _build_chip(definition: HeroDefinition) -> Control:
+	var chip := AegisButton.new()
+	chip.name = "%sChip" % String(definition.hero_id).to_pascal_case()
+	chip.button_group = ButtonGroup.new()
+	chip.toggle_mode = true
+	chip.focus_mode = Control.FOCUS_ALL
+	chip.mouse_filter = Control.MOUSE_FILTER_STOP
+	chip.set_meta("hero_id", String(definition.hero_id))
+	chip.tooltip_text = "%s — %s" % [definition.display_name, definition.status_line.to_lower()]
+	_size_both(chip, Vector2(84.0, 84.0), Vector2(68.0, 68.0))
+	AegisTheme.set_button_variant(chip, "round")
+	chip.pressed.connect(_on_chip_pressed.bind(definition.hero_id))
+	_cards.append(chip)
 
 	var portrait := TextureRect.new()
 	portrait.texture = try_texture(definition.portrait_path)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	_size_both(portrait, Vector2(130.0, 170.0), Vector2(100.0, 100.0))
-	_oriented.append(portrait)
-	row.add_child(portrait)
+	portrait.set_anchors_preset(Control.PRESET_FULL_RECT)
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	portrait.name = "Portrait"
+	chip.add_child(portrait)
+	return chip
+
+
+func _build_locked_chip(index: int) -> Control:
+	var chip := AegisButton.new()
+	chip.name = "LockedHeroChip%d" % index
+	chip.disabled = true
+	chip.focus_mode = Control.FOCUS_NONE
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.tooltip_text = "No rig and no definition in this build"
+	_size_both(chip, Vector2(84.0, 84.0), Vector2(68.0, 68.0))
+	AegisTheme.set_button_variant(chip, "round")
+	_locked.append(chip)
 
 	var column := VBoxContainer.new()
-	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	physical_separation(column, 6)
-	row.add_child(column)
-
-	column.add_child(
-		_limit_lines(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK), 1)
-	)
-	# Three lines, then an ellipsis: at 390x844 the blurb is a 190 px column and
-	# the registry's sentence ran to five lines inside a 190 px card.
-	column.add_child(
-		_limit_lines(card_line(definition.role_description, "body_s", AegisTokens.INK_2), 3)
-	)
-	column.add_child(
-		card_line("STATUS  %s" % definition.status_line.to_upper(), "label_s", AegisTokens.OK)
-	)
-	_cards.append(card)
-	return card
-
-
-## A placeholder slot, laid out like the real card so the screen does not look
-## broken. Disabled and unlabelled beyond "IN DEVELOPMENT" so it cannot be
-## mistaken for a hero the player nearly has.
-func _build_locked_card(index: int) -> Control:
-	var card := AegisButton.new()
-	card.name = "LockedHeroCard%d" % index
-	_locked.append(card)
-	card.disabled = true
-	card.focus_mode = Control.FOCUS_NONE
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_size_both(card, Vector2(0.0, 110.0), Vector2(200.0, 96.0))
-	_oriented.append(card)
-	AegisTheme.set_button_variant(card, "round")
-
-	var row := HBoxContainer.new()
-	row.set_anchors_preset(Control.PRESET_FULL_RECT)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	physical_separation(row, 14)
-	card.add_child(row)
-
-	var slot := Control.new()
-	# Landscape keeps only a sliver of the portrait slot: the card is 200 px
-	# wide there, and a 100 px slot would leave 56 px for the words.
-	_size_both(slot, Vector2(130.0, 86.0), Vector2(40.0, 86.0))
-	_oriented.append(slot)
-	row.add_child(slot)
-
-	var column := VBoxContainer.new()
-	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.set_anchors_preset(Control.PRESET_FULL_RECT)
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(column)
-	# Slot numbers follow the roster: two heroes would make this SLOT 03.
-	column.add_child(
-		card_line(
-			"SLOT %02d" % (HeroDefinition.DEFINITION_IDS.size() + index + 1),
-			"label",
-			AegisTokens.LINE_HI
-		)
+	chip.add_child(column)
+	var slot := make_label(
+		"SLOT %02d" % (HeroDefinition.DEFINITION_IDS.size() + index + 1),
+		"label_s",
+		AegisTokens.LINE_HI
 	)
-	column.add_child(card_line("IN DEVELOPMENT", "title", AegisTokens.INK_3))
-	return card
+	slot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(slot)
+	var state := make_label("IN DEVELOPMENT", "label_s", AegisTokens.INK_3)
+	state.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	state.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(state)
+	return chip
 
 
-func _on_card_pressed(hero_id: StringName) -> void:
+## The model stage. It is a plain Control so the 3D viewport can fill it while
+## the panels stay in the 2D layer above it.
+func _build_showcase() -> void:
+	_showcase_holder = Control.new()
+	_showcase_holder.name = &"ShowcaseHolder"
+	_showcase_holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_showcase_holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_showcase_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_showcase_holder.clip_contents = false
+	_body_portrait.add_child(_showcase_holder)
+
+	_showcase = ShowcaseViewportScript.new()
+	_showcase.name = &"HeroShowcase"
+	_showcase.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_showcase_holder.add_child(_showcase)
+
+
+func _build_panel() -> void:
+	_panel = AegisPanel.new()
+	_panel.interactive = false
+	_panel.accent_side = "top"
+	_panel.accent_color = AegisTokens.INFO
+	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_body_portrait.add_child(_panel)
+
+	var column := VBoxContainer.new()
+	physical_separation(column, 8)
+	_panel.add_child(column)
+
+	_role_label = make_label("", "body_s", AegisTokens.INK_2)
+	_role_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_limit_lines(_role_label, 2)
+	column.add_child(_role_label)
+
+	_loadout_label = make_label("", "label_s", AegisTokens.INK_3)
+	_loadout_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_limit_lines(_loadout_label, 2)
+	column.add_child(_loadout_label)
+
+	var actions := HBoxContainer.new()
+	physical_separation(actions, 10)
+	column.add_child(actions)
+
+	_select_button = make_button("EQUIPPED", "round", "Keep this operative selected")
+	_select_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	physical_min_size(_select_button, 0.0, AegisTokens.MIN_TOUCH_PX)
+	_select_button.pressed.connect(_on_select_pressed)
+	actions.add_child(_select_button)
+
+	_continue = make_button("CONTINUE", "primary", "Choose a weapon")
+	_continue.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	physical_min_size(_continue, 0.0, AegisTokens.MIN_TOUCH_PX)
+	_continue.pressed.connect(_on_continue_pressed)
+	actions.add_child(_continue)
+
+
+# --- state ------------------------------------------------------------------ #
+
+
+func _refresh() -> void:
+	for card in _cards:
+		var id := StringName(str(card.get_meta("hero_id", "")))
+		var selectable := ProgressionService.HERO_IDS.has(id)
+		card.disabled = not selectable
+		card.edge_active = id == _selected and selectable
+		card.set_pressed_no_signal(id == _selected and selectable)
+	# SELECT means "this is not the saved choice yet"; EQUIPPED means it is, and
+	# is disabled because there is nothing left to confirm.
 	var progression := progression_service()
-	if progression == null:
+	var saved := progression.selected_hero_id if progression != null else _selected
+	_select_requested = StringName(saved) != _selected
+	_continue.disabled = not ProgressionService.HERO_IDS.has(_selected)
+	_select_button.text = "SELECT" if _select_requested else "EQUIPPED"
+	_select_button.disabled = not _select_requested
+	_select_button.tooltip_text = (
+		"Confirm %s" % _hero_name(_selected)
+		if _select_requested
+		else "%s is equipped" % _hero_name(_selected)
+	)
+
+
+## Puts the selected hero's model on the stage and updates every panel line from
+## the same definition. `reveal` is false when restoring a screen that was
+## already showing this hero (a rotation or a profile refresh), so the animation
+## does not replay for a resize.
+func _present_selected(reveal: bool) -> void:
+	var definition := HeroDefinition.load_definition(_selected)
+	if definition == null:
+		_showcase.clear_model()
 		return
-	progression.select_hero(hero_id)
+	if not is_instance_valid(definition.model_scene):
+		_showcase.clear_model()
+		return
+	var already := _showcase.model_path() == definition.model_scene.resource_path
+	if not already:
+		var clips: Array = definition.showcase_clips
+		(
+			_showcase
+			. present(
+				definition.model_scene,
+				{
+					"fit_axis": 1,
+					"height": SHOWCASE_HEIGHT,
+					"yaw": 180.0,
+					"clips": clips,
+				}
+			)
+		)
+		_showcase.frame_model(SHOWCASE_HEIGHT)
+		if not reveal:
+			_showcase.skip_reveal()
+	_name_label.text = definition.display_name.to_upper()
+	_status_label.text = definition.status_line.to_upper()
+	_status_label.add_theme_color_override("font_color", AegisTokens.OK)
+	_role_label.text = _first_sentence(definition.role_description)
+	var progression := progression_service()
+	if progression != null:
+		_loadout_label.text = (
+			"DEPLOYS WITH  %s  /  %s"
+			% [
+				_weapon_name(progression.selected_weapon_id),
+				_world_name(progression.selected_world_id),
+			]
+		)
+
+
+func _hero_name(hero_id: StringName) -> String:
+	var definition := HeroDefinition.load_definition(hero_id)
+	if definition != null:
+		return definition.display_name
+	return String(hero_id).replace("_", " ").to_capitalized()
+
+
+func _weapon_name(weapon_id: StringName) -> String:
+	var definition := WeaponDefinition.load_definition(weapon_id)
+	if definition != null:
+		return definition.display_name.to_upper()
+	return String(weapon_id).to_upper()
+
+
+func _world_name(world_id: StringName) -> String:
+	var definition := WorldDefinition.load_definition(world_id)
+	if definition != null:
+		return definition.display_name.to_upper()
+	return String(world_id).replace("_", " ").to_upper()
+
+
+func _first_sentence(text: String) -> String:
+	var trimmed := text.strip_edges().replace("\n", " ")
+	var stop := trimmed.find(".")
+	if stop > 0:
+		return trimmed.substr(0, stop + 1)
+	return trimmed
+
+
+# --- interaction ------------------------------------------------------------ #
+
+
+func _on_chip_pressed(hero_id: StringName) -> void:
+	if hero_id == _selected:
+		return
+	_selected = hero_id
+	_select_requested = false
+	Sfx.play_ui(&"ui_click")
+	# A chip pick changes what is on the stage, not what is saved: SELECT or
+	# CONTINUE commits it. That is what makes the SELECT/EQUIPPED state mean
+	# something instead of being a label that is always true.
+	_refresh()
+	_present_selected(true)
+
+
+func _on_select_pressed() -> void:
+	var progression := progression_service()
+	if progression != null:
+		progression.select_hero(_selected)
+	_select_requested = false
 	Sfx.play_ui(&"ui_click")
 	_refresh()
 
@@ -244,8 +423,51 @@ func _on_continue_pressed() -> void:
 	completed.emit(&"WEAPON", {})
 
 
+# --- layout ----------------------------------------------------------------- #
+
+
 func _on_resized() -> void:
 	relayout()
-	_orient_nodes(_oriented)
-	_orient_card_list(_lists, _cards + _locked)
-	_orient_selection(_stack, _split, _info, _scroll, _above, _below)
+	_orient_nodes(_cards + _locked)
+	_apply_orientation()
+	# The camera framing depends on how tall the stage is: a 96 px showcase
+	# strip on a landscape phone needs the model pulled back, not cropped.
+	if is_instance_valid(_showcase) and _showcase.has_model():
+		_showcase.frame_model(SHOWCASE_HEIGHT, is_landscape() and _showcase_holder.size.y < 220.0)
+
+
+## Portrait stacks the carousel, the model and the panel. Landscape puts the
+## model on the left and everything that is read or tapped on the right, because
+## a 390 px tall screen cannot stack three bands and still show a hero.
+func _apply_orientation() -> void:
+	var landscape := is_landscape()
+	if landscape == _landscape_built:
+		return
+	_landscape_built = landscape
+	for block in [_carousel_wrap, _showcase_holder, _panel]:
+		if block.get_parent() != null:
+			block.get_parent().remove_child(block)
+	if landscape:
+		_stack.remove_child(_body_portrait)
+		_stack.add_child(_body_landscape)
+		_body_landscape.add_child(_col_left)
+		_body_landscape.add_child(_col_right)
+		_col_left.add_child(_showcase_holder)
+		_col_right.add_child(_carousel_wrap)
+		_col_right.add_child(_panel)
+		_panel.size_flags_vertical = Control.SIZE_SHRINK_END
+		_showcase_holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	else:
+		if _body_landscape.get_parent() == _stack:
+			_stack.remove_child(_body_landscape)
+		if _col_left.get_parent() == _body_landscape:
+			_body_landscape.remove_child(_col_left)
+		if _col_right.get_parent() == _body_landscape:
+			_body_landscape.remove_child(_col_right)
+		_stack.add_child(_body_portrait)
+		_body_portrait.add_child(_carousel_wrap)
+		_body_portrait.add_child(_showcase_holder)
+		_body_portrait.add_child(_panel)
+		_panel.size_flags_vertical = Control.SIZE_SHRINK_END
+	_heading.text = "SELECT OPERATIVE" if landscape else "OPERATIVE"
+	physical_min_size(_carousel, 0.0, 68.0 if landscape else 96.0)
