@@ -404,3 +404,75 @@ texture at a smaller effective scale than the projection reports. Both screens'
   `SubViewport` adds a second 3D view to a menu that had none, and its cost on
   real hardware is unmeasured.
 * **No audio or haptics check** for the new screen.
+
+## 9. Verification of the lighting and character-legibility pass
+
+Two reports: the game is too dark and that darkness follows the hero, and the
+hero has a black line along every edge. Both were real. Measurements below are
+from the frames in `exports/flow/{dark,light,light3,ab,final}/`, using the same
+`tools/qa_flow_shots.mjs` payload CI exports from this branch.
+
+### 9.1 What the numbers were
+
+| Region | Before | After |
+| --- | --- | --- |
+| gameplay hero, 1280x720 (mean / p10 / p50) | 46.7 / **0.0** / 11.0 | 106.6 / 2.7 / 69.3 |
+| gameplay whole frame | 23.2 / 0.0 / 7.6 | 41.7 / 0.3 / 26.4 |
+| gameplay deck strip, 1280x720 | 18.6 / 0.1 / 9.2 | 44.4 / 10.3 / 31.8 |
+| gameplay 390x844, frame mean | 39.7 | 53.5 |
+
+A tenth-percentile of **0.0** on the avatar is the diagnosis: not "dark", but a
+large part of the silhouette clamped to black, which is where the missing panel
+detail went.
+
+### 9.2 What actually fixed it
+
+1. **The world was lit for a palette it no longer has.** The key was capped
+   below 1.0 back when the albedo was pale; after the palette was darkened, the
+   frame rested on an ambient fill of about 0.16 effective with contrast 1.09
+   crushing what was left. Key 0.9 → 1.05 (the smoke test's ceiling is 1.1),
+   ambient colour and energy up, exposure 1.01 → 1.18, contrast 1.09 → 1.04,
+   fog 0.019 → 0.014.
+2. **The avatar has its own fill light.** One unshadowed omni, range 2.6 m,
+   carried by `VisualRoot`. It moves the operative's median luma 39 → 70 while
+   the frame's median moves 25.4 → 26.4, which is the evidence that it is local
+   rather than another scene-wide lift. `hero_visibility_smoke` now asserts it
+   exists, casts no shadow, and stays within 3 m.
+3. **The silhouette rim was heavy.** A near-black shell grown 0.012 from every
+   surface is a black band around each limb at this model's scale, and on a
+   390 px phone it closed up into a dark blob. Now a narrow navy edge.
+
+### 9.3 A wrong diagnosis, corrected
+
+The first attempt claimed `hero.glb` and `rifle.glb` ship no
+`pbrMetallicRoughness` block and are therefore metallic 1.0 by glTF default with
+no diffuse response. **That was false.** Both files carry three textures each,
+including a real metallicRoughness map; sampling it gives metallic ≈0.25 and
+roughness ≈0.26. Reading `metallicFactor: None` off the JSON and stopping there
+is what produced the error.
+
+Rather than ship a plausible explanation, both versions were built and captured
+with the fill light on:
+
+| Build | Hero mean | Hero p50 |
+| --- | --- | --- |
+| material tweak off | 106.5 | 69.3 |
+| material tweak on | 109.6 | 71.3 |
+
+Three luma points is noise, so `ModelFitter.fix_metallic_default()` and its
+three call sites were removed, and the comment at the outline records the
+measurement instead of the mechanism that does not apply.
+
+### 9.4 What is still only partly fixed
+
+* **The rim is still visible on the dark deck.** In the final 1280x720 frame the
+  navy line reads against the operative's white plates, most on the legs and
+  under the arms. It is much less than before. Removing it entirely would be a
+  different decision — the overlay exists so the avatar separates from a busy
+  floor — and that is the user's call, not a bug fix.
+* **The torso is still the darkest part of the operative.** Its albedo is dark
+  navy and the metal is rough; a fill light reveals the form but cannot
+  brighten a surface the texture paints dark. That is art, not exposure.
+* **The gameplay frame is still a night scene.** Mean 41.7 of 255. If it should
+  read as daylight, that is an art-direction change to the sky and fog, not a
+  correction — so it was not made here.
