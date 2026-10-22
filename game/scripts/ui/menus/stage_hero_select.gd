@@ -168,7 +168,11 @@ func _build_hero_card(definition: HeroDefinition) -> Control:
 	row.add_child(column)
 
 	column.add_child(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK))
-	column.add_child(card_line(definition.role_description, "body_s", AegisTokens.INK_2))
+	# Three lines, then an ellipsis: at 390x844 the blurb is a 190 px column and
+	# the registry's sentence ran to five lines inside a 190 px card.
+	column.add_child(
+		_limit_lines(card_line(definition.role_description, "body_s", AegisTokens.INK_2), 3)
+	)
 	column.add_child(
 		card_line("STATUS  %s" % definition.status_line.to_upper(), "label_s", AegisTokens.OK)
 	)

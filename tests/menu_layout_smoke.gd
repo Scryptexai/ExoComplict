@@ -165,9 +165,59 @@ func _probe(stage_name: StringName, size_name: String, physical: Vector2) -> voi
 		_check(control, rect, viewport, "%s %s" % [stage_name, size_name])
 	if stage_name == &"DASHBOARD":
 		_check_dashboard_hierarchy(stage, stretch, "%s %s" % [stage_name, size_name])
+	_check_text_stays_in_its_card(stage, stretch, "%s %s" % [stage_name, size_name])
 	print("Menu layout: " + " | ".join(lines))
 	await _check_row_scroll(stage, "%s %s" % [stage_name, size_name])
 	await _check_thumb_drag(stage, "%s %s" % [stage_name, size_name])
+
+
+## A card is an `AegisButton` with its contents laid over it, and a Button is not
+## a Container: a child that grows does not grow the card, it draws past the
+## card's rounded edge and over whatever is underneath. The weapon list did
+## exactly that at 390x844 -- the ARC SHOOTER's stat line was printed below its
+## own card, on top of the Battle Points legend.
+##
+## So every piece of card copy has to sit inside the card that owns it, in
+## physical pixels, at every size in the suite.
+func _check_text_stays_in_its_card(stage: Control, stretch: float, where: String) -> void:
+	for child in stage.find_children("*", "Label", true, false):
+		var label := child as Label
+		if label == null or not label.is_visible_in_tree():
+			continue
+		var card := _card_ancestor(label)
+		if card == null:
+			continue
+		var text_rect := _physical(label.get_global_rect(), stretch)
+		var card_rect := _physical(card.get_global_rect(), stretch)
+		if card_rect.size.y <= 0.0:
+			continue
+		_expect(
+			card_rect.grow(1.0).encloses(text_rect),
+			(
+				"%s: '%s' stays inside its card (text %d,%d %dx%d in card %d,%d %dx%d)"
+				% [
+					where,
+					label.text.substr(0, 18),
+					text_rect.position.x,
+					text_rect.position.y,
+					text_rect.size.x,
+					text_rect.size.y,
+					card_rect.position.x,
+					card_rect.position.y,
+					card_rect.size.x,
+					card_rect.size.y
+				]
+			)
+		)
+
+
+func _card_ancestor(node: Node) -> Control:
+	var parent := node.get_parent()
+	while parent != null:
+		if parent is Button:
+			return parent as Control
+		parent = parent.get_parent()
+	return null
 
 
 ## The dashboard's *order* is the fix, not its contents: DEPLOY used to be the

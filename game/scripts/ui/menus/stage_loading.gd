@@ -43,15 +43,20 @@ var _done := false
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(make_backdrop("res://assets/ui/loading_keyart.jpg"))
-
-	# The key art is a photograph; a flat scrim is what makes the caption and
-	# the bar readable on top of it at every aspect ratio.
-	var scrim := ColorRect.new()
-	scrim.color = Color(AegisTokens.VOID, 0.5)
-	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(scrim)
+	# Deliberately *not* the cinematic's key art. Both stages used to open on
+	# `loading_keyart.jpg` with a scrim, so for as long as the load took they
+	# were the same picture -- the audit's "two stages look like one screen"
+	# (docs/UX_AUDIT_2026-10-22.md 4). A load is a utility moment, not the
+	# poster: this screen is a dark plate with the wordmark, the walk cycle and
+	# a bar, and the opening's key art belongs to the opening alone. The
+	# backdrop is a flat colour, so it is also up on the first frame instead of
+	# waiting for a 40 KB JPEG to decode.
+	var plate := ColorRect.new()
+	plate.name = &"LoadingPlate"
+	plate.color = AegisTokens.VOID
+	plate.set_anchors_preset(Control.PRESET_FULL_RECT)
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(plate)
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -67,6 +72,18 @@ func _ready() -> void:
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(spacer)
+
+	# The mark comes first: a player who alt-tabs back mid-load should recognise
+	# the product before reading the status line, the same way every other stage
+	# opens on the wordmark.
+	var mark := TextureRect.new()
+	mark.name = &"Wordmark"
+	mark.texture = try_texture("res://assets/ui/logo_wordmark.png")
+	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	physical_min_size(mark, 240.0, 60.0)
+	column.add_child(mark)
 
 	_title = make_label("LOADING", "display_l", AegisTokens.INK)
 	column.add_child(_title)

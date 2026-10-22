@@ -60,6 +60,8 @@ var _mission_panel: AegisPanel
 var _mission_plate: TextureRect
 var _mission_name: Label
 var _mission_brief: Label
+## The three profile figures, in a grid whose column count follows the width.
+var _numbers: GridContainer
 ## Rank line, above the numbers: the profile's own identity.
 var _rank_line: Label
 ## Secondary navigation, grouped so it can move as one block.
@@ -214,20 +216,28 @@ func _ready() -> void:
 	_rank_line = make_label("PROFILE", "label", AegisTokens.INK_3)
 	stat_column.add_child(_rank_line)
 
-	var numbers := HBoxContainer.new()
-	physical_separation(numbers, 8)
-	stat_column.add_child(numbers)
+	# A grid, not a row: three "CAPTION  value" labels are 95-110 px each at the
+	# font floor, and a phone's third of 306 px is narrower than that, so the row
+	# wrapped into ragged two-line cells. Two columns fit every label on one line
+	# and leave the third cell alone on its row, which reads as a list; a wide
+	# screen goes back to one row of three.
+	_numbers = GridContainer.new()
+	_numbers.columns = 3
+	_numbers.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_numbers.add_theme_constant_override("h_separation", roundi(px(10.0)))
+	_numbers.add_theme_constant_override("v_separation", roundi(px(6.0)))
+	stat_column.add_child(_numbers)
 
 	# The wallet is the only number a player acts on, so it is the only one in
 	# amber; score and runs are the record and stay neutral.
 	var wallet := _make_stat_cell("BATTLE POINTS", AegisTokens.ACCENT)
-	numbers.add_child(wallet[0])
+	_numbers.add_child(wallet[0])
 	_balance = wallet[1]
 	var best := _make_stat_cell("BEST SCORE", AegisTokens.INK)
-	numbers.add_child(best[0])
+	_numbers.add_child(best[0])
 	_best = best[1]
 	var runs := _make_stat_cell("RUNS COMPLETED", AegisTokens.INK)
-	numbers.add_child(runs[0])
+	_numbers.add_child(runs[0])
 	_runs = runs[1]
 
 	_loadout = make_label("LOADOUT", "label_s", AegisTokens.INK_2)
@@ -421,6 +431,7 @@ func _apply_density() -> void:
 	physical_separation(_actions, 8.0 if compact else 10.0)
 	# "PROFILE . FIELD READY" restates what the three cells below it already say
 	# on a screen this short; the header is the one line that can go.
+	_numbers.columns = 2 if physical_size().x < 560.0 else 3
 	_rank_line.visible = not compact
 	_limit_lines(_mission_brief, 1 if compact else 2)
 	_limit_lines(_loadout, 1 if compact else 2)
@@ -443,17 +454,6 @@ func _apply_density() -> void:
 		physical_min_size(_mark, 220.0, 48.0)
 		physical_min_size(_hero_plate, 72.0, 92.0)
 		physical_min_size(_mission_plate, 84.0, 72.0)
-
-
-## Holds a descriptive line to `limit` lines with an ellipsis. The theatre
-## brief is a full sentence and the loadout is three names joined by slashes:
-## untrimmed they turned a 390 px card into five lines of shouting, which is
-## not a reminder of where you are going, it is the WORLD screen again.
-func _limit_lines(label: Label, limit: int) -> void:
-	label.max_lines_visible = limit
-	label.text_overrun_behavior = (
-		TextServer.OVERRUN_TRIM_ELLIPSIS if limit > 0 else TextServer.OVERRUN_NO_TRIMMING
-	)
 
 
 func _on_resized() -> void:

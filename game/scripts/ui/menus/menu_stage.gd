@@ -449,6 +449,21 @@ func card_line(text: String, role: String, color: Color) -> Label:
 	return label
 
 
+## Holds a line of card copy to `limit` lines with an ellipsis.
+##
+## Cards are buttons with children laid over them, so a child that grows does
+## not grow the card -- it draws past the card's rounded edge and over whatever
+## is below. The weapon list did exactly that at 390x844: the ARC SHOOTER's stat
+## line ran out of its card and into the Battle Points legend. Fixed card
+## heights are safe only if the copy has a bound, and this is the bound.
+func _limit_lines(label: Label, limit: int) -> Label:
+	label.max_lines_visible = limit
+	label.text_overrun_behavior = (
+		TextServer.OVERRUN_TRIM_ELLIPSIS if limit > 0 else TextServer.OVERRUN_NO_TRIMMING
+	)
+	return label
+
+
 ## Creates the full-rect safe-area container a menu screen lays out in.
 func make_margin() -> MarginContainer:
 	_margin = MarginContainer.new()

@@ -56,7 +56,8 @@ func _ready() -> void:
 
 	var heading := card_line("SELECT THEATRE", "display_l", AegisTokens.INK)
 	_stack.add_child(heading)
-	_summary = card_line("", "label", AegisTokens.ACCENT)
+	# Quiet, like the other two selection screens; amber is LAUNCH on this one.
+	_summary = card_line("", "label", AegisTokens.INK_2)
 	_stack.add_child(_summary)
 	_above = [heading, _summary]
 
@@ -139,7 +140,10 @@ func _build_world_card(group: ButtonGroup, definition: WorldDefinition) -> Contr
 	physical_separation(column, 4)
 	row.add_child(column)
 	column.add_child(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK))
-	column.add_child(card_line(definition.role_description, "body_s", AegisTokens.INK_2))
+	# Bounded like the hero card: the same registry field, the same 168 px card.
+	column.add_child(
+		_limit_lines(card_line(definition.role_description, "body_s", AegisTokens.INK_2), 3)
+	)
 	column.add_child(
 		card_line("STATUS  %s" % definition.status_line.to_upper(), "label_s", AegisTokens.OK)
 	)

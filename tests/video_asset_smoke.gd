@@ -41,6 +41,7 @@ func _run_smoke_test() -> void:
 		await _check_video(key, VIDEOS[key], manifest)
 	await _check_stage("cinematic", CinematicScene, "_video")
 	await _check_stage("loading", LoadingScene, "_robot_video")
+	await _check_the_two_stages_are_not_the_same_picture()
 	_expect(
 		_measured == VIDEOS.size(),
 		"both videos were measured (%d of %d)" % [_measured, VIDEOS.size()]
@@ -142,6 +143,56 @@ func _check_video(key: String, path: String, manifest: Dictionary) -> void:
 
 ## A stage that wants a video keeps its composed fallback, so the test has to
 ## prove it picked the video -- not merely that the file loads.
+## The two stages opened on the same key art behind the same scrim, so for as
+## long as a load took they were literally the same frame -- the audit's
+## "LOADING is visually identical to CINEMATIC" (docs/UX_AUDIT_2026-10-22.md 4),
+## and the reason a 45.8/45.8 mean pair appears in the flow capture.
+##
+## Timing cannot be the thing that tells them apart: a fast load shows the
+## loading screen for one frame and a slow one for four seconds, and the player
+## sees the same distinction either way. So the *composition* is asserted: the
+## cinematic owns the key art, the loading screen does not use it at all, and
+## both carry the wordmark so neither is an anonymous black frame.
+func _check_the_two_stages_are_not_the_same_picture() -> void:
+	var cinematic: Control = CinematicScene.instantiate()
+	var loading: Control = LoadingScene.instantiate()
+	root.add_child(cinematic)
+	root.add_child(loading)
+	await process_frame
+	await process_frame
+	var cinematic_art := _art_textures(cinematic)
+	var loading_art := _art_textures(loading)
+	_expect(
+		cinematic_art.has("res://assets/ui/loading_keyart.jpg"),
+		"cinematic: the opening is built on the key art",
+	)
+	_expect(
+		not loading_art.has("res://assets/ui/loading_keyart.jpg"),
+		"loading: does not reuse the cinematic's key art",
+	)
+	for pair in [["cinematic", cinematic], ["loading", loading]]:
+		var stage := pair[1] as Control
+		_expect(
+			stage.find_child("Wordmark", true, false) != null,
+			"%s: carries the product wordmark" % pair[0],
+		)
+	cinematic.free()
+	loading.free()
+
+
+## Every texture path a stage's TextureRects hold, recursively.
+func _art_textures(stage: Control) -> Array[String]:
+	var found: Array[String] = []
+	for child in stage.find_children("*", "TextureRect", true, false):
+		var rect := child as TextureRect
+		if rect == null or rect.texture == null:
+			continue
+		var path := rect.texture.resource_path
+		if path.begins_with("res://") and not found.has(path):
+			found.append(path)
+	return found
+
+
 func _check_stage(name: String, scene: PackedScene, player_var: String) -> void:
 	var stage: Control = scene.instantiate()
 	root.add_child(stage)

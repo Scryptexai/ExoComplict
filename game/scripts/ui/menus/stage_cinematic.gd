@@ -116,6 +116,7 @@ func _ready() -> void:
 	column.add_child(spacer)
 
 	_mark = TextureRect.new()
+	_mark.name = &"Wordmark"
 	_mark.texture = try_texture("res://assets/ui/logo_wordmark.png")
 	_mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED

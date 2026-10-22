@@ -57,7 +57,9 @@ func _ready() -> void:
 
 	var heading := card_line("SELECT WEAPON", "display_l", AegisTokens.INK)
 	_stack.add_child(heading)
-	_summary = card_line("", "label", AegisTokens.ACCENT)
+	# Quiet, like HERO and WORLD: amber is CONTINUE on this screen. The wallet is
+	# still the first thing in the line, and the armory is where it gets spent.
+	_summary = card_line("", "label", AegisTokens.INK_2)
 	_stack.add_child(_summary)
 	_above = [heading, _summary]
 
@@ -149,11 +151,22 @@ func _build_card(weapon_id: StringName, group: ButtonGroup) -> Control:
 
 	var definition := _definition(weapon_id)
 	column.add_child(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK))
-	column.add_child(card_line(definition.role_description, "caption", AegisTokens.INK_2))
+	column.add_child(
+		_limit_lines(card_line(definition.role_description, "caption", AegisTokens.INK_2), 2)
+	)
 
-	var stats := card_line(_stat_line(definition), "mono_s", AegisTokens.INFO)
+	# Two stat lines, split by kind, instead of one long line that wrapped into
+	# three. At 190 px of text column a five-field line is 3 lines, and the card
+	# is a fixed 216 px because a Card is a Button: its children overdraw it
+	# rather than growing it, so the ARC SHOOTER's stats were printed past the
+	# card edge and over the legend below.
+	var numbers := _stat_lines(definition)
+	var stats := card_line(numbers[0], "mono_s", AegisTokens.INFO)
 	stats.set_meta("stat_line", true)
 	column.add_child(stats)
+	var secondary := card_line(numbers[1], "mono_s", AegisTokens.INK_3)
+	secondary.set_meta("stat_line", true)
+	column.add_child(secondary)
 
 	var state := card_line("", "label_s", AegisTokens.OK)
 	state.set_meta("state_line", true)
@@ -164,21 +177,27 @@ func _build_card(weapon_id: StringName, group: ButtonGroup) -> Control:
 ## Real values straight off the resource. `fire_rate` is shots per second in the
 ## definition, so it is printed as such rather than being converted into a
 ## number the file does not contain.
-func _stat_line(definition: WeaponDefinition) -> String:
-	var parts := [
+##
+## Split into [what it hits for, how it handles]: the first line is what a
+## player compares across cards, the second is the trade-off. Both are short
+## enough to hold one line at 190 px.
+func _stat_lines(definition: WeaponDefinition) -> Array[String]:
+	var hit := [
 		"DMG %s" % _trim(definition.damage),
 		"RATE %s/s" % _trim(definition.fire_rate),
 		"MAG %d" % definition.magazine_size,
-		"RELOAD %ss" % _trim(definition.reload_seconds),
-		"RNG %sm" % _trim(definition.max_range),
 	]
 	if definition.splash_damage > 0.0:
-		parts.append(
+		hit.append(
 			"SPLASH %s / %sm" % [_trim(definition.splash_damage), _trim(definition.splash_radius)]
 		)
 	if definition.chain_count > 0:
-		parts.append("CHAIN %d" % definition.chain_count)
-	return "  ·  ".join(parts)
+		hit.append("CHAIN %d" % definition.chain_count)
+	var handling := [
+		"RELOAD %ss" % _trim(definition.reload_seconds),
+		"RNG %sm" % _trim(definition.max_range),
+	]
+	return ["  ·  ".join(hit), "  ·  ".join(handling)]
 
 
 func _trim(value: float) -> String:

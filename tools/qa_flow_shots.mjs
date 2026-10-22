@@ -125,6 +125,16 @@ async function openPage(viewport) {
   return { page, lines };
 }
 
+const TRANSIENT_STAGES = new Set(['BOOT', 'LOADING', 'CINEMATIC']);
+
+/** The stage the front end moved on to after `stage`, or null. */
+function laterStage(lines, stage) {
+  const seen = lines.filter((line) => line.startsWith('FrontEnd: stage '));
+  const index = seen.findIndex((line) => line === `FrontEnd: stage ${stage}`);
+  if (index === -1 || index === seen.length - 1) return null;
+  return seen[seen.length - 1].replace('FrontEnd: stage ', '');
+}
+
 async function waitFor(lines, predicate, timeoutMs, label) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -158,10 +168,42 @@ for (const viewport of viewports) {
       stageTimeoutMs,
       `FrontEnd: stage ${stage}`
     );
-    await new Promise((resolve) => setTimeout(resolve, settleMs));
-    const shot = await shoot(page, viewport, stage.toLowerCase());
-    rows.push({ stage, viewport: viewport.spec, shot, reached, lines: lines.slice() });
-    console.log(`  ${reached ? 'ok  ' : 'MISS'} ${stage.padEnd(10)} ${viewport.spec}`);
+    // BOOT, LOADING and CINEMATIC are *transient*: they advance themselves as
+    // soon as their work finishes, which in a web build is immediately. The
+    // settle delay used to be spent after they had already left, so the frame
+    // filed as LOADING was a photograph of CINEMATIC -- the two looked
+    // identical in the audit (docs/UX_AUDIT_2026-10-22.md 4) for that reason.
+    // Those three are photographed the moment they announce themselves; the
+    // rest get the settle they need to finish laying out.
+    const transient = TRANSIENT_STAGES.has(stage);
+    let shot;
+    if (transient) {
+      // The stage has *announced* itself, which is one frame before it has
+      // drawn anything: photographing immediately produced a 9 KB black frame.
+      // So take the first frame that is not still blank, and stop trying the
+      // moment the front end moves on -- then say so, rather than filing the
+      // next stage under this name.
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 120));
+        shot = await shoot(page, viewport, stage.toLowerCase());
+        const size = fs.statSync(path.join(ROOT, shot)).size;
+        if (size > 20000 || laterStage(lines, stage)) break;
+      }
+    } else {
+      await new Promise((resolve) => setTimeout(resolve, settleMs));
+      shot = await shoot(page, viewport, stage.toLowerCase());
+    }
+    const advancedTo = transient ? laterStage(lines, stage) : null;
+    rows.push({
+      stage,
+      viewport: viewport.spec,
+      shot,
+      reached,
+      advancedTo,
+      lines: lines.slice(),
+    });
+    const note = advancedTo ? `  (advanced to ${advancedTo} before the shot)` : '';
+    console.log(`  ${reached ? 'ok  ' : 'MISS'} ${stage.padEnd(10)} ${viewport.spec}${note}`);
     await page.close();
   }
 }
