@@ -39,7 +39,7 @@ const SHOWCASE_LENGTH := 1.15
 ## landscape at both ends. Both values were read off
 ## exports/flow/showcase/weapon-390x844.png and weapon-844x390.png.
 const SHOWCASE_FILL_PORTRAIT := 1.15
-const SHOWCASE_FILL_LANDSCAPE := 0.95
+const SHOWCASE_FILL_LANDSCAPE := 0.78
 
 var _cards: Array[AegisButton] = []
 var _showcase: ShowcaseViewport
