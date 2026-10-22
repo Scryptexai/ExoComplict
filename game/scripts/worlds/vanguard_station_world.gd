@@ -1329,7 +1329,7 @@ func _build_atmosphere() -> void:
 	sun.name = "StationDaylightSun"
 	sun.rotation_degrees = Vector3(-58.0, -34.0, 0.0)
 	sun.light_color = Color(0.94, 0.96, 1.0)
-	sun.light_energy = 0.78
+	sun.light_energy = 0.58
 	sun.shadow_enabled = true
 	sun.shadow_opacity = 0.6
 	sun.directional_shadow_max_distance = 80.0
@@ -1353,7 +1353,7 @@ func _build_atmosphere() -> void:
 	# stay behind the sun and the strips.
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment.ambient_light_color = Color(0.2, 0.26, 0.35)
-	environment.ambient_light_energy = 0.62
+	environment.ambient_light_energy = 0.55
 	environment.reflected_light_source = Environment.REFLECTION_SOURCE_BG
 	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
 	environment.tonemap_exposure = 1.02
@@ -1386,7 +1386,10 @@ func _build_lighting(parent: Node3D) -> void:
 	# One warm source in a cold room: it is what makes the deck read as metal
 	# rather than as slate, and it is the only hue in the theatre that is not cyan.
 	_light(parent, "HangarGateLight", Vector3(0.0, 3.4, 16.0), warm, 7.0, 26.0)
-	_light(parent, "HangarWarmFill", Vector3(-2.0, 2.0, 6.0), Color(1.0, 0.78, 0.5), 3.0, 16.0)
+	_light(parent, "HangarWarmFill", Vector3(-2.0, 2.2, -6.0), Color(1.0, 0.78, 0.5), 3.2, 18.0)
+	# A warm threshold at the reactor door: the frame's vanishing point is that
+	# opening, and it was the coldest surface in the image.
+	_light(parent, "HallDoorWarm", Vector3(0.0, 2.7, -16.4), Color(1.0, 0.66, 0.34), 4.0, 15.0)
 	_light(parent, "ReactorLight", Vector3(0.0, 3.7, -28.0), Color(0.45, 0.8, 1.0), 8.0, 30.0)
 	_light(parent, "CargoLight", Vector3(-28.0, 3.5, 0.0), cold, 6.0, 24.0)
 	_light(parent, "CorridorLightWest", Vector3(25.0, 3.4, 0.0), cold, 5.0, 18.0)
