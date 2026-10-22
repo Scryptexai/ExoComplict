@@ -62,6 +62,7 @@ const WALK_THRESHOLD := 0.06
 @export_range(-60.0, 60.0, 0.5) var reload_weapon_yaw_degrees: float = -38.0
 
 var _model: Node3D
+var _character_fill: OmniLight3D = null
 var _model_bounds: AABB
 var _model_height: float = 0.0
 var _facing_yaw: float = 0.0
@@ -342,6 +343,30 @@ func _apply_pose() -> void:
 		_weapon_socket.rotation.x = _weapon_socket_base_rotation.x - kick * 0.36
 
 
+## One small light that travels with the operative.
+##
+## The arena's key is a hard sun from one side and its fill is ambient, so the
+## side of the avatar facing away from the sun came out at luma ~0: on a phone
+## that is a silhouette with no panel detail at all. This fills only the couple
+## of metres around the character, so it costs one unshadowed omni and does not
+## touch the arena's exposure -- which is what a scene-wide lift would do.
+func _add_character_fill() -> void:
+	if is_instance_valid(_character_fill):
+		return
+	var light := OmniLight3D.new()
+	light.name = "CharacterFill"
+	light.position = Vector3(0.0, 1.35, 0.55)
+	light.light_color = Color(0.78, 0.88, 1.0)
+	light.light_energy = 0.85
+	light.omni_range = 2.6
+	# No shadow: it exists to reveal form, not to cast it, and a shadow-casting
+	# omni on the player is the one light in this game that must stay cheap.
+	light.shadow_enabled = false
+	light.light_specular = 0.35
+	add_child(light)
+	_character_fill = light
+
+
 # --- rig -------------------------------------------------------------------
 
 
@@ -369,6 +394,7 @@ func _spawn_model() -> void:
 	# default and receives no diffuse light at all. Tuned before the outline is
 	# applied, so the rim is the only thing added on top of a readable surface.
 	ModelFitterScript.fix_metallic_default(_model, HERO_METALLIC, HERO_ROUGHNESS)
+	_add_character_fill()
 	# Thin and mid-navy rather than near-black and 2 cm thick: at 0.012 the grown
 	# shell was a black band around every limb, and on a 390 px phone the avatar
 	# read as a dark blob with a hole in the middle.
