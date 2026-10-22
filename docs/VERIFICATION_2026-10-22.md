@@ -265,3 +265,142 @@ by a gate that already existed, and three of them were only *seen* in a frame.
 * **No device.** Touch, safe areas, thermals and frame rate on Android are
   **NOT TESTED**; the safe margins are asserted headlessly, not felt.
 * **No frame-rate claim.** SwiftShader is software rendering.
+
+## 8. Verification of the 3D showcase pass (HERO and WEAPON)
+
+The brief asked for the character and weapon selection screens to show the 3D
+asset rather than key art, and for nothing on screen that the project cannot
+back with data. Both screens were rebuilt; WORLD was deliberately left on 2D
+plates (8.5.1).
+
+### 8.1 The gate
+
+| Check | Result |
+| --- | --- |
+| GDScript parse / gdlint / gdformat (81 files) | pass |
+| Project doctor (13 groups) | 0 FAIL, 30 WARN |
+| Static-call scan (81 scripts) | 0 violations |
+| Layer and module boundaries | pass |
+| Tooling self-tests | 35 pass |
+| Smoke tests, headless, Godot 4.7.2 | **28 / 28 pass** |
+| Module map in sync with the tree | pass |
+| Web preview build (WebAssembly) | pass |
+
+The 28th test is new: `showcase_smoke.gd`. It asserts, against the payload the
+game actually ships, that
+
+* every `HeroDefinition`/`WeaponDefinition` `model_scene` resolves to the same
+  `res://` file gameplay instantiates (`player.tscn`'s `VisualRoot.model_scene`
+  and `weapon_scene`);
+* each model carries a `Skeleton3D` and an `AnimationPlayer`, and every clip a
+  definition declares is present in the GLB;
+* the live HERO stage mounts a sized `SubViewport` with its own `Camera3D`, at
+  least two lights and a clip actually playing, and that driving that showcase
+  does not change the avatar's clip or touch the avatar's `AnimationPlayer`;
+* the live WEAPON stage shows the selected weapon's own mesh and reports zero
+  clips for a mesh that has none.
+
+It also prints how many weapon definitions resolve to how many distinct mesh
+files. Today that is **3 definitions → 1 mesh**, which is why the weapon screen
+says what it says (8.5.2).
+
+### 8.2 What the frames say
+
+Captured with `tools/qa_flow_shots.mjs --stages HERO,WEAPON,WORLD` against the
+payload CI exported from `c66cab6`; statistics from `tools/image_stats.py`.
+All six frames reached their stage, rendered, and are in
+`exports/flow/showcase/`.
+
+| Frame | Viewport | Mean | SD | Columns | Verdict |
+| --- | --- | --- | --- | --- | --- |
+| HERO | 390x844 | 32.4 | 50.8 | 1186 | render |
+| WEAPON | 390x844 | 33.0 | 53.2 | 1107 | render |
+| WORLD | 390x844 | 31.1 | 32.6 | 1459 | render |
+| HERO | 1280x720 | 24.2 | 40.1 | 1023 | render |
+| WEAPON | 1280x720 | 25.2 | 44.7 | 972 | render |
+| WORLD | 1280x720 | 30.3 | 24.4 | 1694 | render |
+
+Read as images rather than numbers, the two screens now do what the plates
+could not: HERO shows `hero.glb` facing the camera with its 79-joint skeleton
+and idle clip running, and WEAPON shows `rifle.glb` (12 176 tris) at a
+three-quarter profile with its real statistics beside it.
+
+### 8.3 Acceptance, item by item
+
+| Requirement | Result | Evidence |
+| --- | --- | --- |
+| The hero shown is the model gameplay instantiates | **PASS** | `showcase_smoke` compares both `res://` paths; frame shows the operative |
+| The weapon shown is the model gameplay instantiates | **PASS** | same test, `weapon_scene` vs `WeaponDefinition.model_scene` |
+| The model animates on the selection screen | **PASS** (hero) / **N/A** (weapon) | hero cycles `idle`/`aim`/`fire`; `rifle.glb` has 0 clips, verified from the GLB and asserted by the test — it is shown still, and the widget is never left waiting for a clip |
+| Menu animation cannot move the gameplay avatar | **PASS** | separate instantiation; test asserts distinct `AnimationPlayer`s and an unchanged avatar clip |
+| No statistics the project does not model | **PASS** | hero shows no health/shield/skill block (nothing models them); weapon lines are parsed back out of the definitions in `data_source_smoke` |
+| No fake roster | **PASS** | one operative; the two empty chips are disabled and the caption reads "2 OPERATIVE SLOTS IN DEVELOPMENT" |
+| No fake weapon silhouettes | **PASS with a caveat** | 3 definitions share 1 mesh; the screen shows the selected weapon's mesh and never claims three images |
+| Locked content is disabled, not merely labelled | **PASS** | `front_end_journey_smoke` counts disabled buttons on all three stages |
+| No upgrade button | **PASS** | there is no upgrade system; the screen has CONTINUE only |
+| Landscape and portrait both usable | **PASS at 390x844 and 1280x720**; phone landscape 844x390 also captured and read | `_apply_orientation()` reconciles both arrangements |
+| Touch targets keep the 56 px floor | **PASS** | `physical_min_size` on every button; `menu_layout_smoke` |
+| WORLD shows a chapter/objective line | **PASS** | one constant per theatre, drawn from copy the world scene owns, not a second copy of the wave plan |
+
+### 8.4 Defects this pass introduced and fixed
+
+Recorded because the pattern repeated: three of these compiled, linted and
+passed every static gate, and were only found by CI's smoke run or by looking at
+a frame.
+
+1. `Camera3D.KEEP_ASPECT_HEIGHT` does not exist (it is `KEEP_HEIGHT`). gdtoolkit
+   parsed it; the engine did not, which failed four smoke tests at once.
+2. `String.to_capitalized()` does not exist either (it is `capitalize()`), with
+   the same symptom: a parse error that took the whole HERO stage down.
+3. `_apply_orientation()` returned early when the orientation had not changed,
+   so on a portrait-first boot nothing it parented was ever parented and the
+   density pass never ran: the weapon panel sat in a column beside the model and
+   the hero heading stayed at its build-time text.
+4. The hero faced away from the camera: the rig's forward is +Z, so the yaw that
+   `ModelFitter` defaults to for the outward-facing kit models showed its back.
+5. The rifle rendered as a 20 px sliver at every yaw. Two causes: the model's
+   long axis is Z, so a near-frontal angle foreshortened it, and the camera
+   distance was solved while the container was still 2 x 2 px. Framing is now
+   measured from the model that is on the pivot against the rendered viewport's
+   own aspect (`frame_to_fill`), and re-solved whenever that viewport changes.
+6. A locked hero chip 68 px square cannot hold "IN DEVELOPMENT" without drawing
+   outside itself; the chip keeps a slot number and the status moved to a
+   caption under the carousel.
+7. An action row built but never parented: it only existed inside a function
+   that the early return skipped. Found in a frame, not by a test.
+8. `var clips := showcase.clip_names()` cannot infer from an untyped `Array`.
+
+### 8.5 Deliberate scope decisions
+
+**8.5.1 WORLD stays 2D.** There is one arena. A 3D showcase would show the same
+mesh four times behind four different captions — the exact "three silhouettes"
+problem the weapon screen avoids — so the theatre keeps its artwork and gained
+the chapter line instead.
+
+**8.5.2 Three weapons, one mesh.** The definitions are honest about it in the
+code comment and the test prints the ratio, but no screen can invent three
+models. When the other meshes land, the screen needs no change: it reads
+`model_scene`.
+
+**8.5.3 No stat block for the hero.** `HeroDefinition` carries name, role, status
+and model; nothing in the game models health, shields, mobility or skills. A
+stat panel would have to be invented, so there is none, and the panel says what
+the definition does say.
+
+**8.5.4 Showcase fill is calibrated, not derived.** `frame_to_fill` solves for
+the distance analytically, but on the web build the box composites its 3D
+texture at a smaller effective scale than the projection reports. Both screens'
+`SHOWCASE_FILL` values were read off captured frames at 390x844, 844x390 and
+1280x720. Recorded here as a calibration, not as a law.
+
+### 8.6 Still not verified
+
+* **No local engine.** No editor can be downloaded here; every GDScript result
+  above is CI's or the exported payload's.
+* **No device.** Touch, safe areas, thermals and frame rate on Android are
+  **NOT TESTED**. The carousel's thumb-drag is asserted headlessly
+  (`menu_layout_smoke` measures scroll travel), not felt.
+* **No frame-rate claim.** SwiftShader is software rendering; a showcase
+  `SubViewport` adds a second 3D view to a menu that had none, and its cost on
+  real hardware is unmeasured.
+* **No audio or haptics check** for the new screen.
