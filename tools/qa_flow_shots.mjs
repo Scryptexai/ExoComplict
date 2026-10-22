@@ -279,6 +279,10 @@ if (fs.existsSync(python) && frames.length) {
   } catch (error) {
     console.log(`  note: image statistics unavailable (${String(error.message).split('\n')[0]})`);
   }
+} else {
+  console.log(
+    '  note: image statistics skipped -- no .venv/bin/python with Pillow, so no frame can be checked for being blank'
+  );
 }
 const byFile = new Map(stats.map((row) => [row.file.replace(/\\/g, '/'), row]));
 for (const row of rows) {
@@ -303,11 +307,20 @@ fs.writeFileSync(path.join(outDir, 'manifest.json'), JSON.stringify(manifest, nu
 console.log('\nstage      viewport   reached  mean    sd   cols  verdict');
 console.log('-'.repeat(66));
 let bad = 0;
+let unmeasured = 0;
 for (const row of rows) {
   const s = row.stats || {};
   const blank = s.blank === true;
-  if (!row.reached || blank) bad += 1;
-  const verdict = !row.reached ? 'NOT REACHED' : blank ? 'BLANK' : 'render';
+  const measured = Object.keys(s).length > 0;
+  if (!measured) unmeasured += 1;
+  if (!row.reached || blank || !measured) bad += 1;
+  const verdict = !row.reached
+    ? 'NOT REACHED'
+    : blank
+      ? 'BLANK'
+      : !measured
+        ? 'NO STATS'
+        : 'render';
   console.log(
     `${row.stage.padEnd(10)} ${row.viewport.padEnd(10)} ${String(row.reached).padEnd(8)} ` +
       `${String(s.mean ?? '-').padStart(5)} ${String(s.stddev ?? '-').padStart(5)} ` +
@@ -315,8 +328,14 @@ for (const row of rows) {
   );
 }
 console.log(`\n${rows.length} frame(s) in ${path.relative(ROOT, outDir)}/ — manifest.json has the log lines.`);
+if (unmeasured) {
+  console.log(
+    `WARNING: ${unmeasured} frame(s) have no image statistics, so nothing checked whether they are blank. ` +
+      'Install Pillow into .venv (tools/image_stats.py needs it) and re-run before using these as evidence.'
+  );
+}
 if (bad) {
-  console.log(`FAIL: ${bad} frame(s) were not reached or are blank.`);
+  console.log(`FAIL: ${bad} frame(s) were not reached, are blank, or could not be measured.`);
   process.exit(1);
 }
 console.log('PASS: every requested stage was reached and rendered.');

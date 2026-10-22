@@ -143,6 +143,8 @@ func _build_hero_card(definition: HeroDefinition) -> Control:
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
 	card.tooltip_text = "%s — %s" % [definition.display_name, definition.status_line.to_lower()]
 	_size_both(card, Vector2(0.0, 190.0), Vector2(LANDSCAPE_CARD_WIDTH, 190.0))
+	# The card is the boundary for its own copy: see the weapon card.
+	card.clip_contents = true
 	_oriented.append(card)
 	card.pressed.connect(_on_card_pressed.bind(hero_id))
 	AegisTheme.set_button_variant(card, "round")
@@ -167,7 +169,9 @@ func _build_hero_card(definition: HeroDefinition) -> Control:
 	physical_separation(column, 6)
 	row.add_child(column)
 
-	column.add_child(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK))
+	column.add_child(
+		limit_lines(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK), 1)
+	)
 	# Three lines, then an ellipsis: at 390x844 the blurb is a 190 px column and
 	# the registry's sentence ran to five lines inside a 190 px card.
 	column.add_child(

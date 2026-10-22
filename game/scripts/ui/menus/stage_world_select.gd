@@ -115,6 +115,8 @@ func _build_world_card(group: ButtonGroup, definition: WorldDefinition) -> Contr
 	card.focus_mode = Control.FOCUS_ALL
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
 	_size_both(card, Vector2(0.0, 168.0), Vector2(LANDSCAPE_CARD_WIDTH, 168.0))
+	# The card is the boundary for its own copy: see the weapon card.
+	card.clip_contents = true
 	_oriented.append(card)
 	card.set_meta("world_id", String(world_id))
 	card.pressed.connect(_on_card_pressed.bind(world_id))
@@ -139,7 +141,9 @@ func _build_world_card(group: ButtonGroup, definition: WorldDefinition) -> Contr
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	physical_separation(column, 4)
 	row.add_child(column)
-	column.add_child(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK))
+	column.add_child(
+		limit_lines(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK), 1)
+	)
 	# Bounded like the hero card: the same registry field, the same 168 px card.
 	column.add_child(
 		_limit_lines(card_line(definition.role_description, "body_s", AegisTokens.INK_2), 3)

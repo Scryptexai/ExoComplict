@@ -124,6 +124,10 @@ func _build_card(weapon_id: StringName, group: ButtonGroup) -> Control:
 	# 216 px holds a plate and four text lines in portrait; a landscape row
 	# only has ~130 px of height, so the card is shorter and fixed-width there.
 	_size_both(card, Vector2(0.0, 216.0), Vector2(LANDSCAPE_CARD_WIDTH, 216.0))
+	# A Button is not a Container, so a child that overflows is drawn over the
+	# card's edge and over the next card. The copy is bounded above; this makes
+	# the card the boundary as well.
+	card.clip_contents = true
 	_oriented.append(card)
 	card.set_meta("weapon_id", String(weapon_id))
 	card.pressed.connect(_on_card_pressed.bind(weapon_id))
@@ -155,20 +159,24 @@ func _build_card(weapon_id: StringName, group: ButtonGroup) -> Control:
 		_limit_lines(card_line(definition.role_description, "caption", AegisTokens.INK_2), 2)
 	)
 
-	# Two stat lines, split by kind, instead of one long line that wrapped into
-	# three. At 190 px of text column a five-field line is 3 lines, and the card
-	# is a fixed 216 px because a Card is a Button: its children overdraw it
-	# rather than growing it, so the ARC SHOOTER's stats were printed past the
-	# card edge and over the legend below.
+	# Two or three stat lines, split by kind, each held to exactly one line. A
+	# single five-field line wrapped into three at 190 px, and the card is a
+	# fixed 216 px because a Card is a Button: its children overdraw it rather
+	# than growing it, so the ARC SHOOTER's numbers were printed past the card
+	# edge and over the legend below. Splitting by what the number is for keeps
+	# every line short enough to stay inside.
 	var numbers := _stat_lines(definition)
-	var stats := card_line(numbers[0], "mono_s", AegisTokens.INFO)
-	stats.set_meta("stat_line", true)
-	column.add_child(stats)
-	var secondary := card_line(numbers[1], "mono_s", AegisTokens.INK_3)
-	secondary.set_meta("stat_line", true)
-	column.add_child(secondary)
+	for index in range(numbers.size()):
+		var line := limit_lines(
+			card_line(
+				numbers[index], "mono_s", AegisTokens.INFO if index == 0 else AegisTokens.INK_3
+			),
+			1
+		)
+		line.set_meta("stat_line", true)
+		column.add_child(line)
 
-	var state := card_line("", "label_s", AegisTokens.OK)
+	var state := limit_lines(card_line("", "label_s", AegisTokens.OK), 1)
 	state.set_meta("state_line", true)
 	column.add_child(state)
 	return card
@@ -178,26 +186,27 @@ func _build_card(weapon_id: StringName, group: ButtonGroup) -> Control:
 ## definition, so it is printed as such rather than being converted into a
 ## number the file does not contain.
 ##
-## Split into [what it hits for, how it handles]: the first line is what a
-## player compares across cards, the second is the trade-off. Both are short
-## enough to hold one line at 190 px.
+## Split by what the number is for: what it hits for, how it handles, and (only
+## for the two weapons that have them) its area or chain behaviour. Each group is
+## short enough to hold one line at 190 px.
 func _stat_lines(definition: WeaponDefinition) -> Array[String]:
-	var hit := [
-		"DMG %s" % _trim(definition.damage),
-		"RATE %s/s" % _trim(definition.fire_rate),
-		"MAG %d" % definition.magazine_size,
+	var lines := [
+		(
+			"DMG %s  ·  RATE %s/s  ·  MAG %d"
+			% [_trim(definition.damage), _trim(definition.fire_rate), definition.magazine_size]
+		),
+		"RELOAD %ss  ·  RNG %sm" % [_trim(definition.reload_seconds), _trim(definition.max_range)],
 	]
+	var extra: Array[String] = []
 	if definition.splash_damage > 0.0:
-		hit.append(
+		extra.append(
 			"SPLASH %s / %sm" % [_trim(definition.splash_damage), _trim(definition.splash_radius)]
 		)
 	if definition.chain_count > 0:
-		hit.append("CHAIN %d" % definition.chain_count)
-	var handling := [
-		"RELOAD %ss" % _trim(definition.reload_seconds),
-		"RNG %sm" % _trim(definition.max_range),
-	]
-	return ["  ·  ".join(hit), "  ·  ".join(handling)]
+		extra.append("CHAIN %d" % definition.chain_count)
+	if not extra.is_empty():
+		lines.append("  ·  ".join(extra))
+	return lines
 
 
 func _trim(value: float) -> String:
