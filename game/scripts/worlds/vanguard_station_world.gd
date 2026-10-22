@@ -1354,7 +1354,7 @@ func _build_atmosphere() -> void:
 	# stay behind the sun and the strips.
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment.ambient_light_color = Color(0.2, 0.26, 0.35)
-	environment.ambient_light_energy = 0.55
+	environment.ambient_light_energy = 0.75
 	environment.reflected_light_source = Environment.REFLECTION_SOURCE_BG
 	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
 	environment.tonemap_exposure = 1.02
@@ -1391,9 +1391,12 @@ func _build_lighting(parent: Node3D) -> void:
 	# A warm threshold at the reactor door: the frame's vanishing point is that
 	# opening, and it was the coldest surface in the image.
 	_light(parent, "HallDoorWarm", Vector3(0.0, 2.7, -16.4), Color(1.0, 0.66, 0.34), 4.0, 15.0)
-	_light(parent, "ReactorLight", Vector3(0.0, 3.7, -28.0), Color(0.45, 0.8, 1.0), 8.0, 30.0)
-	_light(parent, "CargoLight", Vector3(-28.0, 3.5, 0.0), cold, 6.0, 24.0)
-	_light(parent, "CorridorLightWest", Vector3(25.0, 3.4, 0.0), cold, 5.0, 18.0)
-	_light(parent, "CorridorLightEast", Vector3(37.0, 3.4, 0.0), cold, 5.0, 18.0)
+	_light(parent, "ReactorLight", Vector3(0.0, 3.7, -28.0), Color(0.5, 0.82, 1.0), 12.0, 34.0)
+	# The hall is sealed except for its skylight, so the sun never reaches its
+	# back wall: without a second source the turbine face is a black rectangle.
+	_light(parent, "ReactorFaceLight", Vector3(0.0, 3.2, -34.2), Color(0.62, 0.86, 1.0), 7.0, 20.0)
+	_light(parent, "CargoLight", Vector3(-28.0, 3.5, 0.0), cold, 9.0, 28.0)
+	_light(parent, "CorridorLightWest", Vector3(25.0, 3.4, 0.0), cold, 7.0, 20.0)
+	_light(parent, "CorridorLightEast", Vector3(37.0, 3.4, 0.0), cold, 7.0, 20.0)
 	# A rim light behind the reactor, so the turbine face is not a silhouette.
 	_light(parent, "ReactorRim", Vector3(0.0, 2.0, -36.0), Color(0.3, 0.7, 1.0), 1.8, 12.0)
