@@ -46,8 +46,6 @@ const CATWALK_Y := 3.4
 
 ## Rooms, as axis-aligned rectangles on the deck. One list, read by the floor, the
 ## roof, the lights and the smoke test, so a room cannot be half built.
-const SIGN_WIDTH := {"word": 3.4, "sign": 1.8, "num": 0.7}
-
 const ROOMS := {
 	"hangar": {"min": Vector2(-19.0, -19.0), "max": Vector2(19.0, 19.0)},
 	"reactor": {"min": Vector2(-13.0, -37.0), "max": Vector2(13.0, -19.0)},
@@ -105,146 +103,6 @@ func build() -> Dictionary:
 
 # --- placement ------------------------------------------------------------
 
-## One imported module, centred on its own measured footprint.
-##
-## `ScifiBayBuilder.place` positions a module by the pack's own origin, which for
-## most pieces is a corner: a placed console floats 0.74 m above the deck and a
-## placed wall sits a metre off its collider. This wrapper puts a pivot at `at`,
-## turns it, and offsets the model by `-(min + size / 2)` inside that pivot, so
-## "at" means the centre of the thing — and the collider, which is built from the
-## same box, agrees with what is drawn.
-##
-## `collide` is `""` for scenery, `"box"` for anything the player bumps into, and
-## `"floor"` for deck plates, which get a thin box under the origin so the player
-## stands on the surface rather than inside a 6 m tall block.
-## A sign, decal or numeral, sized by what it is for rather than by a scale
-## someone typed.
-##
-## The pack's word decals are authored enormous — `Word_Zone` is 21.9 m long and
-## `Word_Warning` 37 m — because they are meant to be stretched along a hangar
-## wall. Placed at a numeric scale they became 14 m flat panels with text on
-## them, which is what the second capture of the hall was mostly made of. Here
-## each one is scaled to a stated width in metres.
-
-
-func _sign(
-	parent: Node3D, key: String, node_name: String, at: Vector3, yaw: float, room: String
-) -> Node3D:
-	var family := "word"
-	if key.begins_with("sign_"):
-		family = "sign"
-	elif key.begins_with("num_"):
-		family = "num"
-	var target: float = SIGN_WIDTH[family]
-	var size: Vector3 = ScifiKitLibrary.size(key)
-	var longest := maxf(size.z, maxf(size.x, 0.01))
-	var scale := target / longest
-	return _place(parent, key, node_name, at, yaw, scale, "", Vector3.ONE, room)
-
-
-func _place(
-	parent: Node3D,
-	key: String,
-	node_name: String,
-	at: Vector3,
-	yaw: float = 0.0,
-	scale: float = 1.0,
-	collide: String = "box",
-	size_scale: Vector3 = Vector3.ONE,
-	room: String = ""
-) -> Node3D:
-	var scene := ScifiKitLibrary.model(key)
-	if scene == null:
-		return null
-	var box: Vector3 = ScifiKitLibrary.size(key) * scale * size_scale
-	var min_corner: Vector3 = ScifiKitLibrary.min_corner(key) * scale * size_scale
-
-	var pivot := Node3D.new()
-	pivot.name = node_name
-	pivot.position = at
-	pivot.rotation_degrees.y = yaw
-	if room != "":
-		pivot.set_meta("station_room", room)
-	parent.add_child(pivot)
-
-	var model := scene.instantiate() as Node3D
-	model.name = "Mesh"
-	model.add_to_group(&"uploaded_fbx_visual")
-	ScifiKitLibrary.apply_palette(model, key)
-	model.position = Vector3(
-		-(min_corner.x + box.x * 0.5), -min_corner.y, -(min_corner.z + box.z * 0.5)
-	)
-	model.scale = Vector3.ONE * scale * size_scale
-	pivot.add_child(model)
-
-	if collide != "":
-		_add_collider(pivot, box, collide)
-	return pivot
-
-
-func _add_collider(pivot: Node3D, box: Vector3, mode: String) -> void:
-	var body := StaticBody3D.new()
-	body.name = "Body"
-	body.collision_layer = 1
-	body.collision_mask = 0
-	var shape := BoxShape3D.new()
-	if mode == "floor":
-		# The deck's top face is the pivot's own Y; the box hangs below it.
-		shape.size = Vector3(box.x, 0.4, box.z)
-		body.position = Vector3(0.0, -0.2, 0.0)
-	elif mode == "portal":
-		# A door frame is a hole with metal around it. One solid box across a 5 m
-		# doorway is a wall the player cannot walk through, which is what the first
-		# run of the station test found: every route stopped at the threshold.
-		_add_portal(pivot, box)
-		return
-	else:
-		shape.size = Vector3(maxf(box.x, 0.2), maxf(box.y, 0.2), maxf(box.z, 0.2))
-		body.position = Vector3(0.0, box.y * 0.5, 0.0)
-	var collision := CollisionShape3D.new()
-	collision.shape = shape
-	body.add_child(collision)
-	pivot.add_child(body)
-
-
-## Two jambs and a lintel, so the opening in a door frame is actually open.
-## The pack's frame module is 5 m wide and 4 m tall; the walkable gap is 4 m by
-## 2.9 m, which is what its own visual suggests.
-func _add_portal(pivot: Node3D, box: Vector3) -> void:
-	var gap := minf(box.x * 0.8, 4.0)
-	var head := minf(2.9, box.y - 0.6)
-	var jamb := (box.x - gap) * 0.5
-	var parts := [
-		[Vector3(-(gap * 0.5 + jamb * 0.5), box.y * 0.5, 0.0), Vector3(jamb, box.y, box.z)],
-		[Vector3(gap * 0.5 + jamb * 0.5, box.y * 0.5, 0.0), Vector3(jamb, box.y, box.z)],
-		[Vector3(0.0, head + (box.y - head) * 0.5, 0.0), Vector3(gap, box.y - head, box.z)],
-	]
-	var body := StaticBody3D.new()
-	body.name = "Body"
-	body.collision_layer = 1
-	body.collision_mask = 0
-	for part in parts:
-		var shape := BoxShape3D.new()
-		shape.size = part[1]
-		var collision := CollisionShape3D.new()
-		collision.shape = shape
-		collision.position = part[0]
-		body.add_child(collision)
-	pivot.add_child(body)
-
-
-func _light(
-	parent: Node3D, node_name: String, at: Vector3, color: Color, energy: float, reach: float
-) -> void:
-	var omni := OmniLight3D.new()
-	omni.name = node_name
-	omni.position = at
-	omni.light_color = color
-	omni.light_energy = energy
-	omni.omni_range = reach
-	omni.shadow_enabled = false
-	parent.add_child(omni)
-
 
 func _count_lights(root: Node3D) -> int:
 	var count := 0
@@ -284,7 +142,7 @@ func _build_floor_grid(parent: Node3D, room: String, alternate: bool = true) -> 
 			var key := "floor"
 			if alternate and (column + row) % 2 == 1:
 				key = "floor_alt"
-			_place(
+			StationKit.place(
 				parent,
 				key,
 				"%sDeck_%02d_%02d" % [room.capitalize(), column, row],
@@ -308,7 +166,7 @@ func _build_hangar_deck(parent: Node3D) -> void:
 	# A technical channel down the axis and a hazard strip at each threshold: the
 	# pack's own grate and stripe modules, not drawn lines.
 	for z in [-15.0, -9.0, -3.0, 3.0, 9.0, 15.0]:
-		_place(
+		StationKit.place(
 			parent,
 			"floor_chan",
 			"HangarChannel_%d" % int(z),
@@ -319,7 +177,7 @@ func _build_hangar_deck(parent: Node3D) -> void:
 			Vector3.ONE,
 			"hangar"
 		)
-		_place(
+		StationKit.place(
 			parent,
 			"floor_chan",
 			"HangarChannelE_%d" % int(z),
@@ -331,7 +189,7 @@ func _build_hangar_deck(parent: Node3D) -> void:
 			"hangar"
 		)
 	for x in [-15.0, -9.0, 9.0, 15.0]:
-		_place(
+		StationKit.place(
 			parent,
 			"floor_coin",
 			"HangarHazardS_%d" % int(x),
@@ -344,7 +202,7 @@ func _build_hangar_deck(parent: Node3D) -> void:
 		)
 	# Landing markings at the gate: two hazard stripes either side of the opening.
 	for side in [-1.0, 1.0]:
-		_place(
+		StationKit.place(
 			parent,
 			"floor_strip",
 			"GateStripe_%s" % str(side),
@@ -371,7 +229,7 @@ func _build_hangar_apron(parent: Node3D) -> void:
 	for index in range(4):
 		var side := -1.0 if index < 2 else 1.0
 		var at := Vector3(side * 5.0, 0.0, -8.0 - 4.0 * float(index % 2))
-		_place(
+		StationKit.place(
 			parent,
 			"wall_low",
 			"HangarContainer_%02d" % index,
@@ -382,7 +240,7 @@ func _build_hangar_apron(parent: Node3D) -> void:
 			Vector3.ONE,
 			"hangar"
 		)
-		_place(
+		StationKit.place(
 			parent,
 			"wall_low",
 			"HangarContainerTop_%02d" % index,
@@ -395,7 +253,7 @@ func _build_hangar_apron(parent: Node3D) -> void:
 		)
 	# Two amber crates for the hazard accent the pack's own crate family carries.
 	for index in range(2):
-		_place(
+		StationKit.place(
 			parent,
 			"crate",
 			"HangarCoverCrate_%02d" % index,
@@ -409,7 +267,7 @@ func _build_hangar_apron(parent: Node3D) -> void:
 	# Two worked surfaces facing up the hall: a console bank on the left and a
 	# bench on the right. They are the pack's own furniture, mounted on the deck,
 	# angled so their lit faces are what the player walks toward.
-	_place(
+	StationKit.place(
 		parent,
 		"console_large",
 		"HangarSpawnConsole",
@@ -420,7 +278,7 @@ func _build_hangar_apron(parent: Node3D) -> void:
 		Vector3.ONE,
 		"hangar"
 	)
-	_place(
+	StationKit.place(
 		parent,
 		"table",
 		"HangarSpawnBench",
@@ -435,7 +293,7 @@ func _build_hangar_apron(parent: Node3D) -> void:
 	# threshold at the end of the hall sits inside a frame instead of on a flat
 	# wall, and the wall reads as something built rather than extruded.
 	for side in [-1.0, 1.0]:
-		_place(
+		StationKit.place(
 			parent,
 			"beam",
 			"HangarDoorBeam_%s" % str(side),
@@ -446,7 +304,7 @@ func _build_hangar_apron(parent: Node3D) -> void:
 			Vector3.ONE,
 			"hangar"
 		)
-		_place(
+		StationKit.place(
 			parent,
 			"wall_pipes",
 			"HangarDuct_%s" % str(side),
@@ -457,7 +315,7 @@ func _build_hangar_apron(parent: Node3D) -> void:
 			Vector3.ONE,
 			"hangar"
 		)
-		_place(
+		StationKit.place(
 			parent,
 			"wall_pipes",
 			"HangarDuctFar_%s" % str(side),
@@ -471,7 +329,7 @@ func _build_hangar_apron(parent: Node3D) -> void:
 	# Grate runs either side of the walkway, leading the eye to the lit door.
 	for z in [-11.0, -15.5]:
 		for side in [-1.0, 1.0]:
-			_place(
+			StationKit.place(
 				parent,
 				"floor_chan",
 				"HangarApronGrate_%s_%d" % [str(side), int(z)],
@@ -486,7 +344,7 @@ func _build_hangar_apron(parent: Node3D) -> void:
 
 func _build_reactor_deck(parent: Node3D) -> void:
 	_build_floor_grid(parent, "reactor")
-	_place(
+	StationKit.place(
 		parent,
 		"floor_strip",
 		"ReactorHazardLine",
@@ -502,7 +360,7 @@ func _build_reactor_deck(parent: Node3D) -> void:
 func _build_cargo_deck(parent: Node3D) -> void:
 	_build_floor_grid(parent, "cargo", false)
 	for z in [-3.0, 3.0]:
-		_place(
+		StationKit.place(
 			parent,
 			"floor_strip",
 			"CargoLane_%d" % int(z),
@@ -518,7 +376,7 @@ func _build_cargo_deck(parent: Node3D) -> void:
 func _build_corridor_deck(parent: Node3D) -> void:
 	_build_floor_grid(parent, "corridor", false)
 	for index in range(4):
-		_place(
+		StationKit.place(
 			parent,
 			"floor_chan",
 			"CorridorConduit_%02d" % index,
@@ -544,7 +402,7 @@ func _build_walls(parent: Node3D) -> void:
 	# East: the corridor leaves through it. West: the cargo bay does.
 	for side in [-1.0, 1.0]:
 		var yaw := 90.0
-		_place(
+		StationKit.place(
 			parent,
 			"doorway_large",
 			"HangarDoorFrame_%s" % str(side),
@@ -555,7 +413,7 @@ func _build_walls(parent: Node3D) -> void:
 			Vector3.ONE,
 			"hangar"
 		)
-		_place(
+		StationKit.place(
 			parent,
 			"wall_half",
 			"HangarDoorJambN_%s" % str(side),
@@ -566,7 +424,7 @@ func _build_walls(parent: Node3D) -> void:
 			Vector3.ONE,
 			"hangar"
 		)
-		_place(
+		StationKit.place(
 			parent,
 			"wall_half",
 			"HangarDoorJambS_%s" % str(side),
@@ -583,7 +441,7 @@ func _build_walls(parent: Node3D) -> void:
 		var z: float = 19.0 * z_side
 		for x in [-15.0, -9.0, 9.0, 15.0]:
 			var key := "wall_c" if x < 0.0 else "wall"
-			_place(
+			StationKit.place(
 				parent,
 				key,
 				"HangarWallX_%d_%d" % [z_side, int(x)],
@@ -595,7 +453,7 @@ func _build_walls(parent: Node3D) -> void:
 				"hangar"
 			)
 		for x in [-4.5, 4.5]:
-			_place(
+			StationKit.place(
 				parent,
 				"wall_half",
 				"HangarWallJamb_%d_%d" % [z_side, int(x)],
@@ -616,7 +474,7 @@ func _wall_run_x(
 	parent: Node3D, x: float, zs: Array, prefix: String, key: String, room: String
 ) -> void:
 	for z in zs:
-		_place(
+		StationKit.place(
 			parent,
 			key,
 			"%s_%d" % [prefix, int(z)],
@@ -632,7 +490,7 @@ func _wall_run_x(
 func _build_reactor_walls(parent: Node3D) -> void:
 	for side in [-1.0, 1.0]:
 		for z in [-22.0, -28.0, -34.0]:
-			_place(
+			StationKit.place(
 				parent,
 				"wall_b",
 				"ReactorWall_%s_%d" % [str(side), int(z)],
@@ -644,7 +502,7 @@ func _build_reactor_walls(parent: Node3D) -> void:
 				"reactor"
 			)
 	for x in [-9.0, -3.0, 3.0, 9.0]:
-		_place(
+		StationKit.place(
 			parent,
 			"wall_e",
 			"ReactorBackWall_%d" % int(x),
@@ -657,7 +515,7 @@ func _build_reactor_walls(parent: Node3D) -> void:
 		)
 	# The view the player is given at spawn: this end of the hall is the landmark,
 	# so it carries the lit threshold and the dock number, not the gate behind them.
-	_place(
+	StationKit.place(
 		parent,
 		"light_strip",
 		"ReactorDoorLintel",
@@ -668,7 +526,7 @@ func _build_reactor_walls(parent: Node3D) -> void:
 		Vector3.ONE,
 		"hangar"
 	)
-	_place(
+	StationKit.place(
 		parent,
 		"light_corridor",
 		"ReactorDoorThreshold",
@@ -679,11 +537,11 @@ func _build_reactor_walls(parent: Node3D) -> void:
 		Vector3.ONE,
 		"hangar"
 	)
-	_sign(parent, "num_0", "HallNumeralZero", Vector3(-1.4, 3.0, -18.6), 90.0, "hangar")
-	_sign(parent, "num_7", "HallNumeralSeven", Vector3(1.4, 3.0, -18.6), 90.0, "hangar")
+	StationKit.sign(parent, "num_0", "HallNumeralZero", Vector3(-1.4, 3.0, -18.6), 90.0, "hangar")
+	StationKit.sign(parent, "num_7", "HallNumeralSeven", Vector3(1.4, 3.0, -18.6), 90.0, "hangar")
 	# The shared wall with the hangar already exists; a frame on this side of it
 	# makes the threshold read from inside the reactor hall too.
-	_place(
+	StationKit.place(
 		parent,
 		"doorway_large",
 		"ReactorDoorFrame",
@@ -699,7 +557,7 @@ func _build_reactor_walls(parent: Node3D) -> void:
 func _build_cargo_walls(parent: Node3D) -> void:
 	for side in [-1.0, 1.0]:
 		for x in [-34.0, -28.0, -22.0]:
-			_place(
+			StationKit.place(
 				parent,
 				"wall",
 				"CargoWall_%s_%d" % [str(side), int(x)],
@@ -711,7 +569,7 @@ func _build_cargo_walls(parent: Node3D) -> void:
 				"cargo"
 			)
 	for z in [-3.0, 3.0]:
-		_place(
+		StationKit.place(
 			parent,
 			"wall_c",
 			"CargoBackWall_%d" % int(z),
@@ -722,7 +580,7 @@ func _build_cargo_walls(parent: Node3D) -> void:
 			Vector3.ONE,
 			"cargo"
 		)
-	_place(
+	StationKit.place(
 		parent,
 		"doorway_large",
 		"CargoDoorFrame",
@@ -737,7 +595,7 @@ func _build_cargo_walls(parent: Node3D) -> void:
 
 func _build_corridor_walls(parent: Node3D) -> void:
 	for x in [22.0, 28.0, 34.0, 40.0]:
-		_place(
+		StationKit.place(
 			parent,
 			"wall",
 			"CorridorWallN_%d" % int(x),
@@ -751,7 +609,7 @@ func _build_corridor_walls(parent: Node3D) -> void:
 		# The south side is one wall module short: a porthole module fills it, so
 		# the corridor looks out at the skybox instead of at more plating.
 		if x == 28.0:
-			_place(
+			StationKit.place(
 				parent,
 				"porthole",
 				"CorridorPorthole",
@@ -763,7 +621,7 @@ func _build_corridor_walls(parent: Node3D) -> void:
 				"corridor"
 			)
 		else:
-			_place(
+			StationKit.place(
 				parent,
 				"wall_b",
 				"CorridorWallS_%d" % int(x),
@@ -774,7 +632,7 @@ func _build_corridor_walls(parent: Node3D) -> void:
 				Vector3.ONE,
 				"corridor"
 			)
-	_place(
+	StationKit.place(
 		parent,
 		"wall_c",
 		"CorridorEndWall",
@@ -800,7 +658,7 @@ func _build_hall_dressing(parent: Node3D) -> void:
 	# Console banks flanking the reactor door, facing back down the hall. The
 	# doorway gap is 4 m, so they start at +-4.4 and run outward.
 	for side in [-1.0, 1.0]:
-		_place(
+		StationKit.place(
 			parent,
 			"console_large",
 			"HallConsoleA_%s" % str(side),
@@ -811,7 +669,7 @@ func _build_hall_dressing(parent: Node3D) -> void:
 			Vector3.ONE,
 			"hangar"
 		)
-		_place(
+		StationKit.place(
 			parent,
 			"console_half",
 			"HallConsoleB_%s" % str(side),
@@ -825,7 +683,7 @@ func _build_hall_dressing(parent: Node3D) -> void:
 		# Ducting above the consoles, running the width of the wall in the
 		# pack's own wall-pipe module.
 		for index in range(2):
-			_place(
+			StationKit.place(
 				parent,
 				"wall_pipes",
 				"HallDuct_%s_%d" % [str(side), index],
@@ -839,7 +697,7 @@ func _build_hall_dressing(parent: Node3D) -> void:
 		# A lit stub above each console. `light_strip` is 0.89 m wide, so a row of
 		# them is a light bar rather than a dot.
 		for index in range(4):
-			_place(
+			StationKit.place(
 				parent,
 				"light_strip",
 				"HallConsoleLamp_%s_%d" % [str(side), index],
@@ -854,7 +712,7 @@ func _build_hall_dressing(parent: Node3D) -> void:
 		# in the open air inside the skylight, where nothing held them up and they
 		# read as pale slabs floating over the hall.
 		for index in range(3):
-			_place(
+			StationKit.place(
 				parent,
 				"light_corridor",
 				"HallCeilingLamp_%s_%d" % [str(side), index],
@@ -869,7 +727,7 @@ func _build_hall_dressing(parent: Node3D) -> void:
 		# flat wall either side; four 4 m beams at the skylight's corners give the
 		# space a structure to read instead of an enclosure.
 		for index in range(2):
-			_place(
+			StationKit.place(
 				parent,
 				"beam",
 				"HangarPier_%s_%d" % [str(side), index],
@@ -882,8 +740,12 @@ func _build_hall_dressing(parent: Node3D) -> void:
 			)
 	# The wall either side of the door gets the pack's caution sign, so the frame
 	# has a red-orange accent at the point of interest.
-	_sign(parent, "sign_caution", "HallCautionWest", Vector3(-5.4, 3.1, -17.9), 90.0, "hangar")
-	_sign(parent, "sign_danger", "HallDangerEast", Vector3(5.4, 3.1, -17.9), 90.0, "hangar")
+	StationKit.sign(
+		parent, "sign_caution", "HallCautionWest", Vector3(-5.4, 3.1, -17.9), 90.0, "hangar"
+	)
+	StationKit.sign(
+		parent, "sign_danger", "HallDangerEast", Vector3(5.4, 3.1, -17.9), 90.0, "hangar"
+	)
 
 
 # --- ceiling --------------------------------------------------------------
@@ -919,7 +781,7 @@ func _build_ceiling(parent: Node3D) -> void:
 					x += TILE
 					continue
 				var key := "roof"
-				_place(
+				StationKit.place(
 					parent,
 					key,
 					"%sRoof_%02d_%02d" % [room.capitalize(), column, row],
@@ -940,7 +802,7 @@ func _build_ceiling(parent: Node3D) -> void:
 ## the pack's own numerals for the dock number, and jambs deep enough to cast a
 ## shadow across the threshold.
 func _build_gatehouse(parent: Node3D) -> void:
-	_place(
+	StationKit.place(
 		parent,
 		"doorway_large",
 		"DockGate",
@@ -952,7 +814,7 @@ func _build_gatehouse(parent: Node3D) -> void:
 		"hangar"
 	)
 	for side in [-1.0, 1.0]:
-		_place(
+		StationKit.place(
 			parent,
 			"column",
 			"DockGatePillar_%s" % str(side),
@@ -963,7 +825,7 @@ func _build_gatehouse(parent: Node3D) -> void:
 			Vector3.ONE,
 			"hangar"
 		)
-		_place(
+		StationKit.place(
 			parent,
 			"light_strip",
 			"DockGateStrip_%s" % str(side),
@@ -974,7 +836,7 @@ func _build_gatehouse(parent: Node3D) -> void:
 			Vector3.ONE,
 			"hangar"
 		)
-	_place(
+	StationKit.place(
 		parent,
 		"light_strip",
 		"DockGateLintel",
@@ -985,7 +847,7 @@ func _build_gatehouse(parent: Node3D) -> void:
 		Vector3.ONE,
 		"hangar"
 	)
-	_place(
+	StationKit.place(
 		parent,
 		"light_corridor",
 		"DockThreshold",
@@ -997,9 +859,123 @@ func _build_gatehouse(parent: Node3D) -> void:
 		"hangar"
 	)
 	# "07" over the gate, in the pack's own numeral modules.
-	_sign(parent, "num_0", "DockNumeralZero", Vector3(-1.5, 2.9, 18.4), -90.0, "hangar")
-	_sign(parent, "num_7", "DockNumeralSeven", Vector3(1.5, 2.9, 18.4), -90.0, "hangar")
-	_sign(parent, "sign_caution", "GateCautionSign", Vector3(-6.5, 2.6, 18.3), -90.0, "hangar")
+	StationKit.sign(parent, "num_0", "DockNumeralZero", Vector3(-1.5, 2.9, 18.4), -90.0, "hangar")
+	StationKit.sign(parent, "num_7", "DockNumeralSeven", Vector3(1.5, 2.9, 18.4), -90.0, "hangar")
+	StationKit.sign(
+		parent, "sign_caution", "GateCautionSign", Vector3(-6.5, 2.6, 18.3), -90.0, "hangar"
+	)
+
+
+## The reactor: the pack's turbine face on the back wall, a stack of fin columns
+## and pipe runs around it, consoles at the base and the corridor lights washing
+## the whole alcove. This is the landmark the player sees from spawn, so it is
+## built from the largest modules in the pack rather than dressed with props.
+func _build_reactor(parent: Node3D) -> void:
+	# The core face: the pack's 8.5 x 8.5 m airing panel, upright, framed by two of
+	# its fin columns on a plinth. The gear and console modules are wall furniture
+	# with doors on them — three of those in a row read as cupboards, which is what
+	# the first three attempts at this landmark did. The airing panel is the only
+	# module in the pack that is a large framed aperture, which is what the reactor
+	# end of the hall needs to be.
+	StationKit.place(
+		parent,
+		"airing",
+		"ReactorCoreFace",
+		Vector3(0.0, 0.0, -35.4),
+		0.0,
+		1.0,
+		"box",
+		Vector3(1.0, 1.0, 0.4),
+		"reactor"
+	)
+	StationKit.place(
+		parent,
+		"platform_flat",
+		"ReactorPlinth",
+		Vector3(0.0, 0.42, -35.2),
+		0.0,
+		1.4,
+		"floor",
+		Vector3(1.0, 1.0, 0.7),
+		"reactor"
+	)
+	# A lit ring around the aperture: four strips on the frame, so the core is the
+	# brightest surface in its own room.
+	for offset in [Vector3(0.0, 3.9, -34.2), Vector3(0.0, 0.55, -34.2)]:
+		StationKit.place(
+			parent,
+			"light_corridor",
+			"ReactorCoreLamp_%d" % int(offset.y * 10.0),
+			offset,
+			0.0,
+			1.6,
+			"",
+			Vector3.ONE,
+			"reactor"
+		)
+	for side in [-1.0, 1.0]:
+		StationKit.place(
+			parent,
+			"light_strip",
+			"ReactorCoreSide_%s" % str(side),
+			Vector3(4.3 * side, 2.2, -34.2),
+			90.0,
+			4.0,
+			"",
+			Vector3.ONE,
+			"reactor"
+		)
+	for side in [-1.0, 1.0]:
+		StationKit.place(
+			parent,
+			"column",
+			"DockGatePillar_%s" % str(side),
+			Vector3(3.4 * side, 0.0, 19.0),
+			90.0,
+			1.0,
+			"box",
+			Vector3.ONE,
+			"hangar"
+		)
+		StationKit.place(
+			parent,
+			"light_strip",
+			"DockGateStrip_%s" % str(side),
+			Vector3(2.6 * side, 3.5, 18.3),
+			0.0,
+			1.5,
+			"",
+			Vector3.ONE,
+			"hangar"
+		)
+	StationKit.place(
+		parent,
+		"light_strip",
+		"DockGateLintel",
+		Vector3(0.0, 3.9, 18.2),
+		0.0,
+		3.4,
+		"",
+		Vector3.ONE,
+		"hangar"
+	)
+	StationKit.place(
+		parent,
+		"light_corridor",
+		"DockThreshold",
+		Vector3(0.0, 0.15, 17.6),
+		90.0,
+		1.2,
+		"",
+		Vector3.ONE,
+		"hangar"
+	)
+	# "07" over the gate, in the pack's own numeral modules.
+	StationKit.sign(parent, "num_0", "DockNumeralZero", Vector3(-1.5, 2.9, 18.4), -90.0, "hangar")
+	StationKit.sign(parent, "num_7", "DockNumeralSeven", Vector3(1.5, 2.9, 18.4), -90.0, "hangar")
+	StationKit.sign(
+		parent, "sign_caution", "GateCautionSign", Vector3(-6.5, 2.6, 18.3), -90.0, "hangar"
+	)
 
 
 ## The reactor: the pack's turbine face on the back wall, a stack of fin columns
@@ -1013,7 +989,7 @@ func _build_reactor(parent: Node3D) -> void:
 	# around.
 	for index in range(3):
 		var offset := -5.4 + 5.4 * float(index)
-		_place(
+		StationKit.place(
 			parent,
 			"gear",
 			"ReactorTurbineFace_%d" % index,
@@ -1024,7 +1000,7 @@ func _build_reactor(parent: Node3D) -> void:
 			Vector3.ONE,
 			"reactor"
 		)
-		_place(
+		StationKit.place(
 			parent,
 			"light_strip",
 			"ReactorTurbineLamp_%d" % index,
@@ -1036,7 +1012,7 @@ func _build_reactor(parent: Node3D) -> void:
 			"reactor"
 		)
 	for side in [-1.0, 1.0]:
-		_place(
+		StationKit.place(
 			parent,
 			"column",
 			"ReactorFin_%s" % str(side),
@@ -1047,7 +1023,7 @@ func _build_reactor(parent: Node3D) -> void:
 			Vector3.ONE,
 			"reactor"
 		)
-		_place(
+		StationKit.place(
 			parent,
 			"pipes_b",
 			"ReactorPipeRise_%s" % str(side),
@@ -1059,7 +1035,7 @@ func _build_reactor(parent: Node3D) -> void:
 			"reactor"
 		)
 		for index in range(3):
-			_place(
+			StationKit.place(
 				parent,
 				"light_strip",
 				"ReactorWallLamp_%s_%d" % [str(side), index],
@@ -1076,7 +1052,7 @@ func _build_reactor(parent: Node3D) -> void:
 	for index in range(4):
 		var angle := deg_to_rad(45.0 + 30.0 * float(index))
 		var at := Vector3(cos(angle) * 4.6, 0.03, -31.0 + sin(angle) * 1.6)
-		_place(
+		StationKit.place(
 			parent,
 			"floor_strip",
 			"ReactorApron_%d" % index,
@@ -1087,7 +1063,7 @@ func _build_reactor(parent: Node3D) -> void:
 			Vector3.ONE,
 			"reactor"
 		)
-	_place(
+	StationKit.place(
 		parent,
 		"light_corridor",
 		"ReactorHeadLamp",
@@ -1100,7 +1076,7 @@ func _build_reactor(parent: Node3D) -> void:
 	)
 	# The plinth the reactor sits on, and the consoles that face it.
 	for z in [-33.0, -29.0, -25.0]:
-		_place(
+		StationKit.place(
 			parent,
 			"pipes_c",
 			"ReactorPipeRun_%d" % int(z),
@@ -1111,7 +1087,7 @@ func _build_reactor(parent: Node3D) -> void:
 			Vector3.ONE,
 			"reactor"
 		)
-	_place(
+	StationKit.place(
 		parent,
 		"console_large",
 		"ReactorConsoleWest",
@@ -1122,7 +1098,7 @@ func _build_reactor(parent: Node3D) -> void:
 		Vector3.ONE,
 		"reactor"
 	)
-	_place(
+	StationKit.place(
 		parent,
 		"console_large",
 		"ReactorConsoleEast",
@@ -1133,7 +1109,7 @@ func _build_reactor(parent: Node3D) -> void:
 		Vector3.ONE,
 		"reactor"
 	)
-	_place(
+	StationKit.place(
 		parent,
 		"table",
 		"ReactorWorkBench",
@@ -1144,15 +1120,17 @@ func _build_reactor(parent: Node3D) -> void:
 		Vector3.ONE,
 		"reactor"
 	)
-	_sign(
+	StationKit.sign(
 		parent, "word_warning", "ReactorWarningDecal", Vector3(-11.9, 2.9, -30.0), 180.0, "reactor"
 	)
-	_sign(parent, "sign_danger", "ReactorDangerSign", Vector3(11.9, 2.6, -22.0), 0.0, "reactor")
+	StationKit.sign(
+		parent, "sign_danger", "ReactorDangerSign", Vector3(11.9, 2.6, -22.0), 0.0, "reactor"
+	)
 	# Wall bays either side of the turbine, which were the blackest surfaces in
 	# the room. Racks give them shape, the strips give them light.
 	for index in range(3):
 		for side in [-1.0, 1.0]:
-			_place(
+			StationKit.place(
 				parent,
 				"wall_low",
 				"ReactorBayRack_%d_%s" % [index, str(side)],
@@ -1163,7 +1141,7 @@ func _build_reactor(parent: Node3D) -> void:
 				Vector3(0.6, 1.0, 0.6),
 				"reactor"
 			)
-			_place(
+			StationKit.place(
 				parent,
 				"light_strip",
 				"ReactorBayLamp_%d_%s" % [index, str(side)],
@@ -1190,11 +1168,11 @@ func _build_cargo_bay(parent: Node3D) -> void:
 	for index in range(stacks.size()):
 		var at: Vector3 = stacks[index]
 		var height := 1.6 if index % 3 == 0 else 1.2
-		_place(
+		StationKit.place(
 			parent, "crate", "CargoCrate_%02d" % index, at, 0.0, height, "box", Vector3.ONE, "cargo"
 		)
 		if index % 3 == 0:
-			_place(
+			StationKit.place(
 				parent,
 				"crate",
 				"CargoCrateTop_%02d" % index,
@@ -1205,7 +1183,7 @@ func _build_cargo_bay(parent: Node3D) -> void:
 				Vector3.ONE,
 				"cargo"
 			)
-	_place(
+	StationKit.place(
 		parent,
 		"wall_pipes",
 		"CargoPipeRun",
@@ -1218,7 +1196,7 @@ func _build_cargo_bay(parent: Node3D) -> void:
 	)
 	for index in range(3):
 		var at := Vector3(-33.0 + 3.0 * float(index), 0.0, -4.6)
-		_place(
+		StationKit.place(
 			parent,
 			"wall_low",
 			"CargoContainer_%02d" % index,
@@ -1229,7 +1207,7 @@ func _build_cargo_bay(parent: Node3D) -> void:
 			Vector3.ONE,
 			"cargo"
 		)
-		_place(
+		StationKit.place(
 			parent,
 			"wall_low",
 			"CargoContainerTop_%02d" % index,
@@ -1241,7 +1219,7 @@ func _build_cargo_bay(parent: Node3D) -> void:
 			"cargo"
 		)
 	for index in range(2):
-		_place(
+		StationKit.place(
 			parent,
 			"beam_b",
 			"CargoGantry_%02d" % index,
@@ -1252,7 +1230,7 @@ func _build_cargo_bay(parent: Node3D) -> void:
 			Vector3.ONE,
 			"cargo"
 		)
-		_place(
+		StationKit.place(
 			parent,
 			"light_corridor",
 			"CargoLamp_%02d" % index,
@@ -1265,7 +1243,7 @@ func _build_cargo_bay(parent: Node3D) -> void:
 		)
 	for index in range(2):
 		for side in [-1.0, 1.0]:
-			_place(
+			StationKit.place(
 				parent,
 				"wall_pipes",
 				"CargoWallRun_%02d_%s" % [index, str(side)],
@@ -1276,7 +1254,7 @@ func _build_cargo_bay(parent: Node3D) -> void:
 				Vector3.ONE,
 				"cargo"
 			)
-	_place(
+	StationKit.place(
 		parent,
 		"console_half",
 		"CargoManifestConsole",
@@ -1287,14 +1265,16 @@ func _build_cargo_bay(parent: Node3D) -> void:
 		Vector3.ONE,
 		"cargo"
 	)
-	_sign(parent, "sign_caution", "CargoCautionSign", Vector3(-19.9, 2.6, 0.0), 0.0, "cargo")
-	_sign(parent, "word_zone", "CargoZoneDecal", Vector3(-24.0, 2.4, 6.7), -90.0, "cargo")
+	StationKit.sign(
+		parent, "sign_caution", "CargoCautionSign", Vector3(-19.9, 2.6, 0.0), 0.0, "cargo"
+	)
+	StationKit.sign(parent, "word_zone", "CargoZoneDecal", Vector3(-24.0, 2.4, 6.7), -90.0, "cargo")
 
 
 func _build_corridor_dressing(parent: Node3D) -> void:
 	for index in range(4):
 		var x: float = 22.0 + float(index) * 6.0
-		_place(
+		StationKit.place(
 			parent,
 			"light_corridor",
 			"CorridorLight_%02d" % index,
@@ -1310,7 +1290,7 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 		# middle of a walkway, and it carries no collider, so the route sweep walked
 		# straight through the thing the corridor vantage was pointing at.
 		for side in [-1.0, 1.0]:
-			_place(
+			StationKit.place(
 				parent,
 				"beam_b",
 				"CorridorRib_%02d_%s" % [index, str(side)],
@@ -1321,7 +1301,7 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 				Vector3.ONE,
 				"corridor"
 			)
-	_place(
+	StationKit.place(
 		parent,
 		"intercom",
 		"CorridorIntercom",
@@ -1334,7 +1314,7 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 	)
 	for index in range(3):
 		for side in [-1.0, 1.0]:
-			_place(
+			StationKit.place(
 				parent,
 				"wall_pipes",
 				"CorridorPipe_%02d_%s" % [index, str(side)],
@@ -1345,9 +1325,13 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 				Vector3.ONE,
 				"corridor"
 			)
-	_sign(parent, "sign_danger", "CorridorSign", Vector3(38.0, 2.6, 3.7), -90.0, "corridor")
-	_sign(parent, "word_exit", "CorridorExitDecal", Vector3(41.6, 2.4, -3.6), 90.0, "corridor")
-	_place(
+	StationKit.sign(
+		parent, "sign_danger", "CorridorSign", Vector3(38.0, 2.6, 3.7), -90.0, "corridor"
+	)
+	StationKit.sign(
+		parent, "word_exit", "CorridorExitDecal", Vector3(41.6, 2.4, -3.6), 90.0, "corridor"
+	)
+	StationKit.place(
 		parent,
 		"console_half",
 		"CorridorConsole",
@@ -1360,7 +1344,7 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 	)
 	# The hangar's inner east wall gets the same treatment as the corridor, so the
 	# route reads continuously from the deck the player starts on.
-	_place(
+	StationKit.place(
 		parent,
 		"wall_pipes",
 		"HangarPipeRunEast",
@@ -1371,7 +1355,7 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 		Vector3.ONE,
 		"hangar"
 	)
-	_place(
+	StationKit.place(
 		parent,
 		"wall_pipes",
 		"HangarPipeRunWest",
@@ -1382,7 +1366,7 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 		Vector3.ONE,
 		"hangar"
 	)
-	_place(
+	StationKit.place(
 		parent,
 		"console_large",
 		"HangarConsoleEast",
@@ -1393,7 +1377,7 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 		Vector3.ONE,
 		"hangar"
 	)
-	_place(
+	StationKit.place(
 		parent,
 		"console_half",
 		"HangarConsoleWest",
@@ -1404,7 +1388,7 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 		Vector3.ONE,
 		"hangar"
 	)
-	_place(
+	StationKit.place(
 		parent,
 		"intercom",
 		"HangarIntercom",
@@ -1415,11 +1399,13 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 		Vector3.ONE,
 		"hangar"
 	)
-	_sign(parent, "word_zone", "HangarZoneDecal", Vector3(17.7, 2.6, -2.0), 0.0, "hangar")
-	_sign(parent, "sign_danger", "HangarDangerSign", Vector3(-17.7, 2.6, -6.0), 180.0, "hangar")
+	StationKit.sign(parent, "word_zone", "HangarZoneDecal", Vector3(17.7, 2.6, -2.0), 0.0, "hangar")
+	StationKit.sign(
+		parent, "sign_danger", "HangarDangerSign", Vector3(-17.7, 2.6, -6.0), 180.0, "hangar"
+	)
 	for x in [-15.0, -9.0, 9.0, 15.0]:
 		for side in [-1.0, 1.0]:
-			_place(
+			StationKit.place(
 				parent,
 				"light_strip",
 				"HangarWallLight_%d_%s" % [int(x), str(side)],
@@ -1436,7 +1422,7 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 	# walls something to be lit by at head height.
 	for z in [-15.0, -9.0, -3.0, 3.0, 9.0, 15.0]:
 		for side in [-1.0, 1.0]:
-			_place(
+			StationKit.place(
 				parent,
 				"light_strip",
 				"HangarSideLight_%d_%s" % [int(z), str(side)],
@@ -1456,7 +1442,7 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 	# are left empty.
 	for z in [-14.0, -7.0, 7.0, 14.0]:
 		for side in [-1.0, 1.0]:
-			_place(
+			StationKit.place(
 				parent,
 				"wall_low",
 				"HangarSideRack_%d_%s" % [int(z), str(side)],
@@ -1477,7 +1463,7 @@ func _build_catwalks(parent: Node3D) -> void:
 	for side in [-1.0, 1.0]:
 		var x: float = 16.4 * side
 		for z in [-12.0, -6.0, 0.0, 6.0, 12.0]:
-			_place(
+			StationKit.place(
 				parent,
 				"platform_flat",
 				"CatwalkDeck_%s_%d" % [str(side), int(z)],
@@ -1488,7 +1474,7 @@ func _build_catwalks(parent: Node3D) -> void:
 				Vector3(0.36, 1.0, 1.0),
 				"hangar"
 			)
-			_place(
+			StationKit.place(
 				parent,
 				"fence",
 				"CatwalkRail_%s_%d" % [str(side), int(z)],
@@ -1502,7 +1488,7 @@ func _build_catwalks(parent: Node3D) -> void:
 		# Landing steps up to the walk, at the south end of each side.
 		for step_index in range(3):
 			var height := CATWALK_Y * float(step_index + 1) / 4.0
-			_place(
+			StationKit.place(
 				parent,
 				"platform_flat",
 				"CatwalkStep_%s_%d" % [str(side), step_index],
