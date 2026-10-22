@@ -193,7 +193,11 @@ func _build_lighting_and_atmosphere() -> void:
 	# read as flat daylight. Energy is up because the albedo is much darker now:
 	# this is the same exposure, not a brighter world.
 	sun.light_color = Color(0.98, 0.9, 0.8)
-	sun.light_energy = 0.9
+	# Key energy was capped below 1.0 because the old albedo was pale and blew
+	# out. With the palette now dark, the cap left the sun doing almost nothing
+	# and the whole frame resting on a dim ambient fill -- the "segala sesuatu
+	# terlalu gelap" read. Just under the 1.1 ceiling the smoke test guards.
+	sun.light_energy = 1.05
 	sun.shadow_enabled = true
 	# Dense FBX ribs used to project solid-black, razor-edged patches across
 	# the playable floor in Compatibility. Keep depth cues, but let neutral
@@ -236,16 +240,21 @@ func _build_lighting_and_atmosphere() -> void:
 	# world dark for its own sake, it is to stop lighting a pale surface brightly
 	# and put the contrast back where the art direction puts it -- emissive
 	# cyan and amber against structure that stays in shadow.
-	environment.ambient_light_color = Color(0.16, 0.22, 0.3)
+	environment.ambient_light_color = Color(0.24, 0.31, 0.4)
 	# Enough fill to read an interior wall: with the sun blocked, ambient is the
 	# only light in the bays, and at 0.55 the tour frames lost their geometry.
-	environment.ambient_light_energy = 0.75
+	# 0.75 of a 0.22-blue fill is about 0.16 effective -- on the dark deck the
+	# only light reaching an unlit surface. Bays and the operative's shadowed
+	# side were lit by that number alone.
+	environment.ambient_light_energy = 1.05
 	environment.reflected_light_source = Environment.REFLECTION_SOURCE_BG
 	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
-	environment.tonemap_exposure = 1.01
+	environment.tonemap_exposure = 1.18
 	environment.adjustment_enabled = true
-	environment.adjustment_brightness = 0.97
-	environment.adjustment_contrast = 1.09
+	environment.adjustment_brightness = 1.02
+	# Contrast above 1 on an already dark frame is what crushed the shadow side
+	# of every plate to pure black.
+	environment.adjustment_contrast = 1.04
 	environment.adjustment_saturation = 0.9
 	environment.glow_enabled = true
 	environment.glow_intensity = 0.06
@@ -255,7 +264,7 @@ func _build_lighting_and_atmosphere() -> void:
 	# perspective is what separates foreground structure from the ridge line in
 	# the key art, so density goes up and the colour comes from the sky.
 	environment.fog_light_color = Color(0.05, 0.1, 0.15)
-	environment.fog_density = 0.019
+	environment.fog_density = 0.014
 	environment.fog_aerial_perspective = 0.55
 	environment.fog_sky_affect = 0.35
 	var world_environment := WorldEnvironment.new()

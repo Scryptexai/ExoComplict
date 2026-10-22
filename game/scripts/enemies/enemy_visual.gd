@@ -63,6 +63,11 @@ func _ready() -> void:
 		_keep_fallback("no measurable model")
 		return
 	_model = fitted["model"] as Node3D
+	# Same missing-PBR-factor default as the hero: the enemy GLBs are exported
+	# without `pbrMetallicRoughness`, so without this they are fully metallic and
+	# take no diffuse light. They are meant to read as machinery under the same
+	# lighting the player is lit by.
+	ModelFitterScript.fix_metallic_default(_model, 0.25, 0.58)
 	_mesh_height = float(fitted["height"])
 	_fitted_scale = _model.scale.y
 	_base_position = _model.position

@@ -83,6 +83,44 @@ static func outline_material(color: Color, grow_amount: float = 0.022) -> Standa
 	return outline
 
 
+## Gives an imported model a diffuse response.
+##
+## `hero.glb` and `rifle.glb` are exported without a `pbrMetallicRoughness`
+## block, and the glTF specification then defaults `metallicFactor` to 1.0. A
+## fully metallic surface has *no diffuse component*: the sun contributes a
+## broad, dim sheen and the ambient fill is reflected off a rough metal instead
+## of being scattered by it. That is why the operative's white plates rendered
+## near-black in gameplay while the same file looked clean under the menu's
+## three direct lights -- and why its panel detail disappeared with them.
+##
+## The world's imported FBX models are re-materialled explicitly by
+## `scifi_kit_library.gd`; the character and weapon GLBs never were. This does
+## the same job for a runtime instance: it overrides the *instance's* surfaces,
+## so the imported resource is untouched and a second instance can be tuned
+## differently.
+##
+## Only surfaces still at the glTF default (metallic >= 0.9) are changed, so a
+## model that ships real PBR values keeps them. Returns how many surfaces it
+## rewrote.
+static func fix_metallic_default(root: Node3D, metallic := 0.2, roughness := 0.6) -> int:
+	var changed := 0
+	for mesh_instance in meshes_of(root):
+		var mesh := mesh_instance.mesh
+		if mesh == null:
+			continue
+		for surface in range(mesh.get_surface_count()):
+			var base := mesh_instance.get_active_material(surface) as BaseMaterial3D
+			if base == null or base.metallic < 0.9:
+				continue
+			var tuned := base.duplicate() as BaseMaterial3D
+			tuned.resource_name = "%s_tuned" % base.resource_name
+			tuned.metallic = metallic
+			tuned.roughness = roughness
+			mesh_instance.set_surface_override_material(surface, tuned)
+			changed += 1
+	return changed
+
+
 static func flash_material(color: Color) -> StandardMaterial3D:
 	var flash := StandardMaterial3D.new()
 	flash.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED

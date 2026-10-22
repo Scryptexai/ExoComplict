@@ -95,6 +95,10 @@ func present(scene: PackedScene, options: Dictionary = {}) -> bool:
 		return false
 	_pivot = fitted["pivot"] as Node3D
 	_model = fitted["model"] as Node3D
+	# Same treatment the gameplay avatar gets, so the model a player picks is the
+	# model they meet in the arena: the GLB has no PBR factors and would otherwise
+	# be metallic 1.0 here and lit by three direct lights that hide the problem.
+	ModelFitterScript.fix_metallic_default(_model, 0.18, 0.62)
 	_model_path = scene.resource_path
 	_anim = _find_animation_player(_model)
 	_clip_names = _animation_list(_anim)
