@@ -72,23 +72,6 @@ const VANTAGES := [
 		"fov": 62.0,
 	},
 	{
-		# WORLD 01 — the deployment gate and the breached perimeter line, seen
-		# from inside the arena looking south, which is the direction a player
-		# meets them from.
-		"name": "vanguard",
-		"from": Vector3(2.0, 9.0, 40.0),
-		"at": Vector3(0.0, 3.4, 68.0),
-		"fov": 58.0,
-	},
-	{
-		# The same district from outside the line, so the breach and the craters
-		# are read from the side that attacked it.
-		"name": "breach",
-		"from": Vector3(30.0, 8.0, 82.0),
-		"at": Vector3(4.0, 2.6, 62.0),
-		"fov": 60.0,
-	},
-	{
 		"name": "cliffs",
 		"from": Vector3(40.0, 10.0, 30.0),
 		"at": Vector3(86.0, 4.0, 18.0),
@@ -200,15 +183,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if not _active:
 		return
-	# 1–9 and then 0 as the tenth. The tour has ten vantages now that WORLD 01
-	# added the gate and the breach, and silently dropping the last two would
-	# mean the new district could not be photographed from the review camera.
-	if key >= KEY_1 and key <= KEY_9:
+	if key >= KEY_1 and key <= KEY_8:
 		_vantage = key - KEY_1
-		_apply()
-		get_viewport().set_input_as_handled()
-	elif key == KEY_0 and VANTAGES.size() >= 10:
-		_vantage = 9
 		_apply()
 		get_viewport().set_input_as_handled()
 	elif key == KEY_ESCAPE or key == KEY_0:
