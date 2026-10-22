@@ -33,6 +33,17 @@ const WALL_HEIGHT := 4.2
 const WALL_THICKNESS := 0.9
 
 
+## The family's emissive trim. One brightness for the whole family: a wall's trim,
+## a gate's light slot and a conduit's core line have to look like the same
+## hardware, and the previous per-builder values did not.
+static func _trim_glow(damage_state: int) -> Material:
+	if damage_state > 0:
+		# Damaged and destroyed structures show the dead line instead of the live
+		# one: dark metal with the faintest warm bleed where it is still trying.
+		return NeonFrontierMaterialKit.make_emissive(Color(0.22, 0.12, 0.06), 0.35, 0.4, 0.5)
+	return NeonFrontierMaterialKit.make_emissive(Color(0.30, 0.85, 1.0), 1.9, 0.2, 0.25)
+
+
 ## One modular defence-wall segment, 8 m long, running along X.
 static func build_defense_wall(
 	parent: Node3D, materials: Dictionary, damage_state: int, seed: int
@@ -40,9 +51,12 @@ static func build_defense_wall(
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed
 	var silver: Material = materials["silver"]
-	var ceramic: Material = materials["ceramic"]
+	# Armour reads in `pearl`, not `ceramic`: ceramic is the palette's mid-slate
+	# and vanishes against the night deck when the face is turned away from the
+	# sun, which is exactly how the first two captures of this line looked.
+	var ceramic: Material = materials["pearl"]
 	var dark: Material = materials["dark_trim"]
-	var glow: Material = materials["cyan"] if damage_state == 0 else materials["reactor_spine"]
+	var glow: Material = _trim_glow(damage_state)
 
 	# Plinth: wider than the wall so the module reads as planted, not resting.
 	GEOMETRY.box(
@@ -216,10 +230,15 @@ static func build_security_gate(
 	parent: Node3D, materials: Dictionary, damage_state: int, seed: int
 ) -> void:
 	var silver: Material = materials["silver"]
-	var ceramic: Material = materials["ceramic"]
+	var ceramic: Material = materials["pearl"]
 	var blue: Material = materials["blue"]
 	var dark: Material = materials["dark_trim"]
-	var glow: Material = materials["cyan"] if damage_state == 0 else materials["orange"]
+	# The gate is a landmark seen from 30 m away, so its emissive lines take the
+	# family trim rather than the palette default, which disappeared entirely at
+	# that distance. A gate that took the hit shows the dead line and one warm
+	# emergency lamp instead of a quiet one.
+	var glow: Material = _trim_glow(damage_state)
+	var alarm: Material = materials["orange"] if damage_state > 0 else glow
 
 	var half_span := 7.0
 	for sign_x in [-1.0, 1.0]:
@@ -292,7 +311,7 @@ static func build_security_gate(
 			0.16,
 			0.16,
 			0.12,
-			glow,
+			alarm,
 			Vector3(90.0, 0.0, 0.0)
 		)
 
