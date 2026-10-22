@@ -24,7 +24,7 @@ extends Node3D
 ## It is deliberately not part of the HUD: no touch player will ever press F10,
 ## and nothing in the combat code reads it.
 
-const VANTAGES := [
+const FRONTIER_VANTAGES := [
 	{
 		# Raised and pulled back off the 42 m deck: at (-27, 14, 27) the pale
 		# perimeter structure crossed the bottom third of the frame and the
@@ -79,6 +79,48 @@ const VANTAGES := [
 	},
 ]
 
+## Each theatre is reviewed from its own set. The frontier's vantages are outdoor
+## distances measured in tens of metres; the station is a roofed interior where
+## the same coordinates would be inside a wall.
+const STATION_VANTAGES := [
+	{
+		"name": "dock",
+		"from": Vector3(0.0, 2.6, 15.5),
+		"at": Vector3(0.0, 2.2, 0.0),
+		"fov": 72.0,
+	},
+	{
+		"name": "hall",
+		"from": Vector3(-14.5, 3.2, 13.0),
+		"at": Vector3(8.0, 2.0, -9.0),
+		"fov": 68.0,
+	},
+	{
+		"name": "reactor",
+		"from": Vector3(0.0, 2.8, -21.5),
+		"at": Vector3(0.0, 2.6, -36.0),
+		"fov": 70.0,
+	},
+	{
+		"name": "cargo",
+		"from": Vector3(-21.0, 2.8, -4.0),
+		"at": Vector3(-34.0, 1.2, 2.0),
+		"fov": 72.0,
+	},
+	{
+		"name": "corridor",
+		"from": Vector3(21.0, 2.5, 0.0),
+		"at": Vector3(43.0, 2.2, 0.0),
+		"fov": 70.0,
+	},
+	{
+		"name": "catwalk",
+		"from": Vector3(15.0, 4.9, 9.0),
+		"at": Vector3(-2.0, 1.4, -8.0),
+		"fov": 74.0,
+	},
+]
+
 var _camera: Camera3D
 var _active := false
 var _vantage := 0
@@ -123,8 +165,15 @@ func is_active() -> bool:
 	return _active
 
 
+func _vantages() -> Array:
+	return (
+		STATION_VANTAGES if WorldSelection.selected() == &"vanguard_station" else FRONTIER_VANTAGES
+	)
+
+
 func vantage_name() -> String:
-	return VANTAGES[_vantage]["name"]
+	var list := _vantages()
+	return list[clampi(_vantage, 0, list.size() - 1)]["name"]
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -184,7 +233,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _active:
 		return
 	if key >= KEY_1 and key <= KEY_8:
-		_vantage = key - KEY_1
+		_vantage = mini(key - KEY_1, _vantages().size() - 1)
 		_apply()
 		get_viewport().set_input_as_handled()
 	elif key == KEY_ESCAPE or key == KEY_0:
@@ -304,7 +353,8 @@ func _all_cameras(node: Node) -> Array[Camera3D]:
 
 
 func _apply() -> void:
-	var vantage: Dictionary = VANTAGES[_vantage]
+	var list := _vantages()
+	var vantage: Dictionary = list[clampi(_vantage, 0, list.size() - 1)]
 	_camera.fov = float(vantage["fov"])
 	_camera.global_position = vantage["from"]
 	_camera.look_at(vantage["at"], Vector3.UP)

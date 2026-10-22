@@ -220,9 +220,21 @@ for (const viewport of viewports) {
   const wantsPlay = requested.includes('GAMEPLAY') || requested.includes('TOUR');
   if (!wantsPlay) continue;
   const { page, lines } = await openPage(viewport);
-  await page.goto(`${baseUrl}${pageTarget}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  // The gameplay leg loads the page without `?qa_stage=`, so it needs the world
+  // query in its own right: the earlier version dropped it here and photographed
+  // the default theatre while reporting the requested one.
+  const gameplayUrl = `${baseUrl}${pageTarget}${worldQuery ? `?${worldQuery.slice(1)}` : ''}`;
+  await page.goto(gameplayUrl, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.waitForFunction(() => document.querySelector('canvas') !== null, { timeout: 180000 });
   await waitFor(lines, (l) => l.some((line) => BOOT_MARKER.test(line)), stageTimeoutMs, 'boot');
+  if (worldQuery) {
+    await waitFor(
+      lines,
+      (l) => l.some((line) => line.includes('FrontEnd: qa_world selected')),
+      stageTimeoutMs,
+      'the requested world to be selected'
+    );
+  }
 
   const centre = await page.evaluate(() => {
     const canvas = document.querySelector('canvas');
@@ -249,7 +261,11 @@ for (const viewport of viewports) {
     await page.keyboard.press('KeyP');
     await new Promise((resolve) => setTimeout(resolve, 900));
     const engaged = lines.some((line) => line.includes('World tour: review camera engaged'));
-    for (const key of ['Digit1', 'Digit2', 'Digit3', 'Digit4']) {
+    // The station is reviewed from six vantages, the frontier from four; the
+    // tour rig clamps to whichever list the selected theatre owns.
+    const tourDigits = worldId === 'vanguard_station' ? 6 : 4;
+    const tourKeys = Array.from({ length: tourDigits }, (_, i) => `Digit${i + 1}`);
+    for (const key of tourKeys) {
       await page.keyboard.press(key);
       await new Promise((resolve) => setTimeout(resolve, 900));
       const tourShot = await shoot(page, viewport, `tour-${key.replace('Digit', '')}`);
