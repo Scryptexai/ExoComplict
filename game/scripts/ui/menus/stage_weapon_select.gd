@@ -30,10 +30,14 @@ const PLATE_PATHS := {
 ## 0.9995, so this is the mesh at roughly life size, seen close.
 const SHOWCASE_LENGTH := 1.15
 
-## How much of the viewport the rifle fills along its long axis. Wider than the
-## hero's number: the barrel is the silhouette, and 0.86 still leaves the stock
-## and the muzzle clear of the frame.
-const SHOWCASE_FILL := 0.86
+## How much of the viewport the rifle fills along its long axis.
+##
+## Calibrated against captured frames rather than derived: on the web build the
+## showcase box composites its 3D texture smaller than the projection reports
+## (the same framing that makes the hero fill 0.84 of its box drew the rifle at
+## half the height it should), so the rifle asks for a larger number to land at
+## the same apparent size. Verified in exports/flow/showcase/ at both viewports.
+const SHOWCASE_FILL := 1.4
 
 var _cards: Array[AegisButton] = []
 var _showcase: ShowcaseViewport
