@@ -37,6 +37,11 @@ var _built: bool = false
 func _ready() -> void:
 	if _built or get_node_or_null("ArenaFloor") != null:
 		return
+	# Both theatres are instanced by `main.tscn` so the launcher can name either
+	# one; only the selected one builds. Building the other would put 192 x 180 m
+	# of terrain and props on the deck underneath whichever world was chosen.
+	if not _is_selected():
+		return
 	_built = true
 	_create_materials()
 	_build_terrain_and_floor()
@@ -52,6 +57,13 @@ func _ready() -> void:
 	_build_spawn_beacons()
 	ScifiBayBuilder.build(self)
 	ScifiFrontierDresser.dress_districts(self)
+
+
+static func _is_selected() -> bool:
+	var progression := Engine.get_singleton("ProgressionService")
+	if progression == null:
+		return true
+	return StringName(progression.get("selected_world_id")) == &"neon_frontier"
 
 
 func _create_materials() -> void:

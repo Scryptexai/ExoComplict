@@ -80,6 +80,7 @@ func _ready() -> void:
 func _enter_qa_stage() -> void:
 	if not OS.has_feature("web"):
 		return
+	_enter_qa_world()
 	var requested: Variant = JavaScriptBridge.eval(
 		"new URLSearchParams(location.search).get('qa_stage') || ''"
 	)
@@ -87,6 +88,21 @@ func _enter_qa_stage() -> void:
 	if stage_name == &"" or not STAGE_SCENES.has(stage_name):
 		return
 	call_deferred("_enter", stage_name, _qa_payload(stage_name))
+
+
+## QA hook, web only: `?qa_world=vanguard_station` selects a theatre before the
+## launch, the same way pressing its card on the WORLD screen would. Without it a
+## second world can only be photographed by clicking through the front end, which
+## is exactly the kind of "it works, trust me" claim this project keeps paying for.
+func _enter_qa_world() -> void:
+	var requested: Variant = JavaScriptBridge.eval(
+		"new URLSearchParams(location.search).get('qa_world') || ''"
+	)
+	var world_id := StringName(str(requested))
+	if world_id == &"" or not ProgressionService.WORLD_IDS.has(world_id):
+		return
+	progression_service.select_world(world_id)
+	print("FrontEnd: qa_world selected %s" % world_id)
 
 
 ## What the real journey would have passed to this stage. It matters for the

@@ -21,12 +21,14 @@ extends Resource
 ## that at runtime, and a copy of it here would go stale the moment it is tuned.
 const DEFINITION_PATHS := {
 	&"neon_frontier": "res://resources/worlds/neon_frontier.tres",
+	&"vanguard_station": "res://resources/worlds/vanguard_station.tres",
 }
 
 ## Stable iteration order for the registry (GDScript dictionaries keep
 ## insertion order, but a named list is what a screen should read).
 const DEFINITION_IDS: Array[StringName] = [
 	&"neon_frontier",
+	&"vanguard_station",
 ]
 
 ## The theatre the profile falls back to when a save names one that no longer

@@ -50,6 +50,10 @@ const list = (name) => argv.reduce((acc, arg, i) => (arg === name ? [...acc, arg
 const tag = flag('--tag', 'flow');
 const outDir = path.resolve(ROOT, flag('--out', path.join('exports', 'flow', tag)));
 const pageTarget = flag('--page', '/web/index.html');
+// Which theatre to photograph. Passed straight through to the `?qa_world=` hook in
+// front_end.gd, so a second world is captured from the shipped build like the first.
+const worldId = flag('--world', '');
+const worldQuery = worldId ? `&qa_world=${encodeURIComponent(worldId)}` : '';
 const port = Number(flag('--port', '8133'));
 const settleMs = Number(flag('--settle', '6000'));
 const stageTimeoutMs = Number(flag('--stage-timeout', '240000'));
@@ -159,7 +163,7 @@ for (const viewport of viewports) {
     // `qa_hold` keeps a stage that finishes in one frame -- the loading
     // screens -- on screen long enough to photograph. It is a QA deep-link
     // flag, inert in the real flow.
-    const url = `${baseUrl}${pageTarget}?qa_stage=${stage}&qa_hold=1`;
+    const url = `${baseUrl}${pageTarget}?qa_stage=${stage}&qa_hold=1${worldQuery}`;
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
     await page.waitForFunction(() => document.querySelector('canvas') !== null, { timeout: 180000 });
     await waitFor(lines, (l) => l.some((line) => BOOT_MARKER.test(line)), stageTimeoutMs, `${stage} boot`);

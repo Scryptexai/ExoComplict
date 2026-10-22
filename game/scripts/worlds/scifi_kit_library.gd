@@ -198,6 +198,150 @@ const POLICY := {
 	"beam": {"all": "steel"},
 }
 
+## Modules the station world uses beyond the bay's own set.
+##
+## One entry per model: the file name, the measured bounding-box **size** and the
+## measured **minimum corner**. Everything else is derived — the vertical base
+## offset is `-min.y`, exactly as the hand-measured `BASE_OFFSET` table above, and
+## the composer centres a module on its footprint from `min + size / 2`.
+##
+## Measured by reading the POSITION accessors out of each committed GLB, not by
+## eye (`tools/kit_measure.py`). The pack authors several modules off-origin —
+## `Wall_Console_01_Half` starts 1.76 m to its own left and 0.74 m up — and the
+## first bay placed them by hand, so consoles hovered and walls sat a metre out of
+## line with their colliders. Measuring removes the guess.
+const EXTRA := {
+	"floor_b": ["Floor_Squared_02_6x6", Vector3(6, 0.75, 6), Vector3(-3, -0.75, -3)],
+	"floor_strip": ["Floor_Third_01_Strip_2x6", Vector3(3.975, 0, 6), Vector3(0, 0, -3)],
+	"floor_tech": ["Floor_Pipes_01", Vector3(1.48, 0.475, 5.002), Vector3(2.299, -0.277, 0.499)],
+	"floor_hole": ["Floor_Hole_01", Vector3(6, 1, 12), Vector3(-3, -1, -9)],
+	"floor_coin": ["Floor_Coin_01_Small", Vector3(2, 0, 2), Vector3(0, 0, 0)],
+	"wall_d": ["Wall_Simple_04_Long", Vector3(2.718, 5.147, 8.651), Vector3(-2.0, -1.147, -0.0)],
+	"wall_e": ["Wall_Simple_05_Long", Vector3(2.384, 4.0, 6.0), Vector3(-2.0, -0.0, -0.0)],
+	"wall_half": ["Wall_Simple_01_Half", Vector3(2.0, 4.0, 4.0), Vector3(-2.0, -0.0, -0.0)],
+	"wall_coin": ["Wall_Simple_01_Coin", Vector3(2.0, 4.0, 2.0), Vector3(-2.0, -0.0, -0.0)],
+	"wall_round": ["Wall_Cube_01_Round", Vector3(2.0, 4.0, 2.0), Vector3(-0.0, -0.0, -0.0)],
+	"wall_thin": ["Wall_Cube_01_Thin", Vector3(2.0, 4.0, 2.0), Vector3(0, -0.0, -0.0)],
+	"wall_flat": ["Wall_Cube_02_Flat", Vector3(2.003, 1.0, 4.0), Vector3(0.0, -0.0, -0.0)],
+	"wall_inclined": ["Wall_Inclined_01_Long", Vector3(4.0, 4.0, 6.0), Vector3(-4.0, -0.0, -0.0)],
+	"wall_broken":
+	["Wall_Inclined_02_Long", Vector3(4.0, 4.984, 8.456), Vector3(-2.0, -0.984, -2.456)],
+	"wall_up": ["Wall_Up_01_Long", Vector3(2.0, 4.0, 6.0), Vector3(-2.0, -0.0, -0.0)],
+	"wall_down": ["Wall_Down_01_Long", Vector3(2.0, 4.0, 6.0), Vector3(-2.0, -0.0, -0.0)],
+	"wall_pipes": ["Wall_Pipes_02_Large", Vector3(1.178, 1.57, 5.496), Vector3(0.322, 2.22, 0.254)],
+	"console_half":
+	["Wall_Console_01_Half", Vector3(3.259, 2.77, 2.745), Vector3(-1.759, 0.74, 0.255)],
+	"console_large":
+	["Wall_Console_01_Large", Vector3(1.47, 2.77, 5.495), Vector3(-1.97, 0.74, 0.255)],
+	"gear": ["Wall_Gear_01_Half", Vector3(1.689, 4.525, 4.109), Vector3(-0.189, -1.016, -1.11)],
+	"table": ["Wall_Table_01", Vector3(2.872, 1.352, 3.004), Vector3(-0.773, -0.0, -1.5)],
+	"bed": ["Wall_Bed_01", Vector3(2.414, 0.577, 5.498), Vector3(-1.0, 0.74, 0.252)],
+	"doorway_large": ["DoorWay_01_Large", Vector3(5.0, 4.0, 1.0), Vector3(-5.5, -0.0, -0.5)],
+	"door_left": ["Door_Left_01", Vector3(3.569, 1.045, 3.94), Vector3(-3.694, 22.025, -2.015)],
+	"door_right": ["Door_Right_01", Vector3(5.916, 1.058, 3.94), Vector3(-2.471, 22.011, -2.015)],
+	"door_vert": ["Door_Vert_01", Vector3(0.822, 3.364, 5.127), Vector3(-1.036, -0.0, 0.439)],
+	"roof": ["Roof_Squared_01_6x6", Vector3(6, 0.5, 6), Vector3(-3, -0.5, -3)],
+	"roof_alt": ["Roof_Squared_02_6x6", Vector3(6, 0, 6), Vector3(-3, 0, -3)],
+	"roof_glass": ["Roof_Glass_01_6x6", Vector3(1.904, 6.001, 6.0), Vector3(0.0, -2.001, -0.0)],
+	"roof_angle": ["Roof_Angle_01_6x6", Vector3(6.0, 0.502, 6.0), Vector3(-1.13, -0.293, -4.876)],
+	"crate": ["Crate_01", Vector3(1.0, 0.75, 2), Vector3(-0.5, 0, -1)],
+	"column": ["Column_01_Big", Vector3(4.0, 4.0, 0.5), Vector3(-4.5, 0, -0.25)],
+	"pipes_a": ["Pipes_01", Vector3(1.11, 0.99, 5.178), Vector3(0.322, 2.238, 0.415)],
+	"pipes_b": ["Pipes_02", Vector3(0.548, 1.455, 4.0), Vector3(0.428, 1.34, 1.103)],
+	"pipes_c": ["Pipes_03", Vector3(1.669, 0.707, 4.0), Vector3(2.173, -0.341, 0.419)],
+	"beam": ["Beam_01", Vector3(0.25, 4.0, 4.423), Vector3(-0.125, -0.0, -2.211)],
+	"beam_b": ["Beam_02", Vector3(2.412, 4.0, 2.26), Vector3(-0.201, -0.0, -2.135)],
+	"fence": ["Fence_Long_01", Vector3(0.25, 1.304, 5.0), Vector3(2.5, 0.0, -8.5)],
+	"fence_short": ["Fence_Short_01", Vector3(0.25, 1.304, 2.5), Vector3(2.5, 0.0, -9)],
+	"fence_corner":
+	["Fence_Turn_90_Large_01", Vector3(3.125, 1.304, 3.125), Vector3(3.736, 0.0, -8.375)],
+	"grid": ["Grid_01", Vector3(0.128, 3.251, 2.0), Vector3(-0.064, -0.0, -1.0)],
+	"air_grid": ["Air_Grid_01", Vector3(0.144, 0.849, 1.188), Vector3(-0.143, -0.37, -0.594)],
+	"airing": ["Airing_01", Vector3(8.5, 1.5, 8.5), Vector3(-4.25, -1.5, -4.25)],
+	"intercom": ["Intercom_01", Vector3(0.069, 0.746, 0.5), Vector3(-0.069, -0.373, -0.25)],
+	"intercom_b": ["Intercom_02", Vector3(0.069, 0.398, 0.5), Vector3(-0.069, -0.199, -0.25)],
+	"light_strip":
+	["Light_SideLight_01", Vector3(0.89, 0.195, 0.09), Vector3(-0.445, -0.194, 1.75)],
+	"light_corridor": ["Light_Corridor_01", Vector3(1.0, 0.281, 3.5), Vector3(-0.5, -0.28, -1.75)],
+	"porthole": ["Porthole_01_Long", Vector3(3.654, 4.0, 6.0), Vector3(-1.75, -0.0, -0.0)],
+	"sign_caution": ["Sign_Caution_01", Vector3(0.0, 3.995, 8.563), Vector3(-0.0, -1.998, -4.281)],
+	"sign_danger": ["Sign_Danger_01", Vector3(0.0, 4.323, 8.563), Vector3(-0.0, -2.162, -4.281)],
+	"word_zone": ["Word_Zone", Vector3(0.0, 3.995, 21.947), Vector3(-0.0, -1.998, -10.973)],
+	"word_warning": ["Word_Warning", Vector3(0.0, 3.995, 37.094), Vector3(-0.0, -1.998, -18.547)],
+	"word_exit": ["Word_Exit", Vector3(0.0, 3.995, 18.256), Vector3(-0.0, -1.998, -9.128)],
+	"arrow": ["Symb_Arrow", Vector3(3.995, 0, 3.995), Vector3(-1.998, 0, -1.998)],
+	"num_0": ["Num_0", Vector3(0.0, 3.995, 5.387), Vector3(-0.0, -1.998, -2.694)],
+	"num_7": ["Num_7", Vector3(0.0, 3.995, 5.387), Vector3(-0.0, -1.998, -2.694)],
+	"platform": ["Stairway_Plateform_01", Vector3(6.0, 1.449, 6), Vector3(-3.125, -0.21, -9)],
+	"platform_flat": ["Stairway_Plateform_00", Vector3(6.0, 0.145, 6), Vector3(-3.125, -0.21, -9)],
+	"stairs": ["Stairway_Slope_45_01", Vector3(6.0, 5.385, 6), Vector3(-3.125, -4.145, -9)],
+	"step": ["Stairway_Step_01", Vector3(7.195, 4.21, 15), Vector3(-3.125, -0.21, -9)],
+}
+
+## Palette policy for the modules above, keyed the same way as `POLICY`.
+## Structure stays steel, the pack's "Orange" surface stays trim, and only the
+## fixture families (light, decal, hazard sign) are allowed to be bright.
+const POLICY_EXTRA := {
+	"floor_b": {"all": "floor_alt"},
+	"floor_strip": {"all": "hazard"},
+	"floor_tech": {"all": "steel_light"},
+	"floor_hole": {"all": "steel_light"},
+	"floor_coin": {"all": "hazard"},
+	"wall_d": {"Orange": "trim", "all": "steel"},
+	"wall_e": {"Orange": "trim", "all": "steel"},
+	"wall_half": {"Orange": "trim", "all": "steel"},
+	"wall_coin": {"Orange": "trim", "all": "steel"},
+	"wall_round": {"Orange": "trim", "all": "steel"},
+	"wall_thin": {"Orange": "trim", "all": "steel"},
+	"wall_flat": {"Orange": "trim", "all": "panel"},
+	"wall_inclined": {"Orange": "trim", "all": "steel"},
+	"wall_broken": {"Orange": "trim", "all": "panel"},
+	"wall_up": {"Orange": "trim", "all": "steel"},
+	"wall_down": {"Orange": "trim", "all": "steel"},
+	"wall_pipes": {"all": "steel"},
+	"console_half": {"Orange": "light", "all": "panel"},
+	"console_large": {"Orange": "light", "all": "panel"},
+	"gear": {"Orange": "trim", "all": "steel"},
+	"table": {"all": "panel"},
+	"bed": {"all": "panel"},
+	"doorway_large": {"Orange": "trim", "all": "trim"},
+	"door_vert": {"all": "trim"},
+	"roof": {"all": "steel"},
+	"roof_alt": {"all": "panel"},
+	"roof_glass": {"all": "glass"},
+	"roof_angle": {"all": "steel"},
+	"crate": {"Orange": "hazard", "all": "panel"},
+	"column": {"all": "steel"},
+	"pipes_a": {"all": "steel_light"},
+	"pipes_b": {"all": "steel_light"},
+	"pipes_c": {"all": "steel_light"},
+	"beam": {"all": "steel"},
+	"beam_b": {"all": "steel"},
+	"fence": {"all": "steel_light"},
+	"fence_short": {"all": "steel_light"},
+	"fence_corner": {"all": "steel_light"},
+	"grid": {"all": "steel_light"},
+	"air_grid": {"all": "steel"},
+	"airing": {"all": "steel"},
+	"intercom": {"Orange": "light", "all": "panel"},
+	"intercom_b": {"Orange": "light", "all": "panel"},
+	"light_strip": {"all": "light"},
+	"light_corridor": {"all": "light"},
+	"porthole": {"all": "glass"},
+	"sign_caution": {"all": "hazard"},
+	"sign_danger": {"all": "hazard"},
+	"word_zone": {"all": "light"},
+	"word_warning": {"all": "light"},
+	"word_exit": {"all": "light"},
+	"arrow": {"all": "light"},
+	"num_0": {"all": "light"},
+	"num_7": {"all": "light"},
+	"platform": {"all": "steel_light"},
+	"platform_flat": {"all": "steel_light"},
+	"stairs": {"all": "steel"},
+	"step": {"all": "steel"},
+}
+
 const DEFAULT_MATERIAL_KEYS := {
 	"orange": "hazard",
 	"glass": "glass",
@@ -210,14 +354,20 @@ const DEFAULT_MATERIAL_KEYS := {
 	"toto": "floor",
 }
 
+## A class reference in GDScript is a `GDScript` resource, not an instance, so
+## `AegisTokens.get("LINE")` would ask the resource object and return null.
+## Static access by name, resolved at compile time, is the only reliable way to
+## read a constant from another class.
 static var _scenes: Dictionary = {}
 static var _materials: Dictionary = {}
-
 
 ## A class reference in GDScript is a `GDScript` resource, not an instance, so
 ## `AegisTokens.get("LINE")` would ask the resource object and return null.
 ## Static access by name, resolved at compile time, is the only reliable way to
 ## read a constant from another class.
+static var _scenes: Dictionary = {}
+
+
 static func token_color(token_name: String) -> Color:
 	match token_name:
 		"ACCENT":
@@ -262,7 +412,7 @@ static func color_key_for(material_name: String) -> String:
 static func model(key: String) -> PackedScene:
 	if _scenes.has(key):
 		return _scenes[key]
-	var file: String = MODELS.get(key, "")
+	var file := _file_for(key)
 	if file == "":
 		push_error("ScifiKitLibrary has no model registered for '%s'" % key)
 		return null
@@ -271,12 +421,35 @@ static func model(key: String) -> PackedScene:
 	return scene
 
 
+## The file name behind a key, from either table.
+static func _file_for(key: String) -> String:
+	if MODELS.has(key):
+		return MODELS[key]
+	if EXTRA.has(key):
+		return EXTRA[key][0]
+	return ""
+
+
+## The measured minimum corner of a module, in its own space. Keys from the bay's
+## original table return zero, which is what its hand-measured offsets assume.
+static func min_corner(key: String) -> Vector3:
+	if EXTRA.has(key):
+		return EXTRA[key][2]
+	return Vector3.ZERO
+
+
 static func base_offset(key: String) -> float:
-	return float(BASE_OFFSET.get(key, 0.0))
+	if BASE_OFFSET.has(key):
+		return float(BASE_OFFSET[key])
+	return -min_corner(key).y
 
 
 static func size(key: String) -> Vector3:
-	return SIZE.get(key, Vector3.ONE)
+	if SIZE.has(key):
+		return SIZE[key]
+	if EXTRA.has(key):
+		return EXTRA[key][1]
+	return Vector3.ONE
 
 
 ## One shared material per palette colour: the imported GLB materials are all
@@ -330,7 +503,7 @@ static func material(color_key: String) -> StandardMaterial3D:
 ## Resolves one surface's palette colour for one model, honouring the
 ## per-model policy first and the material-name fallback second.
 static func surface_color_key(model_key: String, material_name: String) -> String:
-	var policy: Dictionary = POLICY.get(model_key, {})
+	var policy: Dictionary = POLICY_EXTRA.get(model_key, POLICY.get(model_key, {}))
 	if policy.has(material_name):
 		return policy[material_name]
 	if policy.has("all"):

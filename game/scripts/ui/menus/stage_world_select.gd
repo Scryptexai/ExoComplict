@@ -13,13 +13,14 @@
 ## naming a theatre the launcher does not contain fails the suite.
 extends MenuStage
 
-const LOCKED_SLOTS := 2
+const LOCKED_SLOTS := 1
 
 ## One line of mission framing per theatre. Copy, not data: the world scene owns
 ## its objectives at runtime and a second copy of the wave plan here would be
 ## stale the first time it is tuned. What it states is what the theatre is.
 const WORLD_OBJECTIVES := {
 	&"neon_frontier": "CHAPTER 1 · OUTPOST",
+	&"vanguard_station": "CHAPTER 2 · DOCK 07",
 }
 
 var _cards: Array[AegisButton] = []
