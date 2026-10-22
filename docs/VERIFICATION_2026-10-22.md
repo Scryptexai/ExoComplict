@@ -193,3 +193,75 @@ session does not have to rediscover them. No fix has been attempted.
   performance measurement.
 * **No device.** Android touch, safe areas, thermals and frame rate remain
   **NOT TESTED**.
+
+---
+
+## 7. Verification of the redesign pass (checkpoints A–E)
+
+Measured the same way as everything above: `./scripts/dev_check.sh`, CI's
+headless suite, and `tools/qa_flow_shots.mjs` against the payload CI exported
+from this branch. Frame statistics come from `tools/image_stats.py`.
+
+### 7.1 The gate
+
+| Check | Result |
+| --- | --- |
+| GDScript parse / gdlint / gdformat (80 files) | pass |
+| Project doctor (13 groups) | 0 FAIL, 30 WARN |
+| Static-call scan (80 scripts) | 0 violations |
+| Layer and module boundaries | pass |
+| Smoke tests, headless, Godot 4.7.2 | **27 / 27 pass** |
+| Web preview build (WebAssembly) | pass |
+
+Two of the 27 tests are new in this pass: `world_palette_smoke.gd` (the world's
+palette is recomputed from `AegisTokens`, no wall is painted hazard amber) and
+two new assertions inside `video_asset_smoke.gd` / `menu_layout_smoke.gd`
+(the loading screen does not reuse the cinematic's key art; no card draws text
+outside itself, and DEPLOY sits above the secondary row at four sizes).
+
+### 7.2 What the frames say
+
+| Frame | Before (mean / lit) | After | What changed |
+| --- | --- | --- | --- |
+| gameplay 390x844 | 69.6 / 0.967 | 39.7 / 0.667 | arena albedo from tokens: the deck went 0.58/0.65/0.70 → luma 0.122 |
+| tour-2 390x844 | 66.4 / 0.998 | 39.7 / 0.667 | interior bays now read as structure, not white slabs |
+| dashboard 390x844 | 45.8 (same frame as cinematic) | 36.2 / 0.838 | hero, theatre, DEPLOY first; numbers under it |
+| loading 390x844 | **was a photograph of CINEMATIC** | 31.6 / — | its own composition: dark plate, wordmark, 100 %, READY |
+| weapon 390x844 | 35.1 | 34.0 | every card line bounded to one line; nothing drawn outside a card |
+
+The dashboard, hero, weapon and world frames were re-captured at both
+viewports after the last change; each was reached, non-blank and measured
+(`exports/flow/after-select/`, `after-loading/`, `after-world/`).
+
+### 7.3 Defects this pass introduced and fixed
+
+Recorded because the pattern matters more than the list: every one was caught
+by a gate that already existed, and three of them were only *seen* in a frame.
+
+1. Wall policy still painted every wall's "Orange" band hazard amber — the
+   audit's defect with a narrower brush. Caught by `world_palette_smoke`.
+2. The key light was made cool while the node is named `FrontierDaylightSun`
+   and the test asserts a warm key over cool fill. Caught by
+   `neon_frontier_world_smoke`.
+3. Secondary actions were 52 px and 44 px against a 56 px touch floor, and the
+   dashboard hard-coded the portrait path and a roster name. Caught by
+   `menu_layout_smoke` and `data_source_smoke`.
+4. The dashboard overflowed at 360x640 (754 px of content in 640 px) and then
+   at 844x390. Caught by `menu_layout_smoke` at both sizes.
+5. Each stat printed its caption twice, and the theatre brief was five lines of
+   upper case. **No test could see this** — it fitted, and the strings were the
+   ones the tests assert. Found in the screenshot.
+6. Weapon cards drew their last line outside the card, and locked cards lost
+   "unlock in the armory" to an ellipsis. Found in the screenshot, then guarded
+   by the new containment assertion.
+7. `_limit_lines` was called as `limit_lines`, and `Array[String]` was returned
+   from an untyped literal: both are runtime/parse errors that gdlint, gdformat
+   and the static-call scan cannot see. Caught by the smoke suite, twice.
+
+### 7.4 Still not verified
+
+* **No local engine.** The editor cannot be downloaded here; every GDScript
+  result above is CI's.
+* **No device.** Touch, safe areas, thermals and frame rate on Android are
+  **NOT TESTED**; the safe margins are asserted headlessly, not felt.
+* **No frame-rate claim.** SwiftShader is software rendering.
