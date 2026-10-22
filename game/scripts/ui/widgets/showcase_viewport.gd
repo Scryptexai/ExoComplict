@@ -303,3 +303,23 @@ static func _animation_list(player: AnimationPlayer) -> Array[String]:
 	for animation_name in player.get_animation_list():
 		names.append(str(animation_name))
 	return names
+
+
+## TEMP: one line of numbers so the QA capture log can say why a model is small.
+func debug_report() -> String:
+	var bounds := Vector3.ZERO
+	if is_instance_valid(_model):
+		for child in _model.find_children("*", "MeshInstance3D", true, false):
+			bounds = bounds.max((child as MeshInstance3D).global_transform.basis.get_scale())
+	return (
+		"d=%.2f fov=%.1f vp=%s ctrl=%s dist=%.2f model_scale=%s bounds=%s"
+		% [
+			_camera_distance,
+			_camera.fov if is_instance_valid(_camera) else -1.0,
+			_viewport.size,
+			size,
+			_camera.position.z if is_instance_valid(_camera) else -1.0,
+			_model.scale if is_instance_valid(_model) else Vector3.ZERO,
+			bounds,
+		]
+	)
