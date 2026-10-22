@@ -59,6 +59,7 @@ func _run_smoke_test() -> void:
 	_check_breach_is_walkable(world)
 	_check_collision_is_intentional(world)
 	_check_distant_scenery_is_not_an_obstacle(world)
+	_check_clear_of_the_arena(world)
 	_check_budget(world)
 	_finish(main_scene)
 
@@ -151,7 +152,7 @@ func _check_gate_is_walkable(world: Node3D) -> void:
 	# Walk from 4 m outside the gate to 4 m inside it, at chest height.
 	var blocked := 0
 	for step in range(17):
-		var z := 50.0 - float(step) * 0.5
+		var z := 78.0 - float(step) * 0.5
 		query.transform = Transform3D(Basis(), Vector3(0.0, 1.0, z))
 		if not space.intersect_shape(query, 1).is_empty():
 			blocked += 1
@@ -178,14 +179,14 @@ func _check_breach_is_walkable(world: Node3D) -> void:
 	var blocked := 0
 	for step in range(11):
 		var x := 1.5 + float(step) * 0.9
-		query.transform = Transform3D(Basis(), Vector3(x, 1.0, 34.0))
+		query.transform = Transform3D(Basis(), Vector3(x, 1.0, 62.0))
 		if not space.intersect_shape(query, 1).is_empty():
 			blocked += 1
 	_expect(
 		blocked <= 1, "the perimeter breach is open enough to walk through (%d blocked)" % blocked
 	)
 	# And the wall either side of it is solid, or there is no line at all.
-	query.transform = Transform3D(Basis(), Vector3(-22.0, 1.0, 34.0))
+	query.transform = Transform3D(Basis(), Vector3(-22.0, 1.0, 62.0))
 	_expect(
 		not space.intersect_shape(query, 1).is_empty(),
 		"an intact wall module is solid where the player would expect a wall"
@@ -224,6 +225,42 @@ func _check_distant_scenery_is_not_an_obstacle(world: Node3D) -> void:
 	# The playable floor ends at z = -100; the spire must be well beyond it.
 	_expect(spire.global_position.z < -100.0, "the spire is outside the playable floor")
 	_expect(spire.global_position.y > -20.0, "the spire is not buried")
+
+
+## The district must not be laid out over the arena it serves.
+##
+## The first layout put the yard inside the 42 m combat disc and the wall line on
+## top of the perimeter relay array, which is what the first capture of the
+## district showed: clutter, not a district. Everything Vanguard builds now lives
+## beyond z = +44.
+func _check_clear_of_the_arena(world: Node3D) -> void:
+	const ARENA_RADIUS := 42.0
+	var intruders: Array[String] = []
+	for child in world.get_children():
+		if not _is_vanguard_node(child):
+			continue
+		var at := (child as Node3D).global_position
+		# The spire is deliberately 200 m out; everything else is the district.
+		if at.z < -100.0:
+			continue
+		if Vector2(at.x, at.z).length() < ARENA_RADIUS:
+			intruders.append("%s at %.1f, %.1f" % [child.name, at.x, at.z])
+	_expect(
+		intruders.is_empty(), "the district stays outside the arena combat disc (%s)" % [intruders]
+	)
+	_expect(
+		world.get_node_or_null("VanguardDeploymentGate").global_position.z > 44.0,
+		"the gate is south of the existing perimeter props"
+	)
+
+
+func _is_vanguard_node(node: Node) -> bool:
+	for prefix in [
+		"Vanguard", "Perimeter", "Breach", "Gate", "Yard", "Checkpoint", "Fallen", "Approach"
+	]:
+		if String(node.name).begins_with(prefix):
+			return true
+	return false
 
 
 ## The district has a cost. Record it so a later change can be compared with it.

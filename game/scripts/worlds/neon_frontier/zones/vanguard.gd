@@ -7,11 +7,16 @@
 ## is what protects the gameplay that already exists while the new district
 ## earns its place.
 ##
-##   ZONE A  deployment gate      z +46   the checkpoint the player starts behind
-##   ZONE B  outer perimeter      z +34   a wall line with one breach in it
-##   ZONE C  industrial yard      z +18   containers and cover on the approach
-##   ZONE D  reactor feed annex   z +40   conduits running from the gate
-##   ZONE E  distant megastructure z -190 a command spire on the horizon
+##   ZONE A  deployment gate      z +74   the checkpoint the player leaves through
+##   ZONE B  outer perimeter      z +62   a wall line with one breach in it
+##   ZONE C  industrial yard      z +48   containers and cover on the approach
+##   ZONE D  reactor feed annex   z +60   conduits running back to the gate
+##   ZONE E  distant megastructure z -196 a command spire on the horizon
+##
+## The district sits beyond z = +44, clear of the perimeter relay array at z = +40
+## and of the arena's 42 m combat disc. The first layout overlapped both and read
+## as clutter in a capture rather than as a district; `vanguard_world_smoke`
+## asserts the clearance now so it cannot drift back.
 ##
 ## Coordinates are world-space metres. The gate's opening is on the arena axis
 ## (x = 0) so a player who spawns at (0, 0, 8) and turns around sees the way they
@@ -37,7 +42,7 @@ static func _build_deployment_gate(world) -> void:
 	world._place_component(
 		world.VANGUARD_GATE_SCENE,
 		"VanguardDeploymentGate",
-		Vector3(0.0, 0.0, 46.0),
+		Vector3(0.0, 0.0, 74.0),
 		Vector3.ZERO,
 		Vector3.ONE,
 		3,
@@ -49,7 +54,7 @@ static func _build_deployment_gate(world) -> void:
 		world._place_component(
 			world.VANGUARD_WALL_SCENE,
 			"CheckpointWing_%s" % str(sign_x),
-			Vector3(sign_x * 16.4, 0.0, 45.2),
+			Vector3(sign_x * 16.4, 0.0, 73.2),
 			Vector3(0.0, 90.0, 0.0),
 			Vector3.ONE,
 			1,
@@ -58,7 +63,7 @@ static func _build_deployment_gate(world) -> void:
 	world._place_component(
 		world.VANGUARD_CRATER_SCENE,
 		"GateImpactScar",
-		Vector3(-9.5, 0.0, 41.0),
+		Vector3(-9.5, 0.0, 69.0),
 		Vector3(0.0, 24.0, 0.0),
 		Vector3.ONE,
 		2,
@@ -67,7 +72,7 @@ static func _build_deployment_gate(world) -> void:
 	world._place_component(
 		world.COVER_SCENE,
 		"GateCheckpointCover",
-		Vector3(6.5, 0.0, 41.5),
+		Vector3(6.5, 0.0, 69.5),
 		Vector3(0.0, 12.0, 0.0),
 		Vector3.ONE,
 		5
@@ -96,7 +101,7 @@ static func _build_outer_perimeter(world) -> void:
 		var wall: Node3D = world._place_component(
 			world.VANGUARD_WALL_SCENE,
 			"PerimeterWall_%02d" % index,
-			Vector3(entry["x"], 0.0, 34.0),
+			Vector3(entry["x"], 0.0, 62.0),
 			Vector3.ZERO,
 			Vector3.ONE,
 			int(entry["seed"]),
@@ -113,7 +118,7 @@ static func _build_outer_perimeter(world) -> void:
 	world._place_component(
 		world.VANGUARD_DEBRIS_SCENE,
 		"BreachDebrisInner",
-		Vector3(6.0, 0.0, 31.0),
+		Vector3(6.0, 0.0, 59.0),
 		Vector3.ZERO,
 		Vector3.ONE,
 		11,
@@ -122,7 +127,7 @@ static func _build_outer_perimeter(world) -> void:
 	world._place_component(
 		world.VANGUARD_DEBRIS_SCENE,
 		"BreachDebrisOuter",
-		Vector3(10.5, 0.0, 37.4),
+		Vector3(10.5, 0.0, 65.4),
 		Vector3.ZERO,
 		Vector3.ONE,
 		12,
@@ -131,7 +136,7 @@ static func _build_outer_perimeter(world) -> void:
 	world._place_component(
 		world.VANGUARD_CRATER_SCENE,
 		"BreachCrater",
-		Vector3(6.5, 0.0, 39.5),
+		Vector3(6.5, 0.0, 67.5),
 		Vector3(0.0, 40.0, 0.0),
 		Vector3.ONE,
 		3,
@@ -140,7 +145,7 @@ static func _build_outer_perimeter(world) -> void:
 	world._place_component(
 		world.VANGUARD_CRATER_SCENE,
 		"BreachCraterSmall",
-		Vector3(13.0, 0.0, 33.0),
+		Vector3(13.0, 0.0, 61.0),
 		Vector3(0.0, 8.0, 0.0),
 		Vector3.ONE,
 		4,
@@ -152,7 +157,7 @@ static func _build_outer_perimeter(world) -> void:
 	world._place_component(
 		world.TURRET_SCENE,
 		"BreachTurretKnockedOut",
-		Vector3(16.5, 0.0, 36.5),
+		Vector3(16.5, 0.0, 64.5),
 		Vector3(0.0, -34.0, 0.0),
 		Vector3.ONE,
 		9
@@ -161,7 +166,7 @@ static func _build_outer_perimeter(world) -> void:
 	world._place_component(
 		world.TRANSPORT_SCENE,
 		"ApproachTransportWreck",
-		Vector3(-18.0, 0.0, 27.0),
+		Vector3(-18.0, 0.0, 55.0),
 		Vector3(0.0, 26.0, 0.0),
 		Vector3.ONE,
 		8
@@ -170,7 +175,7 @@ static func _build_outer_perimeter(world) -> void:
 	world._place_component(
 		world.VANGUARD_DEBRIS_SCENE,
 		"FallenSupportsWest",
-		Vector3(-25.0, 0.0, 30.5),
+		Vector3(-25.0, 0.0, 58.5),
 		Vector3.ZERO,
 		Vector3.ONE,
 		13,
@@ -182,10 +187,10 @@ static func _build_outer_perimeter(world) -> void:
 ## actually use, spaced so the approach is not a corridor of crates.
 static func _build_industrial_yard(world) -> void:
 	var posts := [
-		Vector3(-11.0, 0.0, 20.0),
-		Vector3(9.0, 0.0, 19.0),
-		Vector3(-3.0, 0.0, 13.0),
-		Vector3(17.0, 0.0, 22.0),
+		Vector3(-11.0, 0.0, 51.0),
+		Vector3(9.0, 0.0, 50.0),
+		Vector3(-3.0, 0.0, 46.0),
+		Vector3(17.0, 0.0, 53.0),
 	]
 	for index in range(posts.size()):
 		world._place_component(
@@ -200,7 +205,7 @@ static func _build_industrial_yard(world) -> void:
 	world._place_component(
 		world.DEPOT_SCENE,
 		"YardCargoDepot",
-		Vector3(21.0, 0.0, 14.0),
+		Vector3(21.0, 0.0, 45.0),
 		Vector3(0.0, 90.0, 0.0),
 		Vector3.ONE,
 		2
@@ -214,7 +219,7 @@ static func _build_reactor_feed(world) -> void:
 	world._place_component(
 		world.VANGUARD_CONDUIT_SCENE,
 		"GateFeedConduit",
-		Vector3(-6.0, 0.0, 39.5),
+		Vector3(-6.0, 0.0, 67.5),
 		Vector3.ZERO,
 		Vector3.ONE,
 		2,
@@ -223,7 +228,7 @@ static func _build_reactor_feed(world) -> void:
 	world._place_component(
 		world.VANGUARD_CONDUIT_SCENE,
 		"ArenaFeedConduit",
-		Vector3(-6.0, 0.0, 26.0),
+		Vector3(-6.0, 0.0, 54.0),
 		Vector3.ZERO,
 		Vector3.ONE,
 		5,
@@ -233,7 +238,7 @@ static func _build_reactor_feed(world) -> void:
 	world._place_component(
 		world.GENERATOR_SCENE,
 		"FeedJunctionDamaged",
-		Vector3(-15.0, 0.0, 33.0),
+		Vector3(-15.0, 0.0, 61.0),
 		Vector3(0.0, 90.0, 0.0),
 		Vector3.ONE * 0.8,
 		4
@@ -272,21 +277,21 @@ static func _add_zone_lighting(world) -> void:
 	var fixtures := [
 		{
 			"name": "GateThresholdLight",
-			"at": Vector3(0.0, 5.0, 44.0),
+			"at": Vector3(0.0, 5.0, 72.0),
 			"color": Color(0.35, 0.75, 1.0),
 			"energy": 1.1,
 			"range": 11.0
 		},
 		{
 			"name": "BreachFireLight",
-			"at": Vector3(7.0, 2.2, 36.0),
+			"at": Vector3(7.0, 2.2, 64.0),
 			"color": Color(1.0, 0.42, 0.12),
 			"energy": 0.9,
 			"range": 9.0
 		},
 		{
 			"name": "FeedArcLight",
-			"at": Vector3(-8.0, 2.0, 39.0),
+			"at": Vector3(-8.0, 2.0, 67.0),
 			"color": Color(0.3, 0.85, 1.0),
 			"energy": 0.8,
 			"range": 8.0
