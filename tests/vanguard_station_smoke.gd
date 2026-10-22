@@ -138,7 +138,11 @@ func _check_route(space: PhysicsDirectSpaceState3D, label: String, a: Vector3, b
 		query.transform = Transform3D(Basis(), at)
 		var hits := space.intersect_shape(query, 1)
 		if not hits.is_empty():
-			blocked = "at %.1f, %.1f" % [at.x, at.z]
+			var collider: Node = hits[0].get("collider")
+			var owner_name := "?"
+			if collider != null and collider.get_parent() != null:
+				owner_name = String(collider.get_parent().name)
+			blocked = "at %.1f, %.1f by %s" % [at.x, at.z, owner_name]
 			break
 	_expect(blocked == "", "%s is walkable (%s)" % [label, blocked])
 

@@ -163,6 +163,12 @@ func _add_collider(pivot: Node3D, box: Vector3, mode: String) -> void:
 		# The deck's top face is the pivot's own Y; the box hangs below it.
 		shape.size = Vector3(box.x, 0.4, box.z)
 		body.position = Vector3(0.0, -0.2, 0.0)
+	elif mode == "portal":
+		# A door frame is a hole with metal around it. One solid box across a 5 m
+		# doorway is a wall the player cannot walk through, which is what the first
+		# run of the station test found: every route stopped at the threshold.
+		_add_portal(pivot, box)
+		return
 	else:
 		shape.size = Vector3(maxf(box.x, 0.2), maxf(box.y, 0.2), maxf(box.z, 0.2))
 		body.position = Vector3(0.0, box.y * 0.5, 0.0)
@@ -383,7 +389,7 @@ func _build_walls(parent: Node3D) -> void:
 			Vector3(19.0 * side, 0.0, 0.0),
 			yaw,
 			1.0,
-			"box",
+			"portal",
 			Vector3.ONE,
 			"hangar"
 		)
