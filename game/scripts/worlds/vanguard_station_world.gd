@@ -335,7 +335,7 @@ func _build_hangar_deck(parent: Node3D) -> void:
 			"HangarHazardS_%d" % int(x),
 			Vector3(x, 0.03, 17.2),
 			45.0,
-			0.7,
+			0.3,
 			"",
 			Vector3.ONE,
 			"hangar"
@@ -346,9 +346,9 @@ func _build_hangar_deck(parent: Node3D) -> void:
 			parent,
 			"floor_strip",
 			"GateStripe_%s" % str(side),
-			Vector3(side * 4.2, 0.03, 16.0),
+			Vector3(side * 4.6, 0.03, 15.2),
 			90.0,
-			0.55,
+			0.3,
 			"",
 			Vector3.ONE,
 			"hangar"
@@ -366,33 +366,44 @@ func _build_hangar_apron(parent: Node3D) -> void:
 	# Cover, stacked, close enough to the spawn to be objects in the frame rather
 	# than scenery. The crate module is 1 x 0.75 x 2, so a pair is waist high and
 	# a stack reads at twenty metres, which the single row did not.
-	for index in range(6):
-		var side := -1.0 if index < 3 else 1.0
-		var column := index % 3
-		var at := Vector3(side * (4.5 + 1.6 * float(column % 2)), 0.0, -8.5 - 3.0 * float(column))
+	for index in range(4):
+		var side := -1.0 if index < 2 else 1.0
+		var at := Vector3(side * 5.0, 0.0, -8.0 - 4.0 * float(index % 2))
+		_place(
+			parent,
+			"wall_low",
+			"HangarContainer_%02d" % index,
+			at,
+			90.0,
+			0.7,
+			"box",
+			Vector3.ONE,
+			"hangar"
+		)
+		_place(
+			parent,
+			"wall_low",
+			"HangarContainerTop_%02d" % index,
+			at + Vector3(0.0, 0.72, 0.0),
+			90.0,
+			0.6,
+			"",
+			Vector3.ONE,
+			"hangar"
+		)
+	# Two amber crates for the hazard accent the pack's own crate family carries.
+	for index in range(2):
 		_place(
 			parent,
 			"crate",
 			"HangarCoverCrate_%02d" % index,
-			at,
-			90.0 if column % 2 == 0 else 0.0,
+			Vector3(-2.6 + 5.2 * float(index), 0.0, -12.0),
+			90.0,
 			1.0,
 			"box",
 			Vector3.ONE,
 			"hangar"
 		)
-		if column == 1:
-			_place(
-				parent,
-				"crate",
-				"HangarCoverCrate_%02d_b" % index,
-				at + Vector3(0.0, 0.75, 0.0),
-				0.0,
-				0.7,
-				"",
-				Vector3.ONE,
-				"hangar"
-			)
 	# Two worked surfaces facing up the hall: a console bank on the left and a
 	# bench on the right. They are the pack's own furniture, mounted on the deck,
 	# angled so their lit faces are what the player walks toward.

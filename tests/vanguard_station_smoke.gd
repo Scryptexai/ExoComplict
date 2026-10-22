@@ -71,8 +71,12 @@ func _run() -> void:
 	# 2b. The furniture the first frame is composed around is actually there. This
 	#     is a separate assertion because the crates were built and invisible for
 	#     two captures running: existence and framing are different failures.
-	var cover := _count_named(station_root, "HangarCoverCrate")
-	_expect(cover >= 4, "the spawn apron has %d cover crates (>= 4)" % cover)
+	var containers := _count_named(station_root, "HangarContainer")
+	var crates := _count_named(station_root, "HangarCoverCrate")
+	_expect(
+		containers >= 4 and crates >= 2,
+		"the spawn apron has %d containers and %d crates" % [containers, crates]
+	)
 	_expect(
 		(
 			_count_named(station_root, "DockGate") >= 1
