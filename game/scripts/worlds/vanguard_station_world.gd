@@ -310,7 +310,7 @@ func _build_hangar_deck(parent: Node3D) -> void:
 	for z in [-15.0, -9.0, -3.0, 3.0, 9.0, 15.0]:
 		_place(
 			parent,
-			"floor_tech",
+			"floor_chan",
 			"HangarChannel_%d" % int(z),
 			Vector3(-10.5, 0.02, z),
 			0.0,
@@ -321,7 +321,7 @@ func _build_hangar_deck(parent: Node3D) -> void:
 		)
 		_place(
 			parent,
-			"floor_tech",
+			"floor_chan",
 			"HangarChannelE_%d" % int(z),
 			Vector3(10.5, 0.02, z),
 			0.0,
@@ -473,7 +473,7 @@ func _build_hangar_apron(parent: Node3D) -> void:
 		for side in [-1.0, 1.0]:
 			_place(
 				parent,
-				"floor_tech",
+				"floor_chan",
 				"HangarApronGrate_%s_%d" % [str(side), int(z)],
 				Vector3(side * 7.0, 0.02, z),
 				90.0,
@@ -517,17 +517,18 @@ func _build_cargo_deck(parent: Node3D) -> void:
 
 func _build_corridor_deck(parent: Node3D) -> void:
 	_build_floor_grid(parent, "corridor", false)
-	_place(
-		parent,
-		"floor_tech",
-		"CorridorConduit",
-		Vector3(31.0, 0.02, 2.4),
-		0.0,
-		4.2,
-		"",
-		Vector3.ONE,
-		"corridor"
-	)
+	for index in range(4):
+		_place(
+			parent,
+			"floor_chan",
+			"CorridorConduit_%02d" % index,
+			Vector3(22.0 + 6.0 * float(index), 0.02, 2.4),
+			0.0,
+			1.0,
+			"",
+			Vector3.ONE,
+			"corridor"
+		)
 
 
 # --- walls ----------------------------------------------------------------
@@ -786,17 +787,9 @@ func _build_corridor_walls(parent: Node3D) -> void:
 	)
 
 
-# --- ceiling --------------------------------------------------------------
+# --- doors, dressing and landmarks ---------------------------------------
 
 
-## A roof over every room, at 4.4 m: the wall modules are 4 m tall, so a 0.4 m
-## allowance keeps the truss line above head height.
-##
-## The skylights are *holes*, not glass. `Roof_Glass_01_6x6` looks like a roof
-## plate by name and is not one: measured, it is a 1.9 x 6.0 x 6.0 vertical pane
-## whose origin sits 2 m above its centre, so laying it flat hangs a six-metre
-## cyan slab down through the room. The first capture of the reactor hall was
-## mostly that slab.
 ## The dressage the spawn camera actually looks at.
 ##
 ## The hall was built correctly and photographed badly: every console, pipe and
@@ -876,6 +869,17 @@ func _build_hall_dressing(parent: Node3D) -> void:
 	_sign(parent, "sign_danger", "HallDangerEast", Vector3(5.4, 3.1, -17.9), 0.0, "hangar")
 
 
+# --- ceiling --------------------------------------------------------------
+
+
+## A roof over every room, at 4.4 m: the wall modules are 4 m tall, so a 0.4 m
+## allowance keeps the truss line above head height.
+##
+## The skylights are *holes*, not glass. `Roof_Glass_01_6x6` looks like a roof
+## plate by name and is not one: measured, it is a 1.9 x 6.0 x 6.0 vertical pane
+## whose origin sits 2 m above its centre, so laying it flat hangs a six-metre
+## cyan slab down through the room. The first capture of the reactor hall was
+## mostly that slab.
 func _build_ceiling(parent: Node3D) -> void:
 	for room in ROOMS:
 		var bounds: Dictionary = ROOMS[room]
@@ -913,9 +917,6 @@ func _build_ceiling(parent: Node3D) -> void:
 				x += TILE
 			column += 1
 			z += TILE
-
-
-# --- landmarks and dressing ----------------------------------------------
 
 
 ## The gate the theatre is named for. A door frame, a lit lintel, hazard plates,

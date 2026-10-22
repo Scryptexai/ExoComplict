@@ -207,6 +207,10 @@ const STATION_KEYS := {
 	"floor_b": "Floor_Squared_02_6x6",
 	"floor_strip": "Floor_Third_01_Strip_2x6",
 	"floor_tech": "Floor_Pipes_01",
+	# A flat deck channel. `floor_tech` is a 0.47 m raised pipe run, so a line of
+	# it down a hall reads as loose pipes lying on the deck rather than a
+	# technical channel; this one is zero-thickness plate.
+	"floor_chan": "Floor_Third_02_Strip_2x6",
 	"floor_hole": "Floor_Hole_01",
 	"floor_coin": "Floor_Coin_01_Small",
 	"wall_d": "Wall_Simple_04_Long",
@@ -273,6 +277,7 @@ const POLICY_EXTRA := {
 	"floor_b": {"all": "floor_alt"},
 	"floor_strip": {"all": "hazard"},
 	"floor_tech": {"all": "steel_light"},
+	"floor_chan": {"all": "floor_alt"},
 	"floor_hole": {"all": "steel_light"},
 	"floor_coin": {"all": "hazard"},
 	"wall_d": {"Orange": "trim", "all": "steel"},

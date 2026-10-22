@@ -108,14 +108,19 @@ const STATION_VANTAGES := [
 		"fov": 72.0,
 	},
 	{
+		# A door's width into the corridor is 8 m of wall either side of the lens,
+		# so the old vantage photographed two wall faces and a slit of corridor.
+		# From 6 m in, the corridor is a corridor.
 		"name": "corridor",
-		"from": Vector3(21.0, 2.5, 0.0),
-		"at": Vector3(43.0, 2.2, 0.0),
-		"fov": 70.0,
+		"from": Vector3(26.0, 2.4, 0.0),
+		"at": Vector3(43.0, 2.0, 0.0),
+		"fov": 66.0,
 	},
 	{
+		# The roof plates sit at 4.4 m, so a lens at 4.9 was above them looking at
+		# the underside of the roof through its own gap.
 		"name": "catwalk",
-		"from": Vector3(15.0, 4.9, 9.0),
+		"from": Vector3(15.0, 3.9, 9.0),
 		"at": Vector3(-2.0, 1.4, -8.0),
 		"fov": 74.0,
 	},
