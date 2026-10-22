@@ -99,6 +99,16 @@ func _run() -> void:
 		"each world states its own explore-mode copy"
 	)
 
+	# 2d. The card's plate is the station. It shipped for a while as a byte copy
+	#     of the frontier's, which is a card advertising one theatre with a
+	#     photograph of another.
+	var plate := FileAccess.get_md5("res://assets/ui/world_vanguard_station.jpg")
+	var frontier_plate := FileAccess.get_md5("res://assets/ui/world_neon_frontier.jpg")
+	_expect(
+		not plate.is_empty() and plate != frontier_plate,
+		"the station's card plate is its own image"
+	)
+
 	# 3. No module is a bare MeshInstance3D placed by hand: each one hangs off a
 	#    pivot whose child is an imported scene with a MeshInstance3D under it.
 	var non_kit := 0

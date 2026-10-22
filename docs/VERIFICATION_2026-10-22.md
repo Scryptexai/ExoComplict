@@ -536,7 +536,7 @@ The hangar is the size it is because the wave spawn markers in `main.tscn` sit a
 | The facility is walkable end to end | **VERIFIED** | capsule sweeps along four legs (spawn->gate, hangar->reactor, hangar->cargo, hangar->corridor), plus a deck ray at the spawn |
 | All four rooms contain their furniture | **VERIFIED** | per-room module counts and named-node assertions (cover crates, gate, numerals) |
 | The card, the launcher and the scene agree | **VERIFIED** | `data_source_smoke` checks every definition's scene is instanceable inside `main.tscn` |
-| It reads as a sci-fi facility | **LIKELY** | captured at 1280x720 from seven vantages; see 10.6 for what is still thin |
+| It reads as a sci-fi facility | **LIKELY** | captured at 1280x720 against `7fe2f88`; see 10.6 for what is still thin |
 | Performance on device | **UNKNOWN** | SwiftShader only; no hardware measurement |
 | Mobile renderer parity | **UNKNOWN** | web build is Compatibility; not exercised on Android |
 
@@ -566,7 +566,18 @@ only thing in this repo that runs a parser:
    it was a 14 m flat panel. Signs are now sized to a width in metres.
 10. **The spawn apron dressed on the wrong side** — everything added for "the
     first frame" was behind the player, who faces the reactor door.
-11. **`?qa_world=` dropped on the gameplay URL** — a capture run reported the
+11. **The theatre had no Environment at all** — it was lit by the engine's
+    default sky, which the roof ring then blocked from everything but the
+    skylight. That is the whole explanation for a room that photographed as flat
+    grey however many omnis were hung in it: there was no key light and no fill.
+    It owns a sky, a sun and an ambient now, and the first attempt at that
+    overshot into a white deck before the key came down.
+12. **An edit deleted the hangar apron wholesale** — removing the amber plate
+    under the player's feet took the whole function with it, so two commits moved
+    furniture inside a function that no longer existed and the captures agreed,
+    because there was nothing left to move. The smoke test's crate assertion
+    caught it before the next capture did.
+13. **`?qa_world=` dropped on the gameplay URL** — a capture run reported the
     station and photographed the frontier, and the numbers agreed with it.
 
 ### 10.6 What is honestly still weak
