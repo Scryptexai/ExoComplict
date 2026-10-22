@@ -1061,7 +1061,7 @@ func _build_cargo_bay(parent: Node3D) -> void:
 		for level in range(2):
 			StationKit.place(
 				parent,
-				"wall_low",
+				"container",
 				"CargoContainer_%02d_%d" % [index, level],
 				at + Vector3(0.0, 0.62 * float(level) * 1.6, 0.0),
 				0.0,

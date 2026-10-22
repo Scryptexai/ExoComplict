@@ -220,6 +220,10 @@ const STATION_KEYS := {
 	"wall_round": "Wall_Cube_01_Round",
 	"wall_thin": "Wall_Cube_01_Thin",
 	"wall_flat": "Wall_Cube_02_Flat",
+	# Cargo, not scenery: the same 2 x 1 x 6 block as `wall_low`, but painted as a
+	# container (steel body, hazard band) rather than as recessed panelling, which
+	# is the darkest colour in the palette and read as black boxes in the bay.
+	"container": "Wall_Cube_01_Flat",
 	"wall_inclined": "Wall_Inclined_01_Long",
 	"wall_broken": "Wall_Inclined_02_Long",
 	"wall_up": "Wall_Up_01_Long",
@@ -303,6 +307,7 @@ const POLICY_EXTRA := {
 	"wall_round": {"Orange": "trim", "all": "steel"},
 	"wall_thin": {"Orange": "trim", "all": "steel"},
 	"wall_flat": {"Orange": "trim", "all": "panel"},
+	"container": {"Orange": "hazard", "all": "steel"},
 	"wall_inclined": {"Orange": "trim", "all": "steel"},
 	"wall_broken": {"Orange": "trim", "all": "panel"},
 	"wall_up": {"Orange": "trim", "all": "steel"},

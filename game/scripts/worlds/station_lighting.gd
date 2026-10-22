@@ -89,6 +89,10 @@ static func lights(parent: Node3D) -> void:
 	# back wall: without a second source the turbine face is a black rectangle.
 	_light(parent, "ReactorFaceLight", Vector3(0.0, 3.2, -34.2), Color(0.62, 0.86, 1.0), 7.0, 20.0)
 	_light(parent, "CargoLight", Vector3(-28.0, 3.5, 0.0), cold, 9.0, 28.0)
+	# The bay's cargo stands against its long walls, which the centre lamp does
+	# not reach: one more over each stack row.
+	_light(parent, "CargoLightNorth", Vector3(-30.0, 3.4, -4.6), cold, 5.0, 16.0)
+	_light(parent, "CargoLightSouth", Vector3(-30.0, 3.4, 4.6), cold, 5.0, 16.0)
 	_light(parent, "CorridorLightWest", Vector3(25.0, 3.4, 0.0), cold, 7.0, 20.0)
 	_light(parent, "CorridorLightEast", Vector3(37.0, 3.4, 0.0), cold, 7.0, 20.0)
 	# A rim light behind the reactor, so the turbine face is not a silhouette.
