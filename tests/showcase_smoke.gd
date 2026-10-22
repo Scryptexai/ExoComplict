@@ -227,7 +227,8 @@ func _check_the_weapon_stage_shows_a_model() -> void:
 	)
 	# The rifle GLB has no animations. The widget must therefore report nothing
 	# playing and stay usable, rather than waiting for a clip that is not there.
-	var clips := showcase.clip_names()
+	# `clip_names()` is untyped: `:=` cannot infer from it.
+	var clips: Array = showcase.clip_names()
 	_expect(
 		clips.is_empty() and showcase.current_clip().is_empty(),
 		"a static mesh reports no clips instead of inventing one (%d)" % clips.size()
