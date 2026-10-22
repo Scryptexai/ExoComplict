@@ -1028,7 +1028,7 @@ func _build_reactor(parent: Node3D) -> void:
 			parent,
 			"light_strip",
 			"ReactorTurbineLamp_%d" % index,
-			Vector3(offset, 3.85, -33.2),
+			Vector3(offset, 3.85, -34.15),
 			0.0,
 			3.2,
 			"",
