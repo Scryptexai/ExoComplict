@@ -804,20 +804,6 @@ func _build_corridor_walls(parent: Node3D) -> void:
 ## the first frame was bare plate between two grey walls. This is the wall the
 ## player faces, dressed with the pack's own furniture.
 func _build_hall_dressing(parent: Node3D) -> void:
-	# A grate walkway from the spawn to the reactor door. It is lighter than the
-	# deck, so it draws the eye to the threshold the objective lives behind.
-	for index in range(8):
-		_place(
-			parent,
-			"floor_tech",
-			"HallWalkway_%02d" % index,
-			Vector3(0.0, 0.03, 9.0 - 3.4 * float(index)),
-			90.0,
-			0.62,
-			"",
-			Vector3.ONE,
-			"hangar"
-		)
 	# Console banks flanking the reactor door, facing back down the hall. The
 	# doorway gap is 4 m, so they start at +-4.4 and run outward.
 	for side in [-1.0, 1.0]:
@@ -1343,7 +1329,7 @@ func _build_atmosphere() -> void:
 	sun.name = "StationDaylightSun"
 	sun.rotation_degrees = Vector3(-58.0, -34.0, 0.0)
 	sun.light_color = Color(0.94, 0.96, 1.0)
-	sun.light_energy = 1.25
+	sun.light_energy = 0.78
 	sun.shadow_enabled = true
 	sun.shadow_opacity = 0.6
 	sun.directional_shadow_max_distance = 80.0
@@ -1366,11 +1352,11 @@ func _build_atmosphere() -> void:
 	# a fill with a job rather than a mood: enough to read plating, cool enough to
 	# stay behind the sun and the strips.
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color(0.26, 0.33, 0.43)
-	environment.ambient_light_energy = 1.0
+	environment.ambient_light_color = Color(0.2, 0.26, 0.35)
+	environment.ambient_light_energy = 0.62
 	environment.reflected_light_source = Environment.REFLECTION_SOURCE_BG
 	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
-	environment.tonemap_exposure = 1.15
+	environment.tonemap_exposure = 1.02
 	environment.adjustment_enabled = true
 	environment.adjustment_brightness = 1.02
 	environment.adjustment_contrast = 1.03
