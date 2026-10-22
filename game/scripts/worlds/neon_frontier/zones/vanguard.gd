@@ -95,14 +95,20 @@ static func _build_district_deck(world) -> void:
 ## see on the way out, so it carries the identification plate and the lit
 ## threshold rather than being a frame.
 static func _build_deployment_gate(world) -> void:
-	world._place_component(
-		world.VANGUARD_GATE_SCENE,
-		"VanguardDeploymentGate",
-		Vector3(0.0, 0.0, 74.0),
-		Vector3.ZERO,
-		Vector3.ONE,
-		3,
-		1
+	(
+		world
+		. _place_component(
+			world.VANGUARD_GATE_SCENE,
+			"VanguardDeploymentGate",
+			Vector3(0.0, 0.0, 74.0),
+			# 180° so the facade — ID plate, header lamps, light slots, lit threshold —
+			# faces the arena. Placed unrotated the player approached the back of it,
+			# which is what the third capture showed.
+			Vector3(0.0, 180.0, 0.0),
+			Vector3.ONE,
+			3,
+			1
+		)
 	)
 	# Checkpoint annexes either side: the gate is a *checkpoint*, and a checkpoint
 	# without anywhere for the guards to stand is a doorway.
