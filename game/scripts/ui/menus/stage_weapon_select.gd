@@ -130,6 +130,9 @@ func _build_card(weapon_id: StringName, group: ButtonGroup) -> Control:
 	card.clip_contents = true
 	_oriented.append(card)
 	card.set_meta("weapon_id", String(weapon_id))
+	# The card's own words are bounded to one line each, so the instruction a
+	# locked card cannot spell out lives here.
+	card.tooltip_text = "Unlock weapons in the Armory with Battle Points"
 	card.pressed.connect(_on_card_pressed.bind(weapon_id))
 	AegisTheme.set_button_variant(card, "round")
 
@@ -244,7 +247,10 @@ func _refresh() -> void:
 			state.add_theme_color_override("font_color", AegisTokens.OK)
 		else:
 			var cost := progression.unlock_cost(weapon_id)
-			state.text = "LOCKED · %d BP · UNLOCK IN ARMORY" % cost
+			# One line, and the price is the part a player needs; "unlock in the
+			# armory" was the part the ellipsis ate, so it moved to the card's
+			# tooltip, which is where a secondary instruction belongs.
+			state.text = "LOCKED · %d BP" % cost
 			state.add_theme_color_override("font_color", AegisTokens.ACCENT)
 	_summary.text = (
 		"BATTLE POINTS  %d  ·  %d / %d WEAPONS" % [progression.balance, owned, ORDER.size()]
