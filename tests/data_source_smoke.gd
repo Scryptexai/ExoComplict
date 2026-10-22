@@ -163,18 +163,22 @@ func _check_cards_match_the_definitions() -> void:
 				% [weapon_id, definition.display_name]
 			)
 		)
-		var stat_line := _meta_label(button, "stat_line")
-		if not _expect(stat_line != null, "%s: the card prints a stat line" % weapon_id):
+		# The card prints its numbers on two lines -- what it hits for, then how
+		# it handles -- so this reads every line marked `stat_line` and checks
+		# them together against the definition. Reading only the first would pass
+		# while RELOAD and RNG were missing from the screen.
+		var stat_text := _meta_labels(button, "stat_line")
+		if not _expect(not stat_text.is_empty(), "%s: the card prints a stat line" % weapon_id):
 			continue
-		_check_stat("DMG", stat_line.text, definition.damage, weapon_id)
-		_check_stat("RATE", stat_line.text, definition.fire_rate, weapon_id)
-		_check_stat("MAG", stat_line.text, float(definition.magazine_size), weapon_id)
-		_check_stat("RELOAD", stat_line.text, definition.reload_seconds, weapon_id)
-		_check_stat("RNG", stat_line.text, definition.max_range, weapon_id)
+		_check_stat("DMG", stat_text, definition.damage, weapon_id)
+		_check_stat("RATE", stat_text, definition.fire_rate, weapon_id)
+		_check_stat("MAG", stat_text, float(definition.magazine_size), weapon_id)
+		_check_stat("RELOAD", stat_text, definition.reload_seconds, weapon_id)
+		_check_stat("RNG", stat_text, definition.max_range, weapon_id)
 		if definition.splash_damage > 0.0:
-			_check_stat("SPLASH", stat_line.text, definition.splash_damage, weapon_id)
+			_check_stat("SPLASH", stat_text, definition.splash_damage, weapon_id)
 		if definition.chain_count > 0:
-			_check_stat("CHAIN", stat_line.text, float(definition.chain_count), weapon_id)
+			_check_stat("CHAIN", stat_text, float(definition.chain_count), weapon_id)
 	_expect(
 		cards == WeaponDefinition.DEFINITION_IDS.size(),
 		(
@@ -473,11 +477,11 @@ func _check_unlock_economics() -> void:
 		if bool(_profile.is_unlocked(weapon_id)):
 			continue
 		var cost := int(_profile.unlock_cost(weapon_id))
-		var state := _meta_label(button, "state_line")
-		if state == null:
+		var state := _meta_labels(button, "state_line")
+		if state.is_empty():
 			continue
 		_expect(
-			state.text.contains("%d BP" % cost),
+			state.contains("%d BP" % cost),
 			"%s: the locked card quotes the price the service charges (%d BP)" % [weapon_id, cost]
 		)
 
@@ -775,11 +779,16 @@ func text_of(root: Node) -> String:
 	return " | ".join(parts)
 
 
-func _meta_label(root: Node, key: String) -> Label:
+## Every visible line under `root` carrying `key`, joined in tree order: a card
+## may print its numbers on more than one line, and the check is against what
+## the screen says, not against one label.
+func _meta_labels(root: Node, key: String) -> String:
+	var lines: Array[String] = []
 	for child in root.find_children("*", "Label", true, false):
-		if child.has_meta(key):
-			return child as Label
-	return null
+		var label := child as Label
+		if label != null and label.has_meta(key) and not label.text.is_empty():
+			lines.append(label.text)
+	return "  ·  ".join(lines)
 
 
 func _expect(condition: bool, description: String) -> bool:
