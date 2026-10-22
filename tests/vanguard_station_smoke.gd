@@ -109,6 +109,21 @@ func _run() -> void:
 		"the station's card plate is its own image"
 	)
 
+	# 2e. A sign is only a sign if the artwork survives. The palette overrides
+	#     every surface with a flat colour, which had turned the pack's caution and
+	#     danger signs into blank rectangles.
+	var signs_with_art := 0
+	for node in station_root.get_children():
+		if not String(node.name).begins_with("HallCautionWest"):
+			continue
+		for mesh in node.find_children("*", "MeshInstance3D", true, false):
+			var mesh_instance := mesh as MeshInstance3D
+			for index in range(mesh_instance.mesh.get_surface_count()):
+				var surface := mesh_instance.get_active_material(index) as StandardMaterial3D
+				if surface != null and surface.albedo_texture != null:
+					signs_with_art += 1
+	_expect(signs_with_art > 0, "the hall's caution sign keeps its printed artwork")
+
 	# 3. No module is a bare MeshInstance3D placed by hand: each one hangs off a
 	#    pivot whose child is an imported scene with a MeshInstance3D under it.
 	var non_kit := 0

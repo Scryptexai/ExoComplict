@@ -268,6 +268,22 @@ const STATION_KEYS := {
 	"step": "Stairway_Step_01",
 }
 
+## Modules whose whole value is printed on them. `Sign_Caution_01`, the word
+## decals and the numeral modules ship with a base-colour texture — the sign
+## graphic, the letters, the digit — and the flat palette below replaces exactly
+## that. Every sign in the station was a blank coloured rectangle until this
+## existed, which is the opposite of using the pack's assets.
+const KEEPS_ARTWORK := [
+	"sign_caution",
+	"sign_danger",
+	"word_zone",
+	"word_warning",
+	"word_exit",
+	"arrow",
+	"num_0",
+	"num_7",
+]
+
 const MEASUREMENTS := "res://assets/world/scifi_starter_kit/measurements.json"
 
 ## Palette policy for the modules above, keyed the same way as `POLICY`.
@@ -456,6 +472,11 @@ static func size(key: String) -> Vector3:
 
 ## One shared material per palette colour: the imported GLB materials are all
 ## plain white, so without this every surface in the bay renders the same.
+static func _has_albedo_texture(source: Material) -> bool:
+	var standard := source as StandardMaterial3D
+	return standard != null and standard.albedo_texture != null
+
+
 static func material(color_key: String) -> StandardMaterial3D:
 	if _materials.has(color_key):
 		return _materials[color_key]
@@ -513,6 +534,10 @@ static func surface_color_key(model_key: String, material_name: String) -> Strin
 	return color_key_for(material_name)
 
 
+static func keeps_artwork(model_key: String) -> bool:
+	return KEEPS_ARTWORK.has(model_key)
+
+
 ## Replaces the blank imported materials surface by surface. Keeping the
 ## per-surface structure matters: a wall is plating plus an orange stripe, and a
 ## single material override would flatten it.
@@ -527,6 +552,9 @@ static func apply_palette(node: Node, model_key: String, emissive: bool = true) 
 			var material_name := ""
 			if source != null:
 				material_name = source.resource_name
+			# A textured surface on a sign or a decal is the artwork itself.
+			if keeps_artwork(model_key) and _has_albedo_texture(source):
+				continue
 			var key := surface_color_key(model_key, material_name)
 			if key == "light" and not emissive:
 				key = "steel_light"
