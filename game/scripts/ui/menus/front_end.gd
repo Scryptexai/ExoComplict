@@ -94,6 +94,21 @@ func _enter_qa_stage() -> void:
 ## link landed on a screen that existed for one frame and could not be
 ## photographed (or QA'd) at all.
 func _qa_payload(stage_name: StringName) -> Dictionary:
+	# `?qa_hold=1` keeps a stage that would otherwise finish in one frame on
+	# screen -- the loading screens have no duration in a web build, so without
+	# this they cannot be photographed. Nothing outside the QA deep link sets it.
+	if OS.has_feature("web"):
+		var hold: Variant = JavaScriptBridge.eval(
+			"new URLSearchParams(location.search).has('qa_hold')"
+		)
+		if bool(hold):
+			var held := _qa_stage_payload(stage_name)
+			held["hold"] = true
+			return held
+	return _qa_stage_payload(stage_name)
+
+
+func _qa_stage_payload(stage_name: StringName) -> Dictionary:
 	match stage_name:
 		&"LOADING":
 			return {"targets": _stages[&"BOOT"].FRONT_END_ART}

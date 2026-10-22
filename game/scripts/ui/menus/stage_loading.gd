@@ -39,6 +39,12 @@ var _robot_time := 0.0
 var _indeterminate: MenuIndeterminateBar
 var _reduce_motion := false
 var _done := false
+## QA only (`?qa_hold=1`): stop at 100 % instead of leaving the stage. A web
+## build finishes this preload within one frame, so the screen cannot otherwise
+## be photographed or reviewed at all -- and "it is always too fast to see" is
+## not a reason to ship a screen nobody has looked at. Inert in the real flow:
+## FrontEnd only sets it from the QA deep link, and nothing else reads it.
+var _hold := false
 
 
 func _ready() -> void:
@@ -148,6 +154,7 @@ func enter(stage_payload: Dictionary) -> void:
 	_index = 0
 	_failed = []
 	_done = false
+	_hold = bool(stage_payload.get("hold", false))
 	_robot_time = 0.0
 	_title.text = str(stage_payload.get("title", "LOADING"))
 	var total := _targets.size()
@@ -239,6 +246,9 @@ func _finish() -> void:
 	_indeterminate.set_running(false)
 	_bar.value = 1.0
 	_percent.text = "100%"
+	_status.text = "READY"
+	if _hold:
+		return
 	var scene_path := str(payload.get("scene", ""))
 	if not scene_path.is_empty():
 		if not _failed.is_empty():

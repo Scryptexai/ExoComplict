@@ -156,7 +156,10 @@ for (const viewport of viewports) {
   for (const stage of requested) {
     if (stage === 'GAMEPLAY' || stage === 'TOUR') continue;
     const { page, lines } = await openPage(viewport);
-    const url = `${baseUrl}${pageTarget}?qa_stage=${stage}`;
+    // `qa_hold` keeps a stage that finishes in one frame -- the loading
+    // screens -- on screen long enough to photograph. It is a QA deep-link
+    // flag, inert in the real flow.
+    const url = `${baseUrl}${pageTarget}?qa_stage=${stage}&qa_hold=1`;
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
     await page.waitForFunction(() => document.querySelector('canvas') !== null, { timeout: 180000 });
     await waitFor(lines, (l) => l.some((line) => BOOT_MARKER.test(line)), stageTimeoutMs, `${stage} boot`);
