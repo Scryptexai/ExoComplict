@@ -83,14 +83,14 @@ func _run() -> void:
 
 	# 2c. The objective card belongs to the theatre. It printed one world's copy in
 	#     every world until the strings moved into the definitions.
-	var station := WorldDefinition.load_definition(&"vanguard_station")
-	var frontier := WorldDefinition.load_definition(&"neon_frontier")
+	var station_definition := WorldDefinition.load_definition(&"vanguard_station")
+	var frontier_definition := WorldDefinition.load_definition(&"neon_frontier")
 	_expect(
 		(
-			station != null
-			and frontier != null
-			and station.zone_title != frontier.zone_title
-			and station.zone_subtitle != frontier.zone_subtitle
+			station_definition != null
+			and frontier_definition != null
+			and station_definition.zone_title != frontier_definition.zone_title
+			and station_definition.zone_subtitle != frontier_definition.zone_subtitle
 		),
 		"each world states its own explore-mode copy"
 	)
