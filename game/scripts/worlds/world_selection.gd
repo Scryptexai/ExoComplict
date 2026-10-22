@@ -20,13 +20,23 @@ extends RefCounted
 static var override_id: StringName = &""
 
 
-static func selected() -> StringName:
+## `context` is the world asking, when there is one. `ProgressionService` is a
+## node in the gameplay scene, not an autoload — so from inside a world it is a
+## *sibling*, and a lookup that only searched the tree root found nothing and
+## silently answered "the default theatre".
+static func selected(context: Node = null) -> StringName:
 	if override_id != &"":
 		return override_id
 	var tree := Engine.get_main_loop() as SceneTree
 	if tree == null:
 		return &""
-	var service := tree.root.get_node_or_null("ProgressionService")
+	var service: Node = null
+	if context != null and context.get_parent() != null:
+		service = context.get_parent().get_node_or_null("ProgressionService")
+	if service == null:
+		service = tree.root.get_node_or_null("ProgressionService")
+	if service == null and tree.current_scene != null:
+		service = tree.current_scene.get_node_or_null("ProgressionService")
 	if service == null:
 		return &""
 	return StringName(String(service.get("selected_world_id")))

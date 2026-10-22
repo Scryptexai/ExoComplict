@@ -66,7 +66,7 @@ func _ready() -> void:
 
 
 static func _is_selected() -> bool:
-	return WorldSelection.selected() == &"vanguard_station"
+	return WorldSelection.selected(self) == &"vanguard_station"
 
 
 func build() -> Dictionary:
