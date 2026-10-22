@@ -27,12 +27,25 @@ extends RefCounted
 
 
 static func build_vanguard_frontier(world) -> void:
+	# Everything this district adds is tagged as it is added, so a test can ask
+	# "what did Vanguard build" instead of guessing from node names. The first
+	# attempt guessed by prefix and matched `PerimeterRelayArray`, a prop that was
+	# already in the world.
+	var before := {}
+	for child in world.get_children():
+		before[child] = true
+
 	_build_deployment_gate(world)
 	_build_outer_perimeter(world)
 	_build_industrial_yard(world)
 	_build_reactor_feed(world)
 	_build_distant_megastructure(world)
 	_add_zone_lighting(world)
+
+	for child in world.get_children():
+		if before.has(child):
+			continue
+		child.set_meta("vanguard_district", true)
 
 
 ## ZONE A. The gate is the first thing behind the player and the last thing they
