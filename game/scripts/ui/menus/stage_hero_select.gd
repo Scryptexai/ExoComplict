@@ -170,7 +170,7 @@ func _build_hero_card(definition: HeroDefinition) -> Control:
 	row.add_child(column)
 
 	column.add_child(
-		limit_lines(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK), 1)
+		_limit_lines(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK), 1)
 	)
 	# Three lines, then an ellipsis: at 390x844 the blurb is a 190 px column and
 	# the registry's sentence ran to five lines inside a 190 px card.

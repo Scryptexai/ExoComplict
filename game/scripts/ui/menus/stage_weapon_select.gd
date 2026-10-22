@@ -167,7 +167,7 @@ func _build_card(weapon_id: StringName, group: ButtonGroup) -> Control:
 	# every line short enough to stay inside.
 	var numbers := _stat_lines(definition)
 	for index in range(numbers.size()):
-		var line := limit_lines(
+		var line := _limit_lines(
 			card_line(
 				numbers[index], "mono_s", AegisTokens.INFO if index == 0 else AegisTokens.INK_3
 			),
@@ -176,7 +176,7 @@ func _build_card(weapon_id: StringName, group: ButtonGroup) -> Control:
 		line.set_meta("stat_line", true)
 		column.add_child(line)
 
-	var state := limit_lines(card_line("", "label_s", AegisTokens.OK), 1)
+	var state := _limit_lines(card_line("", "label_s", AegisTokens.OK), 1)
 	state.set_meta("state_line", true)
 	column.add_child(state)
 	return card

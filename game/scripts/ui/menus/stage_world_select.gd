@@ -142,7 +142,7 @@ func _build_world_card(group: ButtonGroup, definition: WorldDefinition) -> Contr
 	physical_separation(column, 4)
 	row.add_child(column)
 	column.add_child(
-		limit_lines(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK), 1)
+		_limit_lines(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK), 1)
 	)
 	# Bounded like the hero card: the same registry field, the same 168 px card.
 	column.add_child(
