@@ -694,7 +694,10 @@ func _check_world_roster_is_one_list() -> void:
 	# what `_check_no_roster_literals_in_screens` catches -- a name typed into
 	# the cinematic instead of read from the registry fails there.
 	var caption := String(CinematicStage._beat_caption(1))
-	for world_id in WorldDefinition.DEFINITION_IDS:
+	# The opening drops into the *default* theatre, so it names that one. With a
+	# single world this looped over the roster and happened to be right; with two
+	# it asked one caption to name every theatre the game ships.
+	for world_id in [WorldDefinition.DEFAULT_WORLD_ID]:
 		var definition := WorldDefinition.load_definition(world_id)
 		if definition == null:
 			continue

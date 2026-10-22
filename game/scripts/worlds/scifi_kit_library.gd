@@ -424,9 +424,9 @@ static func model(key: String) -> PackedScene:
 ## The file name behind a key, from either table.
 static func _file_for(key: String) -> String:
 	if MODELS.has(key):
-		return MODELS[key]
+		return String(MODELS[key])
 	if EXTRA.has(key):
-		return EXTRA[key][0]
+		return String(EXTRA[key][0])
 	return ""
 
 
@@ -434,7 +434,7 @@ static func _file_for(key: String) -> String:
 ## original table return zero, which is what its hand-measured offsets assume.
 static func min_corner(key: String) -> Vector3:
 	if EXTRA.has(key):
-		return EXTRA[key][2]
+		return Vector3(EXTRA[key][2])
 	return Vector3.ZERO
 
 
@@ -446,9 +446,9 @@ static func base_offset(key: String) -> float:
 
 static func size(key: String) -> Vector3:
 	if SIZE.has(key):
-		return SIZE[key]
+		return Vector3(SIZE[key])
 	if EXTRA.has(key):
-		return EXTRA[key][1]
+		return Vector3(EXTRA[key][1])
 	return Vector3.ONE
 
 
