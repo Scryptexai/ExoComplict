@@ -254,13 +254,11 @@ func _check_clear_of_the_arena(world: Node3D) -> void:
 	)
 
 
+## Whether this node was built by the Vanguard district. It asks the node, not
+## its name: an earlier version matched on prefixes and swept up
+## `PerimeterRelayArray`, a prop the world already had.
 func _is_vanguard_node(node: Node) -> bool:
-	for prefix in [
-		"Vanguard", "Perimeter", "Breach", "Gate", "Yard", "Checkpoint", "Fallen", "Approach"
-	]:
-		if String(node.name).begins_with(prefix):
-			return true
-	return false
+	return bool(node.get_meta("vanguard_district", false))
 
 
 ## The district has a cost. Record it so a later change can be compared with it.
