@@ -162,6 +162,11 @@ func _build_carousel() -> void:
 	physical_min_size(_carousel, 0.0, 96.0)
 	_carousel_wrap.add_child(_carousel)
 
+	# MenuStage drives horizontal thumb-drags against `_card_scroll`; the
+	# carousel is a scroll container the stage did not build, so it has to be
+	# registered or a touch drag does nothing on a swipe.
+	_card_scroll = _carousel
+
 	var row := HBoxContainer.new()
 	row.name = &"HeroChips"
 	physical_separation(row, 10)
@@ -175,6 +180,16 @@ func _build_carousel() -> void:
 	_name_label = make_label("", "display_m", AegisTokens.INK)
 	_name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_carousel_wrap.add_child(_name_label)
+
+	# Says out loud what the empty squares are. The roster is one operative in
+	# this build; the slots are the plan, not content.
+	var development := make_label(
+		"%d OPERATIVE SLOT%s IN DEVELOPMENT" % [LOCKED_SLOTS, "" if LOCKED_SLOTS == 1 else "S"],
+		"label_s",
+		AegisTokens.INK_3
+	)
+	development.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_carousel_wrap.add_child(development)
 
 
 ## One small portrait per operative. Small on purpose: the model is the subject,
@@ -217,6 +232,10 @@ func _build_locked_chip(index: int) -> Control:
 	AegisTheme.set_button_variant(chip, "round")
 	_locked.append(chip)
 
+	# The chip is 68-84 px: a slot number fits, two words do not. "IN DEVELOPMENT"
+	# lives in the caption under the carousel instead of being squeezed into a
+	# square and drawn past its edge, which is what the containment assertion in
+	# menu_layout_smoke caught.
 	var column := VBoxContainer.new()
 	column.set_anchors_preset(Control.PRESET_FULL_RECT)
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -228,11 +247,8 @@ func _build_locked_chip(index: int) -> Control:
 		AegisTokens.LINE_HI
 	)
 	slot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	slot.autowrap_mode = TextServer.AUTOWRAP_OFF
 	column.add_child(slot)
-	var state := make_label("IN DEVELOPMENT", "label_s", AegisTokens.INK_3)
-	state.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	state.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	column.add_child(state)
 	return chip
 
 

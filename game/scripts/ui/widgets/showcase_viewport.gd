@@ -195,9 +195,9 @@ func _build_camera() -> void:
 	_camera = Camera3D.new()
 	_camera.name = "ShowcaseCamera"
 	_camera.fov = 32.0
-	# keep_aspect HEIGHT matches the gameplay camera, so a model composed to
+	# keep_aspect KEEP_HEIGHT matches the gameplay camera, so a model composed to
 	# fill this frame is not cropped differently on a wide phone.
-	_camera.keep_aspect = Camera3D.KEEP_ASPECT_HEIGHT
+	_camera.keep_aspect = Camera3D.KEEP_HEIGHT
 	_viewport.add_child(_camera)
 	_apply_camera()
 

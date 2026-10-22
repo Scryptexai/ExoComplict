@@ -540,18 +540,22 @@ func _check_hero_roster_is_one_list() -> void:
 		var definition := HeroDefinition.load_definition(hero_id)
 		if not _expect(definition != null, "%s: the card reads a hero from the registry" % hero_id):
 			continue
+		# The chip is a portrait, not a text card: the HERO screen moved the name
+		# and blurb into one detail panel beside the 3D showcase, so the copy is
+		# read off the stage instead of off the chip. The intent is unchanged --
+		# the screen must print the registry's words, not its own -- and the chip
+		# still has to carry the registry's id, which the loop above checks.
+		var stage_text := text_of(stage).to_upper()
 		_expect(
-			text_of(button).contains(definition.display_name.to_upper()),
+			stage_text.contains(definition.display_name.to_upper()),
 			(
-				"%s: the card names the hero the definition names (%s)"
+				"%s: the screen names the hero the definition names (%s)"
 				% [hero_id, definition.display_name]
 			)
 		)
 		_expect(
-			text_of(button).to_upper().contains(
-				definition.role_description.substr(0, 24).to_upper()
-			),
-			"%s: the card's blurb is the definition's, not the screen's own" % hero_id
+			stage_text.contains(definition.role_description.substr(0, 24).to_upper()),
+			"%s: the screen's blurb is the definition's, not its own" % hero_id
 		)
 	_expect(
 		cards == HeroDefinition.DEFINITION_IDS.size(),
