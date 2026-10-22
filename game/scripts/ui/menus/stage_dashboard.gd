@@ -306,6 +306,10 @@ func _make_stat_cell(caption: String, color: Color) -> Array:
 	var label := make_label(caption, "label_s", color)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# Bottom-aligned so the three figures share one baseline: "BATTLE POINTS"
+	# wraps to two lines on a phone and "BEST SCORE" does not, and centring the
+	# short one left its number floating between the other two lines.
+	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	return [label, label]
 
 
@@ -428,6 +432,13 @@ func _apply_density() -> void:
 			physical_min_size(_mark, 180.0, 44.0)
 			physical_min_size(_hero_plate, 64.0, 84.0)
 			physical_min_size(_mission_plate, 76.0, 64.0)
+		elif physical_size().y >= 600.0:
+			# A desktop has the height a phone does not. The plates were authored
+			# at 78x104 for a rotated phone and looked undersized on a 720 px
+			# canvas, in a card with room to spare.
+			physical_min_size(_mark, 300.0, 74.0)
+			physical_min_size(_hero_plate, 96.0, 128.0)
+			physical_min_size(_mission_plate, 112.0, 96.0)
 	elif compact:
 		physical_min_size(_mark, 220.0, 48.0)
 		physical_min_size(_hero_plate, 72.0, 92.0)
