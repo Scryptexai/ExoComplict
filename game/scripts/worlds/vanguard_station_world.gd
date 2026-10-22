@@ -1174,6 +1174,66 @@ func _build_cargo_bay(parent: Node3D) -> void:
 		Vector3.ONE,
 		"cargo"
 	)
+	for index in range(3):
+		var at := Vector3(-33.0 + 3.0 * float(index), 0.0, -4.6)
+		_place(
+			parent,
+			"wall_low",
+			"CargoContainer_%02d" % index,
+			at,
+			0.0,
+			0.62,
+			"box",
+			Vector3.ONE,
+			"cargo"
+		)
+		_place(
+			parent,
+			"wall_low",
+			"CargoContainerTop_%02d" % index,
+			at + Vector3(0.0, 0.63, 0.0),
+			0.0,
+			0.5,
+			"",
+			Vector3.ONE,
+			"cargo"
+		)
+	for index in range(2):
+		_place(
+			parent,
+			"beam_b",
+			"CargoGantry_%02d" % index,
+			Vector3(-28.0, 0.0, -5.0 + 10.0 * float(index)),
+			0.0,
+			1.0,
+			"",
+			Vector3.ONE,
+			"cargo"
+		)
+		_place(
+			parent,
+			"light_corridor",
+			"CargoLamp_%02d" % index,
+			Vector3(-28.0, ROOF_Y - 0.1, -3.0 + 6.0 * float(index)),
+			90.0,
+			0.9,
+			"",
+			Vector3.ONE,
+			"cargo"
+		)
+	for index in range(2):
+		for side in [-1.0, 1.0]:
+			_place(
+				parent,
+				"wall_pipes",
+				"CargoWallRun_%02d_%s" % [index, str(side)],
+				Vector3(-32.0 + 9.0 * float(index), 0.0, 6.4 * side),
+				0.0 if side > 0.0 else 180.0,
+				0.8,
+				"",
+				Vector3.ONE,
+				"cargo"
+			)
 	_place(
 		parent,
 		"console_half",
@@ -1444,17 +1504,17 @@ func _build_atmosphere() -> void:
 func _build_lighting(parent: Node3D) -> void:
 	var cold := Color(0.72, 0.86, 1.0)
 	var warm := Color(1.0, 0.62, 0.28)
-	_light(parent, "HangarLightNW", Vector3(-9.0, 4.2, -9.0), cold, 9.0, 38.0)
-	_light(parent, "HangarLightNE", Vector3(9.0, 4.2, -9.0), cold, 9.0, 38.0)
-	_light(parent, "HangarLightSW", Vector3(-9.0, 4.2, 9.0), cold, 9.0, 38.0)
-	_light(parent, "HangarLightSE", Vector3(9.0, 4.2, 9.0), cold, 9.0, 38.0)
+	_light(parent, "HangarLightNW", Vector3(-9.0, 4.2, -9.0), cold, 3.6, 30.0)
+	_light(parent, "HangarLightNE", Vector3(9.0, 4.2, -9.0), cold, 3.6, 30.0)
+	_light(parent, "HangarLightSW", Vector3(-9.0, 4.2, 9.0), cold, 3.6, 30.0)
+	_light(parent, "HangarLightSE", Vector3(9.0, 4.2, 9.0), cold, 3.6, 30.0)
 	# One warm source in a cold room: it is what makes the deck read as metal
 	# rather than as slate, and it is the only hue in the theatre that is not cyan.
-	_light(parent, "HangarGateLight", Vector3(0.0, 3.4, 16.0), warm, 7.0, 26.0)
-	_light(parent, "HangarWarmFill", Vector3(-2.0, 2.2, -6.0), Color(1.0, 0.78, 0.5), 3.2, 18.0)
+	_light(parent, "HangarGateLight", Vector3(0.0, 3.4, 16.0), warm, 3.2, 20.0)
+	_light(parent, "HangarWarmFill", Vector3(-2.0, 2.2, -6.0), Color(1.0, 0.78, 0.5), 2.2, 16.0)
 	# A warm threshold at the reactor door: the frame's vanishing point is that
 	# opening, and it was the coldest surface in the image.
-	_light(parent, "HallDoorWarm", Vector3(0.0, 2.7, -16.4), Color(1.0, 0.66, 0.34), 4.0, 15.0)
+	_light(parent, "HallDoorWarm", Vector3(0.0, 2.7, -16.4), Color(1.0, 0.66, 0.34), 2.4, 13.0)
 	_light(parent, "ReactorLight", Vector3(0.0, 3.7, -28.0), Color(0.5, 0.82, 1.0), 12.0, 34.0)
 	# The hall is sealed except for its skylight, so the sun never reaches its
 	# back wall: without a second source the turbine face is a black rectangle.

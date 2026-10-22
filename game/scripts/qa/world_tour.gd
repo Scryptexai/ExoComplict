@@ -102,10 +102,12 @@ const STATION_VANTAGES := [
 		"fov": 70.0,
 	},
 	{
+		# Standing a metre inside the doorway put the room's own wall across half
+		# the frame; the cargo bay reads from its middle.
 		"name": "cargo",
-		"from": Vector3(-21.0, 2.8, -4.0),
-		"at": Vector3(-34.0, 1.2, 2.0),
-		"fov": 72.0,
+		"from": Vector3(-24.5, 2.7, -5.5),
+		"at": Vector3(-34.0, 1.2, 3.0),
+		"fov": 70.0,
 	},
 	{
 		# A door's width into the corridor is 8 m of wall either side of the lens,
