@@ -366,7 +366,7 @@ func _build_cargo_deck(parent: Node3D) -> void:
 			"CargoLane_%d" % int(z),
 			Vector3(-28.0, 0.03, z),
 			90.0,
-			1.0,
+			0.35,
 			"",
 			Vector3.ONE,
 			"cargo"
@@ -1047,31 +1047,44 @@ func _build_reactor(parent: Node3D) -> void:
 
 
 func _build_cargo_bay(parent: Node3D) -> void:
-	# Crate stacks, scaled from the pack's crate module so the bay reads as full
-	# instead of as a room with four boxes in it.
-	var stacks := [
+	# The bay's mass is cargo containers — steel, stacked — with the pack's amber
+	# crates as the accent, not the other way round. The first version was six
+	# amber crates and the room read as a shelf of yellow boxes.
+	var containers := [
 		Vector3(-33.0, 0.0, -4.6),
-		Vector3(-30.4, 0.0, -4.6),
-		Vector3(-27.8, 0.0, -4.6),
 		Vector3(-33.0, 0.0, 4.6),
-		Vector3(-30.4, 0.0, 4.6),
-		Vector3(-24.5, 0.0, 4.4),
+		Vector3(-27.0, 0.0, -4.6),
+		Vector3(-27.0, 0.0, 4.6),
 	]
-	for index in range(stacks.size()):
-		var at: Vector3 = stacks[index]
-		var height := 1.6 if index % 3 == 0 else 1.2
+	for index in range(containers.size()):
+		var at: Vector3 = containers[index]
+		for level in range(2):
+			StationKit.place(
+				parent,
+				"wall_low",
+				"CargoContainer_%02d_%d" % [index, level],
+				at + Vector3(0.0, 0.62 * float(level) * 1.6, 0.0),
+				0.0,
+				0.62,
+				"box" if level == 0 else "",
+				Vector3.ONE,
+				"cargo"
+			)
+	var crates := [Vector3(-30.0, 0.0, -4.6), Vector3(-30.0, 0.0, 4.6), Vector3(-24.0, 0.0, 4.2)]
+	for index in range(crates.size()):
+		var at: Vector3 = crates[index]
 		StationKit.place(
-			parent, "crate", "CargoCrate_%02d" % index, at, 0.0, height, "box", Vector3.ONE, "cargo"
+			parent, "crate", "CargoCrate_%02d" % index, at, 0.0, 1.2, "box", Vector3.ONE, "cargo"
 		)
-		if index % 3 == 0:
+		if index == 0:
 			StationKit.place(
 				parent,
 				"crate",
 				"CargoCrateTop_%02d" % index,
-				at + Vector3(0.0, height * 0.75, 0.0),
+				at + Vector3(0.0, 0.9, 0.0),
 				90.0,
-				height * 0.8,
-				"box",
+				0.9,
+				"",
 				Vector3.ONE,
 				"cargo"
 			)
