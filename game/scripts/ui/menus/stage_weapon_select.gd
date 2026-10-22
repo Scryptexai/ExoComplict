@@ -155,8 +155,11 @@ func _build_card(weapon_id: StringName, group: ButtonGroup) -> Control:
 
 	var definition := _definition(weapon_id)
 	column.add_child(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK))
+	# One line of description on a weapon card: the numbers are what this screen
+	# is for, and two lines of prose pushed the state line (EQUIPPED / LOCKED)
+	# out of a 216 px card -- clipped, not readable.
 	column.add_child(
-		_limit_lines(card_line(definition.role_description, "caption", AegisTokens.INK_2), 2)
+		_limit_lines(card_line(definition.role_description, "caption", AegisTokens.INK_2), 1)
 	)
 
 	# Two or three stat lines, split by kind, each held to exactly one line. A
