@@ -1388,6 +1388,38 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 				Vector3.ONE,
 				"hangar"
 			)
+	# The side walls under the catwalks. They were the darkest surfaces in the
+	# theatre — a black void either side of the spawn frame, under a walkway that
+	# was itself clipping to white. A run of the pack's side lights gives the
+	# walls something to be lit by at head height.
+	for z in [-15.0, -9.0, -3.0, 3.0, 9.0, 15.0]:
+		for side in [-1.0, 1.0]:
+			_place(
+				parent,
+				"light_strip",
+				"HangarSideLight_%d_%s" % [int(z), str(side)],
+				Vector3(18.4 * side, 2.6, z),
+				90.0 if side > 0.0 else -90.0,
+				1.4,
+				"",
+				Vector3.ONE,
+				"hangar"
+			)
+	# And the wall itself: steel racks between the lights, so the run reads as a
+	# wall with fittings rather than as a black field with dots on it.
+	for z in [-12.0, 0.0, 12.0]:
+		for side in [-1.0, 1.0]:
+			_place(
+				parent,
+				"wall_low",
+				"HangarSideRack_%d_%s" % [int(z), str(side)],
+				Vector3(18.0 * side, 0.0, z),
+				90.0 if side > 0.0 else -90.0,
+				0.75,
+				"box",
+				Vector3.ONE,
+				"hangar"
+			)
 
 
 ## Two catwalks along the hangar's long walls. They are stepped, not ramped: three
