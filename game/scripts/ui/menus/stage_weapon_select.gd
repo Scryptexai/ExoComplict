@@ -363,7 +363,6 @@ func _present_selected(reveal: bool) -> void:
 	for index in range(_stat_lines.size()):
 		_stat_lines[index].text = numbers[index] if index < numbers.size() else ""
 	_detail_label.text = _detail_of(_selected)
-	print("WPN DBG present: ", _showcase.debug_report())
 
 
 ## Weapon "class" is not a field in `WeaponDefinition`: it has no such concept,
@@ -459,7 +458,6 @@ func _on_resized() -> void:
 	# object -- the same reason the hero pulls back on a landscape strip.
 	if is_instance_valid(_showcase) and _showcase.has_model():
 		_showcase.frame_to_fill(SHOWCASE_FILL, 0.45)
-		print("WPN DBG resize: ", _showcase.debug_report())
 
 
 ## Portrait stacks: carousel, model, then the information panel and CONTINUE.
