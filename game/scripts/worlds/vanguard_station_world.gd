@@ -1186,17 +1186,22 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 			Vector3.ONE,
 			"corridor"
 		)
-		_place(
-			parent,
-			"beam",
-			"CorridorRib_%02d" % index,
-			Vector3(x, 0.0, 0.0),
-			0.0,
-			1.0,
-			"",
-			Vector3.ONE,
-			"corridor"
-		)
+		# Ribs run down the walls, not across the floor. `Beam_01` is 0.25 m thick
+		# and 4.4 m long: stood at the centre line it is a full-height wall in the
+		# middle of a walkway, and it carries no collider, so the route sweep walked
+		# straight through the thing the corridor vantage was pointing at.
+		for side in [-1.0, 1.0]:
+			_place(
+				parent,
+				"beam_b",
+				"CorridorRib_%02d_%s" % [index, str(side)],
+				Vector3(x, 0.0, 3.5 * side),
+				0.0 if side > 0.0 else 180.0,
+				0.55,
+				"",
+				Vector3.ONE,
+				"corridor"
+			)
 	_place(
 		parent,
 		"intercom",
@@ -1208,6 +1213,19 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 		Vector3.ONE,
 		"corridor"
 	)
+	for index in range(3):
+		for side in [-1.0, 1.0]:
+			_place(
+				parent,
+				"wall_pipes",
+				"CorridorPipe_%02d_%s" % [index, str(side)],
+				Vector3(22.0 + 7.0 * float(index), 0.0, 3.35 * side),
+				0.0 if side > 0.0 else 180.0,
+				0.8,
+				"",
+				Vector3.ONE,
+				"corridor"
+			)
 	_sign(parent, "sign_danger", "CorridorSign", Vector3(38.0, 2.6, 3.7), 180.0, "corridor")
 	_sign(parent, "word_exit", "CorridorExitDecal", Vector3(41.6, 2.4, -3.6), 180.0, "corridor")
 	_place(
