@@ -880,7 +880,7 @@ func _build_reactor(parent: Node3D) -> void:
 	# side, with a light bar over each, is an installation the room is arranged
 	# around.
 	for index in range(3):
-		var offset := -5.4 + 5.4 * float(index)
+		var offset := -4.9 + 4.9 * float(index)
 		StationKit.place(
 			parent,
 			"gear",
@@ -903,6 +903,32 @@ func _build_reactor(parent: Node3D) -> void:
 			Vector3.ONE,
 			"reactor"
 		)
+	# Plant in front of the faces: two horizontal pipe clusters across the bank,
+	# and a raised apron the whole assembly stands on. Without them the three gear
+	# modules read as cupboards, because that is what they are on their own.
+	for height in [1.15, 2.35]:
+		StationKit.place(
+			parent,
+			"pipes_a",
+			"ReactorManifold_%d" % int(height * 10.0),
+			Vector3(0.0, height, -33.3),
+			90.0,
+			1.6,
+			"",
+			Vector3.ONE,
+			"reactor"
+		)
+	StationKit.place(
+		parent,
+		"platform",
+		"ReactorPlinth",
+		Vector3(0.0, 0.0, -32.6),
+		0.0,
+		1.6,
+		"floor",
+		Vector3(1.0, 1.0, 0.6),
+		"reactor"
+	)
 	for side in [-1.0, 1.0]:
 		StationKit.place(
 			parent,
