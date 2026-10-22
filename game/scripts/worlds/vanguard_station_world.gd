@@ -297,21 +297,10 @@ func _build_hangar_deck(parent: Node3D) -> void:
 		_place(
 			parent,
 			"floor_coin",
-			"HangarHazardN_%d" % int(x),
-			Vector3(x, 0.03, -16.6),
-			0.0,
-			1.0,
-			"",
-			Vector3.ONE,
-			"hangar"
-		)
-		_place(
-			parent,
-			"floor_coin",
 			"HangarHazardS_%d" % int(x),
-			Vector3(x, 0.03, 16.6),
-			0.0,
-			1.0,
+			Vector3(x, 0.03, 17.2),
+			45.0,
+			0.7,
 			"",
 			Vector3.ONE,
 			"hangar"
@@ -1165,14 +1154,17 @@ func _build_catwalks(parent: Node3D) -> void:
 func _build_lighting(parent: Node3D) -> void:
 	var cold := Color(0.72, 0.86, 1.0)
 	var warm := Color(1.0, 0.62, 0.28)
-	_light(parent, "HangarLightNW", Vector3(-9.0, 4.2, -9.0), cold, 3.6, 30.0)
-	_light(parent, "HangarLightNE", Vector3(9.0, 4.2, -9.0), cold, 3.6, 30.0)
-	_light(parent, "HangarLightSW", Vector3(-9.0, 4.2, 9.0), cold, 3.6, 30.0)
-	_light(parent, "HangarLightSE", Vector3(9.0, 4.2, 9.0), cold, 3.6, 30.0)
-	_light(parent, "HangarGateLight", Vector3(0.0, 3.6, 16.5), warm, 2.2, 18.0)
-	_light(parent, "ReactorLight", Vector3(0.0, 3.7, -28.0), Color(0.45, 0.8, 1.0), 3.2, 24.0)
-	_light(parent, "CargoLight", Vector3(-28.0, 3.5, 0.0), cold, 1.8, 18.0)
-	_light(parent, "CorridorLightWest", Vector3(25.0, 3.6, 0.0), cold, 1.6, 14.0)
-	_light(parent, "CorridorLightEast", Vector3(37.0, 3.6, 0.0), cold, 1.6, 14.0)
+	_light(parent, "HangarLightNW", Vector3(-9.0, 4.2, -9.0), cold, 9.0, 38.0)
+	_light(parent, "HangarLightNE", Vector3(9.0, 4.2, -9.0), cold, 9.0, 38.0)
+	_light(parent, "HangarLightSW", Vector3(-9.0, 4.2, 9.0), cold, 9.0, 38.0)
+	_light(parent, "HangarLightSE", Vector3(9.0, 4.2, 9.0), cold, 9.0, 38.0)
+	# One warm source in a cold room: it is what makes the deck read as metal
+	# rather than as slate, and it is the only hue in the theatre that is not cyan.
+	_light(parent, "HangarGateLight", Vector3(0.0, 3.4, 16.0), warm, 7.0, 26.0)
+	_light(parent, "HangarWarmFill", Vector3(-2.0, 2.0, 6.0), Color(1.0, 0.78, 0.5), 3.0, 16.0)
+	_light(parent, "ReactorLight", Vector3(0.0, 3.7, -28.0), Color(0.45, 0.8, 1.0), 8.0, 30.0)
+	_light(parent, "CargoLight", Vector3(-28.0, 3.5, 0.0), cold, 6.0, 24.0)
+	_light(parent, "CorridorLightWest", Vector3(25.0, 3.4, 0.0), cold, 5.0, 18.0)
+	_light(parent, "CorridorLightEast", Vector3(37.0, 3.4, 0.0), cold, 5.0, 18.0)
 	# A rim light behind the reactor, so the turbine face is not a silhouette.
 	_light(parent, "ReactorRim", Vector3(0.0, 2.0, -36.0), Color(0.3, 0.7, 1.0), 1.8, 12.0)
