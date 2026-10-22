@@ -77,6 +77,7 @@ func build() -> Dictionary:
 	add_child(root)
 
 	_build_hangar_deck(root)
+	_build_hangar_apron(root)
 	_build_reactor_deck(root)
 	_build_cargo_deck(root)
 	_build_corridor_deck(root)
@@ -90,7 +91,7 @@ func build() -> Dictionary:
 	_build_lighting(root)
 
 	_build_stats["modules"] = _count_modules(root)
-	_build_stats["lights"] = 8
+	_build_stats["lights"] = _count_lights(root)
 	print(
 		(
 			"VanguardStation: %d kit modules, %d omnis, %d rooms"
@@ -243,6 +244,14 @@ func _light(
 	parent.add_child(omni)
 
 
+func _count_lights(root: Node3D) -> int:
+	var count := 0
+	for node in root.get_children():
+		if node is OmniLight3D:
+			count += 1
+	return count
+
+
 func _count_modules(root: Node3D) -> int:
 	var total := 0
 	for node in root.get_children():
@@ -344,6 +353,68 @@ func _build_hangar_deck(parent: Node3D) -> void:
 			Vector3.ONE,
 			"hangar"
 		)
+
+
+## The apron the player spawns on.
+##
+## The player is dropped at the origin facing the reactor door, so this furniture
+## is on the north half of the deck. An earlier pass dressed the south gate
+## instead and photographed an empty deck twice; the cover has to be between the
+## spawn and the thing the camera is pointed at, not beside the player's
+## shoulders, or a 72 degree field of view never contains it.
+func _build_hangar_apron(parent: Node3D) -> void:
+	for index in range(4):
+		var at := Vector3(-4.0 + float(index % 2) * 8.0, 0.0, -13.0 - float(index / 2) * 3.0)
+		_place(
+			parent,
+			"crate",
+			"HangarCoverCrate_%02d" % index,
+			at,
+			90.0 if index % 2 == 0 else 0.0,
+			1.0,
+			"box",
+			Vector3.ONE,
+			"hangar"
+		)
+	# A console bank facing into the room, and a bench on the far side: between
+	# them they frame the walkway to the door without ever standing in it.
+	_place(
+		parent,
+		"console_half",
+		"HangarSpawnConsole",
+		Vector3(-12.5, 0.0, -13.0),
+		180.0,
+		1.0,
+		"box",
+		Vector3.ONE,
+		"hangar"
+	)
+	_place(
+		parent,
+		"table",
+		"HangarSpawnBench",
+		Vector3(12.8, 0.0, -13.5),
+		0.0,
+		1.0,
+		"box",
+		Vector3.ONE,
+		"hangar"
+	)
+	# Grate runs either side of the walkway, so the deck has a grain that leads
+	# the eye to the lit door rather than a blank field of plate.
+	for z in [-11.0, -15.5]:
+		for side in [-1.0, 1.0]:
+			_place(
+				parent,
+				"floor_tech",
+				"HangarApronGrate_%s_%d" % [str(side), int(z)],
+				Vector3(side * 7.0, 0.02, z),
+				90.0,
+				0.9,
+				"",
+				Vector3.ONE,
+				"hangar"
+			)
 
 
 func _build_reactor_deck(parent: Node3D) -> void:
