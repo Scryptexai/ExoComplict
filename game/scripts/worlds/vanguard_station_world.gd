@@ -318,24 +318,6 @@ func _build_hangar_deck(parent: Node3D) -> void:
 			Vector3.ONE,
 			"hangar"
 		)
-	_build_floor_grid_centre(parent)
-
-
-## The centre of the hangar is where the player stands, so it gets the pack's
-## small circular deck marker rather than another 6 m plate on top.
-func _build_floor_grid_centre(parent: Node3D) -> void:
-	for offset in [Vector2(0.0, 0.0)]:
-		_place(
-			parent,
-			"floor_coin",
-			"HangarMarkingCentre",
-			Vector3(offset.x, 0.03, offset.y + 8.0),
-			0.0,
-			1.6,
-			"",
-			Vector3.ONE,
-			"hangar"
-		)
 
 
 func _build_reactor_deck(parent: Node3D) -> void:
@@ -705,6 +687,28 @@ func _build_gatehouse(parent: Node3D) -> void:
 			Vector3.ONE,
 			"hangar"
 		)
+	_place(
+		parent,
+		"light_strip",
+		"DockGateLintel",
+		Vector3(0.0, 3.9, 18.2),
+		0.0,
+		3.4,
+		"",
+		Vector3.ONE,
+		"hangar"
+	)
+	_place(
+		parent,
+		"light_corridor",
+		"DockThreshold",
+		Vector3(0.0, 0.15, 17.6),
+		90.0,
+		1.2,
+		"",
+		Vector3.ONE,
+		"hangar"
+	)
 	# "07" over the gate, in the pack's own numeral modules.
 	_place(
 		parent,
