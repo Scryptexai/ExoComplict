@@ -866,22 +866,25 @@ func _build_gatehouse(parent: Node3D) -> void:
 	)
 
 
-## The reactor: the pack's turbine face on the back wall, a stack of fin columns
-## and pipe runs around it, consoles at the base and the corridor lights washing
-## the whole alcove. This is the landmark the player sees from spawn, so it is
-## built from the largest modules in the pack rather than dressed with props.
+## The reactor: the pack's 8.5 m airing panel as the core face, two fin columns
+## beside it, pipe runs and consoles at the base, and the room's lights washing
+## the alcove. This is the landmark the player sees from spawn, so it is built
+## from the largest modules in the pack rather than dressed with props.
+##
+## Everything here sits in front of the back wall's inner face, which the 6 m wall
+## modules put at about z = -34.8. The first version placed the whole landmark at
+## -36, inside the wall, and the room's centrepiece rendered as a row of boxes
+## stapled to the plating.
 func _build_reactor(parent: Node3D) -> void:
-	# The core face: the pack's 8.5 x 8.5 m airing panel, upright, framed by two of
-	# its fin columns on a plinth. The gear and console modules are wall furniture
-	# with doors on them — three of those in a row read as cupboards, which is what
-	# the first three attempts at this landmark did. The airing panel is the only
-	# module in the pack that is a large framed aperture, which is what the reactor
-	# end of the hall needs to be.
+	# The core face. The gear and console families are wall furniture with doors
+	# on them — three of those in a row read as cupboards, which is what three
+	# attempts at this landmark produced. `Airing_01` is the only large framed
+	# aperture in the pack, so that is what the reactor end of the hall is.
 	StationKit.place(
 		parent,
 		"airing",
 		"ReactorCoreFace",
-		Vector3(0.0, 0.0, -35.4),
+		Vector3(0.0, 0.0, -34.5),
 		0.0,
 		1.0,
 		"box",
@@ -892,23 +895,23 @@ func _build_reactor(parent: Node3D) -> void:
 		parent,
 		"platform_flat",
 		"ReactorPlinth",
-		Vector3(0.0, 0.42, -35.2),
+		Vector3(0.0, 0.4, -34.2),
 		0.0,
 		1.4,
 		"floor",
-		Vector3(1.0, 1.0, 0.7),
+		Vector3(1.0, 1.0, 0.55),
 		"reactor"
 	)
-	# A lit ring around the aperture: four strips on the frame, so the core is the
-	# brightest surface in its own room.
-	for offset in [Vector3(0.0, 3.9, -34.2), Vector3(0.0, 0.55, -34.2)]:
+	# Lit frame: a bar above and below the aperture, a strip down each side. The
+	# core is the brightest surface in its own room.
+	for offset in [Vector3(0.0, 3.95, -34.0), Vector3(0.0, 0.5, -34.0)]:
 		StationKit.place(
 			parent,
 			"light_corridor",
-			"ReactorCoreLamp_%d" % int(offset.y * 10.0),
+			"ReactorCoreBar_%d" % int(offset.y * 10.0),
 			offset,
 			0.0,
-			1.6,
+			1.7,
 			"",
 			Vector3.ONE,
 			"reactor"
@@ -918,105 +921,19 @@ func _build_reactor(parent: Node3D) -> void:
 			parent,
 			"light_strip",
 			"ReactorCoreSide_%s" % str(side),
-			Vector3(4.3 * side, 2.2, -34.2),
+			Vector3(4.4 * side, 2.2, -34.0),
 			90.0,
-			4.0,
+			4.2,
 			"",
 			Vector3.ONE,
 			"reactor"
 		)
-	for side in [-1.0, 1.0]:
-		StationKit.place(
-			parent,
-			"column",
-			"DockGatePillar_%s" % str(side),
-			Vector3(3.4 * side, 0.0, 19.0),
-			90.0,
-			1.0,
-			"box",
-			Vector3.ONE,
-			"hangar"
-		)
-		StationKit.place(
-			parent,
-			"light_strip",
-			"DockGateStrip_%s" % str(side),
-			Vector3(2.6 * side, 3.5, 18.3),
-			0.0,
-			1.5,
-			"",
-			Vector3.ONE,
-			"hangar"
-		)
-	StationKit.place(
-		parent,
-		"light_strip",
-		"DockGateLintel",
-		Vector3(0.0, 3.9, 18.2),
-		0.0,
-		3.4,
-		"",
-		Vector3.ONE,
-		"hangar"
-	)
-	StationKit.place(
-		parent,
-		"light_corridor",
-		"DockThreshold",
-		Vector3(0.0, 0.15, 17.6),
-		90.0,
-		1.2,
-		"",
-		Vector3.ONE,
-		"hangar"
-	)
-	# "07" over the gate, in the pack's own numeral modules.
-	StationKit.sign(parent, "num_0", "DockNumeralZero", Vector3(-1.5, 2.9, 18.4), -90.0, "hangar")
-	StationKit.sign(parent, "num_7", "DockNumeralSeven", Vector3(1.5, 2.9, 18.4), -90.0, "hangar")
-	StationKit.sign(
-		parent, "sign_caution", "GateCautionSign", Vector3(-6.5, 2.6, 18.3), -90.0, "hangar"
-	)
-
-
-## The reactor: the pack's turbine face on the back wall, a stack of fin columns
-## and pipe runs around it, consoles at the base and the corridor lights washing
-## the whole alcove. This is the landmark the player sees from spawn, so it is
-## built from the largest modules in the pack rather than dressed with props.
-func _build_reactor(parent: Node3D) -> void:
-	# The turbine, built out of three of the pack's gear faces rather than one.
-	# One is a 4 m panel in an 18 m wall and reads as a locker door; three side by
-	# side, with a light bar over each, is an installation the room is arranged
-	# around.
-	for index in range(3):
-		var offset := -5.4 + 5.4 * float(index)
-		StationKit.place(
-			parent,
-			"gear",
-			"ReactorTurbineFace_%d" % index,
-			Vector3(offset, 0.0, -34.6),
-			90.0,
-			1.15,
-			"box",
-			Vector3.ONE,
-			"reactor"
-		)
-		StationKit.place(
-			parent,
-			"light_strip",
-			"ReactorTurbineLamp_%d" % index,
-			Vector3(offset, 3.85, -34.15),
-			0.0,
-			3.2,
-			"",
-			Vector3.ONE,
-			"reactor"
-		)
-	for side in [-1.0, 1.0]:
+		# Fin columns either side of the core, and the pipe rises behind them.
 		StationKit.place(
 			parent,
 			"column",
 			"ReactorFin_%s" % str(side),
-			Vector3(4.9 * side, 0.0, -34.4),
+			Vector3(5.4 * side, 0.0, -34.4),
 			0.0,
 			1.0,
 			"box",
@@ -1027,55 +944,53 @@ func _build_reactor(parent: Node3D) -> void:
 			parent,
 			"pipes_b",
 			"ReactorPipeRise_%s" % str(side),
-			Vector3(7.6 * side, 1.3, -33.0),
+			Vector3(8.6 * side, 1.3, -33.2),
 			90.0,
 			1.0,
 			"",
 			Vector3.ONE,
 			"reactor"
 		)
+		# The bays either side of the core were the blackest surfaces in the room:
+		# 4 m of wall with no fixture on it. Racks give them shape, strips light.
 		for index in range(3):
 			StationKit.place(
 				parent,
+				"wall_low",
+				"ReactorBayRack_%d_%s" % [index, str(side)],
+				Vector3(11.6 * side, 0.0, -33.6 + 1.2 * float(index)),
+				0.0,
+				0.55,
+				"",
+				Vector3(0.6, 1.0, 0.5),
+				"reactor"
+			)
+		for index in range(2):
+			StationKit.place(
+				parent,
 				"light_strip",
-				"ReactorWallLamp_%s_%d" % [str(side), index],
-				Vector3(side * 12.4, 3.4, -23.0 - 5.0 * float(index)),
+				"ReactorBayLamp_%d_%s" % [index, str(side)],
+				Vector3(12.6 * side, 2.9, -33.0 + 7.0 * float(index)),
 				-90.0 * side,
-				1.0,
+				1.6,
 				"",
 				Vector3.ONE,
 				"reactor"
 			)
-	# A lit apron in front of the turbine, laid in the pack's hazard strip, and a
-	# bar of light above the face so the landmark is the brightest thing in its
-	# own room rather than a dark panel between two dark panels.
-	for index in range(4):
-		var angle := deg_to_rad(45.0 + 30.0 * float(index))
-		var at := Vector3(cos(angle) * 4.6, 0.03, -31.0 + sin(angle) * 1.6)
+		# Consoles facing the core.
 		StationKit.place(
 			parent,
-			"floor_strip",
-			"ReactorApron_%d" % index,
-			at,
-			rad_to_deg(angle),
-			0.35,
-			"",
+			"console_large",
+			"ReactorConsole_%s" % str(side),
+			Vector3(9.4 * side, 0.0, -26.0),
+			0.0,
+			1.0,
+			"box",
 			Vector3.ONE,
 			"reactor"
 		)
-	StationKit.place(
-		parent,
-		"light_corridor",
-		"ReactorHeadLamp",
-		Vector3(0.0, 3.9, -33.0),
-		90.0,
-		0.9,
-		"",
-		Vector3.ONE,
-		"reactor"
-	)
-	# The plinth the reactor sits on, and the consoles that face it.
-	for z in [-33.0, -29.0, -25.0]:
+	# Pipe runs along the west deck, and the work bench against the south wall.
+	for z in [-32.0, -28.0, -24.0]:
 		StationKit.place(
 			parent,
 			"pipes_c",
@@ -1089,69 +1004,23 @@ func _build_reactor(parent: Node3D) -> void:
 		)
 	StationKit.place(
 		parent,
-		"console_large",
-		"ReactorConsoleWest",
-		Vector3(-11.2, 0.0, -24.0),
-		90.0,
-		1.0,
-		"box",
-		Vector3.ONE,
-		"reactor"
-	)
-	StationKit.place(
-		parent,
-		"console_large",
-		"ReactorConsoleEast",
-		Vector3(11.2, 0.0, -24.0),
-		-90.0,
-		1.0,
-		"box",
-		Vector3.ONE,
-		"reactor"
-	)
-	StationKit.place(
-		parent,
 		"table",
 		"ReactorWorkBench",
-		Vector3(-4.5, 0.0, -23.0),
+		Vector3(-4.5, 0.0, -22.5),
 		0.0,
 		1.0,
 		"box",
 		Vector3.ONE,
 		"reactor"
 	)
+	# The west wall runs along Z, so a decal on it lies flush at yaw 0; the east
+	# wall's sign faces the other way.
 	StationKit.sign(
-		parent, "word_warning", "ReactorWarningDecal", Vector3(-11.9, 2.9, -30.0), 180.0, "reactor"
+		parent, "word_warning", "ReactorWarningDecal", Vector3(-12.7, 2.6, -30.0), 0.0, "reactor"
 	)
 	StationKit.sign(
-		parent, "sign_danger", "ReactorDangerSign", Vector3(11.9, 2.6, -22.0), 0.0, "reactor"
+		parent, "sign_danger", "ReactorDangerSign", Vector3(12.7, 2.6, -22.0), 180.0, "reactor"
 	)
-	# Wall bays either side of the turbine, which were the blackest surfaces in
-	# the room. Racks give them shape, the strips give them light.
-	for index in range(3):
-		for side in [-1.0, 1.0]:
-			StationKit.place(
-				parent,
-				"wall_low",
-				"ReactorBayRack_%d_%s" % [index, str(side)],
-				Vector3(8.4 * side, 0.0, -35.0 + 1.6 * float(index)),
-				0.0,
-				0.55,
-				"",
-				Vector3(0.6, 1.0, 0.6),
-				"reactor"
-			)
-			StationKit.place(
-				parent,
-				"light_strip",
-				"ReactorBayLamp_%d_%s" % [index, str(side)],
-				Vector3(12.6 * side, 2.9, -34.0 + 6.0 * float(index)),
-				-90.0 * side,
-				1.6,
-				"",
-				Vector3.ONE,
-				"reactor"
-			)
 
 
 func _build_cargo_bay(parent: Node3D) -> void:
