@@ -372,8 +372,8 @@ func _build_cargo_deck(parent: Node3D) -> void:
 			"floor_strip",
 			"CargoLane_%d" % int(z),
 			Vector3(-28.0, 0.03, z),
-			0.0,
-			2.2,
+			90.0,
+			1.0,
 			"",
 			Vector3.ONE,
 			"cargo"
@@ -628,9 +628,14 @@ func _build_corridor_walls(parent: Node3D) -> void:
 # --- ceiling --------------------------------------------------------------
 
 
-## A roof over every room, at 4.4 m: the module is 4 m tall, so a 0.4 m allowance
-## keeps the truss line above head height. Four glass plates over the hangar's
-## centre and two over the reactor let the sky in where the composition needs it.
+## A roof over every room, at 4.4 m: the wall modules are 4 m tall, so a 0.4 m
+## allowance keeps the truss line above head height.
+##
+## The skylights are *holes*, not glass. `Roof_Glass_01_6x6` looks like a roof
+## plate by name and is not one: measured, it is a 1.9 x 6.0 x 6.0 vertical pane
+## whose origin sits 2 m above its centre, so laying it flat hangs a six-metre
+## cyan slab down through the room. The first capture of the reactor hall was
+## mostly that slab.
 func _build_ceiling(parent: Node3D) -> void:
 	for room in ROOMS:
 		var bounds: Dictionary = ROOMS[room]
@@ -640,12 +645,17 @@ func _build_ceiling(parent: Node3D) -> void:
 			var x: float = bounds["min"].x + TILE * 0.5
 			var row := 0
 			while x < bounds["max"].x:
-				var glass := false
+				var open := false
 				if room == "hangar":
-					glass = absf(x) < 4.0 and (absf(z) < 4.0 or absf(z + 12.0) < 4.0)
+					open = absf(x) < 4.0 and (absf(z) < 4.0 or absf(z + 12.0) < 4.0)
 				elif room == "reactor":
-					glass = absf(x) < 4.0 and absf(z + 27.0) < 4.0
-				var key := "roof_glass" if glass else "roof"
+					open = absf(x) < 4.0 and absf(z + 27.0) < 4.0
+				if open:
+					# Skylight: leave the cell empty and put a trim ring around it.
+					row += 1
+					x += TILE
+					continue
+				var key := "roof"
 				_place(
 					parent,
 					key,
