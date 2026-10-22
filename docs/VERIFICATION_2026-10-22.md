@@ -580,7 +580,37 @@ only thing in this repo that runs a parser:
 13. **`?qa_world=` dropped on the gameplay URL** — a capture run reported the
     station and photographed the frontier, and the numbers agreed with it.
 
-### 10.6 What is honestly still weak
+### 10.6 The second pass: what the captures found that the tests could not
+
+Every defect below was found by looking at a rendered frame, and each one is a
+placement or asset-truth error that `gdlint`, `gdformat`, `dev_check.sh` and even
+the headless smoke suite all called clean:
+
+* **No Environment.** The theatre had no sky, sun or ambient of its own and was
+  lit by the engine default, which the roof ring then blocked. Everything else
+  here was tuned against a broken exposure for several passes.
+* **The pack's artwork was painted over.** `Sign_Caution_01`, the word decals and
+  the numerals ship with a base-colour texture; the palette overrode every surface
+  with a flat colour, so every sign was a blank coloured rectangle. Textured
+  surfaces on artwork modules are now left alone, and the smoke test asserts one.
+* **Decals were rotated onto the wrong axis.** These modules are zero-thickness
+  planes with their normal on +-X, so a sign on an X-running wall needs yaw 90,
+  not 0. Nearly every sign stood out of its wall or faced backwards.
+* **`floor_tech` is not a floor.** `Floor_Pipes_01` is a 0.47 m raised pipe run;
+  used as a deck channel it laid loose pipes down the hall and across the walkway.
+* **Corridor ribs were walls in the walkway.** Four 4.4 m beams on the centre
+  line, with no colliders, so the route sweep walked through them.
+* **The turbine was inside the back wall.** The wall's inner face is near
+  z = -34.8 and every reactor part was placed at -36.
+* **The omnis were two stops too hot.** 9.0 energy two metres above the catwalk
+  decks clipped steel to white, which is what made the walkways read as floating
+  cyan slabs.
+* **Two tour vantages photographed the wrong thing** — the corridor's from behind
+  a wall's width of doorway, the catwalk's from above the roof plates.
+* **An edit deleted a function wholesale** and two commits then rearranged its
+  contents; the crate assertion in the smoke test caught it.
+
+### 10.7 What is honestly still weak
 
 * **The kit is a corridor kit, and the hangar is 36 m.** At that span the wall
   modules read as flat grey planes; the detail that makes the pack sing at 6 m
@@ -596,3 +626,9 @@ only thing in this repo that runs a parser:
   next pass should instance the repeated deck and wall modules and measure.
 * **Nothing is verified on a device or on the mobile renderer.**
 * **The card plate is a crop of a review frame**, not commissioned key art.
+* **The reactor hall is the weakest room.** Three gear faces at 1.15 scale now
+  span 16 m of its back wall and read as a bank rather than a machine; the room
+  wants a plinth, a rail and an operator deck under it, which is the next pass.
+* **The kit exposes no inventory or turret modules**, so a hangar full of the ten
+  Kenney craft still needs an art decision about mixing two different detail
+  levels, not a drop-in.
