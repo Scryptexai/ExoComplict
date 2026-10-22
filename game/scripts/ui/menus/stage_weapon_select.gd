@@ -374,15 +374,15 @@ func _class_of(weapon_id: StringName) -> String:
 	return "ENERGY · SINGLE TARGET"
 
 
-## What the resource itself can say about handling, plus the price the service
-## charges for this weapon -- read from the service, never typed here.
+## The weapon's own description, first sentence only: `role_description` is
+## written to be read, and this panel has one line for it.
 func _detail_of(weapon_id: StringName) -> String:
 	var definition := WeaponDefinition.load_definition(weapon_id)
 	if definition == null:
 		return ""
-	var progression := progression_service()
-	var cost := progression.unlock_cost(weapon_id) if progression != null else 0
-	return "%d BP TO UNLOCK" % cost if cost > 0 else "IN YOUR ARMORY"
+	var sentence := definition.role_description.strip_edges()
+	var stop := sentence.find(". ")
+	return sentence.substr(0, stop + 1) if stop > 0 else sentence
 
 
 ## The same three groups the card version printed, each short enough for one
@@ -471,6 +471,12 @@ func _apply_orientation() -> void:
 	for column in [_col_model, _col_info]:
 		if column.get_parent() != null:
 			column.get_parent().remove_child(column)
+	# An empty, expanding HBox left in the stack is a blank half-screen between
+	# the header and the carousel; it only has a job in landscape.
+	if landscape and _body.get_parent() == null:
+		_stack.add_child(_body)
+	elif not landscape and _body.get_parent() == _stack:
+		_stack.remove_child(_body)
 	if landscape:
 		# Model left, everything readable right.
 		_body.add_child(_col_model)
@@ -493,7 +499,7 @@ func _apply_orientation() -> void:
 ## The size the camera is told to frame, in showcase metres, for this shape of
 ## window. Portrait is the tighter box, so it asks for the smaller number.
 func _showcase_length() -> float:
-	return 1.55 if not is_landscape() else 1.15
+	return 1.35 if not is_landscape() else 1.15
 
 
 func _apply_density() -> void:
