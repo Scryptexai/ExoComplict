@@ -392,6 +392,7 @@ func _spawn_model() -> void:
 	# the file), so it needs no material fix-up here -- an earlier pass added one
 	# on the assumption that the GLB had no PBR block, and an A/B capture showed
 	# it changed the avatar's median luma by two points, i.e. nothing.
+	_add_character_fill()
 	var outline := ModelFitterScript.outline_material(OUTLINE_COLOR, OUTLINE_GROW)
 	ModelFitterScript.apply_overlay_material(_model, outline)
 	if is_instance_valid(_fallback_body):
