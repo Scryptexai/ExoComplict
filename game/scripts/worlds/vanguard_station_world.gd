@@ -994,9 +994,9 @@ func _build_reactor(parent: Node3D) -> void:
 		parent,
 		"gear",
 		"ReactorTurbineFace",
-		Vector3(0.0, 0.0, -36.1),
-		0.0,
-		1.0,
+		Vector3(0.0, 0.0, -36.4),
+		90.0,
+		0.95,
 		"box",
 		Vector3.ONE,
 		"reactor"
