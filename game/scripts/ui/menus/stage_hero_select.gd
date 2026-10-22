@@ -390,7 +390,7 @@ func _present_selected(reveal: bool) -> void:
 	var progression := progression_service()
 	if progression != null:
 		_loadout_label.text = (
-			"DEPLOYS WITH  %s  /  %s"
+			"%s  ·  %s"
 			% [
 				_weapon_name(progression.selected_weapon_id),
 				_world_name(progression.selected_world_id),
@@ -466,6 +466,9 @@ func _on_resized() -> void:
 	relayout()
 	_orient_nodes(_cards + _locked)
 	_apply_orientation()
+	# Every resize, not only a rotation: the first layout is not a transition, so
+	# anything reached only through `_apply_orientation()` would never run here.
+	_apply_density()
 	# The camera framing depends on how tall the stage is: a 96 px showcase
 	# strip on a landscape phone needs the model pulled back, not cropped.
 	if is_instance_valid(_showcase) and _showcase.has_model():
@@ -510,7 +513,6 @@ func _apply_orientation() -> void:
 	# Landscape has room for the full label; portrait shares the header with the
 	# status line and clipped it to "SELECT OPER…" in the first capture.
 	physical_min_size(_carousel, 0.0, 68.0 if landscape else 96.0)
-	_apply_density()
 
 
 ## The model is the subject, so when height is short the *chrome* gives way, not

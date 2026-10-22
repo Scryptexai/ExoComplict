@@ -259,7 +259,7 @@ func _build_panel() -> void:
 	# One Label per stat group, single-line with an ellipsis. Every value here is
 	# read from the same resource the weapon fires from, and the `stat_line`
 	# marker is what `data_source_smoke` matches on -- it reads them all.
-	for index in range(3):
+	for index in range(4):
 		var line := make_label("", "mono_s", AegisTokens.INFO if index == 0 else AegisTokens.INK_2)
 		line.autowrap_mode = TextServer.AUTOWRAP_OFF
 		line.clip_text = true
@@ -382,27 +382,29 @@ func _detail_of(weapon_id: StringName) -> String:
 		return ""
 	var progression := progression_service()
 	var cost := progression.unlock_cost(weapon_id) if progression != null else 0
-	return "%s · %d BP" % [_class_of(weapon_id), cost]
+	return "%d BP TO UNLOCK" % cost if cost > 0 else "IN YOUR ARMORY"
 
 
 ## The same three groups the card version printed, each short enough for one
 ## line at this column width. Values come from the definition, never from here.
+## Three short groups, each of which fits one line of a 390 px column. Values
+## come from the definition, never from here.
+## Four short groups, each of which fits one line of a 390 px column. Values come
+## from the definition, never from here; the fourth group is empty for a weapon
+## with no area or chain behaviour rather than padded with a number.
 func _stat_groups(definition: WeaponDefinition) -> Array[String]:
 	var groups: Array[String] = [
-		(
-			"DMG %s · RATE %s/s · MAG %d"
-			% [_trim(definition.damage), _trim(definition.fire_rate), definition.magazine_size]
-		),
-		"RELOAD %ss · RNG %sm" % [_trim(definition.reload_seconds), _trim(definition.max_range)],
+		"DMG %s · RATE %s/s" % [_trim(definition.damage), _trim(definition.fire_rate)],
+		"MAG %d · RELOAD %ss" % [definition.magazine_size, _trim(definition.reload_seconds)],
+		"RNG %sm" % _trim(definition.max_range),
+		"",
 	]
-	var extra: Array[String] = []
 	if definition.splash_damage > 0.0:
-		extra.append(
+		groups[3] = (
 			"SPLASH %s / %sm" % [_trim(definition.splash_damage), _trim(definition.splash_radius)]
 		)
 	if definition.chain_count > 0:
-		extra.append("CHAIN %d" % definition.chain_count)
-	groups.append(" · ".join(extra) if not extra.is_empty() else "")
+		groups[3] = "CHAIN %d" % definition.chain_count
 	return groups
 
 
@@ -446,43 +448,52 @@ func _on_resized() -> void:
 	_orient_nodes(_cards)
 	_apply_orientation()
 	_apply_density()
+	# Framing follows the box the model is actually drawn in. A tall, narrow box
+	# crops a 1 m rifle horizontally, so portrait asks the camera for a smaller
+	# object -- the same reason the hero pulls back on a landscape strip.
+	if is_instance_valid(_showcase) and _showcase.has_model():
+		_showcase.frame_model(_showcase_length(), true)
 
 
+## Portrait stacks: carousel, model, then the information panel and CONTINUE.
+## Landscape puts the model on the left and everything read or tapped on the
+## right, because a 390 px tall screen cannot stack four bands and still show a
+## rifle. Every move is a reconciliation, not a reaction to a transition -- the
+## first layout is not a rotation, and a handler that only ran on rotation is how
+## the first capture ended up with the panel squeezed into a column beside the
+## model.
 func _apply_orientation() -> void:
 	var landscape := is_landscape()
-	if landscape == _landscape_built:
-		return
 	_landscape_built = landscape
 	for block in [_carousel_wrap, _showcase_holder, _panel, _continue]:
 		if block.get_parent() != null:
 			block.get_parent().remove_child(block)
+	for column in [_col_model, _col_info]:
+		if column.get_parent() != null:
+			column.get_parent().remove_child(column)
 	if landscape:
-		# Landscape: model left, everything readable right. A 390 px tall screen
-		# cannot stack a carousel and a model above a panel.
-		if _col_info.get_parent() != _body:
-			_body.add_child(_col_info)
+		# Model left, everything readable right.
+		_body.add_child(_col_model)
+		_body.add_child(_col_info)
 		_col_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_col_model.add_child(_carousel_wrap)
-		_col_model.add_child(_showcase_holder)
-		_col_info.add_child(_panel)
-		_col_info.add_child(_continue)
 	else:
-		# Portrait: the model on top, the information panel and CONTINUE beneath.
-		if _col_info.get_parent() == _body:
-			_body.remove_child(_col_info)
-		if _col_model.get_parent() == _body:
-			_body.remove_child(_col_model)
+		# Model on top, the information panel and CONTINUE beneath it.
 		_stack.add_child(_col_model)
 		_stack.add_child(_col_info)
-		_col_model.add_child(_carousel_wrap)
-		_col_model.add_child(_showcase_holder)
-		_col_info.add_child(_panel)
-		_col_info.add_child(_continue)
-	# The columns are children of a different parent in portrait, so their sizing
-	# flags have to follow.
+		_col_info.size_flags_horizontal = Control.SIZE_FILL
+	_col_model.add_child(_carousel_wrap)
+	_col_model.add_child(_showcase_holder)
+	_col_info.add_child(_panel)
+	_col_info.add_child(_continue)
 	_col_model.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_col_model.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_col_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+
+## The size the camera is told to frame, in showcase metres, for this shape of
+## window. Portrait is the tighter box, so it asks for the smaller number.
+func _showcase_length() -> float:
+	return 1.55 if not is_landscape() else 1.15
 
 
 func _apply_density() -> void:
