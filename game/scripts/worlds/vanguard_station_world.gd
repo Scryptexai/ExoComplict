@@ -1407,17 +1407,22 @@ func _build_corridor_dressing(parent: Node3D) -> void:
 			)
 	# And the wall itself: steel racks between the lights, so the run reads as a
 	# wall with fittings rather than as a black field with dots on it.
-	for z in [-12.0, 0.0, 12.0]:
+	# Along the wall, not across it, and clear of both doorways: at yaw 90 this
+	# module is 4.5 m deep into the room and the first version stood right in the
+	# openings to the cargo bay and the corridor, which is what the route sweep
+	# caught. It is 0.75 m thick against the plating now, and the doorways at z 0
+	# are left empty.
+	for z in [-14.0, -7.0, 7.0, 14.0]:
 		for side in [-1.0, 1.0]:
 			_place(
 				parent,
 				"wall_low",
 				"HangarSideRack_%d_%s" % [int(z), str(side)],
-				Vector3(18.0 * side, 0.0, z),
-				90.0 if side > 0.0 else -90.0,
+				Vector3(17.7 * side, 0.0, z),
+				0.0,
 				0.75,
 				"box",
-				Vector3.ONE,
+				Vector3(0.5, 1.0, 1.0),
 				"hangar"
 			)
 
