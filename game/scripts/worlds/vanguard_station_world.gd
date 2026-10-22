@@ -994,9 +994,9 @@ func _build_reactor(parent: Node3D) -> void:
 		parent,
 		"gear",
 		"ReactorTurbineFace",
-		Vector3(0.0, 0.0, -37.0),
+		Vector3(0.0, 0.0, -36.1),
 		0.0,
-		0.85,
+		1.0,
 		"box",
 		Vector3.ONE,
 		"reactor"
@@ -1036,6 +1036,34 @@ func _build_reactor(parent: Node3D) -> void:
 				Vector3.ONE,
 				"reactor"
 			)
+	# A lit apron in front of the turbine, laid in the pack's hazard strip, and a
+	# bar of light above the face so the landmark is the brightest thing in its
+	# own room rather than a dark panel between two dark panels.
+	for index in range(4):
+		var angle := deg_to_rad(45.0 + 30.0 * float(index))
+		var at := Vector3(cos(angle) * 4.6, 0.03, -31.0 + sin(angle) * 1.6)
+		_place(
+			parent,
+			"floor_strip",
+			"ReactorApron_%d" % index,
+			at,
+			rad_to_deg(angle),
+			0.35,
+			"",
+			Vector3.ONE,
+			"reactor"
+		)
+	_place(
+		parent,
+		"light_corridor",
+		"ReactorHeadLamp",
+		Vector3(0.0, 3.95, -35.2),
+		90.0,
+		0.9,
+		"",
+		Vector3.ONE,
+		"reactor"
+	)
 	# The plinth the reactor sits on, and the consoles that face it.
 	for z in [-33.0, -29.0, -25.0]:
 		_place(
