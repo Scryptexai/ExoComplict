@@ -43,6 +43,7 @@ func _run_smoke_test() -> void:
 	await _check_weapon_models_are_the_gameplay_model()
 	_check_declared_clips_exist()
 	await _check_the_live_stage_shows_a_model()
+	await _check_the_weapon_stage_shows_a_model()
 	await _check_the_showcase_cannot_move_the_avatar()
 	_teardown()
 	if _failures.is_empty():
@@ -198,6 +199,39 @@ func _check_the_live_stage_shows_a_model() -> void:
 			"the showcase viewport has been sized (%dx%d)" % [viewport.size.x, viewport.size.y]
 		)
 		_expect(viewport.get_camera_3d() != null, "the viewport renders through its own camera")
+
+
+## The weapon screen shows the mesh the selected weapon is held as. It reuses
+## the same widget, so most of this is the same shape of check as the hero's --
+## what differs is the thing being proved: the plate in the carousel is a
+## thumbnail, and the 3D model beside it is the actual rifle.
+func _check_the_weapon_stage_shows_a_model() -> void:
+	if _front_end == null:
+		return
+	_front_end.go_to(&"WEAPON", {})
+	await process_frame
+	await process_frame
+	var stage: Control = _front_end.get_node_or_null("StageHost/WEAPON")
+	if not _expect(stage != null, "the WEAPON stage is instantiated"):
+		return
+	var showcase := stage.find_child("WeaponShowcase", true, false) as SubViewportContainer
+	if not _expect(showcase != null, "the WEAPON stage mounts a 3D showcase"):
+		return
+	_expect(showcase.has_model(), "the weapon showcase has a model on it")
+	var progression := _front_end.get_node("ProgressionService")
+	var selected := StringName(str(progression.get("selected_weapon_id")))
+	var definition := WeaponDefinition.load_definition(selected)
+	_expect(
+		showcase.model_path() == definition.model_scene.resource_path,
+		"the weapon showcase shows the selected weapon's mesh (%s)" % showcase.model_path()
+	)
+	# The rifle GLB has no animations. The widget must therefore report nothing
+	# playing and stay usable, rather than waiting for a clip that is not there.
+	var clips := showcase.clip_names()
+	_expect(
+		clips.is_empty() and showcase.current_clip().is_empty(),
+		"a static mesh reports no clips instead of inventing one (%d)" % clips.size()
+	)
 
 
 ## The requirement that matters for shipping: a menu animation must not be able

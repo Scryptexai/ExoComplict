@@ -15,6 +15,13 @@ extends MenuStage
 
 const LOCKED_SLOTS := 2
 
+## One line of mission framing per theatre. Copy, not data: the world scene owns
+## its objectives at runtime and a second copy of the wave plan here would be
+## stale the first time it is tuned. What it states is what the theatre is.
+const WORLD_OBJECTIVES := {
+	&"neon_frontier": "CHAPTER 1 · HOLD THE OUTPOST",
+}
+
 var _cards: Array[AegisButton] = []
 ## Placeholder slots: not selectable, but they still have to move to the
 ## landscape row with the real card.
@@ -143,6 +150,14 @@ func _build_world_card(group: ButtonGroup, definition: WorldDefinition) -> Contr
 	row.add_child(column)
 	column.add_child(
 		_limit_lines(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK), 1)
+	)
+	# The chapter line the brief asks for. A locked world has no objective, so it
+	# prints the placeholder line instead of claiming one.
+	column.add_child(
+		_limit_lines(
+			card_line(WORLD_OBJECTIVES.get(definition.world_id, ""), "label_s", AegisTokens.INK_3),
+			1
+		)
 	)
 	# Bounded like the hero card: the same registry field, the same 168 px card.
 	column.add_child(

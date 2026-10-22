@@ -306,6 +306,10 @@ func _build_panel() -> void:
 func _build_actions() -> void:
 	_actions = HBoxContainer.new()
 	physical_separation(_actions, 10)
+	# Parented here, in the portrait arrangement, exactly like the other blocks:
+	# `_apply_orientation()` returns early when the orientation has not changed,
+	# so a first layout must not depend on it to put anything in the tree.
+	_body_portrait.add_child(_actions)
 
 	_select_button = make_button("EQUIPPED", "round", "Keep this operative selected")
 	_select_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -505,7 +509,6 @@ func _apply_orientation() -> void:
 		_panel.size_flags_vertical = Control.SIZE_SHRINK_END
 	# Landscape has room for the full label; portrait shares the header with the
 	# status line and clipped it to "SELECT OPER…" in the first capture.
-	_heading.text = "SELECT OPERATIVE" if landscape else "OPERATIVE"
 	physical_min_size(_carousel, 0.0, 68.0 if landscape else 96.0)
 	_apply_density()
 
@@ -525,6 +528,9 @@ func _apply_density() -> void:
 			control.set_meta("px_portrait", compact_chip)
 			control.set_meta("px_landscape", compact_chip)
 		physical_min_size(control, compact_chip.x, compact_chip.y)
+	# Landscape has room for the full label; portrait shares the header with the
+	# status line and clipped it to "SELECT OPER…" when it did not fit.
+	_heading.text = "SELECT OPERATIVE" if is_landscape() else "OPERATIVE"
 	physical_min_size(_carousel, 0.0, 72.0 if short_screen else 96.0)
 	physical_separation(_stack, 6.0 if short_screen else 10.0)
 	physical_separation(_body_portrait, 6.0 if short_screen else 10.0)

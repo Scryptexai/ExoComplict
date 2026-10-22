@@ -1,100 +1,92 @@
-## WEAPON SELECTION.
+## WEAPON SELECTION — a 3D showcase of the rifle the player will actually hold.
 ##
-## Every number printed here is read off the WeaponDefinition resource at
-## runtime -- damage, fire rate, magazine size, reload, range, splash and chain
-## -- so the screen cannot drift from the weapon the player fires. Locked
-## weapons are disabled and priced from ProgressionService.COSTS; unlocking
-## happens in the Armory, which is the single place that spends Battle Points.
+## The cards this replaces quoted the right numbers from the right resources, but
+## the weapon itself was a 110 px plate. What a player equips here is
+## `WeaponDefinition.model_scene`, and today all three definitions point at the
+## same mesh: there is one rifle in this build. The showcase says that out loud
+## instead of implying three silhouettes -- `showcase_smoke.gd` prints the count
+## of distinct mesh files, and the screen shows the mesh the currently selected
+## weapon will be held as.
+##
+## Layout follows the brief: the model is the subject, statistics sit beside it,
+## and the primary action is a single CONTINUE at the bottom. There is no upgrade
+## button, because this project has no upgrade system: a button that only changed
+## a number on screen would be the exact lie the brief forbids.
 extends MenuStage
 
-## The paths are not written out here a second time: `WeaponDefinition` owns
-## them, and the player scene's weapon controller is authored from the same
-## files. `data_source_smoke.gd` checks both sides agree.
-const DEFINITIONS := WeaponDefinition.DEFINITION_PATHS
-const PLATES := {
+const ShowcaseViewportScript = preload("res://scripts/ui/widgets/showcase_viewport.gd")
+
+## Weapon plates for the carousel. UI art, not models: they exist so the row is
+## recognisable at a glance. Kept here rather than in the definition because they
+## are decoration, and `ui_art_smoke` checks every path declared in a stage that
+## is a real file.
+const PLATE_PATHS := {
 	&"pulse_rifle": "res://assets/ui/weapon_pulse_rifle.png",
 	&"nova_launcher": "res://assets/ui/weapon_nova_launcher.png",
 	&"arc_shooter": "res://assets/ui/weapon_arc_shooter.png",
 }
-## Presentation order, taken from the same registry rather than retyped.
-const ORDER: Array[StringName] = WeaponDefinition.DEFINITION_IDS
 
-var _cards: Dictionary = {}
-## Portrait/landscape list pair built by MenuStage._make_card_list().
-var _lists: Dictionary = {}
-## Every control authored with MenuStage._size_both() (cards and plates).
-var _oriented: Array = []
-## The landscape arrangement: heading and summary stay in the info column, the
-## card list moves beside it. See MenuStage._orient_selection().
-var _stack: VBoxContainer
-var _split: HBoxContainer
-var _info: VBoxContainer
-var _scroll: ScrollContainer
-var _above: Array = []
-var _below: Array = []
-var _summary: Label
+## Model length in showcase metres. The rifle's measured `barrel_length_m` is
+## 0.9995, so this is the mesh at roughly life size, seen close.
+const SHOWCASE_LENGTH := 1.15
+
+var _cards: Array[AegisButton] = []
+var _showcase: ShowcaseViewport
+var _carousel: ScrollContainer
+var _name_label: Label
+var _class_label: Label
+var _state_label: Label
+var _stat_lines: Array[Label] = []
+var _detail_label: Label
 var _continue: AegisButton
-var _detail: Label
-var _qa_scroll_hooked := false
-var _qa_scroll := false
+var _selected := WeaponDefinition.DEFAULT_WEAPON_ID
+
+var _stack: VBoxContainer
+var _header: HBoxContainer
+var _body: HBoxContainer
+var _col_model: VBoxContainer
+var _col_info: VBoxContainer
+var _showcase_holder: Control
+var _panel: AegisPanel
+var _carousel_wrap: VBoxContainer
+var _heading: Label
+var _landscape_built := false
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(make_backdrop("res://assets/ui/dashboard_bg.jpg"))
 	var scrim := ColorRect.new()
-	scrim.color = Color(AegisTokens.VOID, 0.6)
+	scrim.color = Color(AegisTokens.VOID, 0.76)
 	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(scrim)
 
 	_stack = VBoxContainer.new()
-	physical_separation(_stack, 14)
+	physical_separation(_stack, 10)
 	make_margin().add_child(_stack)
-	var split := _make_selection_split(300.0)
-	_split = split["split"]
-	_info = split["info"]
 
-	var heading := card_line("SELECT WEAPON", "display_l", AegisTokens.INK)
-	_stack.add_child(heading)
-	# Quiet, like HERO and WORLD: amber is CONTINUE on this screen. The wallet is
-	# still the first thing in the line, and the armory is where it gets spent.
-	_summary = card_line("", "label", AegisTokens.INK_2)
-	_stack.add_child(_summary)
-	_above = [heading, _summary]
+	_build_header()
+	_body = HBoxContainer.new()
+	_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	physical_separation(_body, 14)
+	_stack.add_child(_body)
 
-	_scroll = ScrollContainer.new()
-	_scroll.name = &"CardScroll"
-	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_stack.add_child(_scroll)
-	_lists = _make_card_list(_scroll)
+	_col_model = VBoxContainer.new()
+	_col_model.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_col_model.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	physical_separation(_col_model, 8)
+	_body.add_child(_col_model)
 
-	var group := ButtonGroup.new()
-	for weapon_id in ORDER:
-		var card := _build_card(weapon_id, group)
-		_cards[weapon_id] = card
-		_lists["column"].add_child(card)
+	_col_info = VBoxContainer.new()
+	_col_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	physical_separation(_col_info, 8)
+	_body.add_child(_col_info)
 
-	_detail = card_line("", "body_s", AegisTokens.INK_2)
-	_stack.add_child(_detail)
-
-	var footer := HBoxContainer.new()
-	physical_separation(footer, 12)
-	_stack.add_child(footer)
-	_below = [_detail, footer]
-
-	var back := make_button("BACK", "ghost", "Return to operative selection")
-	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_min_size(back, 0.0, 56.0)
-	back.pressed.connect(func() -> void: completed.emit(&"HERO", {}))
-	footer.add_child(back)
-
-	_continue = make_button("CONTINUE", "primary", "Choose a world")
-	_continue.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_min_size(_continue, 0.0, 56.0)
-	_continue.pressed.connect(func() -> void: completed.emit(&"WORLD", {}))
-	footer.add_child(_continue)
+	_build_carousel()
+	_build_showcase()
+	_build_panel()
+	_build_actions()
 
 	_connect_resized(_on_resized)
 	relayout()
@@ -102,109 +94,265 @@ func _ready() -> void:
 
 func enter(_stage_payload: Dictionary) -> void:
 	apply_safe_margins(_margin)
+	var progression := progression_service()
+	_selected = (
+		progression.selected_weapon_id
+		if progression != null
+		else WeaponDefinition.DEFAULT_WEAPON_ID
+	)
+	if not WeaponDefinition.DEFINITION_PATHS.has(_selected):
+		_selected = WeaponDefinition.DEFAULT_WEAPON_ID
 	_on_resized()
 	_refresh()
+	_present_selected(true)
+
+
+func exit() -> void:
+	if is_instance_valid(_showcase):
+		_showcase.clear_model()
 
 
 func refresh_profile() -> void:
 	_refresh()
 
 
-func _definition(weapon_id: StringName) -> WeaponDefinition:
-	return WeaponDefinition.load_definition(weapon_id)
+# --- construction ----------------------------------------------------------- #
 
 
-func _build_card(weapon_id: StringName, group: ButtonGroup) -> Control:
-	var card := AegisButton.new()
-	card.name = "%sCard" % String(weapon_id).to_pascal_case()
-	card.button_group = group
-	card.toggle_mode = true
-	card.focus_mode = Control.FOCUS_ALL
-	card.mouse_filter = Control.MOUSE_FILTER_STOP
-	# 216 px holds a plate and four text lines in portrait; a landscape row
-	# only has ~130 px of height, so the card is shorter and fixed-width there.
-	_size_both(card, Vector2(0.0, 216.0), Vector2(LANDSCAPE_CARD_WIDTH, 216.0))
-	# A Button is not a Container, so a child that overflows is drawn over the
-	# card's edge and over the next card. The copy is bounded above; this makes
-	# the card the boundary as well.
-	card.clip_contents = true
-	_oriented.append(card)
-	card.set_meta("weapon_id", String(weapon_id))
-	# The card's own words are bounded to one line each, so the instruction a
-	# locked card cannot spell out lives here.
-	card.tooltip_text = "Unlock weapons in the Armory with Battle Points"
-	card.pressed.connect(_on_card_pressed.bind(weapon_id))
-	AegisTheme.set_button_variant(card, "round")
+func _build_header() -> void:
+	_header = HBoxContainer.new()
+	physical_separation(_header, 12)
+	_stack.add_child(_header)
+
+	var back := make_button("BACK", "ghost", "Return to operative selection")
+	physical_min_size(back, 120.0, AegisTokens.MIN_TOUCH_PX)
+	back.pressed.connect(func() -> void: completed.emit(&"HERO", {}))
+	_header.add_child(back)
+
+	_heading = make_label("SELECT WEAPON", "display_m", AegisTokens.INK)
+	_heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_header.add_child(_heading)
+
+	_state_label = make_label("", "label", AegisTokens.OK)
+	_state_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_header.add_child(_state_label)
+
+
+func _build_carousel() -> void:
+	_carousel_wrap = VBoxContainer.new()
+	physical_separation(_carousel_wrap, 4)
+	_col_model.add_child(_carousel_wrap)
+
+	_carousel = ScrollContainer.new()
+	_carousel.name = &"WeaponCarousel"
+	_carousel.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_carousel.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_carousel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	physical_min_size(_carousel, 0.0, 72.0)
+	_carousel_wrap.add_child(_carousel)
+	# Register the carousel with MenuStage so a thumb swipe scrolls it; the base
+	# class only knows the scroll container it built itself.
+	_card_scroll = _carousel
 
 	var row := HBoxContainer.new()
-	row.set_anchors_preset(Control.PRESET_FULL_RECT)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	physical_separation(row, 14)
-	card.add_child(row)
+	physical_separation(row, 8)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_carousel.add_child(row)
+
+	var group := ButtonGroup.new()
+	for definition in WeaponDefinition.load_all_definitions():
+		row.add_child(_build_chip(definition, group))
+
+
+## One small plate per weapon, carrying the registry id the data-source test
+## reads. The plate is how a player recognises a weapon; the model is how they
+## judge it.
+func _build_chip(definition: WeaponDefinition, group: ButtonGroup) -> Control:
+	var chip := AegisButton.new()
+	chip.name = "%sChip" % String(definition.weapon_id).to_pascal_case()
+	chip.button_group = group
+	chip.toggle_mode = true
+	chip.focus_mode = Control.FOCUS_ALL
+	chip.mouse_filter = Control.MOUSE_FILTER_STOP
+	chip.tooltip_text = definition.display_name
+	chip.set_meta("weapon_id", String(definition.weapon_id))
+	_size_both(chip, Vector2(88.0, 64.0), Vector2(88.0, 64.0))
+	AegisTheme.set_button_variant(chip, "round")
+	chip.pressed.connect(_on_chip_pressed.bind(definition.weapon_id))
+	_cards.append(chip)
 
 	var plate := TextureRect.new()
-	plate.texture = try_texture(PLATES[weapon_id])
+	plate.texture = try_texture(PLATE_PATHS.get(definition.weapon_id, ""))
 	plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	_size_both(plate, Vector2(110.0, 100.0), Vector2(100.0, 100.0))
-	_oriented.append(plate)
-	row.add_child(plate)
+	plate.set_anchors_preset(Control.PRESET_FULL_RECT)
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_child(plate)
+	return chip
+
+
+func _build_showcase() -> void:
+	_showcase_holder = Control.new()
+	_showcase_holder.name = &"ShowcaseHolder"
+	_showcase_holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_showcase_holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_showcase_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_col_model.add_child(_showcase_holder)
+
+	_showcase = ShowcaseViewportScript.new()
+	_showcase.name = &"WeaponShowcase"
+	_showcase.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_showcase_holder.add_child(_showcase)
+
+
+func _build_panel() -> void:
+	_panel = AegisPanel.new()
+	_panel.interactive = false
+	_panel.accent_side = "left"
+	_panel.accent_color = AegisTokens.ACCENT
+	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_col_info.add_child(_panel)
 
 	var column := VBoxContainer.new()
-	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	physical_separation(column, 4)
-	row.add_child(column)
+	physical_separation(column, 6)
+	_panel.add_child(column)
 
-	var definition := _definition(weapon_id)
-	column.add_child(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK))
-	# One line of description on a weapon card: the numbers are what this screen
-	# is for, and two lines of prose pushed the state line (EQUIPPED / LOCKED)
-	# out of a 216 px card -- clipped, not readable.
-	column.add_child(
-		_limit_lines(card_line(definition.role_description, "caption", AegisTokens.INK_2), 1)
-	)
+	_class_label = make_label("", "label", AegisTokens.INK_3)
+	_class_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_class_label.clip_text = true
+	column.add_child(_class_label)
 
-	# Two or three stat lines, split by kind, each held to exactly one line. A
-	# single five-field line wrapped into three at 190 px, and the card is a
-	# fixed 216 px because a Card is a Button: its children overdraw it rather
-	# than growing it, so the ARC SHOOTER's numbers were printed past the card
-	# edge and over the legend below. Splitting by what the number is for keeps
-	# every line short enough to stay inside.
-	var numbers := _stat_lines(definition)
-	for index in range(numbers.size()):
-		var line := _limit_lines(
-			card_line(
-				numbers[index], "mono_s", AegisTokens.INFO if index == 0 else AegisTokens.INK_3
-			),
-			1
-		)
+	_name_label = make_label("", "title", AegisTokens.INK)
+	_name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_name_label.clip_text = true
+	column.add_child(_name_label)
+
+	# One Label per stat group, single-line with an ellipsis. Every value here is
+	# read from the same resource the weapon fires from, and the `stat_line`
+	# marker is what `data_source_smoke` matches on -- it reads them all.
+	for index in range(3):
+		var line := make_label("", "mono_s", AegisTokens.INFO if index == 0 else AegisTokens.INK_2)
+		line.autowrap_mode = TextServer.AUTOWRAP_OFF
+		line.clip_text = true
+		line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		line.set_meta("stat_line", true)
 		column.add_child(line)
+		_stat_lines.append(line)
 
-	var state := _limit_lines(card_line("", "label_s", AegisTokens.OK), 1)
-	state.set_meta("state_line", true)
-	column.add_child(state)
-	return card
+	_detail_label = make_label("", "caption", AegisTokens.INK_3)
+	_detail_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_detail_label.clip_text = true
+	_detail_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	column.add_child(_detail_label)
 
 
-## Real values straight off the resource. `fire_rate` is shots per second in the
-## definition, so it is printed as such rather than being converted into a
-## number the file does not contain.
-##
-## Split by what the number is for: what it hits for, how it handles, and (only
-## for the two weapons that have them) its area or chain behaviour. Each group is
-## short enough to hold one line at 190 px.
-func _stat_lines(definition: WeaponDefinition) -> Array[String]:
-	# Typed, not inferred: an untyped `[]` literal returns as Array and fails the
-	# declared Array[String] return type at runtime, which took the whole screen
-	# down -- 0 of 3 cards built -- instead of failing to parse.
-	var lines: Array[String] = [
+func _build_actions() -> void:
+	_continue = make_button("CONTINUE", "primary", "Choose a theatre")
+	physical_min_size(_continue, 0.0, AegisTokens.MIN_TOUCH_PX)
+	_continue.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_continue.pressed.connect(_on_continue_pressed)
+	_col_info.add_child(_continue)
+
+
+# --- state ------------------------------------------------------------------ #
+
+
+func _refresh() -> void:
+	var progression := progression_service()
+	for card in _cards:
+		var id := StringName(str(card.get_meta("weapon_id", "")))
+		var unlocked := progression != null and progression.is_unlocked(id)
+		var selected := id == _selected
+		# A locked weapon can be inspected -- a player is allowed to see what they
+		# are saving for -- but it cannot be equipped, so selecting it does not
+		# write to the profile and CONTINUE reports it.
+		card.edge_active = selected
+		card.set_pressed_no_signal(selected)
+		card.disabled = not WeaponDefinition.DEFINITION_PATHS.has(id)
+	_continue.disabled = progression == null or not progression.is_unlocked(_selected)
+	_continue.text = "CONTINUE" if not _continue.disabled else "LOCKED IN ARMORY"
+
+
+func _present_selected(reveal: bool) -> void:
+	var definition := WeaponDefinition.load_definition(_selected)
+	if definition == null or not is_instance_valid(definition.model_scene):
+		_showcase.clear_model()
+		return
+	var already := _showcase.model_path() == definition.model_scene.resource_path
+	if not already:
 		(
-			"DMG %s  ·  RATE %s/s  ·  MAG %d"
+			_showcase
+			. present(
+				definition.model_scene,
+				{
+					# A rifle is longer than it is tall: fit on its longest axis, not
+					# its height, or the barrel leaves the frame.
+					"fit_axis": 2,
+					"height": SHOWCASE_LENGTH,
+					# The mesh is authored barrel down -Z with the grip at the origin;
+					# a quarter turn shows profile and stock without hiding the barrel.
+					"yaw": 148.0,
+					# No clips: rifle.glb has no animations (measured, not assumed).
+					"clips": [],
+				}
+			)
+		)
+		_showcase.frame_model(SHOWCASE_LENGTH, true)
+		if not reveal:
+			_showcase.skip_reveal()
+	_name_label.text = definition.display_name.to_upper()
+	_class_label.text = _class_of(_selected)
+	var progression := progression_service()
+	var unlocked := progression != null and progression.is_unlocked(_selected)
+	if unlocked:
+		var equipped := progression != null and progression.selected_weapon_id == _selected
+		_state_label.text = "EQUIPPED" if equipped else "OWNED"
+		_state_label.add_theme_color_override("font_color", AegisTokens.OK)
+	else:
+		var cost := progression.unlock_cost(_selected) if progression != null else 0
+		_state_label.text = "LOCKED · %d BP" % cost
+		_state_label.add_theme_color_override("font_color", AegisTokens.ACCENT)
+	var numbers := _stat_groups(definition)
+	for index in range(_stat_lines.size()):
+		_stat_lines[index].text = numbers[index] if index < numbers.size() else ""
+	_detail_label.text = _detail_of(_selected)
+
+
+## Weapon "class" is not a field in `WeaponDefinition`: it has no such concept,
+## and inventing one would be a label with nothing behind it. What the resource
+## does say is how it delivers damage, so that is what is printed.
+func _class_of(weapon_id: StringName) -> String:
+	var definition := WeaponDefinition.load_definition(weapon_id)
+	if definition == null:
+		return ""
+	if definition.chain_count > 0:
+		return "ENERGY · CHAIN"
+	if definition.splash_damage > 0.0:
+		return "EXPLOSIVE · AREA"
+	return "ENERGY · SINGLE TARGET"
+
+
+## What the resource itself can say about handling, plus the price the service
+## charges for this weapon -- read from the service, never typed here.
+func _detail_of(weapon_id: StringName) -> String:
+	var definition := WeaponDefinition.load_definition(weapon_id)
+	if definition == null:
+		return ""
+	var progression := progression_service()
+	var cost := progression.unlock_cost(weapon_id) if progression != null else 0
+	return "%s · %d BP" % [_class_of(weapon_id), cost]
+
+
+## The same three groups the card version printed, each short enough for one
+## line at this column width. Values come from the definition, never from here.
+func _stat_groups(definition: WeaponDefinition) -> Array[String]:
+	var groups: Array[String] = [
+		(
+			"DMG %s · RATE %s/s · MAG %d"
 			% [_trim(definition.damage), _trim(definition.fire_rate), definition.magazine_size]
 		),
-		"RELOAD %ss  ·  RNG %sm" % [_trim(definition.reload_seconds), _trim(definition.max_range)],
+		"RELOAD %ss · RNG %sm" % [_trim(definition.reload_seconds), _trim(definition.max_range)],
 	]
 	var extra: Array[String] = []
 	if definition.splash_damage > 0.0:
@@ -213,9 +361,8 @@ func _stat_lines(definition: WeaponDefinition) -> Array[String]:
 		)
 	if definition.chain_count > 0:
 		extra.append("CHAIN %d" % definition.chain_count)
-	if not extra.is_empty():
-		lines.append("  ·  ".join(extra))
-	return lines
+	groups.append(" · ".join(extra) if not extra.is_empty() else "")
+	return groups
 
 
 func _trim(value: float) -> String:
@@ -225,158 +372,82 @@ func _trim(value: float) -> String:
 	return text.substr(0, text.length() - 1) if text.ends_with(".") else text
 
 
-func _refresh() -> void:
-	var progression := progression_service()
-	if progression == null:
+# --- interaction ------------------------------------------------------------ #
+
+
+func _on_chip_pressed(weapon_id: StringName) -> void:
+	if weapon_id == _selected:
 		return
-	var owned := 0
-	for weapon_id in ORDER:
-		var unlocked := progression.is_unlocked(weapon_id)
-		if unlocked:
-			owned += 1
-		var card: AegisButton = _cards[weapon_id]
-		var selected := progression.selected_weapon_id == weapon_id
-		card.disabled = not unlocked
-		card.edge_active = selected
-		card.set_pressed_no_signal(selected)
-		var state: Label = _find_meta(card, "state_line")
-		if state == null:
-			continue
-		if unlocked:
-			state.text = "EQUIPPED" if selected else "OWNED · TAP TO EQUIP"
-			state.add_theme_color_override("font_color", AegisTokens.OK)
-		else:
-			var cost := progression.unlock_cost(weapon_id)
-			# One line, and the price is the part a player needs; "unlock in the
-			# armory" was the part the ellipsis ate, so it moved to the card's
-			# tooltip, which is where a secondary instruction belongs.
-			state.text = "LOCKED · %d BP" % cost
-			state.add_theme_color_override("font_color", AegisTokens.ACCENT)
-	_summary.text = (
-		"BATTLE POINTS  %d  ·  %d / %d WEAPONS" % [progression.balance, owned, ORDER.size()]
-	)
-	_detail.text = (
-		"Battle Points are earned by defeating waves. Unlocks are permanent and "
-		+ "stored in your profile."
-	)
-
-
-func _find_meta(root: Node, key: String) -> Label:
-	if root.has_meta(key):
-		return root as Label
-	for child in root.find_children("*", "Label", true, false):
-		if child.has_meta(key):
-			return child
-	return null
-
-
-func _on_card_pressed(weapon_id: StringName) -> void:
-	if _qa_scroll:
-		print("MenuScroll: card pressed %s" % weapon_id)
-	var progression := progression_service()
-	if progression == null or not progression.select_weapon(weapon_id):
-		return
+	_selected = weapon_id
 	Sfx.play_ui(&"ui_click")
+	var progression := progression_service()
+	# Equipping writes to the service, which is what DEPLOY reads. A locked weapon
+	# is shown but not saved.
+	if progression != null and progression.is_unlocked(weapon_id):
+		progression.select_weapon(weapon_id)
 	_refresh()
+	_present_selected(true)
+
+
+func _on_continue_pressed() -> void:
+	var progression := progression_service()
+	if progression == null or not progression.is_unlocked(_selected):
+		return
+	progression.select_weapon(_selected)
+	completed.emit(&"WORLD", {})
+
+
+# --- layout ----------------------------------------------------------------- #
 
 
 func _on_resized() -> void:
 	relayout()
-	_hook_qa_scroll()
-	if _qa_scroll:
-		_report_qa_scroll("resized")
-	_orient_nodes(_oriented)
-	_orient_card_list(_lists, _cards.values())
-	_orient_selection(_stack, _split, _info, _scroll, _above, _below)
+	_orient_nodes(_cards)
+	_apply_orientation()
+	_apply_density()
 
 
-## QA hook, web only: `?qa_scroll=1` prints the card row's horizontal offset
-## whenever it moves.
-##
-## This exists because the gesture could not be tested any other way.
-## `ScrollContainer` gates touch panning on `DisplayServer::is_touchscreen_
-## available()` (`scene/gui/scroll_container.cpp`), which every headless display
-## server reports as false, so a synthetic drag in a smoke test moves the row
-## 0 px and proves nothing about a thumb. A browser with touch emulation does
-## report it, and the offset printed here is what a drag in
-## `tools/qa_touch_scroll.mjs` is measured against.
-func _hook_qa_scroll() -> void:
-	if _qa_scroll_hooked or not OS.has_feature("web"):
+func _apply_orientation() -> void:
+	var landscape := is_landscape()
+	if landscape == _landscape_built:
 		return
-	var wanted: Variant = JavaScriptBridge.eval(
-		"new URLSearchParams(location.search).has('qa_scroll')"
-	)
-	if not bool(wanted):
-		return
-	var bar := _scroll.get_h_scroll_bar()
-	if bar == null:
-		return
-	_qa_scroll = true
-	# `ScrollContainer` pans on a screen drag only when the display server says
-	# a touchscreen exists (scene/gui/scroll_container.cpp:237). Every headless
-	# display server answers false; whether an emulated one answers true is the
-	# difference between "the gesture is untested" and "the gesture is broken",
-	# so the probe has to be able to read it.
-	print("MenuScroll: is_touchscreen_available = %s" % DisplayServer.is_touchscreen_available())
-	bar.value_changed.connect(_on_qa_scroll_changed)
-	# Log the raw input too. "The row did not move" has two causes that look
-	# identical from outside -- the drag never arrived, and the drag arrived and
-	# was ignored -- and only the event log tells them apart.
-	set_process_input(true)
-	_qa_scroll_hooked = true
-	_report_qa_scroll("hooked")
+	_landscape_built = landscape
+	for block in [_carousel_wrap, _showcase_holder, _panel, _continue]:
+		if block.get_parent() != null:
+			block.get_parent().remove_child(block)
+	if landscape:
+		# Landscape: model left, everything readable right. A 390 px tall screen
+		# cannot stack a carousel and a model above a panel.
+		if _col_info.get_parent() != _body:
+			_body.add_child(_col_info)
+		_col_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_col_model.add_child(_carousel_wrap)
+		_col_model.add_child(_showcase_holder)
+		_col_info.add_child(_panel)
+		_col_info.add_child(_continue)
+	else:
+		# Portrait: the model on top, the information panel and CONTINUE beneath.
+		if _col_info.get_parent() == _body:
+			_body.remove_child(_col_info)
+		if _col_model.get_parent() == _body:
+			_body.remove_child(_col_model)
+		_stack.add_child(_col_model)
+		_stack.add_child(_col_info)
+		_col_model.add_child(_carousel_wrap)
+		_col_model.add_child(_showcase_holder)
+		_col_info.add_child(_panel)
+		_col_info.add_child(_continue)
+	# The columns are children of a different parent in portrait, so their sizing
+	# flags have to follow.
+	_col_model.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_col_model.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_col_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
 
-## Counts what actually reached the engine during a QA run.
-func _input(event: InputEvent) -> void:
-	# The base class drags the card list from these same events; overriding
-	# `_input` without calling super silently switched that off.
-	super._input(event)
-	if not _qa_scroll:
-		return
-	if (
-		event is InputEventScreenTouch
-		or event is InputEventScreenDrag
-		or event is InputEventMouseButton
-		or event is InputEventPanGesture
-		or (event is InputEventMouseMotion and (event as InputEventMouseMotion).button_mask != 0)
-	):
-		if event is InputEventScreenDrag:
-			# Position and relative are the whole question: a drag that arrives
-			# with no delta is an input-emulation artefact, a drag with a delta
-			# that the row ignores is the game's problem.
-			print(
-				(
-					"MenuScroll: input ScreenDrag index=%d pos=%s rel=%s"
-					% [event.index, event.position, event.relative]
-				)
-			)
-		else:
-			print("MenuScroll: input %s" % event.as_text())
-
-
-func _on_qa_scroll_changed(value: float) -> void:
-	_report_qa_scroll("offset %.1f" % value)
-
-
-## The container's own numbers, printed whenever the layout changes and whenever
-## the bar moves, because "the row did not scroll" and "the row cannot scroll"
-## look identical from outside and only the range tells them apart.
-func _report_qa_scroll(what: String) -> void:
-	# A frame late on purpose. `resized` fires before the containers have been
-	# sorted for this frame, so a rect read inside it is still the previous
-	# one -- 0x0 on the first pass, which is what made an unscrollable row and
-	# an unmeasured row look the same.
-	await get_tree().process_frame
-	var bar := _scroll.get_h_scroll_bar()
-	print(
-		(
-			"MenuScroll: %s, row %s, range %.1f, page %.1f"
-			% [
-				what,
-				_scroll.get_global_rect(),
-				bar.max_value if bar != null else -1.0,
-				bar.page if bar != null else -1.0
-			]
-		)
-	)
+func _apply_density() -> void:
+	var short_screen := physical_size().y < (520.0 if is_landscape() else 760.0)
+	_heading.text = "SELECT WEAPON" if is_landscape() or short_screen else "LOADOUT"
+	physical_min_size(_carousel, 0.0, 64.0 if short_screen else 72.0)
+	physical_separation(_stack, 6.0 if short_screen else 10.0)
+	physical_separation(_col_model, 6.0 if short_screen else 8.0)
+	physical_separation(_col_info, 6.0 if short_screen else 8.0)
