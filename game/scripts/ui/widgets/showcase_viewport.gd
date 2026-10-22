@@ -370,12 +370,26 @@ static func _animation_list(player: AnimationPlayer) -> Array[String]:
 
 ## TEMP: one line of numbers so the QA capture log can say why a model is small.
 func debug_report() -> String:
-	var bounds := Vector3.ZERO
-	if is_instance_valid(_model):
-		for child in _model.find_children("*", "MeshInstance3D", true, false):
-			bounds = bounds.max((child as MeshInstance3D).global_transform.basis.get_scale())
+	var projected := Vector2.ZERO
+	if is_instance_valid(_model) and is_instance_valid(_camera):
+		var world := _model.global_transform * ModelFitterScript.combined_bounds(_model)
+		var lo := Vector2(1e9, 1e9)
+		var hi := Vector2(-1e9, -1e9)
+		for index in range(8):
+			var corner := (
+				world.position
+				+ Vector3(
+					world.size.x * float(index & 1),
+					world.size.y * float((index >> 1) & 1),
+					world.size.z * float((index >> 2) & 1)
+				)
+			)
+			var point := _camera.unproject_position(corner)
+			lo = lo.min(point)
+			hi = hi.max(point)
+		projected = hi - lo
 	return (
-		"d=%.2f fov=%.1f vp=%s ctrl=%s dist=%.2f model_scale=%s bounds=%s"
+		"d=%.2f fov=%.1f vp=%s ctrl=%s dist=%.2f scale=%s pivot=%s proj=%s win=%s sroot=%s"
 		% [
 			_camera_distance,
 			_camera.fov if is_instance_valid(_camera) else -1.0,
@@ -383,6 +397,9 @@ func debug_report() -> String:
 			size,
 			_camera.position.z if is_instance_valid(_camera) else -1.0,
 			_model.scale if is_instance_valid(_model) else Vector3.ZERO,
-			bounds,
+			_pivot.scale if is_instance_valid(_pivot) else Vector3.ZERO,
+			projected,
+			DisplayServer.window_get_size(),
+			get_viewport().get_visible_rect().size,
 		]
 	)
