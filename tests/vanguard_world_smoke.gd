@@ -88,8 +88,14 @@ func _check_families_present(world: Node3D) -> void:
 
 ## The three damage states have to be visibly different objects, not three names.
 func _check_damage_family_differs(world: Node3D) -> void:
-	var intact := _wall_mesh_names(world, "PerimeterWall_-22")
-	var wrecked := _wall_mesh_names(world, "PerimeterWall_-6")
+	var intact_wall := _find_wall(world, 0)
+	var wrecked_wall := _find_wall(world, 2)
+	if not _expect(intact_wall != null, "the line contains an intact wall module"):
+		return
+	if not _expect(wrecked_wall != null, "the line contains a destroyed wall module"):
+		return
+	var intact := _wall_mesh_names(intact_wall)
+	var wrecked := _wall_mesh_names(wrecked_wall)
 	_expect(not intact.is_empty(), "an intact wall module has geometry")
 	_expect(not wrecked.is_empty(), "a destroyed wall module has geometry")
 	_expect(intact.has("TrimRail"), "an intact wall carries the family's emissive trim rail")
@@ -105,9 +111,20 @@ func _check_damage_family_differs(world: Node3D) -> void:
 	_expect(intact.has("Plinth") and wrecked.has("Plinth"), "both states stand on the same plinth")
 
 
-func _wall_mesh_names(world: Node3D, node_name: String) -> Array[String]:
+## A wall module in the given damage state, by the state it publishes, not by a
+## name: names that encode coordinates are brittle, which is exactly how the
+## first version of this check failed.
+func _find_wall(world: Node3D, damage_state: int) -> Node3D:
+	for child in world.get_children():
+		if not String(child.name).begins_with("PerimeterWall"):
+			continue
+		if int(child.get_meta("damage_state", -1)) == damage_state:
+			return child as Node3D
+	return null
+
+
+func _wall_mesh_names(wall: Node3D) -> Array[String]:
 	var names: Array[String] = []
-	var wall := world.get_node_or_null(node_name)
 	if wall == null:
 		return names
 	for child in wall.find_children("*", "MeshInstance3D", true, false):

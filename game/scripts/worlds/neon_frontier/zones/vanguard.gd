@@ -89,16 +89,23 @@ static func _build_outer_perimeter(world) -> void:
 		{"x": 18.0, "damage": 1, "seed": 5},
 		{"x": 26.0, "damage": 0, "seed": 6},
 	]
-	for entry in modules:
-		world._place_component(
+	for index in range(modules.size()):
+		var entry: Dictionary = modules[index]
+		var wall := world._place_component(
 			world.VANGUARD_WALL_SCENE,
-			"PerimeterWall_%d" % int(entry["x"] + 40.0),
+			"PerimeterWall_%02d" % index,
 			Vector3(entry["x"], 0.0, 34.0),
 			Vector3.ZERO,
 			Vector3.ONE,
 			int(entry["seed"]),
 			int(entry["damage"])
 		)
+		# The state is carried on the node so a test, or a later pass that wants to
+		# scatter more damage, can ask the wall what it is instead of parsing a
+		# name. Names that encode coordinates are what broke the first version of
+		# this check.
+		wall.set_meta("vanguard_family", "defense_wall")
+		wall.set_meta("damage_state", int(entry["damage"]))
 
 	# The breach itself: thrown panels inside the line, two craters outside it.
 	world._place_component(
