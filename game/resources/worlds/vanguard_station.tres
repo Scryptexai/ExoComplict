@@ -11,4 +11,6 @@ role_description = "Dock 07 of a dead orbital station: a gantry hall under a gla
 world_scene = ExtResource("2_world")
 plate_path = "res://assets/ui/world_vanguard_station.jpg"
 status_line = "OPEN"
+zone_title = "DOCK 07 · VANGUARD STATION"
+zone_subtitle = "SAFE ZONE · PRESSURE SEALS OPEN"
 field_ready = true

@@ -41,6 +41,12 @@ const DEFAULT_WORLD_ID := &"neon_frontier"
 @export var world_scene: PackedScene
 @export var plate_path: String = ""
 @export var status_line: String = ""
+## The objective card's explore-mode copy. It lived as two literals inside
+## `hud_encounter_ui.gd`, so the second theatre described itself as a frontier
+## with a safe zone to move freely in. A world now says what its own quiet state
+## is; the HUD reads it instead of remembering one world's wording.
+@export var zone_title: String = "EXPLORE THE FRONTIER"
+@export var zone_subtitle: String = "SAFE ZONE · MOVE FREELY"
 @export var field_ready: bool = true
 
 

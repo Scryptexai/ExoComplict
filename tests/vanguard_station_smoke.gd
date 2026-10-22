@@ -81,6 +81,20 @@ func _run() -> void:
 		"the dock gate and its numerals exist"
 	)
 
+	# 2c. The objective card belongs to the theatre. It printed one world's copy in
+	#     every world until the strings moved into the definitions.
+	var station := WorldDefinition.load_definition(&"vanguard_station")
+	var frontier := WorldDefinition.load_definition(&"neon_frontier")
+	_expect(
+		(
+			station != null
+			and frontier != null
+			and station.zone_title != frontier.zone_title
+			and station.zone_subtitle != frontier.zone_subtitle
+		),
+		"each world states its own explore-mode copy"
+	)
+
 	# 3. No module is a bare MeshInstance3D placed by hand: each one hangs off a
 	#    pivot whose child is an imported scene with a MeshInstance3D under it.
 	var non_kit := 0
