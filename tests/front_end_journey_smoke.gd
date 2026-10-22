@@ -101,7 +101,7 @@ func _run_smoke_test() -> void:
 	_front_end.go_to(&"WEAPON", {})
 	await process_frame
 	_check_stage(&"WEAPON")
-	_check_weapon_stats_are_real()
+	await _check_weapon_stats_are_real()
 	_check_locked_content_disabled(&"WEAPON")
 
 	_front_end.go_to(&"WORLD", {})
@@ -231,16 +231,68 @@ func _check_dashboard_numbers() -> void:
 	_expect(text.contains("LOADOUT"), "the dashboard shows the loadout it will launch with")
 
 
+## Every weapon prints its own numbers, and prints them *when it is selected*.
+##
+## This used to read one static page of three cards. The screen is a 3D showcase
+## now, so it shows the selected weapon's statistics in one panel; the way to keep
+## the original promise -- no number on screen that the resource does not contain
+## -- is to walk the registry, select each weapon and read the panel back. That is
+## a stronger check than the old one: it fails if the panel stops following the
+## selection, which the card version could not.
 func _check_weapon_stats_are_real() -> void:
 	var stage := _stage(&"WEAPON")
-	var text := _all_label_text(stage)
-	# Straight off the WeaponDefinition resources: 18/34/20 damage at 5.0/0.8/2.0
-	# shots per second. If these drift, the screen is lying about the weapon.
-	for expected in ["DMG 18", "DMG 34", "DMG 20", "RATE 5/s", "MAG 24", "MAG 12", "CHAIN 2"]:
-		_expect(
-			text.contains(expected),
-			"the weapon screen prints the real stat '%s' from the definition" % expected
-		)
+	for definition in WeaponDefinition.load_all_definitions():
+		var chip := _weapon_chip(stage, definition.weapon_id)
+		if not _expect(chip != null, "%s: the carousel offers a chip" % definition.weapon_id):
+			continue
+		if chip.disabled:
+			# A weapon the profile has not unlocked cannot be selected, so what
+			# the screen owes the player is its name and its price.
+			var text := _all_label_text(stage)
+			_expect(
+				text.contains(definition.display_name.to_upper()),
+				"%s: the locked chip is still named" % definition.weapon_id
+			)
+			continue
+		chip.pressed.emit()
+		await process_frame
+		await process_frame
+		var shown := _all_label_text(_stage(&"WEAPON"))
+		# Straight off the WeaponDefinition: 18/34/20 damage at 5.0/0.8/2.0 shots
+		# per second, 24/6/12 rounds. If these drift, the screen is lying.
+		for expected in [
+			"DMG %d" % roundi(definition.damage),
+			"RATE %s/s" % _trim_number(definition.fire_rate),
+			"MAG %d" % definition.magazine_size,
+		]:
+			_expect(
+				shown.contains(expected),
+				(
+					"%s: the selected weapon prints '%s' from the definition"
+					% [definition.weapon_id, expected]
+				)
+			)
+		if definition.chain_count > 0:
+			_expect(
+				shown.contains("CHAIN %d" % definition.chain_count),
+				"%s: the chain property is printed" % definition.weapon_id
+			)
+
+
+func _weapon_chip(stage: Control, weapon_id: StringName) -> Button:
+	for child in stage.find_children("*", "Button", true, false):
+		var button := child as Button
+		if button != null and StringName(str(button.get_meta("weapon_id", ""))) == weapon_id:
+			return button
+	return null
+
+
+## The screen trims trailing zeros; the test has to read the same way.
+func _trim_number(value: float) -> String:
+	var text := "%.2f" % value
+	while text.ends_with("0") and text.contains("."):
+		text = text.substr(0, text.length() - 1)
+	return text.substr(0, text.length() - 1) if text.ends_with(".") else text
 
 
 ## Content the project does not have must be disabled, not merely labelled.

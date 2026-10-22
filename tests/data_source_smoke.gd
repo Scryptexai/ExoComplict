@@ -156,19 +156,34 @@ func _check_cards_match_the_definitions() -> void:
 			definition != null, "%s: the card reads a definition from the registry" % weapon_id
 		):
 			continue
+		# Each carousel item is the chip plus its caption; the caption carries the
+		# name and the state, because an 88 px plate cannot hold a word.
+		var item: Node = button.get_parent()
+		var item_text := text_of(item)
 		_expect(
-			text_of(button).contains(definition.display_name.to_upper()),
+			item_text.contains(definition.display_name.to_upper()),
 			(
-				"%s: the card names the weapon the definition names (%s)"
+				"%s: the carousel item names the weapon the definition names (%s)"
 				% [weapon_id, definition.display_name]
 			)
 		)
-		# The card prints its numbers on two lines -- what it hits for, then how
-		# it handles -- so this reads every line marked `stat_line` and checks
-		# them together against the definition. Reading only the first would pass
-		# while RELOAD and RNG were missing from the screen.
-		var stat_text := _meta_labels(button, "stat_line")
-		if not _expect(not stat_text.is_empty(), "%s: the card prints a stat line" % weapon_id):
+		# The screen is a showcase now: the numbers belong to the weapon that is
+		# *selected*, in one panel beside the model. So a locked chip has no stat
+		# line to read -- it is disabled and the player cannot select it -- and
+		# what it owes the player instead is its price.
+		if button.disabled:
+			_expect(
+				item_text.contains("BP"),
+				"%s: the locked carousel item states its unlock price" % weapon_id
+			)
+			continue
+		button.pressed.emit()
+		await process_frame
+		await process_frame
+		# Every line marked `stat_line`, read together: checking only the first
+		# would pass while RELOAD and RNG were missing from the screen.
+		var stat_text := _meta_labels(stage, "stat_line")
+		if not _expect(not stat_text.is_empty(), "%s: the panel prints a stat line" % weapon_id):
 			continue
 		_check_stat("DMG", stat_text, definition.damage, weapon_id)
 		_check_stat("RATE", stat_text, definition.fire_rate, weapon_id)
@@ -182,7 +197,7 @@ func _check_cards_match_the_definitions() -> void:
 	_expect(
 		cards == WeaponDefinition.DEFINITION_IDS.size(),
 		(
-			"every weapon in the registry gets a card (%d of %d)"
+			"every weapon in the registry gets a carousel item (%d of %d)"
 			% [cards, WeaponDefinition.DEFINITION_IDS.size()]
 		)
 	)

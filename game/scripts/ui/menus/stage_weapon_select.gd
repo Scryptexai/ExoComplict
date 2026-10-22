@@ -189,7 +189,35 @@ func _build_chip(definition: WeaponDefinition, group: ButtonGroup) -> Control:
 	plate.set_anchors_preset(Control.PRESET_FULL_RECT)
 	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	chip.add_child(plate)
-	return chip
+
+	# The chip is a plate; the name and state sit under it, where there is room
+	# for them. A locked weapon is still named and priced here -- a player is
+	# allowed to see what they are saving for -- but the chip is disabled, so it
+	# cannot be equipped.
+	var item := VBoxContainer.new()
+	physical_separation(item, 2)
+	item.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var name_label := make_label(definition.display_name.to_upper(), "label_s", AegisTokens.INK)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	name_label.clip_text = true
+	item.add_child(name_label)
+	var state := make_label("", "caption", AegisTokens.INK_3)
+	state.name = "StateLabel"
+	state.set_meta("weapon_state", String(definition.weapon_id))
+	state.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	state.autowrap_mode = TextServer.AUTOWRAP_OFF
+	state.clip_text = true
+	item.add_child(state)
+
+	# The chip and its caption travel together as one carousel item.
+	var holder := VBoxContainer.new()
+	holder.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	physical_separation(holder, 2)
+	holder.add_child(chip)
+	holder.add_child(item)
+	chip.set_meta("weapon_item", holder)
+	return holder
 
 
 func _build_showcase() -> void:
@@ -269,7 +297,20 @@ func _refresh() -> void:
 		# write to the profile and CONTINUE reports it.
 		card.edge_active = selected
 		card.set_pressed_no_signal(selected)
-		card.disabled = not WeaponDefinition.DEFINITION_PATHS.has(id)
+		# Locked content is disabled, not merely labelled: the model and numbers
+		# stay visible, the control cannot equip it.
+		card.disabled = not unlocked
+	for child in find_children("*", "Label", true, false):
+		var label := child as Label
+		if label == null or not label.has_meta("weapon_state"):
+			continue
+		var id := StringName(str(label.get_meta("weapon_state")))
+		if progression == null:
+			label.text = ""
+		elif progression.is_unlocked(id):
+			label.text = "EQUIPPED" if progression.selected_weapon_id == id else "OWNED"
+		else:
+			label.text = "%d BP" % progression.unlock_cost(id)
 	_continue.disabled = progression == null or not progression.is_unlocked(_selected)
 	_continue.text = "CONTINUE" if not _continue.disabled else "LOCKED IN ARMORY"
 
