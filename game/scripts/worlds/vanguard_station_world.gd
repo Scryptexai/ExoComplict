@@ -210,10 +210,10 @@ func _build_floor_grid(parent: Node3D, room: String, alternate: bool = true) -> 
 	var max_z: float = bounds["max"].y
 	var count := 0
 	var column := 0
-	var z := min_z + TILE * 0.5
+	var z: float = min_z + TILE * 0.5
 	while z < max_z:
 		var row := 0
-		var x := min_x + TILE * 0.5
+		var x: float = min_x + TILE * 0.5
 		while x < max_x:
 			var key := "floor"
 			if alternate and (column + row) % 2 == 1:
@@ -415,7 +415,7 @@ func _build_walls(parent: Node3D) -> void:
 
 	# North (reactor hall) and south (the gate) walls run along X.
 	for z_side in [-1.0, 1.0]:
-		var z := 19.0 * z_side
+		var z: float = 19.0 * z_side
 		for x in [-15.0, -9.0, 9.0, 15.0]:
 			var key := "wall_c" if x < 0.0 else "wall"
 			_place(
@@ -909,7 +909,7 @@ func _build_cargo_bay(parent: Node3D) -> void:
 
 func _build_corridor_dressing(parent: Node3D) -> void:
 	for index in range(4):
-		var x := 22.0 + float(index) * 6.0
+		var x: float = 22.0 + float(index) * 6.0
 		_place(
 			parent,
 			"light_corridor",

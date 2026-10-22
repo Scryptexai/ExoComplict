@@ -244,6 +244,19 @@ printf '\n'
 # 7. Handover map
 # --------------------------------------------------------------------------- #
 printf '[7/7] Handover map\n'
+# The kit measurements are generated from the committed GLBs by a script. If the
+# pack is re-converted and the JSON is not regenerated, every module is placed by
+# a stale footprint -- which is invisible in a screenshot until something floats.
+KIT_MEASURE="$ROOT_DIR/tools/kit_measure.py"
+if [[ -f "$KIT_MEASURE" ]]; then
+  if kit_output="$(python3 "$KIT_MEASURE" --check 2>&1)"; then
+    step_passed 'kit measurements match the committed GLBs'
+  else
+    step_failed 'tools/kit_measure.py --check: run python3 tools/kit_measure.py'
+    printf '%s\n' "$kit_output" | sed 's/^/         /' | head -10
+  fi
+fi
+
 MAP_CHECK="$ROOT_DIR/tools/module_map.py"
 if [[ -z "$PYTHON_BIN" ]]; then
   step_skipped 'no python3 interpreter available for the handover map check'
