@@ -37,6 +37,14 @@ var _clip_names: Array[String] = []
 var _current_clip := ""
 var _camera_distance := 2.6
 var _camera_height := 0.55
+var _look_target := Vector3.ZERO
+## When set, the camera is reframed from the model's measured size every time the
+## container changes size. 0 means "the caller frames it with `frame_model`".
+var _fill := 0.0
+## Camera height above the model's centre, as a fraction of its height. A hero is
+## looked at nearly level; a rifle is looked down on, because a metre-long object
+## seen edge-on is a line.
+var _elevation := 0.0
 
 ## Showcase choreography: the clips to walk through while the screen is open.
 ## Empty means "hold the first clip", which is what a static model gets.
@@ -54,6 +62,10 @@ func _ready() -> void:
 	_build_viewport()
 	_build_camera()
 	_build_lighting()
+	# The container has no size while the screen is being built -- the viewport
+	# measured 2 x 2 px when the first model was presented -- so a framing decided
+	# then is a guess. Re-frame whenever the real box arrives.
+	resized.connect(_on_resized)
 
 
 # --- public surface --------------------------------------------------------- #
@@ -109,6 +121,7 @@ func clear_model() -> void:
 	_clip_names.clear()
 	_current_clip = ""
 	_cycle.clear()
+	_fill = 0.0
 	set_process(false)
 
 
@@ -148,8 +161,55 @@ func skip_reveal() -> void:
 
 
 func frame_model(size: float, crouch := false) -> void:
+	_fill = 0.0
 	_camera_distance = clampf(size * 2.15, 1.2, 4.0)
 	_camera_height = size * (0.30 if crouch else 0.52)
+	_look_target = Vector3(0.0, _camera_height * 0.92, 0.0)
+	_apply_camera()
+
+
+## Frames whatever is on the pivot so it fills `fill` of the visible frame.
+##
+## This measures the model that is actually there, at the size it was actually
+## fitted to, and solves for the camera distance against the *rendered viewport's*
+## aspect. `frame_model()` takes a number the caller guessed; a 1.8 m operative
+## and a 1 m rifle need two different guesses, and a guess is what made the rifle
+## render as a sliver. It also re-runs by itself when the container is laid out,
+## which is the only moment the aspect is known.
+func frame_to_fill(fill := 0.8, elevation := 0.0) -> void:
+	_fill = fill
+	_elevation = elevation
+	_reframe()
+
+
+func _on_resized() -> void:
+	# Deferred: the container updates its SubViewport's size in the same
+	# notification that emits `resized`, so reading `_viewport.size` now would
+	# still be the previous frame's box.
+	if _fill > 0.0:
+		_reframe.call_deferred()
+
+
+func _reframe() -> void:
+	if not is_instance_valid(_model) or not is_instance_valid(_camera):
+		return
+	if not _model.is_inside_tree() or _fill <= 0.0:
+		return
+	var local := ModelFitterScript.combined_bounds(_model)
+	var world := _model.global_transform * local
+	var centre := world.position + world.size * 0.5
+	var view := _viewport.size
+	var aspect := float(view.x) / float(maxi(1, view.y))
+	var vertical := deg_to_rad(_camera.fov)
+	var horizontal := 2.0 * atan(tan(vertical * 0.5) * maxf(aspect, 0.2))
+	# The pivot carries a yaw, so the horizontal extent the camera sees is the
+	# larger of the two horizontal axes of the (already rotated) bounds.
+	var width := maxf(world.size.x, world.size.z)
+	var by_height := world.size.y * 0.5 / (tan(vertical * 0.5) * _fill)
+	var by_width := width * 0.5 / (tan(horizontal * 0.5) * _fill)
+	_camera_distance = clampf(maxf(by_height, by_width), 0.5, 14.0)
+	_camera_height = centre.y + world.size.y * _elevation
+	_look_target = centre
 	_apply_camera()
 
 
@@ -205,8 +265,8 @@ func _build_camera() -> void:
 func _apply_camera() -> void:
 	if not is_instance_valid(_camera):
 		return
-	_camera.position = Vector3(0.0, _camera_height, _camera_distance)
-	_camera.look_at(Vector3(0.0, _camera_height * 0.92, 0.0), Vector3.UP)
+	_camera.position = Vector3(_look_target.x, _camera_height, _camera_distance)
+	_camera.look_at(_look_target, Vector3.UP)
 	_camera.current = true
 
 

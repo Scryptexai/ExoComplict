@@ -30,6 +30,10 @@ const LOCKED_SLOTS := 2
 ## avatar to, so the showcase and the arena agree about how tall this hero is.
 const SHOWCASE_HEIGHT := 1.78
 
+## How much of the viewport the operative fills. 0.84 leaves the top of the head
+## and the boots clear of the frame edge at both orientations.
+const SHOWCASE_FILL := 0.84
+
 var _cards: Array[AegisButton] = []
 var _locked: Array[AegisButton] = []
 var _showcase: ShowcaseViewport
@@ -380,7 +384,7 @@ func _present_selected(reveal: bool) -> void:
 				}
 			)
 		)
-		_showcase.frame_model(SHOWCASE_HEIGHT)
+		_showcase.frame_to_fill(SHOWCASE_FILL, 0.06)
 		if not reveal:
 			_showcase.skip_reveal()
 	_name_label.text = definition.display_name.to_upper()
@@ -472,7 +476,7 @@ func _on_resized() -> void:
 	# The camera framing depends on how tall the stage is: a 96 px showcase
 	# strip on a landscape phone needs the model pulled back, not cropped.
 	if is_instance_valid(_showcase) and _showcase.has_model():
-		_showcase.frame_model(SHOWCASE_HEIGHT, is_landscape() and _showcase_holder.size.y < 220.0)
+		_showcase.frame_to_fill(SHOWCASE_FILL, 0.06)
 
 
 ## Portrait stacks the carousel, the model and the panel. Landscape puts the

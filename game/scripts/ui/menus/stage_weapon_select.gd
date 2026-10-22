@@ -30,6 +30,11 @@ const PLATE_PATHS := {
 ## 0.9995, so this is the mesh at roughly life size, seen close.
 const SHOWCASE_LENGTH := 1.15
 
+## How much of the viewport the rifle fills along its long axis. Wider than the
+## hero's number: the barrel is the silhouette, and 0.86 still leaves the stock
+## and the muzzle clear of the frame.
+const SHOWCASE_FILL := 0.86
+
 var _cards: Array[AegisButton] = []
 var _showcase: ShowcaseViewport
 var _carousel: ScrollContainer
@@ -339,7 +344,7 @@ func _present_selected(reveal: bool) -> void:
 				}
 			)
 		)
-		_showcase.frame_model(SHOWCASE_LENGTH, true)
+		_showcase.frame_to_fill(SHOWCASE_FILL, 0.45)
 		if not reveal:
 			_showcase.skip_reveal()
 	_name_label.text = definition.display_name.to_upper()
@@ -453,7 +458,7 @@ func _on_resized() -> void:
 	# crops a 1 m rifle horizontally, so portrait asks the camera for a smaller
 	# object -- the same reason the hero pulls back on a landscape strip.
 	if is_instance_valid(_showcase) and _showcase.has_model():
-		_showcase.frame_model(_showcase_length(), true)
+		_showcase.frame_to_fill(SHOWCASE_FILL, 0.45)
 		print("WPN DBG resize: ", _showcase.debug_report())
 
 
@@ -496,12 +501,6 @@ func _apply_orientation() -> void:
 	_col_model.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_col_model.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_col_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
-
-
-## The size the camera is told to frame, in showcase metres, for this shape of
-## window. Portrait is the tighter box, so it asks for the smaller number.
-func _showcase_length() -> float:
-	return 1.35 if not is_landscape() else 1.15
 
 
 func _apply_density() -> void:
