@@ -507,6 +507,11 @@ func _apply_orientation() -> void:
 	_col_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
 
+## The fill for the box the rifle is drawn into right now.
+func _showcase_fill() -> float:
+	return SHOWCASE_FILL_LANDSCAPE if is_landscape() else SHOWCASE_FILL_PORTRAIT
+
+
 func _apply_density() -> void:
 	var short_screen := physical_size().y < (520.0 if is_landscape() else 760.0)
 	_heading.text = "SELECT WEAPON" if is_landscape() or short_screen else "LOADOUT"
