@@ -28,6 +28,7 @@ const ModelFitterScript = preload("res://scripts/visual/model_fitter.gd")
 ## PBR values for the imported hero. The GLB omits `pbrMetallicRoughness`, which
 ## glTF defines as metallic 1.0 / roughness 1.0 -- no diffuse response. These are
 ## the values the world's own imported kit uses for painted metal.
+const AB_TEST_MATERIAL := false
 const HERO_METALLIC := 0.18
 const HERO_ROUGHNESS := 0.62
 
@@ -393,7 +394,8 @@ func _spawn_model() -> void:
 	# The GLB ships no PBR factors, so its material is metallic 1.0 by glTF
 	# default and receives no diffuse light at all. Tuned before the outline is
 	# applied, so the rim is the only thing added on top of a readable surface.
-	ModelFitterScript.fix_metallic_default(_model, HERO_METALLIC, HERO_ROUGHNESS)
+	if AB_TEST_MATERIAL:
+		ModelFitterScript.fix_metallic_default(_model, HERO_METALLIC, HERO_ROUGHNESS)
 	_add_character_fill()
 	# Thin and mid-navy rather than near-black and 2 cm thick: at 0.012 the grown
 	# shell was a black band around every limb, and on a 390 px phone the avatar
