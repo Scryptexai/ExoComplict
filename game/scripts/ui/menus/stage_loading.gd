@@ -71,13 +71,17 @@ func _ready() -> void:
 	apply_safe_margins(margin)
 
 	var column := VBoxContainer.new()
-	column.alignment = BoxContainer.ALIGNMENT_END
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	physical_separation(column, 14)
 	margin.add_child(column)
 
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(spacer)
+	# Two spacers rather than one: the whole block -- wordmark, title, robot and
+	# bar -- sits in the optical centre instead of being pushed into the bottom
+	# third. With a single spacer the bar and the percentage ended up on the very
+	# bottom edge, where the web shell draws its own control bar on top of them.
+	var top_spacer := Control.new()
+	top_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(top_spacer)
 
 	# The mark comes first: a player who alt-tabs back mid-load should recognise
 	# the product before reading the status line, the same way every other stage
@@ -91,8 +95,18 @@ func _ready() -> void:
 	physical_min_size(mark, 240.0, 60.0)
 	column.add_child(mark)
 
+	# Title and percentage on one row. The percentage used to be the last thing
+	# in the column, directly under the bar, which put it below the safe margin
+	# and behind the web shell's own control bar -- a readout nobody could see.
+	var headline := HBoxContainer.new()
+	physical_separation(headline, 12)
+	column.add_child(headline)
 	_title = make_label("LOADING", "display_l", AegisTokens.INK)
-	column.add_child(_title)
+	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	headline.add_child(_title)
+	_percent = make_label("", "mono_m", AegisTokens.INFO)
+	_percent.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	headline.add_child(_percent)
 
 	_status = make_label("", "label", AegisTokens.INK_2)
 	column.add_child(_status)
@@ -140,10 +154,12 @@ func _ready() -> void:
 	_indeterminate.visible = false
 	column.add_child(_indeterminate)
 
-	_percent = make_label("", "mono_m", AegisTokens.INFO)
+	var bottom_spacer := Control.new()
+	bottom_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(bottom_spacer)
+
 	_connect_resized(_on_resized)
 	relayout()
-	column.add_child(_percent)
 
 
 func enter(stage_payload: Dictionary) -> void:
