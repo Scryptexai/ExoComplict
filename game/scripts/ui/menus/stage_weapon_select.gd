@@ -39,7 +39,7 @@ const SHOWCASE_LENGTH := 1.15
 ## landscape at both ends. Both values were read off
 ## exports/flow/showcase/weapon-390x844.png and weapon-844x390.png.
 const SHOWCASE_FILL_PORTRAIT := 1.15
-const SHOWCASE_FILL_LANDSCAPE := 1.05
+const SHOWCASE_FILL_LANDSCAPE := 0.95
 
 var _cards: Array[AegisButton] = []
 var _showcase: ShowcaseViewport
@@ -493,11 +493,17 @@ func _apply_orientation() -> void:
 		_body.add_child(_col_model)
 		_body.add_child(_col_info)
 		_col_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# A 1280 px window split in half gives the panel 600 px for four short
+		# lines. The model gets the larger share; the panel keeps a readable one.
+		_col_model.size_flags_stretch_ratio = 1.7
+		_col_info.size_flags_stretch_ratio = 0.8
 	else:
 		# Model on top, the information panel and CONTINUE beneath it.
 		_stack.add_child(_col_model)
 		_stack.add_child(_col_info)
 		_col_info.size_flags_horizontal = Control.SIZE_FILL
+		_col_model.size_flags_stretch_ratio = 1.0
+		_col_info.size_flags_stretch_ratio = 1.0
 	_col_model.add_child(_carousel_wrap)
 	_col_model.add_child(_showcase_holder)
 	_col_info.add_child(_panel)
