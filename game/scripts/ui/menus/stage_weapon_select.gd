@@ -30,14 +30,16 @@ const PLATE_PATHS := {
 ## 0.9995, so this is the mesh at roughly life size, seen close.
 const SHOWCASE_LENGTH := 1.15
 
-## How much of the viewport the rifle fills along its long axis.
+## How much of the showcase box the rifle fills along its long axis, per
+## orientation.
 ##
-## Calibrated against captured frames rather than derived: on the web build the
-## showcase box composites its 3D texture smaller than the projection reports
-## (the same framing that makes the hero fill 0.84 of its box drew the rifle at
-## half the height it should), so the rifle asks for a larger number to land at
-## the same apparent size. Verified in exports/flow/showcase/ at both viewports.
-const SHOWCASE_FILL := 1.15
+## Calibrated against captured frames rather than derived. The portrait box is
+## nearly square and the rifle has to be close to read at all; the landscape box
+## is wide and short, and the same number that fills portrait overflows
+## landscape at both ends. Both values were read off
+## exports/flow/showcase/weapon-390x844.png and weapon-844x390.png.
+const SHOWCASE_FILL_PORTRAIT := 1.15
+const SHOWCASE_FILL_LANDSCAPE := 0.8
 
 var _cards: Array[AegisButton] = []
 var _showcase: ShowcaseViewport
@@ -348,7 +350,7 @@ func _present_selected(reveal: bool) -> void:
 				}
 			)
 		)
-		_showcase.frame_to_fill(SHOWCASE_FILL, 0.18)
+		_showcase.frame_to_fill(_showcase_fill(), 0.18)
 		if not reveal:
 			_showcase.skip_reveal()
 	_name_label.text = definition.display_name.to_upper()
@@ -461,7 +463,7 @@ func _on_resized() -> void:
 	# crops a 1 m rifle horizontally, so portrait asks the camera for a smaller
 	# object -- the same reason the hero pulls back on a landscape strip.
 	if is_instance_valid(_showcase) and _showcase.has_model():
-		_showcase.frame_to_fill(SHOWCASE_FILL, 0.18)
+		_showcase.frame_to_fill(_showcase_fill(), 0.18)
 
 
 ## Portrait stacks: carousel, model, then the information panel and CONTINUE.
