@@ -477,100 +477,111 @@ measurement instead of the mechanism that does not apply.
   read as daylight, that is an art-direction change to the sky and fog, not a
   correction — so it was not made here.
 
-## 10. WORLD 01 — Vanguard Zero: the vertical slice
+## 10. WORLD 02 — Vanguard Station, Dock 07
 
-### 10.1 Phase 1 audit — what the tools actually are
+### 10.1 What this section replaces
 
-Verified by running them in this sandbox, not assumed:
+An earlier pass on this branch composed a Vanguard district **on top of** Neon
+Frontier: a gate at z +74, a wall line at z +62, a yard, conduit runs and a
+spire, all built from procedural GDScript boxes. It was captured, and the
+captures showed three things the tests had not: the district was laid out across
+the existing perimeter props, its gate faced away from the player, and its
+surfaces had no detail beyond what a box can carry. `a671efd` removes it. Neon
+Frontier is byte-identical to its state before that pass.
 
-| Tool | State | Consequence |
+The world in this section is a **separate theatre**, built from the imported kit.
+
+### 10.2 The assets, and why this is not procedural geometry
+
+`3DScifiStarterKitFree.zip` is a 259 MB Git LFS object that this sandbox cannot
+download, but its converted output is already committed: **125 GLB modules** in
+`game/assets/world/scifi_starter_kit/models`, produced by
+`tools/convert_fbx_pack.py` on a CI runner. They are the room kit: 6 x 6 m deck
+plates, 2 x 4 x 6 m wall modules, door frames, roof plates, consoles, pipe runs,
+light strips, signs, word decals, portholes, stairs and catwalks.
+
+Every visible piece of this world is one of those modules. Where the world needs
+a wall it is a wall module; where it needs a landmark it is the pack's turbine
+face between two of its own fin columns; the dock number over the doorway is two
+of the pack's numeral modules. There is **no procedural stand-in geometry in
+World 02**.
+
+Sizes and origins are measured, not estimated. `tools/kit_measure.py` reads each
+GLB's POSITION accessors and writes `measurements.json`; the composer centres a
+module on that footprint and builds its collider from the same box. This matters
+because the pack authors most modules off-origin: `Wall_Console_01_Half` starts
+1.76 m to its own left and 0.74 m up, `Fence_Long_01` starts 2.5 m to its right.
+`tools/kit_measure.py --check` fails if the JSON and the models disagree, and it
+runs in `dev_check.sh`.
+
+### 10.3 The facility
+
+| Room | Extent | What is in it |
 | --- | --- | --- |
-| Blender / `blender` CLI | **not installed**, and no package of it is reachable from this sandbox | no sculpted or sculpt-retopo GLB can be produced here |
-| Generative 3D service | none reachable (outbound hosts are GitHub, npm, PyPI only) | no prompt-to-mesh |
-| `numpy`, `trimesh` | not installed; PyPI is reachable | procedural mesh generation is *possible* in Python, but nothing in this repo consumes GLB emitted from it |
-| Existing GLB library | **137 GLB**, `scifi_starter_kit` + `kenney_space_kit`, plus the world's own FBX pack | the project's established pipeline is GDScript builders over imported kits |
-| Godot | not runnable here; CI runs 4.7.2 | engine behaviour is verified through CI only |
+| Hangar | 36 x 36 m, x -19..19, z -19..19 | deck plates, four wall runs with four door frames, two catwalks with rails and stepped landings, cover crates, console bank, bench, roof ring open above the middle |
+| Reactor hall | 24 x 18 m, z -37..-19 | turbine face between fin columns, pipe rises and floor runs, two console banks, work bench, sign and warning decal, roofed with a skylight |
+| Cargo bay | 18 x 12 m, x -37..-19 | crate stacks two high, pipe run, manifest console, caution sign and zone decal |
+| Corridor | 24 x 6 m, x 19..43 | ceiling light runs, ribs, intercom, console, exit decal, one porthole wall in place of plating |
 
-So the asset production method for this pass is **procedural construction in
-GDScript** (`NeonFrontierGeometry` + `NeonFrontierMaterialKit`), which is the
-method the project already uses for its reactor, command centre, gates and
-turrets. That is a *decision under constraint*, and it is recorded as such: this
-slice does **not** demonstrate Blender or generative-3D capability.
+The hangar is the size it is because the wave spawn markers in `main.tscn` sit at
++-11 and +-12 m: a smaller room would spawn waves inside its walls.
 
-### 10.2 What was built
-
-`zones/vanguard.gd` composes the district; `components/vanguard.gd` holds the
-families. Five zones, one scene, arranged as the *approach* to the existing
-arena rather than a replacement for it:
-
-| Zone | Where | What it is |
-| --- | --- | --- |
-| A deployment gate | z +74 | checkpoint gate, wings, lit threshold, impact scar |
-| B outer perimeter | z +62 | six wall modules on an 8 m grid with one 8–18 m breach |
-| C industrial yard | z +46…+53 | four cover posts, cargo depot, deck plates and a marked approach lane |
-| D reactor feed | z +54, +68 | two conduit runs, one broken, meeting at a damaged junction |
-| E megastructure | z −196, −232 | command spire and relay spire, 96 m and 60 m, no collision |
-
-Damage is a **parameter** (`damage_state` 0/1/2 on `NeonFrontierAsset`), not three
-files: the geometry changes (exposed ribs, a bent panel, fallen panels that are
-the same panel shape as the intact wall), so the variant earns its keep.
-
-### 10.3 Status, per the brief's vocabulary
+### 10.4 Status, in the brief's vocabulary
 
 | Claim | Status | Basis |
 | --- | --- | --- |
-| All five zones exist in the built world | **VERIFIED** | `vanguard_world_smoke`, frame captures |
-| The three damage states differ | **VERIFIED** | geometry names asserted per state |
-| A capsule can walk through the gate and the breach | **VERIFIED** | physics shape queries at 17 and 11 sample points |
-| Craters and the distant spire carry no collision | **VERIFIED** | query + node inspection |
-| The district stays outside the 42 m arena disc | **VERIFIED** | tagged-node assertion |
-| Asset scale and orientation | **VERIFIED** for the district; **FAILED once and fixed** — the gate was placed showing its back (10.5.2) |
-| The district reads as one faction's hardware | **LIKELY** | shared trim, shared armour material, one grammar; judged from three captures |
-| Landmark recognisable at gameplay distance | **LIKELY** | the gate now reads as a gate from the arena; its facade detail is still thin at 30 m |
-| Materials/lighting come from one world | **LIKELY** | all surfaces are the existing palette; no new hue was introduced |
-| Foreground/midground/background composition | **LIKELY** | deck → wall line → spire; captured at 1280x720 |
-| Performance on device | **UNKNOWN** | SwiftShader only; no measurement on hardware |
-| Android renderer parity | **UNKNOWN** | the web build is Compatibility; mobile was not exercised |
+| Two worlds exist, separately | **VERIFIED** | `main.tscn` instances both; each builds only when its id is selected; `Neon Frontier does not build while Vanguard Station is selected` is asserted |
+| Every visible piece is an imported kit module | **VERIFIED** | every node carries `uploaded_fbx_visual`, asserted per node |
+| Modules are placed by measured footprints | **VERIFIED** | `tools/kit_measure.py --check` runs in the static group; sizes come from the JSON |
+| The facility is walkable end to end | **VERIFIED** | capsule sweeps along four legs (spawn->gate, hangar->reactor, hangar->cargo, hangar->corridor), plus a deck ray at the spawn |
+| All four rooms contain their furniture | **VERIFIED** | per-room module counts and named-node assertions (cover crates, gate, numerals) |
+| The card, the launcher and the scene agree | **VERIFIED** | `data_source_smoke` checks every definition's scene is instanceable inside `main.tscn` |
+| It reads as a sci-fi facility | **LIKELY** | captured at 1280x720 from seven vantages; see 10.6 for what is still thin |
+| Performance on device | **UNKNOWN** | SwiftShader only; no hardware measurement |
+| Mobile renderer parity | **UNKNOWN** | web build is Compatibility; not exercised on Android |
 
-### 10.4 Measured cost
+### 10.5 Defects this pass introduced, and what caught each
 
-The district adds, by the test's own count: 6 wall modules, 1 gate, 3 conduit
-runs, 5 debris fields, 4 craters, 4 yard cover pieces, 1 depot, 2 spires, 31 deck
-plates and **6 unshadowed omni lights**. Every family is a `Node3D` with its own
-children, so distance culling and instancing work per piece; nothing is merged
-into a single world mesh.
+Nine of the eleven were invisible to `gdlint`, `gdformat` and `dev_check` — they
+are Godot parse errors or runtime behaviour, and the headless smoke job is the
+only thing in this repo that runs a parser:
 
-### 10.5 Defects this pass introduced, and what caught them
-
-1. **The district was laid out on top of the arena.** First layout put the yard
-   inside the 42 m combat disc and the wall line through the perimeter relay
-   array. **Caught by a capture**, then turned into an assertion. Every Vanguard
-   node is now tagged and the test refuses any placement inside the arena.
-2. **The gate faced the wrong way.** Its whole facade — ID plate, header lamps,
-   light slots, lit threshold — is modelled on +Z, and the player approaches from
-   −Z, so the landmark presented its back. **Caught by a close crop of a frame**,
-   fixed by rotating the instance 180°.
-3. **The gate's lights were lit for a different scale**: 1.6 energy at 8 m is a
-   fraction of a lux. Raised to 3.2–5.0 at closer range.
-4. **The district stood on the bare ground plane** while the arena has a
-   panelled deck. Added a deck of 10 m plates with the lane left clear.
-5. **The test matched nodes by name prefix** and swept up `PerimeterRelayArray`,
-   a prop that predates the district. Replaced with an explicit tag.
-6. **Type inference through an untyped `world`** (`var wall := world._method()`)
-   is a parse error that gdlint accepts. Caught by CI. This is the third time
-   this class of error has appeared in this project; it is now in 8.4's list too.
+1. **`const` table of `Vector3` arrays** — the library failed to compile; every
+   world test fell over behind it. Replaced with measured JSON.
+2. **A duplicate `static var`** left by an edit — same symptom, different cause.
+3. **`Engine.get_singleton("ProgressionService")`** — returns null for an
+   autoload-style node, and both worlds defaulted to "build it", so the station's
+   walls landed through the frontier's gate.
+4. **`self` inside a static function** — parse error.
+5. **`ProgressionService` readied after the worlds** — siblings ready in order,
+   so the worlds built with the default selection while the profile said
+   otherwise. The launcher loaded the wrong theatre.
+6. **A door frame given one solid collider** — every doorway in the facility was
+   sealed by the thing that was meant to open it.
+7. **Door frames turned 90 degrees in walls that run along X** — the gate and the
+   reactor door sealed themselves and faced the wrong way.
+8. **`Roof_Glass_01_6x6` used as a roof plate** — it is a 6 m vertical pane, so
+   it hung a cyan slab through the reactor hall.
+9. **Word decals placed at numeric scales** — `Word_Zone` is 21.9 m long; at 0.62
+   it was a 14 m flat panel. Signs are now sized to a width in metres.
+10. **The spawn apron dressed on the wrong side** — everything added for "the
+    first frame" was behind the player, who faces the reactor door.
+11. **`?qa_world=` dropped on the gameplay URL** — a capture run reported the
+    station and photographed the frontier, and the numbers agreed with it.
 
 ### 10.6 What is honestly still weak
 
-* **The gate's facade is still sparse at 30 m.** It reads as a gate — opening,
-  header, pylons — but the plate and lamps are only legible within about 12 m.
-  The next pass should give the header real depth (bracing, a beacon mast) rather
-  than add more emissive.
-* **The wall modules are light on damage.** A destroyed module reads, but the
-  damage in between (cracked panels, scorched plate, a missing crenel) is not
-  modelled; the three states are coarse.
-* **No LOD or occlusion** was added. At these counts it is not needed; at ten
-  times the district it would be.
-* **No audio and no VFX** from the P2 list were built (no dust, smoke or arcs).
-  The conduit "arc" is a static emissive node, not an effect.
-* **Nothing was verified on a device or on the mobile renderer.**
+* **The kit is a corridor kit, and the hangar is 36 m.** At that span the wall
+  modules read as flat grey planes; the detail that makes the pack sing at 6 m
+  spacing is lost. The next pass should either shrink the arena or break the long
+  walls with buttresses, plant rooms and mezzanines.
+* **No props from the Kenney space kit** are used. The ten low-poly craft, turrets
+  and hangar shells are committed and unused; mixing them with the starter kit's
+  detail level would need a deliberate art decision, not a drop-in.
+* **The two catwalks step rather than ramp**, because the pack's stair module is
+  authored around its own origin and reads wrong when turned. Functional, not
+  elegant.
+* **No LOD, no occlusion, no instancing.** Module counts are ~250 per room; the
+  next pass should instance the repeated deck and wall modules and measure.
+* **Nothing is verified on a device or on the mobile renderer.**
+* **The card plate is a crop of a review frame**, not commissioned key art.

@@ -68,6 +68,19 @@ func _run() -> void:
 		var count := _count_room(station_root, room)
 		_expect(count >= 20, "%s has %d kit modules (>= 20)" % [room, count])
 
+	# 2b. The furniture the first frame is composed around is actually there. This
+	#     is a separate assertion because the crates were built and invisible for
+	#     two captures running: existence and framing are different failures.
+	var cover := _count_named(station_root, "HangarCoverCrate")
+	_expect(cover >= 4, "the spawn apron has %d cover crates (>= 4)" % cover)
+	_expect(
+		(
+			_count_named(station_root, "DockGate") >= 1
+			and _count_named(station_root, "HallNumeral") >= 2
+		),
+		"the dock gate and its numerals exist"
+	)
+
 	# 3. No module is a bare MeshInstance3D placed by hand: each one hangs off a
 	#    pivot whose child is an imported scene with a MeshInstance3D under it.
 	var non_kit := 0
@@ -161,6 +174,14 @@ func _check_route(space: PhysicsDirectSpaceState3D, label: String, a: Vector3, b
 			blocked = "at %.1f, %.1f by %s" % [at.x, at.z, owner_name]
 			break
 	_expect(blocked == "", "%s is walkable (%s)" % [label, blocked])
+
+
+func _count_named(root: Node3D, prefix: String) -> int:
+	var count := 0
+	for node in root.get_children():
+		if String(node.name).begins_with(prefix):
+			count += 1
+	return count
 
 
 func _count_room(root: Node3D, room: String) -> int:
