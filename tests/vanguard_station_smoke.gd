@@ -97,10 +97,17 @@ func _run() -> void:
 	#    capsule sweep down the room's centre line hits whatever stands at the
 	#    spawn point, and the first run of this test reported every route blocked
 	#    "by Main" — which was the player, standing exactly where the player does.
-	var player: Node3D = main.get_node("Player")
-	var player_was := player.global_position
-	player.global_position = Vector3(0.0, 60.0, 0.0)
-	player.set_physics_process(false)
+	#    The training drone stands in the reactor doorway, so it moves too: both of
+	#    them are fixed obstacles as far as a walkability sweep is concerned.
+	var parked: Array[Node3D] = []
+	for node_name in ["Player", "TrainingDrone"]:
+		var body: Node3D = main.get_node_or_null(node_name)
+		if body == null:
+			continue
+		parked.append(body)
+		body.set_meta("smoke_was_at", body.global_position)
+		body.global_position = Vector3(0.0, 60.0, 0.0)
+		body.set_physics_process(false)
 	await physics_frame
 	# Capsule at player proportions, sampled every 0.5 m along four legs, and
 	# nothing may intersect it.
