@@ -91,7 +91,9 @@ static func _build_outer_perimeter(world) -> void:
 	]
 	for index in range(modules.size()):
 		var entry: Dictionary = modules[index]
-		var wall := world._place_component(
+		# `world` is untyped here (the zone takes the composition root), so the
+		# return has to be named explicitly: `:=` cannot infer through a var.
+		var wall: Node3D = world._place_component(
 			world.VANGUARD_WALL_SCENE,
 			"PerimeterWall_%02d" % index,
 			Vector3(entry["x"], 0.0, 34.0),
