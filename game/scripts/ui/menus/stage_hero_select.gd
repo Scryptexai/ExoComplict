@@ -366,7 +366,7 @@ func _hero_name(hero_id: StringName) -> String:
 	var definition := HeroDefinition.load_definition(hero_id)
 	if definition != null:
 		return definition.display_name
-	return String(hero_id).replace("_", " ").to_capitalized()
+	return String(hero_id).replace("_", " ").capitalize()
 
 
 func _weapon_name(weapon_id: StringName) -> String:
