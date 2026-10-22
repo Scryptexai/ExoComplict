@@ -363,27 +363,45 @@ func _build_hangar_deck(parent: Node3D) -> void:
 ## spawn and the thing the camera is pointed at, not beside the player's
 ## shoulders, or a 72 degree field of view never contains it.
 func _build_hangar_apron(parent: Node3D) -> void:
-	for index in range(4):
-		var at := Vector3(-4.0 + float(index % 2) * 8.0, 0.0, -13.0 - float(index / 2) * 3.0)
+	# Cover, stacked, close enough to the spawn to be objects in the frame rather
+	# than scenery. The crate module is 1 x 0.75 x 2, so a pair is waist high and
+	# a stack reads at twenty metres, which the single row did not.
+	for index in range(6):
+		var side := -1.0 if index < 3 else 1.0
+		var column := index % 3
+		var at := Vector3(side * (4.5 + 1.6 * float(column % 2)), 0.0, -8.5 - 3.0 * float(column))
 		_place(
 			parent,
 			"crate",
 			"HangarCoverCrate_%02d" % index,
 			at,
-			90.0 if index % 2 == 0 else 0.0,
+			90.0 if column % 2 == 0 else 0.0,
 			1.0,
 			"box",
 			Vector3.ONE,
 			"hangar"
 		)
-	# A console bank facing into the room, and a bench on the far side: between
-	# them they frame the walkway to the door without ever standing in it.
+		if column == 1:
+			_place(
+				parent,
+				"crate",
+				"HangarCoverCrate_%02d_b" % index,
+				at + Vector3(0.0, 0.75, 0.0),
+				0.0,
+				0.7,
+				"",
+				Vector3.ONE,
+				"hangar"
+			)
+	# Two worked surfaces facing up the hall: a console bank on the left and a
+	# bench on the right. They are the pack's own furniture, mounted on the deck,
+	# angled so their lit faces are what the player walks toward.
 	_place(
 		parent,
-		"console_half",
+		"console_large",
 		"HangarSpawnConsole",
-		Vector3(-12.5, 0.0, -13.0),
-		180.0,
+		Vector3(-7.5, 0.0, -7.0),
+		90.0,
 		1.0,
 		"box",
 		Vector3.ONE,
@@ -393,15 +411,51 @@ func _build_hangar_apron(parent: Node3D) -> void:
 		parent,
 		"table",
 		"HangarSpawnBench",
-		Vector3(12.8, 0.0, -13.5),
-		0.0,
+		Vector3(7.5, 0.0, -6.5),
+		90.0,
 		1.0,
 		"box",
 		Vector3.ONE,
 		"hangar"
 	)
-	# Grate runs either side of the walkway, so the deck has a grain that leads
-	# the eye to the lit door rather than a blank field of plate.
+	# Structural depth: diagonal beams either side of the door, so the lit
+	# threshold at the end of the hall sits inside a frame instead of on a flat
+	# wall, and the wall reads as something built rather than extruded.
+	for side in [-1.0, 1.0]:
+		_place(
+			parent,
+			"beam",
+			"HangarDoorBeam_%s" % str(side),
+			Vector3(side * 6.0, 0.0, -15.5),
+			0.0,
+			1.0,
+			"",
+			Vector3.ONE,
+			"hangar"
+		)
+		_place(
+			parent,
+			"wall_pipes",
+			"HangarDuct_%s" % str(side),
+			Vector3(side * 13.5, 0.0, -6.0),
+			0.0,
+			0.8,
+			"",
+			Vector3.ONE,
+			"hangar"
+		)
+		_place(
+			parent,
+			"wall_pipes",
+			"HangarDuctFar_%s" % str(side),
+			Vector3(side * 13.5, 0.0, 0.0),
+			0.0,
+			0.8,
+			"",
+			Vector3.ONE,
+			"hangar"
+		)
+	# Grate runs either side of the walkway, leading the eye to the lit door.
 	for z in [-11.0, -15.5]:
 		for side in [-1.0, 1.0]:
 			_place(
