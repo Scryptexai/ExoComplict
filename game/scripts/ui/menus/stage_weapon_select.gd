@@ -37,7 +37,7 @@ const SHOWCASE_LENGTH := 1.15
 ## (the same framing that makes the hero fill 0.84 of its box drew the rifle at
 ## half the height it should), so the rifle asks for a larger number to land at
 ## the same apparent size. Verified in exports/flow/showcase/ at both viewports.
-const SHOWCASE_FILL := 1.4
+const SHOWCASE_FILL := 1.15
 
 var _cards: Array[AegisButton] = []
 var _showcase: ShowcaseViewport
@@ -348,7 +348,7 @@ func _present_selected(reveal: bool) -> void:
 				}
 			)
 		)
-		_showcase.frame_to_fill(SHOWCASE_FILL, 0.45)
+		_showcase.frame_to_fill(SHOWCASE_FILL, 0.18)
 		if not reveal:
 			_showcase.skip_reveal()
 	_name_label.text = definition.display_name.to_upper()
@@ -461,7 +461,7 @@ func _on_resized() -> void:
 	# crops a 1 m rifle horizontally, so portrait asks the camera for a smaller
 	# object -- the same reason the hero pulls back on a landscape strip.
 	if is_instance_valid(_showcase) and _showcase.has_model():
-		_showcase.frame_to_fill(SHOWCASE_FILL, 0.45)
+		_showcase.frame_to_fill(SHOWCASE_FILL, 0.18)
 
 
 ## Portrait stacks: carousel, model, then the information panel and CONTINUE.
