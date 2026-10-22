@@ -314,6 +314,13 @@ func _process(delta: float) -> void:
 	if _fill > 0.0 and is_instance_valid(_viewport) and _viewport.size != _framed_view:
 		_reframe()
 	_breath += delta
+	if Engine.get_process_frames() % 60 == 0:
+		print(
+			(
+				"WPN DBG frame d=%.2f vp=%s fill=%.2f size=%s"
+				% [_camera_distance, _viewport.size, _fill, size]
+			)
+		)
 	_pivot.position.y = sin(_breath * 1.9) * 0.012
 	if _cycle.size() < 2:
 		return
