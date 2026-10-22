@@ -350,13 +350,6 @@ static var _scenes: Dictionary = {}
 static var _measured: Dictionary = {}
 static var _materials: Dictionary = {}
 
-## A class reference in GDScript is a `GDScript` resource, not an instance, so
-## `AegisTokens.get("LINE")` would ask the resource object and return null.
-## Static access by name, resolved at compile time, is the only reliable way to
-## read a constant from another class.
-static var _scenes: Dictionary = {}
-static var _measured: Dictionary = {}
-
 
 static func token_color(token_name: String) -> Color:
 	match token_name:
@@ -417,8 +410,8 @@ static func _measurement(file: String) -> Dictionary:
 	if _measured.is_empty():
 		var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(MEASUREMENTS))
 		if data is Dictionary:
-			_measured = data.get("models", {})
-	return _measured.get(file, {})
+			_measured = Dictionary(data["models"]) if data.has("models") else {}
+	return Dictionary(_measured.get(file, {}))
 
 
 ## The file name behind a key, from either table.
