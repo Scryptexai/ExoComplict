@@ -490,6 +490,52 @@ func _build_reactor_walls(parent: Node3D) -> void:
 			Vector3.ONE,
 			"reactor"
 		)
+	# The view the player is given at spawn: this end of the hall is the landmark,
+	# so it carries the lit threshold and the dock number, not the gate behind them.
+	_place(
+		parent,
+		"light_strip",
+		"ReactorDoorLintel",
+		Vector3(0.0, 3.9, -18.2),
+		180.0,
+		3.4,
+		"",
+		Vector3.ONE,
+		"hangar"
+	)
+	_place(
+		parent,
+		"light_corridor",
+		"ReactorDoorThreshold",
+		Vector3(0.0, 0.12, -17.8),
+		90.0,
+		1.2,
+		"",
+		Vector3.ONE,
+		"hangar"
+	)
+	_place(
+		parent,
+		"num_0",
+		"HallNumeralZero",
+		Vector3(-1.4, 3.0, -18.6),
+		0.0,
+		0.4,
+		"",
+		Vector3.ONE,
+		"hangar"
+	)
+	_place(
+		parent,
+		"num_7",
+		"HallNumeralSeven",
+		Vector3(1.4, 3.0, -18.6),
+		0.0,
+		0.4,
+		"",
+		Vector3.ONE,
+		"hangar"
+	)
 	# The shared wall with the hangar already exists; a frame on this side of it
 	# makes the threshold read from inside the reactor hall too.
 	_place(
