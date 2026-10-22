@@ -34,7 +34,7 @@ func _expect(condition: bool, message: String) -> bool:
 
 
 func _run() -> void:
-	var progression := Engine.get_singleton("ProgressionService")
+	var progression := root.get_node_or_null("ProgressionService")
 	if progression != null:
 		progression.set("selected_world_id", &"vanguard_station")
 
@@ -95,7 +95,7 @@ func _run() -> void:
 
 	# 6. A body can walk the route. Capsule at player proportions, sampled every
 	#    0.5 m along four legs, and nothing may intersect it.
-	var space := PhysicsServer3D.space_get_direct_state(root.world_3d.world)
+	var space := root.world_3d.direct_space_state
 	_check_route(space, "spawn to gate", Vector3(0.0, 1.0, 0.0), Vector3(0.0, 1.0, 17.5))
 	_check_route(space, "hangar to reactor", Vector3(0.0, 1.0, 0.0), Vector3(0.0, 1.0, -31.0))
 	_check_route(space, "hangar to cargo", Vector3(-6.0, 1.0, 0.0), Vector3(-28.0, 1.0, 0.0))

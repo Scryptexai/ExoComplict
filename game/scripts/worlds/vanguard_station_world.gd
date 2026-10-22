@@ -65,11 +65,24 @@ func _ready() -> void:
 	build()
 
 
+## Which theatre the launcher selected.
+##
+## Resolved through the tree, not `Engine.get_singleton()`: autoloads are not
+## engine singletons, so that call returns null and a null check that defaults to
+## "build it" makes *both* worlds build — which is exactly how the station's walls
+## ended up blocking the first world's gate in the smoke suite.
+static func selected_world_id() -> StringName:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null:
+		return &""
+	var service := tree.root.get_node_or_null("ProgressionService")
+	if service == null:
+		return &""
+	return StringName(String(service.get("selected_world_id")))
+
+
 static func _is_selected() -> bool:
-	var progression := Engine.get_singleton("ProgressionService")
-	if progression == null:
-		return true
-	return StringName(progression.get("selected_world_id")) == &"vanguard_station"
+	return selected_world_id() == &"vanguard_station"
 
 
 func build() -> Dictionary:
