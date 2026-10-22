@@ -30,9 +30,14 @@ const LOCKED_SLOTS := 2
 ## avatar to, so the showcase and the arena agree about how tall this hero is.
 const SHOWCASE_HEIGHT := 1.78
 
-## How much of the viewport the operative fills. 0.84 leaves the top of the head
-## and the boots clear of the frame edge at both orientations.
-const SHOWCASE_FILL := 0.84
+## How much of the showcase box the operative fills, per orientation.
+##
+## Calibrated against captured frames rather than derived: the portrait box is
+## tall and the hero lands at 0.84, while the landscape box is wide and short
+## and needs a much larger number before the operative is anything but a figure
+## at the back of the room. Both read off exports/flow/showcase/hero-*.png.
+const SHOWCASE_FILL_PORTRAIT := 0.84
+const SHOWCASE_FILL_LANDSCAPE := 1.5
 
 var _cards: Array[AegisButton] = []
 var _locked: Array[AegisButton] = []
@@ -384,7 +389,7 @@ func _present_selected(reveal: bool) -> void:
 				}
 			)
 		)
-		_showcase.frame_to_fill(SHOWCASE_FILL, 0.06)
+		_showcase.frame_to_fill(_showcase_fill(), 0.06)
 		if not reveal:
 			_showcase.skip_reveal()
 	_name_label.text = definition.display_name.to_upper()
@@ -476,7 +481,7 @@ func _on_resized() -> void:
 	# The camera framing depends on how tall the stage is: a 96 px showcase
 	# strip on a landscape phone needs the model pulled back, not cropped.
 	if is_instance_valid(_showcase) and _showcase.has_model():
-		_showcase.frame_to_fill(SHOWCASE_FILL, 0.06)
+		_showcase.frame_to_fill(_showcase_fill(), 0.06)
 
 
 ## Portrait stacks the carousel, the model and the panel. Landscape puts the
@@ -523,6 +528,11 @@ func _apply_orientation() -> void:
 ## the showcase: chips shrink to 64 px, the caption goes, and the information
 ## card keeps two lines. DEPLOY-scale buttons never shrink -- they are the
 ## controls a thumb has to hit on a phone.
+## The fill for the box the operative is drawn into right now.
+func _showcase_fill() -> float:
+	return SHOWCASE_FILL_LANDSCAPE if is_landscape() else SHOWCASE_FILL_PORTRAIT
+
+
 func _apply_density() -> void:
 	var short_screen := physical_size().y < (520.0 if is_landscape() else 760.0)
 	var compact_chip := Vector2(64.0, 64.0) if short_screen else Vector2(84.0, 84.0)
