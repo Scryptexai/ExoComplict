@@ -65,7 +65,7 @@ func _ready() -> void:
 	build()
 
 
-static func _is_selected() -> bool:
+func _is_selected() -> bool:
 	return WorldSelection.selected(self) == &"vanguard_station"
 
 

@@ -59,7 +59,7 @@ func _ready() -> void:
 	ScifiFrontierDresser.dress_districts(self)
 
 
-static func _is_selected() -> bool:
+func _is_selected() -> bool:
 	var selected := WorldSelection.selected(self)
 	return selected == &"" or selected == &"neon_frontier"
 
