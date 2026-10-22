@@ -200,8 +200,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if not _active:
 		return
-	if key >= KEY_1 and key <= KEY_8:
+	# 1–9 and then 0 as the tenth. The tour has ten vantages now that WORLD 01
+	# added the gate and the breach, and silently dropping the last two would
+	# mean the new district could not be photographed from the review camera.
+	if key >= KEY_1 and key <= KEY_9:
 		_vantage = key - KEY_1
+		_apply()
+		get_viewport().set_input_as_handled()
+	elif key == KEY_0 and VANTAGES.size() >= 10:
+		_vantage = 9
 		_apply()
 		get_viewport().set_input_as_handled()
 	elif key == KEY_ESCAPE or key == KEY_0:

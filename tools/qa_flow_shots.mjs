@@ -245,7 +245,10 @@ for (const viewport of viewports) {
     await page.keyboard.press('KeyP');
     await new Promise((resolve) => setTimeout(resolve, 900));
     const engaged = lines.some((line) => line.includes('World tour: review camera engaged'));
-    for (const key of ['Digit1', 'Digit2', 'Digit3', 'Digit4']) {
+    // 1-10: the tour has ten vantages now that WORLD 01 added the gate and
+    // the breach; capturing four of them was leaving the new district
+    // unphotographed.
+    for (const key of ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit8', 'Digit9']) {
       await page.keyboard.press(key);
       await new Promise((resolve) => setTimeout(resolve, 900));
       const tourShot = await shoot(page, viewport, `tour-${key.replace('Digit', '')}`);
