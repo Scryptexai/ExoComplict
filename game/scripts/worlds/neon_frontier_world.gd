@@ -67,11 +67,17 @@ func _create_materials() -> void:
 	# hazard and hostile routes, red for danger. Nothing invents a hue the UI
 	# does not own.
 	_materials = {
-		"ground": NeonFrontierMaterialKit.make_material(AegisTokens.LINE.darkened(0.5), 0.05, 0.9),
+		# The walkable surfaces are the one place the darkening went too far:
+		# the first capture of the relit world (exports/flow/after-world) had the
+		# deck at luma 0.105 and the interior tour frames read as black-on-black.
+		# They sit at 0.42/0.34/0.40 of LINE instead of 0.5/0.4/0.46 -- still
+		# under the 0.25 luma floor the palette test holds (0.123 for the deck),
+		# but enough for cover and edges to read without the reactor.
+		"ground": NeonFrontierMaterialKit.make_material(AegisTokens.LINE.darkened(0.42), 0.05, 0.9),
 		"ground_light":
-		NeonFrontierMaterialKit.make_material(AegisTokens.LINE.darkened(0.4), 0.07, 0.84),
+		NeonFrontierMaterialKit.make_material(AegisTokens.LINE.darkened(0.34), 0.07, 0.84),
 		"ground_rose":
-		NeonFrontierMaterialKit.make_material(AegisTokens.LINE.darkened(0.46), 0.06, 0.88),
+		NeonFrontierMaterialKit.make_material(AegisTokens.LINE.darkened(0.4), 0.06, 0.88),
 		"silver": NeonFrontierMaterialKit.make_material(AegisTokens.LINE.darkened(0.2), 0.62, 0.4),
 		"pearl": NeonFrontierMaterialKit.make_material(AegisTokens.LINE.darkened(0.28), 0.28, 0.5),
 		"ceramic":
@@ -231,7 +237,9 @@ func _build_lighting_and_atmosphere() -> void:
 	# and put the contrast back where the art direction puts it -- emissive
 	# cyan and amber against structure that stays in shadow.
 	environment.ambient_light_color = Color(0.16, 0.22, 0.3)
-	environment.ambient_light_energy = 0.55
+	# Enough fill to read an interior wall: with the sun blocked, ambient is the
+	# only light in the bays, and at 0.55 the tour frames lost their geometry.
+	environment.ambient_light_energy = 0.75
 	environment.reflected_light_source = Environment.REFLECTION_SOURCE_BG
 	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
 	environment.tonemap_exposure = 1.01
