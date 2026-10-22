@@ -178,6 +178,32 @@ func _add_collider(pivot: Node3D, box: Vector3, mode: String) -> void:
 	pivot.add_child(body)
 
 
+## Two jambs and a lintel, so the opening in a door frame is actually open.
+## The pack's frame module is 5 m wide and 4 m tall; the walkable gap is 4 m by
+## 2.9 m, which is what its own visual suggests.
+func _add_portal(pivot: Node3D, box: Vector3) -> void:
+	var gap := minf(box.x * 0.8, 4.0)
+	var head := minf(2.9, box.y - 0.6)
+	var jamb := (box.x - gap) * 0.5
+	var parts := [
+		[Vector3(-(gap * 0.5 + jamb * 0.5), box.y * 0.5, 0.0), Vector3(jamb, box.y, box.z)],
+		[Vector3(gap * 0.5 + jamb * 0.5, box.y * 0.5, 0.0), Vector3(jamb, box.y, box.z)],
+		[Vector3(0.0, head + (box.y - head) * 0.5, 0.0), Vector3(gap, box.y - head, box.z)],
+	]
+	var body := StaticBody3D.new()
+	body.name = "Body"
+	body.collision_layer = 1
+	body.collision_mask = 0
+	for part in parts:
+		var shape := BoxShape3D.new()
+		shape.size = part[1]
+		var collision := CollisionShape3D.new()
+		collision.shape = shape
+		collision.position = part[0]
+		body.add_child(collision)
+	pivot.add_child(body)
+
+
 func _light(
 	parent: Node3D, node_name: String, at: Vector3, color: Color, energy: float, reach: float
 ) -> void:
