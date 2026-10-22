@@ -19,7 +19,7 @@ const LOCKED_SLOTS := 2
 ## its objectives at runtime and a second copy of the wave plan here would be
 ## stale the first time it is tuned. What it states is what the theatre is.
 const WORLD_OBJECTIVES := {
-	&"neon_frontier": "CHAPTER 1 · HOLD THE OUTPOST",
+	&"neon_frontier": "CHAPTER 1 · OUTPOST",
 }
 
 var _cards: Array[AegisButton] = []
