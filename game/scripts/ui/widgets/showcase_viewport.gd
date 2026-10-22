@@ -246,7 +246,10 @@ func _process(delta: float) -> void:
 	# A breath, not an animation: two centimetres of vertical travel at half a
 	# hertz. It keeps a still frame from looking like a frozen screenshot
 	# without competing with the model's own idle clip.
+	var was := _breath
 	_breath += delta
+	if was < 2.0 and _breath >= 2.0:
+		print("WPN DBG settled: ", debug_report())
 	_pivot.position.y = sin(_breath * 1.9) * 0.012
 	if _cycle.size() < 2:
 		return
