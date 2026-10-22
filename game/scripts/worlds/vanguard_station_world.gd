@@ -1012,14 +1012,14 @@ func _build_reactor(parent: Node3D) -> void:
 	# side, with a light bar over each, is an installation the room is arranged
 	# around.
 	for index in range(3):
-		var offset := -3.4 + 3.4 * float(index)
+		var offset := -5.4 + 5.4 * float(index)
 		_place(
 			parent,
 			"gear",
 			"ReactorTurbineFace_%d" % index,
-			Vector3(offset, 0.0, -34.9),
+			Vector3(offset, 0.0, -34.6),
 			90.0,
-			0.82,
+			1.15,
 			"box",
 			Vector3.ONE,
 			"reactor"
@@ -1028,9 +1028,9 @@ func _build_reactor(parent: Node3D) -> void:
 			parent,
 			"light_strip",
 			"ReactorTurbineLamp_%d" % index,
-			Vector3(offset, 3.7, -33.1),
+			Vector3(offset, 3.85, -33.2),
 			0.0,
-			2.4,
+			3.2,
 			"",
 			Vector3.ONE,
 			"reactor"
