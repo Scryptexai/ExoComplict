@@ -28,13 +28,9 @@ const ModelFitterScript = preload("res://scripts/visual/model_fitter.gd")
 ## PBR values for the imported hero. The GLB omits `pbrMetallicRoughness`, which
 ## glTF defines as metallic 1.0 / roughness 1.0 -- no diffuse response. These are
 ## the values the world's own imported kit uses for painted metal.
-const AB_TEST_MATERIAL := false
-const HERO_METALLIC := 0.18
-const HERO_ROUGHNESS := 0.62
-
-## The silhouette rim. Near-black at a large `grow` traced a heavy outline round
-## every limb; a narrow navy edge separates the operative from the deck without
-## drawing attention to itself.
+## The silhouette rim. A narrow navy edge separates the operative from the deck
+## without drawing attention to itself; see the note where it is built for the
+## measurement behind that.
 const OUTLINE_COLOR := Color(0.045, 0.075, 0.12, 1.0)
 const OUTLINE_GROW := 0.006
 const DEFAULT_RIG_PATH := "res://assets/characters/hero/hero_rig.json"
@@ -391,15 +387,11 @@ func _spawn_model() -> void:
 	# root also caught `WeaponSocket/MuzzleFlash/*`: those meshes are additive
 	# VFX, and an opaque near-black grown shell around a muzzle flash paints a
 	# dark blob over the shot instead of a rim around the avatar.
-	# The GLB ships no PBR factors, so its material is metallic 1.0 by glTF
-	# default and receives no diffuse light at all. Tuned before the outline is
-	# applied, so the rim is the only thing added on top of a readable surface.
-	if AB_TEST_MATERIAL:
-		ModelFitterScript.fix_metallic_default(_model, HERO_METALLIC, HERO_ROUGHNESS)
-	_add_character_fill()
-	# Thin and mid-navy rather than near-black and 2 cm thick: at 0.012 the grown
-	# shell was a black band around every limb, and on a 390 px phone the avatar
-	# read as a dark blob with a hole in the middle.
+	# The rim is the only thing drawn on top of the surface. `hero.glb` ships a
+	# real metallicRoughness map (metallic ~0.25, roughness ~0.26 measured out of
+	# the file), so it needs no material fix-up here -- an earlier pass added one
+	# on the assumption that the GLB had no PBR block, and an A/B capture showed
+	# it changed the avatar's median luma by two points, i.e. nothing.
 	var outline := ModelFitterScript.outline_material(OUTLINE_COLOR, OUTLINE_GROW)
 	ModelFitterScript.apply_overlay_material(_model, outline)
 	if is_instance_valid(_fallback_body):
