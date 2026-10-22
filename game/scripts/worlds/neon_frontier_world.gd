@@ -24,6 +24,21 @@ const SPAWN_GATE_SCENE: PackedScene = preload(
 	"res://scenes/worlds/components/enemy_spawn_gate.tscn"
 )
 const COVER_SCENE: PackedScene = preload("res://scenes/worlds/components/cover_module.tscn")
+# WORLD 01 — Vanguard Zero families, addressed by `zones/vanguard.gd`.
+const VANGUARD_CONDUIT_SCENE: PackedScene = preload(
+	"res://scenes/worlds/components/conduit_run.tscn"
+)
+const VANGUARD_CRATER_SCENE: PackedScene = preload("res://scenes/worlds/components/crater.tscn")
+const VANGUARD_DEBRIS_SCENE: PackedScene = preload(
+	"res://scenes/worlds/components/structural_debris.tscn"
+)
+const VANGUARD_GATE_SCENE: PackedScene = preload(
+	"res://scenes/worlds/components/security_gate.tscn"
+)
+const VANGUARD_SPIRE_SCENE: PackedScene = preload(
+	"res://scenes/worlds/components/command_spire.tscn"
+)
+const VANGUARD_WALL_SCENE: PackedScene = preload("res://scenes/worlds/components/defense_wall.tscn")
 
 const WORLD_WIDTH: float = 192.0
 const WORLD_DEPTH: float = 180.0
@@ -48,6 +63,7 @@ func _ready() -> void:
 	NeonFrontierPerimeter.build_defense_perimeter(self)
 	NeonFrontierWilds.build_destroyed_frontier_sector(self)
 	NeonFrontierWilds.build_alien_landscape(self)
+	NeonFrontierVanguardZone.build_vanguard_frontier(self)
 	_build_lighting_and_atmosphere()
 	_build_spawn_beacons()
 	ScifiBayBuilder.build(self)
@@ -361,7 +377,8 @@ func _place_component(
 	at: Vector3,
 	rotation: Vector3 = Vector3.ZERO,
 	component_scale: Vector3 = Vector3.ONE,
-	seed: int = 0
+	seed: int = 0,
+	damage_state: int = 0
 ) -> Node3D:
 	var component := scene.instantiate() as Node3D
 	if component == null:
@@ -372,6 +389,7 @@ func _place_component(
 	component.rotation_degrees = rotation
 	component.scale = component_scale
 	component.set("variant_seed", seed)
+	component.set("damage_state", damage_state)
 	add_child(component)
 	return component
 

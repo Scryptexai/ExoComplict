@@ -28,3 +28,13 @@ const TRANSPORT_SCENE: PackedScene = preload(
 const TURRET_SCENE: PackedScene = preload("res://scenes/worlds/components/defense_turret.tscn")
 const REACTOR_SCENE: PackedScene = preload("res://scenes/worlds/components/reactor_core.tscn")
 const COVER_SCENE: PackedScene = preload("res://scenes/worlds/components/cover_module.tscn")
+
+# WORLD 01 — Vanguard Zero families (components/vanguard.gd).
+const CONDUIT_SCENE: PackedScene = preload("res://scenes/worlds/components/conduit_run.tscn")
+const CRATER_SCENE: PackedScene = preload("res://scenes/worlds/components/crater.tscn")
+const DEBRIS_SCENE: PackedScene = preload("res://scenes/worlds/components/structural_debris.tscn")
+const DEFENSE_WALL_SCENE: PackedScene = preload("res://scenes/worlds/components/defense_wall.tscn")
+const SECURITY_GATE_SCENE: PackedScene = preload(
+	"res://scenes/worlds/components/security_gate.tscn"
+)
+const SPIRE_SCENE: PackedScene = preload("res://scenes/worlds/components/command_spire.tscn")

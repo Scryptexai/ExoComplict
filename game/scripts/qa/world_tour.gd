@@ -72,6 +72,23 @@ const VANTAGES := [
 		"fov": 62.0,
 	},
 	{
+		# WORLD 01 — the deployment gate and the breached perimeter line, seen
+		# from inside the arena looking south, which is the direction a player
+		# meets them from.
+		"name": "vanguard",
+		"from": Vector3(2.0, 9.0, 12.0),
+		"at": Vector3(0.0, 3.2, 40.0),
+		"fov": 58.0,
+	},
+	{
+		# The same district from outside the line, so the breach and the craters
+		# are read from the side that attacked it.
+		"name": "breach",
+		"from": Vector3(26.0, 7.0, 58.0),
+		"at": Vector3(2.0, 2.4, 34.0),
+		"fov": 60.0,
+	},
+	{
 		"name": "cliffs",
 		"from": Vector3(40.0, 10.0, 30.0),
 		"at": Vector3(86.0, 4.0, 18.0),

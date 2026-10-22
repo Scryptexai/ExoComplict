@@ -21,10 +21,19 @@ const GEOMETRY = preload("res://scripts/worlds/neon_frontier/geometry.gd")
 	"alien_flora",
 	"rock_cluster",
 	"enemy_spawn_gate",
-	"cover_module"
+	"cover_module",
+	"defense_wall",
+	"security_gate",
+	"conduit_run",
+	"structural_debris",
+	"crater",
+	"command_spire"
 )
 var asset_kind: String = "reactor_core"
 @export_range(0, 9999, 1) var variant_seed: int = 0
+## Damage variant for the families that have one: 0 intact, 1 damaged, 2 destroyed.
+## See `components/vanguard.gd` for what each state changes.
+@export_range(0, 2, 1) var damage_state: int = 0
 
 var _materials: Dictionary = {}
 var _built: bool = false
@@ -68,6 +77,20 @@ func _ready() -> void:
 			NeonFrontierProps.build_enemy_spawn_gate(self)
 		"cover_module":
 			NeonFrontierProps.build_cover_module(self)
+		"defense_wall":
+			NeonFrontierVanguard.build_defense_wall(self, _materials, damage_state, variant_seed)
+		"security_gate":
+			NeonFrontierVanguard.build_security_gate(self, _materials, damage_state, variant_seed)
+		"conduit_run":
+			NeonFrontierVanguard.build_conduit_run(self, _materials, damage_state, variant_seed)
+		"structural_debris":
+			NeonFrontierVanguard.build_structural_debris(
+				self, _materials, damage_state, variant_seed
+			)
+		"crater":
+			NeonFrontierVanguard.build_crater(self, _materials, damage_state, variant_seed)
+		"command_spire":
+			NeonFrontierVanguard.build_command_spire(self, _materials, damage_state, variant_seed)
 
 
 func _create_materials() -> void:
@@ -103,6 +126,10 @@ func _create_materials() -> void:
 		NeonFrontierMaterialKit.make_emissive(Color(0.51, 0.87, 0.17), 0.25, 0.28, 0.28),
 		"flora_teal": NeonFrontierMaterialKit.make_material(Color(0.04, 0.58, 0.54), 0.05, 0.52),
 		"copper": NeonFrontierMaterialKit.make_material(Color(0.76, 0.32, 0.13), 0.65, 0.34),
+		# Impact scars. Deliberately darker and rougher than the deck so a crater
+		# still reads as damage when the sun is behind the player.
+		"crater": NeonFrontierMaterialKit.make_material(Color(0.055, 0.06, 0.07), 0.05, 0.95),
+		"crater_core": NeonFrontierMaterialKit.make_material(Color(0.02, 0.022, 0.028), 0.02, 0.98),
 	}
 
 
