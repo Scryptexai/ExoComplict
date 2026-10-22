@@ -84,6 +84,7 @@ func build() -> Dictionary:
 	_build_walls(root)
 	_build_ceiling(root)
 	_build_gatehouse(root)
+	_build_hall_dressing(root)
 	_build_reactor(root)
 	_build_cargo_bay(root)
 	_build_corridor_dressing(root)
@@ -795,6 +796,99 @@ func _build_corridor_walls(parent: Node3D) -> void:
 ## whose origin sits 2 m above its centre, so laying it flat hangs a six-metre
 ## cyan slab down through the room. The first capture of the reactor hall was
 ## mostly that slab.
+## The dressage the spawn camera actually looks at.
+##
+## The hall was built correctly and photographed badly: every console, pipe and
+## light strip in the theatre was in a room the spawn view does not contain, so
+## the first frame was bare plate between two grey walls. This is the wall the
+## player faces, dressed with the pack's own furniture.
+func _build_hall_dressing(parent: Node3D) -> void:
+	# A grate walkway from the spawn to the reactor door. It is lighter than the
+	# deck, so it draws the eye to the threshold the objective lives behind.
+	for index in range(8):
+		_place(
+			parent,
+			"floor_tech",
+			"HallWalkway_%02d" % index,
+			Vector3(0.0, 0.03, 9.0 - 3.4 * float(index)),
+			90.0,
+			0.62,
+			"",
+			Vector3.ONE,
+			"hangar"
+		)
+	# Console banks flanking the reactor door, facing back down the hall. The
+	# doorway gap is 4 m, so they start at +-4.4 and run outward.
+	for side in [-1.0, 1.0]:
+		_place(
+			parent,
+			"console_large",
+			"HallConsoleA_%s" % str(side),
+			Vector3(side * 7.2, 0.0, -17.2),
+			90.0,
+			1.0,
+			"box",
+			Vector3.ONE,
+			"hangar"
+		)
+		_place(
+			parent,
+			"console_half",
+			"HallConsoleB_%s" % str(side),
+			Vector3(side * 12.4, 0.0, -16.7),
+			0.0,
+			1.0,
+			"box",
+			Vector3.ONE,
+			"hangar"
+		)
+		# Ducting above the consoles, running the width of the wall in the
+		# pack's own wall-pipe module.
+		for index in range(2):
+			_place(
+				parent,
+				"wall_pipes",
+				"HallDuct_%s_%d" % [str(side), index],
+				Vector3(side * (5.6 + 3.2 * float(index)), 0.0, -17.4),
+				90.0,
+				0.9,
+				"",
+				Vector3.ONE,
+				"hangar"
+			)
+		# A lit stub above each console. `light_strip` is 0.89 m wide, so a row of
+		# them is a light bar rather than a dot.
+		for index in range(4):
+			_place(
+				parent,
+				"light_strip",
+				"HallConsoleLamp_%s_%d" % [str(side), index],
+				Vector3(side * (4.6 + 1.9 * float(index)), 2.9, -17.86),
+				0.0,
+				1.0,
+				"",
+				Vector3.ONE,
+				"hangar"
+			)
+		# Hanging ceiling runs over the side decks, under the roof ring.
+		for index in range(3):
+			_place(
+				parent,
+				"light_corridor",
+				"HallCeilingLamp_%s_%d" % [str(side), index],
+				Vector3(side * 12.0, 3.95, 6.0 - 8.0 * float(index)),
+				90.0,
+				1.0,
+				"",
+				Vector3.ONE,
+				"hangar"
+			)
+	# The wall either side of the door gets the pack's caution sign, so the frame
+	# has a red-orange accent at the point of interest.
+	_sign(parent, "sign_caution", "HallCautionWest", Vector3(-5.4, 3.1, -17.9), 0.0, "hangar")
+	_sign(parent, "sign_danger", "HallDangerEast", Vector3(5.4, 3.1, -17.9), 0.0, "hangar")
+
+
 func _build_ceiling(parent: Node3D) -> void:
 	for room in ROOMS:
 		var bounds: Dictionary = ROOMS[room]
