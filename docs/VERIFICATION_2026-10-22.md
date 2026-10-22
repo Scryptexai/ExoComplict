@@ -626,9 +626,18 @@ the headless smoke suite all called clean:
   next pass should instance the repeated deck and wall modules and measure.
 * **Nothing is verified on a device or on the mobile renderer.**
 * **The card plate is a crop of a review frame**, not commissioned key art.
-* **The reactor hall is the weakest room.** Three gear faces at 1.15 scale now
-  span 16 m of its back wall and read as a bank rather than a machine; the room
-  wants a plinth, a rail and an operator deck under it, which is the next pass.
+* **The reactor hall is the weakest room, and two attempts at it were reverted.**
+  The pack has no industrial-landmark module: `Wall_Gear_*` is wall furniture with
+  handles on it, `Airing_01` is an 8.5 m *horizontal* aperture whose geometry
+  hangs 1.5 m below its origin, and `Stairway_Plateform_01` — which reads like a
+  floor plate — is a stair landing 1.4 m thick, which at any useful scale is a
+  wall. Three gear faces at 1.15 scale is the best of the three attempts and is
+  what ships. The next pass should start from a render of that wall, not from a
+  reading of the module list: both reverts came from guessing at what a module
+  would look like.
+* **That is also a finding about the asset set**, not only about the placement:
+  the kit can dress a room but cannot supply a hero object, so Dock 07's landmark
+  has to be composed from several modules rather than placed as one.
 * **The kit exposes no inventory or turret modules**, so a hangar full of the ten
   Kenney craft still needs an art decision about mixing two different detail
   levels, not a drop-in.
