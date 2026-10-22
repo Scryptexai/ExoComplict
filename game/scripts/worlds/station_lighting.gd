@@ -93,6 +93,10 @@ static func lights(parent: Node3D) -> void:
 	# not reach: one more over each stack row.
 	_light(parent, "CargoLightNorth", Vector3(-30.0, 3.4, -4.6), cold, 5.0, 16.0)
 	_light(parent, "CargoLightSouth", Vector3(-30.0, 3.4, 4.6), cold, 5.0, 16.0)
+	# Overhead light leaves a stack's vertical faces black — every lamp in the bay
+	# is above the cargo. Two low washes at 1.7 m, one per row, light the sides.
+	_light(parent, "CargoWashNorth", Vector3(-24.0, 1.7, -4.6), cold, 2.6, 13.0)
+	_light(parent, "CargoWashSouth", Vector3(-24.0, 1.7, 4.6), cold, 2.6, 13.0)
 	_light(parent, "CorridorLightWest", Vector3(25.0, 3.4, 0.0), cold, 7.0, 20.0)
 	_light(parent, "CorridorLightEast", Vector3(37.0, 3.4, 0.0), cold, 7.0, 20.0)
 	# A rim light behind the reactor, so the turbine face is not a silhouette.
