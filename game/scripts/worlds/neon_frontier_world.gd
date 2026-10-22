@@ -59,24 +59,8 @@ func _ready() -> void:
 	ScifiFrontierDresser.dress_districts(self)
 
 
-## Which theatre the launcher selected.
-##
-## Resolved through the tree, not `Engine.get_singleton()`: autoloads are not
-## engine singletons, so that call returns null and a null check that defaults to
-## "build it" makes *both* worlds build — which is exactly how the station's walls
-## ended up blocking the first world's gate in the smoke suite.
-static func selected_world_id() -> StringName:
-	var tree := Engine.get_main_loop() as SceneTree
-	if tree == null:
-		return &""
-	var service := tree.root.get_node_or_null("ProgressionService")
-	if service == null:
-		return &""
-	return StringName(String(service.get("selected_world_id")))
-
-
 static func _is_selected() -> bool:
-	var selected := selected_world_id()
+	var selected := WorldSelection.selected()
 	return selected == &"" or selected == &"neon_frontier"
 
 

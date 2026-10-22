@@ -34,9 +34,9 @@ func _expect(condition: bool, message: String) -> bool:
 
 
 func _run() -> void:
-	var progression := root.get_node_or_null("ProgressionService")
-	if progression != null:
-		progression.set("selected_world_id", &"vanguard_station")
+	# A `--script` test has no autoloads, so selection goes through the explicit
+	# hook rather than through `ProgressionService`.
+	var previous := WorldSelection.override_selection(&"vanguard_station")
 
 	var main := MainScene.instantiate()
 	main.set("start_wave_session_on_ready", false)
