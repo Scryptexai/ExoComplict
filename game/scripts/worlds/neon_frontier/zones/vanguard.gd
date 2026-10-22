@@ -27,6 +27,8 @@ extends RefCounted
 
 
 static func build_vanguard_frontier(world) -> void:
+	_build_district_deck(world)
+
 	# Everything this district adds is tagged as it is added, so a test can ask
 	# "what did Vanguard build" instead of guessing from node names. The first
 	# attempt guessed by prefix and matched `PerimeterRelayArray`, a prop that was
@@ -46,6 +48,47 @@ static func build_vanguard_frontier(world) -> void:
 		if before.has(child):
 			continue
 		child.set_meta("vanguard_district", true)
+
+
+## The floor the district stands on.
+##
+## Laid as plates rather than one slab: the arena's deck detail is what makes ten
+## square metres read as a facility, and the first capture showed the district
+## sitting on the bare ground plane with nothing under it. Plate seams are 0.06 m
+## proud, which is enough to catch the key light without being a trip hazard the
+## collision solver has to know about.
+static func _build_district_deck(world) -> void:
+	var plate_material: Material = world._materials["ground_light"]
+	var seam_material: Material = world._materials["dark_trim"]
+	var origin := Vector3(0.0, 0.03, 60.0)
+	var plate := 10.0
+	for ix in range(-3, 4):
+		for iz in range(-3, 3):
+			var at := origin + Vector3(float(ix) * plate, 0.0, float(iz) * plate)
+			# Leave the approach lane empty: the player walks the axis, and a seam
+			# every 10 m there would read as a ladder.
+			if absf(at.x) < 4.0:
+				continue
+			world._add_box(
+				"VanguardDeck_%d_%d" % [ix + 3, iz + 3],
+				at,
+				Vector3(plate - 0.18, 0.06, plate - 0.18),
+				plate_material
+			)
+	# The lane itself, in the deck's darker alternate so the route reads.
+	world._add_box(
+		"VanguardApproachLane",
+		Vector3(0.0, 0.028, 60.0),
+		Vector3(7.6, 0.05, 60.0),
+		world._materials["ground"]
+	)
+	for side in [-1.0, 1.0]:
+		world._add_box(
+			"VanguardLaneEdge_%s" % str(side),
+			Vector3(side * 3.9, 0.05, 60.0),
+			Vector3(0.22, 0.02, 60.0),
+			seam_material
+		)
 
 
 ## ZONE A. The gate is the first thing behind the player and the last thing they
