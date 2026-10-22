@@ -476,3 +476,101 @@ measurement instead of the mechanism that does not apply.
 * **The gameplay frame is still a night scene.** Mean 41.7 of 255. If it should
   read as daylight, that is an art-direction change to the sky and fog, not a
   correction — so it was not made here.
+
+## 10. WORLD 01 — Vanguard Zero: the vertical slice
+
+### 10.1 Phase 1 audit — what the tools actually are
+
+Verified by running them in this sandbox, not assumed:
+
+| Tool | State | Consequence |
+| --- | --- | --- |
+| Blender / `blender` CLI | **not installed**, and no package of it is reachable from this sandbox | no sculpted or sculpt-retopo GLB can be produced here |
+| Generative 3D service | none reachable (outbound hosts are GitHub, npm, PyPI only) | no prompt-to-mesh |
+| `numpy`, `trimesh` | not installed; PyPI is reachable | procedural mesh generation is *possible* in Python, but nothing in this repo consumes GLB emitted from it |
+| Existing GLB library | **137 GLB**, `scifi_starter_kit` + `kenney_space_kit`, plus the world's own FBX pack | the project's established pipeline is GDScript builders over imported kits |
+| Godot | not runnable here; CI runs 4.7.2 | engine behaviour is verified through CI only |
+
+So the asset production method for this pass is **procedural construction in
+GDScript** (`NeonFrontierGeometry` + `NeonFrontierMaterialKit`), which is the
+method the project already uses for its reactor, command centre, gates and
+turrets. That is a *decision under constraint*, and it is recorded as such: this
+slice does **not** demonstrate Blender or generative-3D capability.
+
+### 10.2 What was built
+
+`zones/vanguard.gd` composes the district; `components/vanguard.gd` holds the
+families. Five zones, one scene, arranged as the *approach* to the existing
+arena rather than a replacement for it:
+
+| Zone | Where | What it is |
+| --- | --- | --- |
+| A deployment gate | z +74 | checkpoint gate, wings, lit threshold, impact scar |
+| B outer perimeter | z +62 | six wall modules on an 8 m grid with one 8–18 m breach |
+| C industrial yard | z +46…+53 | four cover posts, cargo depot, deck plates and a marked approach lane |
+| D reactor feed | z +54, +68 | two conduit runs, one broken, meeting at a damaged junction |
+| E megastructure | z −196, −232 | command spire and relay spire, 96 m and 60 m, no collision |
+
+Damage is a **parameter** (`damage_state` 0/1/2 on `NeonFrontierAsset`), not three
+files: the geometry changes (exposed ribs, a bent panel, fallen panels that are
+the same panel shape as the intact wall), so the variant earns its keep.
+
+### 10.3 Status, per the brief's vocabulary
+
+| Claim | Status | Basis |
+| --- | --- | --- |
+| All five zones exist in the built world | **VERIFIED** | `vanguard_world_smoke`, frame captures |
+| The three damage states differ | **VERIFIED** | geometry names asserted per state |
+| A capsule can walk through the gate and the breach | **VERIFIED** | physics shape queries at 17 and 11 sample points |
+| Craters and the distant spire carry no collision | **VERIFIED** | query + node inspection |
+| The district stays outside the 42 m arena disc | **VERIFIED** | tagged-node assertion |
+| Asset scale and orientation | **VERIFIED** for the district; **FAILED once and fixed** — the gate was placed showing its back (10.5.2) |
+| The district reads as one faction's hardware | **LIKELY** | shared trim, shared armour material, one grammar; judged from three captures |
+| Landmark recognisable at gameplay distance | **LIKELY** | the gate now reads as a gate from the arena; its facade detail is still thin at 30 m |
+| Materials/lighting come from one world | **LIKELY** | all surfaces are the existing palette; no new hue was introduced |
+| Foreground/midground/background composition | **LIKELY** | deck → wall line → spire; captured at 1280x720 |
+| Performance on device | **UNKNOWN** | SwiftShader only; no measurement on hardware |
+| Android renderer parity | **UNKNOWN** | the web build is Compatibility; mobile was not exercised |
+
+### 10.4 Measured cost
+
+The district adds, by the test's own count: 6 wall modules, 1 gate, 3 conduit
+runs, 5 debris fields, 4 craters, 4 yard cover pieces, 1 depot, 2 spires, 31 deck
+plates and **6 unshadowed omni lights**. Every family is a `Node3D` with its own
+children, so distance culling and instancing work per piece; nothing is merged
+into a single world mesh.
+
+### 10.5 Defects this pass introduced, and what caught them
+
+1. **The district was laid out on top of the arena.** First layout put the yard
+   inside the 42 m combat disc and the wall line through the perimeter relay
+   array. **Caught by a capture**, then turned into an assertion. Every Vanguard
+   node is now tagged and the test refuses any placement inside the arena.
+2. **The gate faced the wrong way.** Its whole facade — ID plate, header lamps,
+   light slots, lit threshold — is modelled on +Z, and the player approaches from
+   −Z, so the landmark presented its back. **Caught by a close crop of a frame**,
+   fixed by rotating the instance 180°.
+3. **The gate's lights were lit for a different scale**: 1.6 energy at 8 m is a
+   fraction of a lux. Raised to 3.2–5.0 at closer range.
+4. **The district stood on the bare ground plane** while the arena has a
+   panelled deck. Added a deck of 10 m plates with the lane left clear.
+5. **The test matched nodes by name prefix** and swept up `PerimeterRelayArray`,
+   a prop that predates the district. Replaced with an explicit tag.
+6. **Type inference through an untyped `world`** (`var wall := world._method()`)
+   is a parse error that gdlint accepts. Caught by CI. This is the third time
+   this class of error has appeared in this project; it is now in 8.4's list too.
+
+### 10.6 What is honestly still weak
+
+* **The gate's facade is still sparse at 30 m.** It reads as a gate — opening,
+  header, pylons — but the plate and lamps are only legible within about 12 m.
+  The next pass should give the header real depth (bracing, a beacon mast) rather
+  than add more emissive.
+* **The wall modules are light on damage.** A destroyed module reads, but the
+  damage in between (cracked panels, scorched plate, a missing crenel) is not
+  modelled; the three states are coarse.
+* **No LOD or occlusion** was added. At these counts it is not needed; at ten
+  times the district it would be.
+* **No audio and no VFX** from the P2 list were built (no dust, smoke or arcs).
+  The conduit "arc" is a static emissive node, not an effect.
+* **Nothing was verified on a device or on the mobile renderer.**
