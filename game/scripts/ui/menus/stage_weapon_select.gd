@@ -190,7 +190,10 @@ func _build_card(weapon_id: StringName, group: ButtonGroup) -> Control:
 ## for the two weapons that have them) its area or chain behaviour. Each group is
 ## short enough to hold one line at 190 px.
 func _stat_lines(definition: WeaponDefinition) -> Array[String]:
-	var lines := [
+	# Typed, not inferred: an untyped `[]` literal returns as Array and fails the
+	# declared Array[String] return type at runtime, which took the whole screen
+	# down -- 0 of 3 cards built -- instead of failing to parse.
+	var lines: Array[String] = [
 		(
 			"DMG %s  ·  RATE %s/s  ·  MAG %d"
 			% [_trim(definition.damage), _trim(definition.fire_rate), definition.magazine_size]
