@@ -994,9 +994,9 @@ func _build_reactor(parent: Node3D) -> void:
 		parent,
 		"gear",
 		"ReactorTurbineFace",
-		Vector3(0.0, 2.2, -36.6),
+		Vector3(0.0, 0.0, -37.0),
 		0.0,
-		1.7,
+		0.85,
 		"box",
 		Vector3.ONE,
 		"reactor"
@@ -1024,17 +1024,18 @@ func _build_reactor(parent: Node3D) -> void:
 			Vector3.ONE,
 			"reactor"
 		)
-		_place(
-			parent,
-			"light_corridor",
-			"ReactorLightStrip_%s" % str(side),
-			Vector3(6.4 * side, 3.6, -29.0),
-			90.0,
-			1.4,
-			"",
-			Vector3.ONE,
-			"reactor"
-		)
+		for index in range(3):
+			_place(
+				parent,
+				"light_strip",
+				"ReactorWallLamp_%s_%d" % [str(side), index],
+				Vector3(side * 12.4, 3.4, -23.0 - 5.0 * float(index)),
+				-90.0 * side,
+				1.0,
+				"",
+				Vector3.ONE,
+				"reactor"
+			)
 	# The plinth the reactor sits on, and the consoles that face it.
 	for z in [-33.0, -29.0, -25.0]:
 		_place(
