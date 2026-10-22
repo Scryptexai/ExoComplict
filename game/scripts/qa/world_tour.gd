@@ -119,12 +119,14 @@ const STATION_VANTAGES := [
 		"fov": 66.0,
 	},
 	{
-		# The roof plates sit at 4.4 m, so a lens at 4.9 was above them looking at
-		# the underside of the roof through its own gap.
+		# From the deck under the open roof, looking up at the east catwalk. A lens
+		# near roof height sits inside the run of ceiling lamps and photographs the
+		# light fittings rather than the walk; from head height it reads as a
+		# structure over the room.
 		"name": "catwalk",
-		"from": Vector3(15.0, 3.9, 9.0),
-		"at": Vector3(-2.0, 1.4, -8.0),
-		"fov": 74.0,
+		"from": Vector3(-2.0, 2.0, 11.0),
+		"at": Vector3(15.5, 3.6, -4.0),
+		"fov": 76.0,
 	},
 ]
 
