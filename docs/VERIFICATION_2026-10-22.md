@@ -610,7 +610,23 @@ the headless smoke suite all called clean:
 * **An edit deleted a function wholesale** and two commits then rearranged its
   contents; the crate assertion in the smoke test caught it.
 
-### 10.7 What is honestly still weak
+### 10.7 Where the pass ended
+
+Captured against `566dc66` from eight stages (WORLD, GAMEPLAY, six tour
+vantages). What the frames support:
+
+| Claim | Status | Basis |
+| --- | --- | --- |
+| Each theatre has its own sky, key light and fill | **VERIFIED** | `station_lighting.gd`; the frontier's frame is unchanged in tone |
+| Signs and decals keep the pack's printed artwork | **VERIFIED** | albedo texture asserted in the smoke test; the ZONE decal reads correctly in three frames |
+| Decals lie flush on the wall they are mounted to | **VERIFIED** | the tour frames show text facing the room, not edge-on |
+| The cargo bay reads as cargo rather than shelves | **VERIFIED** | containers in the container palette, low washes on their flanks |
+| The corridor, catwalk and cargo vantages photograph their rooms | **VERIFIED** | six tour frames, each of the four rooms plus spawn |
+| The reactor hall reads as the room's landmark | **LIKELY** | three gear faces at 1.15 with bays dressed; still the weakest room, see below |
+| Two attempts at the reactor were withdrawn | **VERIFIED** | `Airing_01` (horizontal aperture) and `Stairway_Plateform_01` (1.45 m stair landing) both reverted with the reason recorded |
+| Performance on device | **UNKNOWN** | SwiftShader only |
+
+### 10.8 What is honestly still weak
 
 * **The kit is a corridor kit, and the hangar is 36 m.** At that span the wall
   modules read as flat grey planes; the detail that makes the pack sing at 6 m
@@ -638,6 +654,12 @@ the headless smoke suite all called clean:
 * **That is also a finding about the asset set**, not only about the placement:
   the kit can dress a room but cannot supply a hero object, so Dock 07's landmark
   has to be composed from several modules rather than placed as one.
+* **The open roof reads as night rather than as sky.** The hangar's ring roof
+  leaves a black band across the top of most frames; a horizon glow or a star
+  field behind the gap is the cheapest next improvement.
+* **Nothing here has been measured for cost.** Module counts are up (the hangar
+  alone carries 93 placements before the catwalks), and no LOD, occlusion or
+  instancing pass has been made against a hardware budget.
 * **The kit exposes no inventory or turret modules**, so a hangar full of the ten
   Kenney craft still needs an art decision about mixing two different detail
   levels, not a drop-in.
