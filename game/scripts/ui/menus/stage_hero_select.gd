@@ -53,6 +53,7 @@ var _col_left: VBoxContainer
 var _col_right: VBoxContainer
 var _showcase_holder: Control
 var _panel: AegisPanel
+var _actions: HBoxContainer
 var _carousel_wrap: VBoxContainer
 var _landscape_built := false
 
@@ -77,6 +78,7 @@ func _ready() -> void:
 	_build_carousel()
 	_build_showcase()
 	_build_panel()
+	_build_actions()
 
 	_connect_resized(_on_resized)
 	relayout()
@@ -281,31 +283,41 @@ func _build_panel() -> void:
 	physical_separation(column, 8)
 	_panel.add_child(column)
 
+	# Single-line with an ellipsis, not wrapping: a wrapped Label reports a
+	# minimum height that ignores its extra lines, so a PanelContainer sized from
+	# it draws smaller than its own text -- which is exactly what the first
+	# capture showed, with the blurb floating above the card's top edge.
 	_role_label = make_label("", "body_s", AegisTokens.INK_2)
-	_role_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_limit_lines(_role_label, 2)
+	_role_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_role_label.clip_text = true
+	_role_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	column.add_child(_role_label)
 
 	_loadout_label = make_label("", "label_s", AegisTokens.INK_3)
-	_loadout_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_limit_lines(_loadout_label, 2)
+	_loadout_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_loadout_label.clip_text = true
+	_loadout_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	column.add_child(_loadout_label)
 
-	var actions := HBoxContainer.new()
-	physical_separation(actions, 10)
-	column.add_child(actions)
+
+## The two buttons are a row of their own under the information card, the way the
+## dashboard puts DEPLOY above its secondary controls. Keeping them out of the
+## card also keeps the card's height a function of two text lines.
+func _build_actions() -> void:
+	_actions = HBoxContainer.new()
+	physical_separation(_actions, 10)
 
 	_select_button = make_button("EQUIPPED", "round", "Keep this operative selected")
 	_select_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	physical_min_size(_select_button, 0.0, AegisTokens.MIN_TOUCH_PX)
 	_select_button.pressed.connect(_on_select_pressed)
-	actions.add_child(_select_button)
+	_actions.add_child(_select_button)
 
 	_continue = make_button("CONTINUE", "primary", "Choose a weapon")
 	_continue.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	physical_min_size(_continue, 0.0, AegisTokens.MIN_TOUCH_PX)
 	_continue.pressed.connect(_on_continue_pressed)
-	actions.add_child(_continue)
+	_actions.add_child(_continue)
 
 
 # --- state ------------------------------------------------------------------ #
@@ -355,7 +367,11 @@ func _present_selected(reveal: bool) -> void:
 				{
 					"fit_axis": 1,
 					"height": SHOWCASE_HEIGHT,
-					"yaw": 180.0,
+					# The rig faces +Z; the camera sits on +Z looking at the origin,
+					# so no yaw is what turns the hero towards the viewer. 180 was
+					# inherited from ModelFitter's kit-model default and showed the
+					# back of the operative in the first capture.
+					"yaw": 0.0,
 					"clips": clips,
 				}
 			)
@@ -460,7 +476,7 @@ func _apply_orientation() -> void:
 	if landscape == _landscape_built:
 		return
 	_landscape_built = landscape
-	for block in [_carousel_wrap, _showcase_holder, _panel]:
+	for block in [_carousel_wrap, _showcase_holder, _panel, _actions]:
 		if block.get_parent() != null:
 			block.get_parent().remove_child(block)
 	if landscape:
@@ -471,6 +487,7 @@ func _apply_orientation() -> void:
 		_col_left.add_child(_showcase_holder)
 		_col_right.add_child(_carousel_wrap)
 		_col_right.add_child(_panel)
+		_col_right.add_child(_actions)
 		_panel.size_flags_vertical = Control.SIZE_SHRINK_END
 		_showcase_holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	else:
@@ -484,6 +501,31 @@ func _apply_orientation() -> void:
 		_body_portrait.add_child(_carousel_wrap)
 		_body_portrait.add_child(_showcase_holder)
 		_body_portrait.add_child(_panel)
+		_body_portrait.add_child(_actions)
 		_panel.size_flags_vertical = Control.SIZE_SHRINK_END
+	# Landscape has room for the full label; portrait shares the header with the
+	# status line and clipped it to "SELECT OPER…" in the first capture.
 	_heading.text = "SELECT OPERATIVE" if landscape else "OPERATIVE"
 	physical_min_size(_carousel, 0.0, 68.0 if landscape else 96.0)
+	_apply_density()
+
+
+## The model is the subject, so when height is short the *chrome* gives way, not
+## the showcase: chips shrink to 64 px, the caption goes, and the information
+## card keeps two lines. DEPLOY-scale buttons never shrink -- they are the
+## controls a thumb has to hit on a phone.
+func _apply_density() -> void:
+	var short_screen := physical_size().y < (520.0 if is_landscape() else 760.0)
+	var compact_chip := Vector2(64.0, 64.0) if short_screen else Vector2(84.0, 84.0)
+	for chip in _cards + _locked:
+		var control := chip as Control
+		if control == null:
+			continue
+		if control.has_meta("px_landscape"):
+			control.set_meta("px_portrait", compact_chip)
+			control.set_meta("px_landscape", compact_chip)
+		physical_min_size(control, compact_chip.x, compact_chip.y)
+	physical_min_size(_carousel, 0.0, 72.0 if short_screen else 96.0)
+	physical_separation(_stack, 6.0 if short_screen else 10.0)
+	physical_separation(_body_portrait, 6.0 if short_screen else 10.0)
+	physical_separation(_carousel_wrap, 2.0 if short_screen else 6.0)
