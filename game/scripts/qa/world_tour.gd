@@ -76,16 +76,16 @@ const VANTAGES := [
 		# from inside the arena looking south, which is the direction a player
 		# meets them from.
 		"name": "vanguard",
-		"from": Vector3(2.0, 9.0, 12.0),
-		"at": Vector3(0.0, 3.2, 40.0),
+		"from": Vector3(2.0, 9.0, 40.0),
+		"at": Vector3(0.0, 3.4, 68.0),
 		"fov": 58.0,
 	},
 	{
 		# The same district from outside the line, so the breach and the craters
 		# are read from the side that attacked it.
 		"name": "breach",
-		"from": Vector3(26.0, 7.0, 58.0),
-		"at": Vector3(2.0, 2.4, 34.0),
+		"from": Vector3(30.0, 8.0, 82.0),
+		"at": Vector3(4.0, 2.6, 62.0),
 		"fov": 60.0,
 	},
 	{
