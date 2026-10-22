@@ -14,6 +14,9 @@
 [node name="Main" type="Node3D"]
 script = ExtResource("1_main")
 
+[node name="ProgressionService" type="Node" parent="."]
+script = ExtResource("10_progression")
+
 [node name="NeonFrontier" parent="." instance=ExtResource("2_world")]
 
 [node name="VanguardStation" parent="." instance=ExtResource("11_station")]
@@ -60,8 +63,5 @@ script = ExtResource("7_run_stats")
 
 [node name="RewardService" type="Node" parent="."]
 script = ExtResource("8_reward_service")
-
-[node name="ProgressionService" type="Node" parent="."]
-script = ExtResource("10_progression")
 
 [node name="HUD" parent="." instance=ExtResource("5_hud")]
