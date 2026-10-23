@@ -202,13 +202,19 @@ only reaches what is under the stage. Adding it before the pass fixed it.
 
 ## 6. Frames
 
-The browser QA photographs the real journey at both viewports
-(`node tools/qa_flow_shots.mjs`). The pre-change set is
-`exports/flow/ui_before/`; the post-change set is `exports/flow/ui_after/` and
-must be regenerated after CI refreshes the committed payload — a local run
-before that would photograph the previous build, which is the mistake this tool
-exists to prevent (it checks for `FrontEnd: stage <name>` in the engine log
-before it writes a file).
+The browser QA photographs the real journey (`node tools/qa_flow_shots.mjs`). It
+refuses to write a file unless the engine log says `FrontEnd: stage <name>`, so a
+frame that looks wrong is the build being wrong, not the camera.
+
+Final set, on the pushed head, after the payload bot refreshed `web/`:
+
+| Set | Viewport | Stages |
+| --- | --- | --- |
+| `exports/flow/ui_final/` | 1280×720 | all eight |
+| `exports/flow/ui_final_phone/` | 390×844 | DASHBOARD, HERO, WEAPON, WORLD |
+| `exports/flow/ui_final_small/` | 360×640 | DASHBOARD, HERO, WEAPON |
+| `exports/flow/ui_final_land/` | 844×390 | DASHBOARD, HERO, WEAPON |
+| `exports/flow/ui_before/` | 1280×720 | the pre-change set |
 
 Pre-change, at 1280×720, for the record:
 
@@ -221,51 +227,68 @@ Pre-change, at 1280×720, for the record:
 | DASHBOARD | operative block, theatre block, DEPLOY 62 px, stats 10 px |
 | HERO / WEAPON / WORLD | headings 14 px, chips 84–88 px, cards 168 px, rails 300 px |
 
-**NOT TESTED** until the post-change capture: the after table, with the same
-stage list, is the acceptance evidence for §2 and §4.
+After, measured in the same tool at the same viewport:
+
+| Stage | What the frame shows now |
+| --- | --- |
+| BOOT | wordmark 640×160 with no plate, status 21 px |
+| LOADING | wordmark centred on black, `LOADING` 34 px, `READY` 21 px, a 6 px track across the full width, `100%` right-aligned. No robot: the asset is deleted, not hidden |
+| CINEMATIC | the committed film, letterboxed on black, with SKIP and nothing else on top of it |
+| CHAPTER | `FIRST LIGHT` 38 px, body 18 px, CONTINUE 64 px |
+| DASHBOARD | DEPLOY 78 px, stats 18 px in three columns, ARMORY/SETTINGS 64 px, a drawn card behind each block |
+| HERO | `SELECT OPERATIVE` 30 px, 104 px chips, an 84 px information card with the operative's name as its heading, EQUIPPED + CONTINUE 64 px in one row |
+| WEAPON | 200×130 plates, `PULSE RIFLE` 21 px, stats 17 px, CONTINUE 64 px |
+| WORLD | 480×220 theatre cards with 2 px corners, `STATUS OPEN` 15 px, LAUNCH 64 px |
+
+Three things only the frames could show, all fixed in this pass:
+
+* HERO's information card was **not drawn at all**. `AegisPanel` was a bare
+  `PanelContainer` with no `"panel"` stylebox, so the theme's default drew
+  almost nothing and the type floated over the 3D scene. The widget now paints
+  its own surface (and lets a stage shrink its inset on a small screen).
+* The name and the roster caption were children of the **carousel**, so the card
+  started under them and its top edge cut through "2 OPERATIVE SLOTS IN
+  DEVELOPMENT". A `ScrollContainer` also defaults to `EXPAND_FILL` vertically,
+  so the carousel ate the rail's spare height and pushed the card 90 px down
+  with a hole above it.
+* WEAPON's plates were 116×86 inside a 96 px carousel, so every caption under a
+  plate was clipped out of existence and the plates looked cut off at the
+  bottom. They are 200×130 with the carousel sized for plate plus caption.
 
 ---
 
-## 7. The first CI run, and what it caught
+## 7. The CI runs, and what each one caught
 
-Run `39876344284` on `48b987d`: **static checks pass, web export passes,
-headless smoke 28 passed / 1 failed**. The failure:
+`menu_layout_smoke` runs the four stages at 844×390, 1280×720, 390×844 and
+360×640 and asserts that every control is inside the viewport, that every
+button clears the touch floor, and that a label stays inside its card. It found
+six failures on the first push, then one per run for four runs. All of them were
+real, and none of them were visible in a 1280×720 screenshot.
 
-```
-fail: WEAPON portrait: @Label@158 is outside the viewport (36,478 409x20 in 390x844)
-fail: WEAPON portrait: @Label@159 is outside the viewport (36,508 409x26 in 390x844)
-...
-28 passed, 1 failed (of 29, import ok)
-```
+| Run | Failure | Cause, and what fixed it |
+| --- | --- | --- |
+| `39876344284` | WEAPON portrait: `@Label@158` at 409 px inside a 390 px screen | `clip_text` bounds the drawing but not the minimum size; the panel's 60-character brief set the column's width. Every one-line label became shrinkable (`_single_line`: autowrap + one ellipsis line) |
+| `39877616958` | DASHBOARD landscape REPLAY INTRO at y=330+64 in 390; HERO EQUIPPED/CONTINUE at y=356+64; HERO `SLOT 02`/`SLOT 03` outside 64 px cards; WEAPON CONTINUE at y=342+64 | the safe-area top inset was always 28 px, and the compact chips were narrower than their own label. `apply_safe_margins` took an `extra_top`; the chips keep 84 px and the copy gives way instead |
+| `39878859388` | HERO + DASHBOARD + WEAPON at 360×640, six assertions | the roster caption with autowrap off was the column's minimum width (334 px of a 336 px column), and two headers were 208/252 px wide beside BACK. Copy wraps, headings step down a role on a narrow screen, and the dashboard got a `cramped` pass |
+| `39899366125` | WEAPON landscape CONTINUE at y=328+64; DASHBOARD small portrait DEPLOY, SETTINGS, REPLAY INTRO | the newly drawn card surface added its 12 px inset to every panel. `AegisPanel.set_surface_pad()` now lets a screen that measures a budget ask for 4–6 px |
+| `39899689972` | DASHBOARD small portrait REPLAY INTRO at y=590+64 in 640 | the last 14 px came out of the two portrait plates (110 px and 84 px), which are the only blocks left in that stack that are picture rather than type |
+| `364f32e` | **none** — `39899986254` and `39899981458` both success | — |
 
-The cause is the kind of thing only a physical-pixel measurement finds. The
-weapon panel's copy was authored `AUTOWRAP_OFF` + `clip_text = true`, on the
-assumption that clipping a label also lets it shrink. It does not: `clip_text`
-bounds the *drawing*, while the label's minimum size is still its text width.
-The panel's brief is a 60-character sentence, so at `caption` 14 (was 11) it
-demanded **409 physical pixels inside a 318-pixel portrait column**, and pushed
-the entire stack — header included — 55 px past the right edge of a 390 px
-screen. At 11 px the same sentence fit with ~3 px to spare, which is why this
-was invisible until the type scale moved.
+The lesson worth keeping: a containment test at four sizes caught six layout
+regressions that four rounds of looking at 1280×720 screenshots had not.
 
-Fixed by making every one-line label in that panel *shrinkable* as well as
-bounded: autowrap gives it a zero minimum width, and `max_lines_visible = 1`
-with `OVERRUN_TRIM_ELLIPSIS` keeps it to one ellipsised line (`_single_line`).
-The same treatment went to HERO's two clipped labels, and BACK came down from
-150 px to 110 (a third of a phone's width for a four-letter word), with the
-header's state label hidden below 560 px where the header has no room for three
-things.
-
-**PASS** — the measurement, the cause (`clip_text` does not reduce minimum
-size), and the fix. **NOT TESTED** until the next CI run: that the four
-viewport sizes are clean again.
+**PASS** on the pushed head. CI is green on `364f32e` and its payload refresh.
 
 ## 8. What is still not true
 
-* The second CI run had not finished at the time of writing. `menu_layout_smoke`
-  is the one that failed once and is the one to watch.
-* No one has watched the ident play in a browser yet. The stage logs
-  `MenuCinematic: playing the encoded opening` and the capture in §6 is a still.
+* LOADING measures as BLANK in a whole-journey capture: it is a frame or two of
+  a 10-second run, and the tool shoots it the moment it announces itself. Shot
+  on its own it renders fully (`exports/flow/ui_final/loading-1280x720.png` is
+  the pass-through frame; the earlier `ui_probe` capture is the in-flight one).
+  This is a capture-timing fact, not a rendering bug.
+* The ident has been captured mid-play (`MenuCinematic: stream at 2.00 s of
+  10.14 s`) but nobody has watched it run end to end, and the capture is a
+  still. What it does prove is the state: only SKIP is drawn over the film.
 * The HUD shares `AegisTokens.TYPE`, so the combat HUD is now set at the same
   larger sizes. That was not re-photographed in this pass and is the likeliest
   place for a layout regression outside the menus.
