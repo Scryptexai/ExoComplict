@@ -129,6 +129,33 @@ func _probe(stage_name: StringName, size_name: String, physical: Vector2) -> voi
 		return
 	var stretch: float = UiLayout.compute_stretch(stage, physical)
 	var chrome: Variant = stage.get("_chrome")
+	if stage_name == &"DASHBOARD" and size_name == "landscape":
+		_expect(
+			false,
+			(
+				"DEBUG physical=%s landscape=%s level=%s budget=%s mark=%s nav=%s"
+				% [
+					stage.call("physical_size"),
+					stage.call("is_landscape"),
+					str(chrome.get("_level")) if chrome != null else "-",
+					str(chrome.call("_width_at", chrome.get("_level"))) if chrome != null else "-",
+					str(
+						(
+							stage.find_child("DockWordmark", true, false).size
+							if stage.find_child("DockWordmark", true, false) != null
+							else "-"
+						)
+					),
+					str(
+						(
+							stage.find_child("DockNav", true, false).size
+							if stage.find_child("DockNav", true, false) != null
+							else "-"
+						)
+					),
+				]
+			)
+		)
 	print(
 		(
 			"DEBUG %s %s physical=%s landscape=%s level=%s"
