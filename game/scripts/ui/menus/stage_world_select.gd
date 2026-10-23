@@ -85,7 +85,11 @@ func _ready() -> void:
 func _build_backdrop() -> TextureRect:
 	_plate = TextureRect.new()
 	_plate.name = &"TheatrePlate"
-	_plate.texture = try_texture("res://assets/ui/world_neon_frontier.jpg")
+	# The plate is the first theatre's own art, read from the registry the pins
+	# are built from, so the map cannot open on one horizon while its first pin
+	# shows another. No path is spelled out in this file.
+	var definitions := WorldDefinition.load_all_definitions()
+	_plate.texture = (null if definitions.is_empty() else try_texture(definitions[0].plate_path))
 	_plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE

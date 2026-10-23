@@ -58,6 +58,11 @@ var _runs_chip: AegisPanel
 var _runs_value: Label
 var _avatar: TextureRect
 var _with_settings := true
+## True when the dock has room for words as well as glyphs.
+var _wide := true
+var _gear: AegisButton
+var _mark: TextureRect
+var _plate_text: VBoxContainer
 
 
 ## `with_settings` is false on pages that do not own the settings overlay: a
@@ -99,6 +104,7 @@ func _build() -> void:
 
 func _build_wordmark() -> void:
 	var mark := TextureRect.new()
+	_mark = mark
 	mark.name = &"DockWordmark"
 	mark.texture = _stage.try_texture("res://assets/ui/logo_wordmark.png")
 	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -135,16 +141,18 @@ func _build_nav() -> void:
 
 
 func _build_resources() -> void:
-	_balance_chip = _make_chip(&"DockBalance", "trophy", AegisTokens.ACCENT)
+	_balance_chip = _make_chip(&"DockBalance", "trophy", AegisTokens.ACCENT, "BATTLE POINTS")
 	_balance_value = _balance_chip.get_meta("value_label")
-	_runs_chip = _make_chip(&"DockRuns", "chart-bar", AegisTokens.INFO)
+	_runs_chip = _make_chip(&"DockRuns", "chart-bar", AegisTokens.INFO, "RUNS")
 	_runs_value = _runs_chip.get_meta("value_label")
 	row.add_child(_balance_chip)
 	row.add_child(_runs_chip)
 	row.add_child(_spacer(12.0))
 
 
-func _make_chip(node_name: StringName, icon_name: String, tint: Color) -> AegisPanel:
+func _make_chip(
+	node_name: StringName, icon_name: String, tint: Color, caption: String
+) -> AegisPanel:
 	var chip := AegisPanel.new()
 	chip.name = node_name
 	chip.show_brackets = false
@@ -163,11 +171,12 @@ func _make_chip(node_name: StringName, icon_name: String, tint: Color) -> AegisP
 	_stage.physical_min_size(glyph, 18.0, 18.0)
 	line.add_child(glyph)
 	line.add_child(_spacer(8.0))
-	var value := _stage.make_label("0", "label", AegisTokens.INK)
+	var value := _stage.make_label("", "label", AegisTokens.INK)
 	value.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	value.add_theme_constant_override("outline_size", 0)
 	line.add_child(value)
 	chip.set_meta("value_label", value)
+	chip.set_meta("caption", caption)
 	return chip
 
 
@@ -191,6 +200,7 @@ func _build_plate() -> void:
 	_plate_state = _stage.make_label("FIELD READY", "label_s", AegisTokens.OK)
 	text.add_child(name_label)
 	text.add_child(_plate_state)
+	_plate_text = text
 	_plate.add_child(text)
 	row.add_child(_plate)
 	row.add_child(_spacer(6.0))
@@ -199,6 +209,7 @@ func _build_plate() -> void:
 func _build_settings() -> void:
 	var gear := AegisButton.new()
 	gear.name = &"DockSettings"
+	_gear = gear
 	gear.text = ""
 	gear.icon = AegisTheme.icon("gear-six", true)
 	gear.focus_mode = Control.FOCUS_ALL
@@ -207,6 +218,7 @@ func _build_settings() -> void:
 	gear.pressed.connect(func() -> void: settings_requested.emit())
 	AegisTheme.set_button_variant(gear, "ghost")
 	gear.name = &"DockSettings"
+	_gear = gear
 	gear.visible = _with_settings
 	row.add_child(gear)
 
@@ -226,29 +238,46 @@ func _on_tab_pressed(tab_id: StringName) -> void:
 	navigate.emit(tab_id)
 
 
-## Re-authored on every resize. `MenuStage._reapply_physical_sizes()` walks the
-## tree and restores the `px_w`/`px_h` metadata, so this only has to switch the
-## *shape* of the dock when the screen is too narrow for words.
+## Re-authored on every resize.
+##
+## The dock is the one row that has to hold identity, navigation, two figures, a
+## portrait and a control, so it is also the row most able to push a 390 px
+## screen wider than itself -- which is exactly what happened: the page inherited
+## the dock's 745 px minimum and every card under it was reported off-screen.
+##
+## So the dock gives things up in a fixed order, by *physical* width, and never
+## clips:
+##
+##   >= 900 px  words everywhere: BATTLE POINTS 0, RUNS 0, tab labels
+##   >= 720 px  no runs chip (the DASHBOARD record still has the figure)
+##   >= 560 px  no plate caption, no tab labels -- glyphs only
+##   >= 420 px  no settings gear (DASHBOARD's tab row opens the same overlay)
+##   <  420 px  no wordmark: the dock becomes resources + navigation
+##
+## What is left always fits: 34 (avatar) + 3x38 (tabs) + 82 (chip) + gaps = 254
+## of the 358 px a 390 screen has inside its margins.
 func _apply_density() -> void:
 	var width := _stage.physical_size().x
-	var compact := width < LABEL_MIN_WIDTH
-	# A phone in portrait cannot hold the wordmark, three tabs, two chips and a
-	# profile: the runs chip and the plate's state line go first, then the tab
-	# words. Nothing is removed from the *information* the dock carries -- the
-	# runs figure is on the DASHBOARD record already -- only from the dock.
+	_wide = width >= 900.0
 	_runs_chip.visible = width >= 720.0
-	_plate_state.visible = not compact
+	_plate_text.visible = width >= 560.0
+	_mark.visible = width >= 420.0
+	if is_instance_valid(_gear):
+		_gear.visible = _with_settings and width >= 420.0
+
+	var compact := width < 560.0
+	var icon_size := 34.0 if compact else 40.0
+	var tab_width := 38.0 if compact else (96.0 if not compact and width < 900.0 else 112.0)
 	for tab in _tabs:
-		if compact:
-			tab.text = ""
-		else:
-			tab.text = str(TABS[tab.get_meta("tab_id")][0])
+		tab.text = "" if compact else str(TABS[tab.get_meta("tab_id")][0])
 		tab.add_theme_font_override("font", AegisTheme.font(AegisTokens.FAMILY_UI_M))
 		tab.add_theme_font_size_override("font_size", 15)
-	_stage.physical_min_size(_tabs[0], 40.0 if compact else 96.0, 40.0 if compact else 44.0)
-	for tab in _tabs:
-		_stage.physical_min_size(tab, 40.0 if compact else 96.0, 40.0 if compact else 44.0)
-	_stage.physical_min_size(_avatar, 30.0 if compact else 36.0, 30.0 if compact else 36.0)
+		_stage.physical_min_size(tab, tab_width, icon_size)
+		tab.add_theme_constant_override("icon_max_width", 20 if compact else 22)
+	_stage.physical_min_size(_mark, 96.0 if compact else 168.0, 24.0 if compact else 40.0)
+	_stage.physical_min_size(_avatar, 26.0 if compact else 36.0, 26.0 if compact else 36.0)
+	_stage.physical_min_size(_nav, 0.0, icon_size)
+	bar.set_surface_pad(_stage.px(4.0 if compact else 8.0))
 
 
 func set_active(tab_id: StringName) -> void:
@@ -263,8 +292,16 @@ func set_active(tab_id: StringName) -> void:
 func refresh(progression: ProgressionService) -> void:
 	if progression == null:
 		return
-	_balance_value.text = _thousands(progression.balance)
-	_runs_value.text = _thousands(progression.completed_runs)
+	# The word is part of the value, not a second label: on a wide screen a chip
+	# reads "BATTLE POINTS  1234", and on a phone it reads "1234" next to the
+	# trophy. One label, so the number can never disagree with its own caption.
+	_wide = _stage.physical_size().x >= 900.0
+	_balance_value.text = _figure(
+		str(_balance_chip.get_meta("caption", "")), progression.balance, _wide
+	)
+	_runs_value.text = _figure(
+		str(_runs_chip.get_meta("caption", "")), progression.completed_runs, _wide
+	)
 	var hero := HeroDefinition.load_definition(progression.selected_hero_id)
 	if hero != null and not hero.display_name.is_empty():
 		var label := _plate.get_child(1).get_child(0) as Label
@@ -274,6 +311,14 @@ func refresh(progression: ProgressionService) -> void:
 	_plate_state.add_theme_color_override(
 		"font_color", AegisTokens.OK if (hero == null or hero.field_ready) else AegisTokens.INK_3
 	)
+
+
+## `wide` decides whether the caption is part of the string. Digits are not
+## grouped: the save file stores an integer and "1,234" is a locale decision a
+## HUD should not make on a player's behalf.
+func _figure(caption: String, value: int, wide: bool) -> String:
+	var digits := str(maxi(value, 0))
+	return "%s  %s" % [caption, digits] if wide else digits
 
 
 static func _thousands(value: int) -> String:

@@ -795,6 +795,12 @@ func _same_path(a: Resource, b: Resource) -> bool:
 ## Every visible label under `root`, joined: the test reads what a player reads.
 func text_of(root: Node) -> String:
 	var parts: Array[String] = []
+	# A Button renders its own text; a card rendered as one has no Label inside
+	# it, and reading only Labels reported "the card does not name the world" for
+	# a card whose visible text was the world's name.
+	var control := root as BaseButton
+	if control != null and not control.text.is_empty():
+		parts.append(control.text)
 	for child in root.find_children("*", "Label", true, false):
 		var label := child as Label
 		if label != null and label.visible:
