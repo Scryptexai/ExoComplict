@@ -206,7 +206,24 @@ func _build_plate() -> void:
 	_plate.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_stage.physical_separation(_plate, 8.0)
 	_avatar = TextureRect.new()
-	_avatar.texture = _stage.try_texture("res://assets/ui/portrait_hero.png")
+	# The head, not the sheet. `portrait_hero.png` is a 768x1024 half-body
+	# illustration: drawn into a 26-36 px square, the whole figure becomes a
+	# patch of noise and the dock's identity chip reads as a broken image
+	# (measured in the r4 capture). An `AtlasTexture` crops the helmet and face
+	# region, so the chip shows a face at the size a chip is.
+	var sheet := _stage.try_texture("res://assets/ui/portrait_hero.png")
+	if sheet != null:
+		var head := AtlasTexture.new()
+		head.atlas = sheet
+		head.region = Rect2(
+			sheet.get_width() * 0.30,
+			sheet.get_height() * 0.07,
+			sheet.get_height() * 0.32,
+			sheet.get_height() * 0.32
+		)
+		_avatar.texture = head
+	else:
+		_avatar.texture = null
 	_avatar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_avatar.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	_avatar.mouse_filter = Control.MOUSE_FILTER_IGNORE

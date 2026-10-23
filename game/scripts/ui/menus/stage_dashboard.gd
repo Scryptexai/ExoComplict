@@ -85,6 +85,7 @@ var _ribbon: AegisPanel
 var _best: Label
 var _runs: Label
 var _loadout: Label
+var _loadout_items: Array[Label] = []
 var _armory: AegisButton
 var _deploy: AegisButton
 var _deploy_caption: Label
@@ -307,9 +308,17 @@ func _build_ribbon() -> void:
 	_runs = make_label("RUNS COMPLETED  0", "label_s", AegisTokens.INK)
 	_runs.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(_runs)
+	# "LOADOUT  hero / weapon / theatre" was one line that ran out of a 340 px
+	# rail mid-word ("PULSE…"). The receipt names the three things on three
+	# lines instead, each short enough to print whole.
 	_loadout = make_label("LOADOUT", "label_s", AegisTokens.ACCENT)
 	_loadout.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(_loadout)
+	for _slot in [0, 1, 2]:
+		var item := make_label("", "label_s", AegisTokens.INK_2)
+		item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		column.add_child(item)
+		_loadout_items.append(item)
 
 
 func _build_actions() -> void:
@@ -376,7 +385,10 @@ func refresh_profile() -> void:
 
 	_best.text = "BEST SCORE  %d" % progression.best_score
 	_runs.text = "RUNS COMPLETED  %d" % progression.completed_runs
-	_loadout.text = "LOADOUT  %s  /  %s  /  %s" % [hero, weapon, world]
+	_loadout.text = "LOADOUT"
+	_loadout_items[0].text = hero
+	_loadout_items[1].text = weapon
+	_loadout_items[2].text = world
 	# The profile line is the record, not a rank: the save file stores no level,
 	# so "NO RUNS" on a fresh profile is true and "SQUAD LEADER Lv 4" would not
 	# be.
@@ -486,6 +498,10 @@ func _apply_density() -> void:
 	# height says nothing about that: measured at 390x844 the row minimum came
 	# out 472 px and every label under it was drawn past the right edge.
 	var narrow := width < 560.0
+	# A landscape phone is wide but 390 px tall, so it lands in `compact`, and
+	# its rail still shares the width with the rows: every caption in a row has
+	# to give up its minimum there too.
+	var tight := cramped or narrow or (landscape and compact)
 	var desktop := not compact and height >= 600.0
 	var short_landscape := landscape and compact
 
@@ -542,7 +558,10 @@ func _apply_density() -> void:
 		numeral.visible = width >= 520.0
 
 	if landscape:
-		_rail.custom_minimum_size.x = px(300.0 if compact else 340.0)
+		# A share of the screen, not a constant: 340 px of rail plus the rows'
+		# own minimum is 988 px on an 844 px screen, which drew the rail off the
+		# right edge at 844x390 (measured in the r4 capture).
+		_rail.custom_minimum_size.x = px(minf(340.0, width * 0.34))
 		_rows.custom_minimum_size.x = 0.0
 	else:
 		_rail.custom_minimum_size.x = 0.0
@@ -562,6 +581,9 @@ func _apply_density() -> void:
 	_hero_status.visible = not (cramped and not landscape)
 	_arsenal_state.visible = not (cramped or compact)
 	_loadout.visible = not (cramped or short_landscape)
+	for item in _loadout_items:
+		item.visible = not (cramped or short_landscape)
+		_limit_lines(item, 1)
 	_deploy_caption.visible = not cramped
 	_limit_lines(_mission_brief, 1)
 	_limit_lines(_arsenal_state, 1)
@@ -573,10 +595,17 @@ func _apply_density() -> void:
 	# wider than the screen, and a row that wraps its own name still measures
 	# the longest word.
 	for label in [_hero_name_label, _mission_name, _arsenal_name]:
-		label.clip_text = cramped or narrow
+		label.clip_text = tight
 		_limit_lines(label, 2)
-	for label in [_hero_status, _mission_brief, _arsenal_state, _hero_caption, _mission_caption]:
-		label.clip_text = cramped or narrow
+	for label in [
+		_hero_status,
+		_mission_brief,
+		_arsenal_state,
+		_hero_caption,
+		_mission_caption,
+		_arsenal_caption,
+	]:
+		label.clip_text = tight
 
 	_apply_armory_and_settings_sizes()
 
