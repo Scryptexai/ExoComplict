@@ -44,6 +44,17 @@ const TABS := {
 const LABEL_MIN_WIDTH := 560.0
 ## How many leaner configurations `_apply_density` is allowed to try.
 const LEVELS := 7
+const MARK_WIDE := 168.0
+const MARK_COMPACT := 96.0
+const CHIP_WIDE := 132.0
+const CHIP_COMPACT := 64.0
+const RUNS_CHIP_W := 120.0
+const PLATE_TEXT_W := 160.0
+const PLATE_AVATAR := 36.0
+const PLATE_AVATAR_COMPACT := 26.0
+const GEAR_W := 42.0
+const TAB_SEPARATION := 2.0
+const GAPS := 42.0
 
 var bar: AegisPanel
 var row: HBoxContainer
@@ -307,16 +318,52 @@ func _on_tab_pressed(tab_id: StringName) -> void:
 ## would choose: a word you cannot read is worse than a glyph, and a figure the
 ## page already shows is the first thing that can leave.
 func _apply_density() -> void:
-	var stretch := 1.0 / maxf(_stage.px(1.0), 0.0001)
 	# The page's margin and the bar's own inset are spent before any child is.
 	var budget := _stage.physical_size().x - 2.0 * _stage.margin_side() - 12.0
 	var chosen := LEVELS
 	for level in range(LEVELS + 1):
-		_apply_level(level)
-		if row.get_combined_minimum_size().x * stretch <= budget:
+		if _width_at(level) <= budget:
 			chosen = level
 			break
 	_apply_level(chosen)
+
+
+## How wide the dock is at `level`, in physical pixels, computed from the parts
+## rather than read back from the container.
+##
+## `get_combined_minimum_size()` is a cache: it is refreshed when a container is
+## asked to lay out, not in the middle of a function that has just changed a
+## dozen children, so a loop that measured it chose the same level at 360 px as
+## at 1280 px and the page stayed 362 px wide on a 360 px screen. The constants
+## below are the authored sizes in `_apply_level` plus the width each measured
+## label needed in the `?qa_menu=1` report: "EXO OPERATIVE / FIELD READY" is 160,
+## "BATTLE POINTS  0" is 132, and a tab's word is inside its 76-104 px.
+
+
+func _width_at(level: int) -> float:
+	var compact := level >= 5 or _wordless()
+	var named := level <= 4 and not _wordless()
+	var tab_width := 40.0
+	if named:
+		tab_width = 104.0 if level == 0 else (88.0 if level <= 2 else 76.0)
+	var width := 0.0
+	width += MARK_COMPACT if compact else MARK_WIDE if level <= 3 else 0.0
+	width += (tab_width * 3.0) + (TAB_SEPARATION * 2.0)
+	width += CHIP_COMPACT if compact else CHIP_WIDE
+	if level <= 1:
+		width += RUNS_CHIP_W
+	if level <= 4:
+		width += (PLATE_AVATAR_COMPACT if compact else PLATE_AVATAR)
+	if level <= 4:
+		width += PLATE_TEXT_W
+	if level <= 5 and _with_settings:
+		width += GEAR_W
+	return width + GAPS
+
+
+## True on a landscape phone, where the tabs are glyphs whatever the width says.
+func _wordless() -> bool:
+	return _stage.is_landscape() and _stage.physical_size().y < 520.0
 
 
 func _apply_level(level: int) -> void:
@@ -325,7 +372,7 @@ func _apply_level(level: int) -> void:
 	# the dock a fifth of that height; the glyphs are distinct and the tooltip
 	# names them, so in that one case the tabs go wordless whatever the width
 	# says.
-	var wordless := _stage.is_landscape() and _stage.physical_size().y < 520.0
+	var wordless := _wordless()
 	var named := level <= 4 and not wordless
 	var compact := level >= 5 or wordless
 	var tab_width := 40.0
