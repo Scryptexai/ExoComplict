@@ -71,7 +71,7 @@ var _chrome: LobbyChrome
 ## three chips around a 3D rifle, which is a section of a loadout, not a page in
 ## a journey. It lives here now as one row under the operative's card: choose the
 ## weapon you deploy with, see the numbers it will actually fire.
-var _weapon_row: HBoxContainer
+var _weapon_row: VBoxContainer
 var _weapon_stat: Label
 var _weapon_pins: Array[AegisButton] = []
 

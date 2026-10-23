@@ -42,7 +42,7 @@ var _side: HBoxContainer
 var _map: Control
 var _info: AegisPanel
 var _info_text: VBoxContainer
-var _pin_row: HBoxContainer
+var _pin_row: VBoxContainer
 var _chrome: LobbyChrome
 var _selected := &""
 
