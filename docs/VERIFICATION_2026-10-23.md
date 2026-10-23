@@ -173,8 +173,30 @@ Recorded in `video_manifest.json` as `palette_exemption` with that reason. The
 film is a supplied brand asset; no rule in this repo may re-grade it.
 
 **PASS** for the artefact (manifest carries source, size, duration, audio and
-the exemption). **NOT TESTED** for playback in the browser until the frame in §6
-and the CI `video_asset_smoke` run.
+the exemption).
+
+### The bug the frames found
+
+The first three captures of this stage showed the ident playing on top of the
+key-art plate, with the scrim, the progress sliver and a caption still drawn —
+a state the code says cannot exist. Two captures were spent guessing. What
+settled it was a print, not a theory:
+
+```
+MenuCinematic: overlay video=true plate=true scrim=true caption=true
+```
+
+All four true at once means the helper had been *called with the wrong
+argument*: `_show_ident_overlay(not _video.visible)` passes `false` while the
+film is playing, and `false` is "hide nothing". One `not` inverted the whole
+decision, and it hid the real bug behind a plausible story ("the plate must be
+being re-shown by something"). Fixed to `_show_ident_overlay(_video.visible)`.
+
+The same frame pass found SKIP rendering at 13 px while every other control was
+at 21: it was added to the column **after** `relayout()`, and the layout pass
+only reaches what is under the stage. Adding it before the pass fixed it.
+
+**NOT TESTED** until the next capture: the film on a black stage with only SKIP.
 
 ---
 

@@ -164,9 +164,13 @@ func _ready() -> void:
 	_skip = make_button("SKIP", "ghost", "Skip the opening cinematic")
 	physical_min_size(_skip, 180.0, 64.0)
 	_skip.pressed.connect(_on_skip_pressed)
+	# Added *before* the layout pass: `relayout()` walks the tree to apply the
+	# readability floor, and a button that is not under the stage yet keeps
+	# whatever size its variant set -- which is how SKIP rendered at 13 px while
+	# every other control on the screen was at 21.
+	column.add_child(_skip)
 	_connect_resized(_on_resized)
 	relayout()
-	column.add_child(_skip)
 
 
 func enter(_stage_payload: Dictionary) -> void:
@@ -191,7 +195,15 @@ func enter(_stage_payload: Dictionary) -> void:
 	_video.visible = _video.stream != null and not _reduce_motion
 	# The product overlay belongs to the composed fallback. Over the ident it
 	# would be a caption and a wordmark laid on somebody else's brand film.
-	_show_ident_overlay(not _video.visible)
+	#
+	# The argument is "the ident is playing", i.e. `_video.visible` -- and it
+	# was written as `not _video.visible` when the helper was first extracted,
+	# which inverted it. The stage then drew the key-art plate, the scrim, the
+	# progress sliver and the caption over the film, and one capture was filed
+	# as "the overlay will not hide" (docs/VERIFICATION_2026-10-23.md 6) before
+	# the boolean printed at 2 s came back `video=true plate=true` and said the
+	# polarity was the bug, not the visibility plumbing.
+	_show_ident_overlay(_video.visible)
 	_layout_video()
 	if _video.visible:
 		_video.play()
