@@ -681,6 +681,14 @@ func _apply_orientation() -> void:
 func _apply_density() -> void:
 	var width := physical_size().x
 	var stack_rail := width < 720.0
+	# A 390 px tall landscape screen has no room under the operative for three
+	# 52 px chips: they drew 104 px tall at y=333 and the last line of the panel
+	# fell off the bottom. The armory swaps weapons, and the stat line below
+	# still names what is equipped, so the rail gives way -- copy before
+	# controls, and a control that cannot be reached is not a control.
+	var short_landscape := is_landscape() and physical_size().y < 520.0
+	if is_instance_valid(_weapon_row):
+		_weapon_row.visible = not short_landscape
 	for pin in _weapon_pins:
 		physical_min_size(pin, 0.0, 44.0 if is_landscape() and physical_size().y < 520.0 else 52.0)
 	# A row of three chips is only honest when there is room for three; below

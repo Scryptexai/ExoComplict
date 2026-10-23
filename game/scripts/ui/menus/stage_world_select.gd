@@ -190,8 +190,9 @@ func reframe() -> void:
 		physical_min_size(_info, 0.0, 0.0)
 		physical_min_size(_map, 0.0, height * 0.5)
 		physical_min_size(_launch, 0.0, 72.0)
+	# 64 px is the touch floor (`AegisTokens.MIN_TOUCH_PX`); 56 failed it.
 	for pin in _pins:
-		physical_min_size(pin, 0.0, 56.0)
+		physical_min_size(pin, 0.0, 64.0)
 	if _pin_row != null:
 		_pin_row.vertical = false
 
