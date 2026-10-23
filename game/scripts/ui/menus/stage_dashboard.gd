@@ -56,7 +56,7 @@ var _root: VBoxContainer
 ## Portrait stacks cards, character, dock; landscape puts the cards and the
 ## dock either side of the character. Both exist as parents and the blocks are
 ## moved between them, so a rotation is a reconciliation rather than a rebuild.
-var _body_portrait: Control
+var _body_portrait: VBoxContainer
 var _body_landscape: HBoxContainer
 ## The edge-docked card stack.
 var _cards: VBoxContainer
@@ -193,11 +193,11 @@ func _build_bands() -> void:
 	# Fire's and Apex's lobbies use, and it is the difference between "a lobby
 	# with a character in a slot" and "a character with the menu on top of it".
 	# A column could only ever give the model the strip the cards left over.
-	_body_portrait = Control.new()
-	_body_portrait.name = &"LobbyOverlayPortrait"
+	_body_portrait = VBoxContainer.new()
+	_body_portrait.name = &"LobbyBandsPortrait"
 	_body_portrait.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_body_portrait.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_body_portrait.clip_contents = true
+	physical_separation(_body_portrait, 10)
 
 	_body_landscape = HBoxContainer.new()
 	_body_landscape.name = &"LobbyBandsLandscape"
@@ -596,7 +596,7 @@ func _apply_density() -> void:
 	# The character is the subject, so its band is a share of the screen rather
 	# than whatever the cards happen to leave: 30 % of a phone, 38 % of a desktop.
 	if not landscape:
-		_body_portrait.custom_minimum_size = Vector2.ZERO
+		physical_separation(_body_portrait, 8.0 if cramped else (10.0 if compact else 16.0))
 	physical_separation(_top, 10.0 if compact else 16.0)
 	physical_separation(_cards, 8.0 if compact else 14.0)
 	physical_separation(_dock, 8.0 if cramped else (10.0 if compact else 14.0))
