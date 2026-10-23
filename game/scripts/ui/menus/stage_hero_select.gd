@@ -426,6 +426,11 @@ func _build_panel() -> void:
 		pin.set_meta("weapon_id", String(definition.weapon_id))
 		pin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		pin.focus_mode = Control.FOCUS_ALL
+		# Three guns do not fit across a 390 px phone: "NOVA LAUNCHER · 120 BP"
+		# is ~200 px of text before padding, so a row of three was 600 px and the
+		# page inherited it. The chips wrap their own text and stack when the row
+		# cannot hold them (see `_apply_density`).
+		pin.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		pin.set_meta("aegis_role", "label_s")
 		AegisTheme.set_button_variant(pin, "card")
 		pin.pressed.connect(_on_weapon_pressed.bind(definition.weapon_id))
@@ -674,8 +679,15 @@ func _apply_orientation() -> void:
 ## card keeps two lines. DEPLOY-scale buttons never shrink -- they are the
 ## controls a thumb has to hit on a phone.
 func _apply_density() -> void:
+	var width := physical_size().x
+	var narrow := width < 720.0
 	for pin in _weapon_pins:
 		physical_min_size(pin, 0.0, 44.0 if is_landscape() and physical_size().y < 520.0 else 52.0)
+	# A row of three chips is only honest when there is room for three; below
+	# that they stack, full width, and the loadout reads as a list of choices
+	# rather than three clipped words.
+	if is_instance_valid(_weapon_row):
+		_weapon_row.vertical = narrow
 	var short_screen := physical_size().y < (520.0 if is_landscape() else 760.0)
 	# Same trade as the old WEAPON page: on a portrait phone the header keeps BACK and the
 	# heading, and the field-ready state lives on the card itself.
