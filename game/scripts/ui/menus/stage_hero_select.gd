@@ -724,6 +724,8 @@ func _apply_orientation() -> void:
 ## card keeps two lines. DEPLOY-scale buttons never shrink -- they are the
 ## controls a thumb has to hit on a phone.
 func _apply_density() -> void:
+	if _chrome != null:
+		_chrome.refit()
 	var width := physical_size().x
 	# A 390 px tall landscape screen has no room under the operative for three
 	# 52 px chips: they drew 104 px tall at y=333 and the last line of the panel

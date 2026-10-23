@@ -372,6 +372,15 @@ func _apply_level(level: int) -> void:
 	_level = level
 
 
+## Re-fits the dock to the stage it is on. Bound to nothing: the owning stage
+## calls it from its own resize handler after it has re-applied its margins,
+## because only the stage knows how much of the width it reserves. Without this
+## the dock kept whatever it measured on the first mount and a rotation left it
+## 316 px wide on a 360 px screen.
+func refit() -> void:
+	_apply_density()
+
+
 func set_active(tab_id: StringName) -> void:
 	_active = tab_id
 	for tab in _tabs:

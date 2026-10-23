@@ -380,6 +380,8 @@ func _reparent(node: Node, target: Node) -> void:
 func _on_resized() -> void:
 	relayout()
 	reframe()
+	if _chrome != null:
+		_chrome.refit()
 
 
 func enter(_stage_payload: Dictionary) -> void:

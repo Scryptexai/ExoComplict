@@ -607,6 +607,8 @@ func _apply_density() -> void:
 	]:
 		label.clip_text = tight
 
+	if _chrome != null:
+		_chrome.refit()
 	_apply_armory_and_settings_sizes()
 
 
