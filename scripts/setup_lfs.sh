@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verify and configure Git LFS for Project Overdrive.
+# Verify and configure Git LFS for Exocomplict.
 #
 # The tracking rules live in .gitattributes and are committed, so a machine
 # with git-lfs needs no per-repo setup: this script only checks the tool is
@@ -24,7 +24,7 @@ DO_MIGRATE=0
 
 cd "$ROOT_DIR"
 
-printf 'Git LFS setup — Project Overdrive\n\n'
+printf 'Git LFS setup — Exocomplict\n\n'
 
 # --- 1. is the tool there ---------------------------------------------------
 if ! command -v git-lfs >/dev/null 2>&1 && ! git lfs version >/dev/null 2>&1; then

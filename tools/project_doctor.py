@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static structural validation for the Project Overdrive Godot project.
+"""Static structural validation for the Exocomplict Godot project.
 
 This tool inspects the project *without* running Godot. It is not a replacement
 for the headless import and the smoke tests; it catches broken references,
@@ -106,7 +106,7 @@ class Report:
         by_check: dict[str, list[Issue]] = {}
         for issue in self.issues:
             by_check.setdefault(issue.check, []).append(issue)
-        lines.append("Project Overdrive — static project doctor")
+        lines.append("Exocomplict — static project doctor")
         lines.append("")
         for check_name, issues in by_check.items():
             flagged = [i for i in issues if i.level != PASS]

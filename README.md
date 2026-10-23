@@ -1,6 +1,6 @@
-# Project Overdrive — NEON FRONTIER World Prototype
+# Exocomplict — NEON FRONTIER World Prototype
 
-**Project Overdrive** is a mobile-first, single-player third-person sci-fi action shooter prototype. **NEON FRONTIER** is its connected 3D world—not a static concept image. The current blockout uses reusable Godot components and some licensed KayKit GLTF props; provenance is in [`game/assets/world/kaykit_space_base_bits/`](game/assets/world/kaykit_space_base_bits/) and [`WORLD_BLOCKOUT.md`](WORLD_BLOCKOUT.md). Ten real Kenney Space Kit GLBs are in the repository; the player avatar and all three enemy types now render fitted models from that kit instead of placeholder capsules.
+**Exocomplict** is a mobile-first, single-player third-person sci-fi action shooter prototype. **NEON FRONTIER** is its connected 3D world—not a static concept image. The current blockout uses reusable Godot components and some licensed KayKit GLTF props; provenance is in [`game/assets/world/kaykit_space_base_bits/`](game/assets/world/kaykit_space_base_bits/) and [`WORLD_BLOCKOUT.md`](WORLD_BLOCKOUT.md). Ten real Kenney Space Kit GLBs are in the repository; the player avatar and all three enemy types now render fitted models from that kit instead of placeholder capsules.
 
 ## Start here
 
@@ -98,7 +98,7 @@ The local toolchain and preset can be prepared without the Editor GUI:
 ./scripts/install_godot.sh --with-templates     # pinned editor + export templates
 ./scripts/setup_android_sdk.sh --guide           # JDK/SDK instructions per OS
 ./scripts/setup_android_sdk.sh --install-packages
-python3 tools/android_preset.py scaffold --package-id com.yourstudio.projectoverdrive
+python3 tools/android_preset.py scaffold --package-id com.yourstudio.exocomplict
 python3 tools/android_preset.py check
 ```
 
@@ -111,7 +111,7 @@ Then run:
 
 `ANDROID_BASELINE.md` covers the device installation commands, the manual touch/pause/retry checklist, the profiling procedure, and the gate-E acceptance criteria.
 
-The export script imports in headless Editor mode, runs all `tests/*_smoke.gd` scripts, exports `exports/project-overdrive-debug.apk`, and checks the APK archive when `unzip` is installed. Override the preset/output with `ANDROID_EXPORT_PRESET` and `ANDROID_APK_PATH`; set `GODOT_BIN` if the executable is not named `godot` or `godot4`. It does not install SDK packages, create release signing keys, or deploy to a device. **This workflow is prepared, not executed here:** Godot, JDK, Android SDK/ADB and Gradle are unavailable in the current environment, so no APK or Android runtime result is claimed. Use [`TOOLCHAIN_SETUP.md`](TOOLCHAIN_SETUP.md) for setup details.
+The export script imports in headless Editor mode, runs all `tests/*_smoke.gd` scripts, exports `exports/exocomplict-debug.apk`, and checks the APK archive when `unzip` is installed. Override the preset/output with `ANDROID_EXPORT_PRESET` and `ANDROID_APK_PATH`; set `GODOT_BIN` if the executable is not named `godot` or `godot4`. It does not install SDK packages, create release signing keys, or deploy to a device. **This workflow is prepared, not executed here:** Godot, JDK, Android SDK/ADB and Gradle are unavailable in the current environment, so no APK or Android runtime result is claimed. Use [`TOOLCHAIN_SETUP.md`](TOOLCHAIN_SETUP.md) for setup details.
 
 ## Toolchain check
 

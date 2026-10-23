@@ -1,4 +1,4 @@
-# Project Overdrive — WebAssembly Preview
+# Exocomplict — WebAssembly Preview
 
 > **Tujuan:** melihat dan menguji game di browser **tanpa memasang Godot, Android SDK, JDK, atau Blender** — cukup satu server statis: `python -m http.server 800 --bind 0.0.0.0` dari root repo.
 >

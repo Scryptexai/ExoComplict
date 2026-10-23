@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-shot static development check for Project Overdrive.
+# One-shot static development check for Exocomplict.
 #
 # Runs every verification step that does *not* need the Godot engine binary:
 #   1. GDScript syntax parse + style lint + format check (gdtoolkit)
@@ -25,7 +25,7 @@ step_passed() { printf '  [PASS] %s\n' "$1"; }
 step_failed() { printf '  [FAIL] %s\n' "$1"; FAILED_STEPS=$((FAILED_STEPS + 1)); }
 step_skipped() { printf '  [SKIP] %s\n' "$1"; SKIPPED_STEPS=$((SKIPPED_STEPS + 1)); }
 
-printf 'Project Overdrive — static development check\n'
+printf 'Exocomplict — static development check\n'
 printf 'Repository: %s\n\n' "$ROOT_DIR"
 
 if [[ ! -d "$GAME_DIR" ]]; then
