@@ -275,6 +275,8 @@ func _build_info() -> void:
 func reframe() -> void:
 	var landscape := is_landscape()
 	var height := physical_size().y
+	var cramped := height < 700.0 and not landscape
+	var short_landscape := landscape and height < 520.0
 	if landscape:
 		_reparent(_map, _side)
 		_reparent(_info, _side)
@@ -308,8 +310,6 @@ func reframe() -> void:
 	_orient_pins(landscape)
 	# 390 px of height is enough for the name and one line about the theatre, not
 	# for the chapter tag as well; the pin under the map already carries the name.
-	var cramped := height < 700.0 and not landscape
-	var short_landscape := landscape and height < 520.0
 	_chapter.visible = not (short_landscape or cramped)
 	# The framed plate on the left already shows the theatre's name, and three
 	# 64 px pins plus the panel plus the map are what has to fit. The paragraph
