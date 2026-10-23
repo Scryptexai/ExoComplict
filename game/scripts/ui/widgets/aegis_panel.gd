@@ -41,9 +41,28 @@ extends PanelContainer
 		accent_width = value
 		queue_redraw()
 
+## 0.0 keeps whatever the caller set; anything else is drawn behind the content.
+@export_range(0.0, 1.0, 0.01) var surface_alpha: float = AegisTokens.PANEL_ALPHA_SOFT
+
 
 func _ready() -> void:
 	resized.connect(queue_redraw)
+	# Every menu card was a bare PanelContainer with no "panel" stylebox: Godot's
+	# default draws almost nothing, so HERO's information card, the dashboard
+	# blocks and the theatre cards were text floating over a 3D scene. The HUD
+	# builds its own styles and sets an override before or after this runs, so an
+	# existing override always wins.
+	if surface_alpha > 0.0 and not has_theme_stylebox_override("panel"):
+		add_theme_stylebox_override(
+			"panel",
+			AegisTheme.panel_style(
+				Color(AegisTokens.PANEL, surface_alpha),
+				Color(AegisTokens.LINE, 0.95),
+				1,
+				AegisTokens.RADIUS,
+				12.0
+			)
+		)
 	if not interactive:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
