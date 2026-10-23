@@ -532,6 +532,16 @@ func _apply_orientation() -> void:
 	# Landscape has room for the full label; portrait shares the header with the
 	# status line and clipped it to "SELECT OPER…" in the first capture.
 	physical_min_size(_carousel, 0.0, 84.0 if landscape else 120.0)
+	# The right-hand column had no width of its own, so it took the width of its
+	# widest child and every line in the information card was ellipsised at ~250
+	# px on a 1280 px screen ("2 OPERATIVE SLOTS IN...", "The operative fielded
+	# by the...") while EQUIPPED and CONTINUE, whose minimums add to 376, spilled
+	# over each other. A rail with a width of its own is the fix the capture
+	# asked for; the model keeps the rest of the canvas.
+	_col_right.size_flags_horizontal = Control.SIZE_SHRINK_END
+	if landscape:
+		var rail := 340.0 if physical_size().y < 520.0 else minf(440.0, physical_size().x * 0.36)
+		_col_right.custom_minimum_size.x = px(rail)
 
 
 ## The model is the subject, so when height is short the *chrome* gives way, not

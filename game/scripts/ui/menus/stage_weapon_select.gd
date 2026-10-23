@@ -188,7 +188,10 @@ func _build_chip(definition: WeaponDefinition, group: ButtonGroup) -> Control:
 	chip.mouse_filter = Control.MOUSE_FILTER_STOP
 	chip.tooltip_text = definition.display_name
 	chip.set_meta("weapon_id", String(definition.weapon_id))
-	_size_both(chip, Vector2(116.0, 86.0), Vector2(116.0, 86.0))
+	# 200x130 rather than 116x86. The plates are the only picture of a weapon a
+	# player gets before selecting it, and at 116 px the rifle inside was a
+	# thumbnail; the caption under it did not fit in the carousel at all.
+	_size_both(chip, Vector2(200.0, 130.0), Vector2(132.0, 96.0))
 	AegisTheme.set_button_variant(chip, "round")
 	chip.pressed.connect(_on_chip_pressed.bind(definition.weapon_id))
 	_cards.append(chip)
@@ -550,7 +553,19 @@ func _apply_density() -> void:
 		maxi(AegisTheme.type_size(heading_role), _minimum_font_size(_stretch))
 	)
 	_state_label.visible = not narrow
-	physical_min_size(_carousel, 0.0, 84.0 if short_screen else 96.0)
+	# On a short screen the plates stay and the captions go: the plate is the
+	# recognisable thing, and the selected weapon's name is a few pixels to its
+	# right in the information card.
+	for card in _cards:
+		var holder := card.get_parent()
+		if holder != null and holder.get_child_count() > 1:
+			var captions := holder.get_child(1) as CanvasItem
+			if captions != null:
+				captions.visible = not short_screen
+	# Height = plate + its two caption lines. The carousel used to be 96 px tall
+	# around a 130 px plate, so the captions were cut off by the scroll
+	# container's own clip and the plates looked cropped at the bottom.
+	physical_min_size(_carousel, 0.0, 96.0 if short_screen else 196.0)
 	# Same budget as HERO: on a 390 px tall screen the brief line gives way so
 	# CONTINUE stays on it. The stats above it are the data the screen exists to
 	# show and stay.
