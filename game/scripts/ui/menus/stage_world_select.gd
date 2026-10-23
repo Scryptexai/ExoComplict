@@ -141,7 +141,15 @@ func _build_map() -> void:
 func _build_pin(group: ButtonGroup, definition: WorldDefinition) -> AegisButton:
 	var pin := AegisButton.new()
 	pin.name = "%sPin" % String(definition.world_id).to_pascal_case()
-	pin.text = definition.display_name.to_upper()
+	# A theatre that cannot be launched says so on its own pin, and the pin is
+	# disabled: the map can hold the whole roadmap without pretending any of it
+	# is playable, which is the rule the rest of the lobby follows.
+	pin.text = (
+		definition.display_name.to_upper()
+		if definition.field_ready
+		else "%s  ·  IN DEVELOPMENT" % definition.display_name.to_upper()
+	)
+	pin.disabled = not definition.field_ready
 	pin.set_meta("world_id", String(definition.world_id))
 	pin.toggle_mode = true
 	pin.button_group = group
