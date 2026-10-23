@@ -595,8 +595,8 @@ func _apply_density() -> void:
 		# wordmark plus a 132 px chip plus the gap is 316 before either control's
 		# own inset, and the row was 4 px wider than the screen -- which stretched
 		# every card under it and put four labels past the right edge.
-		physical_min_size(_hero_plate, 76.0, 96.0)
-		physical_min_size(_mission_plate, 92.0, 70.0)
+		physical_min_size(_hero_plate, 60.0, 84.0)
+		physical_min_size(_mission_plate, 76.0, 62.0)
 		physical_min_size(_deploy, 0.0, 76.0)
 		for tab in _secondary.get_children():
 			physical_min_size(tab as Control, 0.0, 64.0)
@@ -639,11 +639,11 @@ func _apply_density() -> void:
 	# of something still on the screen: the role is the card above the name, the
 	# brief is the WORLD card, the loadout is the three cards themselves.
 	_hero_role.visible = not cramped
-	# A `display_m` name is 32 px: "EXO OPERATIVE" measures 250 px and "NEON
-	# FRONTIER" 234, and each sits in a card whose plate already takes 76. That
-	# is the 364 px a 360 px screen was being asked for. Wrapping the name makes
-	# its minimum width the card's, which is the rule this project keeps
-	# relearning: a Label's minimum width is its text width unless it wraps.
+	# A name set in `display_m` is 32 px and 250 px of text, and the portrait
+	# plate beside it is 76: that is 340 of the 336 a 360 px phone has inside its
+	# margins, so the card -- and the page under it -- was 4 px too wide. Wrapping
+	# helps the *height*; the width comes from the role, which steps down on the
+	# narrowest screen.
 	for name_label in [_hero_name_label, _mission_name]:
 		if name_label == null:
 			continue
