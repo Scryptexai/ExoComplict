@@ -84,18 +84,18 @@ func _ready() -> void:
 	add_child(_margin)
 
 	_stack = VBoxContainer.new()
-	physical_separation(_stack, 18)
+	physical_separation(_stack, 22)
 	_margin.add_child(_stack)
 
 	_split = HBoxContainer.new()
 	_split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_split.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	physical_separation(_split, 18)
+	physical_separation(_split, 22)
 	_left = VBoxContainer.new()
-	physical_separation(_left, 18)
+	physical_separation(_left, 22)
 	_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_right = VBoxContainer.new()
-	physical_separation(_right, 12)
+	physical_separation(_right, 16)
 	_right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_split.add_child(_left)
 	_split.add_child(_right)
@@ -104,7 +104,7 @@ func _ready() -> void:
 	_mark.texture = try_texture("res://assets/ui/logo_wordmark.png")
 	_mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_size_both(_mark, Vector2(300.0, 74.0), Vector2(210.0, 52.0))
+	_size_both(_mark, Vector2(300.0, 75.0), Vector2(470.0, 118.0))
 	_stack.add_child(_mark)
 
 	# --- 1. the operative ------------------------------------------------ #
@@ -119,7 +119,7 @@ func _ready() -> void:
 	_stack.add_child(_hero_panel)
 
 	var hero_row := HBoxContainer.new()
-	physical_separation(hero_row, 14)
+	physical_separation(hero_row, 18)
 	_hero_panel.add_child(hero_row)
 
 	# The portrait and the theatre plate are the definitions' own files, loaded
@@ -133,12 +133,12 @@ func _ready() -> void:
 	_hero_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# A 3:4 portrait at 92 px wide is 123 px tall, which leaves the identity
 	# column room for three lines inside a 150 px panel on a 390 px screen.
-	_size_both(_hero_plate, Vector2(96.0, 128.0), Vector2(78.0, 104.0))
+	_size_both(_hero_plate, Vector2(128.0, 170.0), Vector2(96.0, 128.0))
 	hero_row.add_child(_hero_plate)
 
 	var hero_column := VBoxContainer.new()
 	hero_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_separation(hero_column, 6)
+	physical_separation(hero_column, 8)
 	hero_row.add_child(hero_column)
 
 	_hero_role = make_label("OPERATIVE", "label", AegisTokens.INK_3)
@@ -158,19 +158,19 @@ func _ready() -> void:
 	_stack.add_child(_mission_panel)
 
 	var mission_row := HBoxContainer.new()
-	physical_separation(mission_row, 14)
+	physical_separation(mission_row, 18)
 	_mission_panel.add_child(mission_row)
 
 	_mission_plate = TextureRect.new()
 	_mission_plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_mission_plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	_mission_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_size_both(_mission_plate, Vector2(112.0, 96.0), Vector2(92.0, 78.0))
+	_size_both(_mission_plate, Vector2(146.0, 124.0), Vector2(112.0, 96.0))
 	mission_row.add_child(_mission_plate)
 
 	var mission_column := VBoxContainer.new()
 	mission_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_separation(mission_column, 6)
+	physical_separation(mission_column, 8)
 	mission_row.add_child(mission_column)
 
 	mission_column.add_child(make_label("DEPLOYMENT THEATRE", "label", AegisTokens.INK_3))
@@ -189,12 +189,12 @@ func _ready() -> void:
 	_stack.add_child(_spacer)
 
 	var actions := VBoxContainer.new()
-	physical_separation(actions, 10)
+	physical_separation(actions, 14)
 	_stack.add_child(actions)
 	_actions = actions
 
 	var deploy := make_button("DEPLOY", "primary", "Choose your loadout and start a run")
-	physical_min_size(deploy, 0.0, 62.0)
+	physical_min_size(deploy, 0.0, 78.0)
 	deploy.pressed.connect(_on_deploy_pressed)
 	actions.add_child(deploy)
 
@@ -210,7 +210,7 @@ func _ready() -> void:
 	actions.add_child(_stats)
 
 	var stat_column := VBoxContainer.new()
-	physical_separation(stat_column, 8)
+	physical_separation(stat_column, 12)
 	_stats.add_child(stat_column)
 
 	_rank_line = make_label("PROFILE", "label", AegisTokens.INK_3)
@@ -246,11 +246,11 @@ func _ready() -> void:
 
 	# --- 6. secondary navigation ------------------------------------------ #
 	_secondary = VBoxContainer.new()
-	physical_separation(_secondary, 8)
+	physical_separation(_secondary, 12)
 	actions.add_child(_secondary)
 
 	var row := HBoxContainer.new()
-	physical_separation(row, 10)
+	physical_separation(row, 14)
 	_secondary.add_child(row)
 
 	# Every secondary control clears AegisTokens.MIN_TOUCH_PX. They were 52 px
@@ -421,14 +421,19 @@ func _apply_orientation() -> void:
 ## identical -- the screen gets shorter, not different.
 func _apply_density() -> void:
 	var landscape := is_landscape()
-	var compact := physical_size().y < (520.0 if landscape else 700.0)
+	# A portrait phone is always the compact arrangement. The threshold used to
+	# be 700 px, which left a 390x844 phone on the full stack -- and the stack
+	# is 915 px tall at the sizes this screen now uses, 70 px past the bottom
+	# of the display. 900 keeps every phone portrait compact and leaves a
+	# tablet or a desktop on the full layout.
+	var compact := physical_size().y < (520.0 if landscape else 900.0)
 	# The safe margins also come in on a short screen: 8 px top and bottom is
 	# worth more to the content than to the composition at that size.
-	apply_safe_margins(_margin, 18.0 if compact else 28.0, 16.0 if compact else 24.0)
-	physical_separation(_stack, 10.0 if compact else 18.0)
-	physical_separation(_left, 10.0 if compact else 18.0)
-	physical_separation(_right, 8.0 if compact else 12.0)
-	physical_separation(_actions, 8.0 if compact else 10.0)
+	apply_safe_margins(_margin, 20.0 if compact else 36.0, 16.0 if compact else 28.0)
+	physical_separation(_stack, 12.0 if compact else 22.0)
+	physical_separation(_left, 12.0 if compact else 22.0)
+	physical_separation(_right, 10.0 if compact else 16.0)
+	physical_separation(_actions, 10.0 if compact else 14.0)
 	# "PROFILE . FIELD READY" restates what the three cells below it already say
 	# on a screen this short; the header is the one line that can go.
 	_numbers.columns = 2 if physical_size().x < 560.0 else 3
@@ -440,20 +445,20 @@ func _apply_density() -> void:
 	# authored values instead of keeping whatever this pass last wrote.
 	if landscape:
 		if compact:
-			physical_min_size(_mark, 180.0, 44.0)
-			physical_min_size(_hero_plate, 64.0, 84.0)
-			physical_min_size(_mission_plate, 76.0, 64.0)
+			physical_min_size(_mark, 260.0, 65.0)
+			physical_min_size(_hero_plate, 84.0, 112.0)
+			physical_min_size(_mission_plate, 96.0, 82.0)
 		elif physical_size().y >= 600.0:
 			# A desktop has the height a phone does not. The plates were authored
 			# at 78x104 for a rotated phone and looked undersized on a 720 px
 			# canvas, in a card with room to spare.
-			physical_min_size(_mark, 300.0, 74.0)
-			physical_min_size(_hero_plate, 96.0, 128.0)
-			physical_min_size(_mission_plate, 112.0, 96.0)
+			physical_min_size(_mark, 470.0, 118.0)
+			physical_min_size(_hero_plate, 128.0, 170.0)
+			physical_min_size(_mission_plate, 146.0, 124.0)
 	elif compact:
-		physical_min_size(_mark, 220.0, 48.0)
-		physical_min_size(_hero_plate, 72.0, 92.0)
-		physical_min_size(_mission_plate, 84.0, 72.0)
+		physical_min_size(_mark, 310.0, 78.0)
+		physical_min_size(_hero_plate, 96.0, 128.0)
+		physical_min_size(_mission_plate, 108.0, 92.0)
 
 
 func _on_resized() -> void:
@@ -464,8 +469,8 @@ func _on_resized() -> void:
 	# The armory and settings panels are sized in physical pixels too: they are
 	# lists of 56 px rows, and a panel authored in canvas units would be a third
 	# of that on a phone.
-	_armory.custom_minimum_size = Vector2(px(minf(physical_size().x * 0.92, 420.0)), px(420.0))
-	_settings.custom_minimum_size = Vector2(px(minf(physical_size().x * 0.94, 520.0)), px(520.0))
+	_armory.custom_minimum_size = Vector2(px(minf(physical_size().x * 0.92, 470.0)), px(470.0))
+	_settings.custom_minimum_size = Vector2(px(minf(physical_size().x * 0.94, 560.0)), px(560.0))
 	enforce_font_floor(_armory, _stretch)
 	enforce_font_floor(_settings, _stretch)
 	_centre(_armory)

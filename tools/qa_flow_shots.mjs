@@ -58,6 +58,13 @@ const port = Number(flag('--port', '8133'));
 const settleMs = Number(flag('--settle', '6000'));
 const stageTimeoutMs = Number(flag('--stage-timeout', '240000'));
 const serveDir = path.resolve(ROOT, flag('--serve', '.'));
+/* Extra wait before a transient stage (BOOT, LOADING, CINEMATIC) is
+ * photographed. Those three are shot the moment they announce themselves
+ * because a web build leaves them in a frame or two -- which is right for a
+ * splash and wrong for a film: the opening is 10 s long and the interesting
+ * frame is inside it, not on its first. 0 by default, so every existing
+ * capture behaves exactly as before. */
+const transientDelayMs = Number(flag('--transient-delay', '0'));
 
 const DEFAULT_STAGES = ['BOOT', 'LOADING', 'CINEMATIC', 'CHAPTER', 'DASHBOARD', 'HERO', 'WEAPON', 'WORLD'];
 const requested = (list('--stages').join(',') || DEFAULT_STAGES.join(','))
@@ -185,6 +192,9 @@ for (const viewport of viewports) {
     const transient = TRANSIENT_STAGES.has(stage);
     let shot;
     if (transient) {
+      if (transientDelayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, transientDelayMs));
+      }
       // The stage has *announced* itself, which is one frame before it has
       // drawn anything: photographing immediately produced a 9 KB black frame.
       // So take the first frame that is not still blank, and stop trying the

@@ -38,7 +38,7 @@ const SIZES := {
 ## panels with no edge-hugging actions.
 const STAGES := [&"DASHBOARD", &"HERO", &"WEAPON", &"WORLD"]
 ## AegisTokens.MIN_TOUCH_PX, less a pixel of rounding.
-const MIN_TOUCH := 55.0
+const MIN_TOUCH := 63.0
 
 var _failures: Array[String] = []
 var _viewport: SubViewport = null

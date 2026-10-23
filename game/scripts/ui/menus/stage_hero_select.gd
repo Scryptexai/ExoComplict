@@ -79,7 +79,7 @@ func _ready() -> void:
 	add_child(scrim)
 
 	_stack = VBoxContainer.new()
-	physical_separation(_stack, 10)
+	physical_separation(_stack, 14)
 	make_margin().add_child(_stack)
 
 	_build_header()
@@ -119,11 +119,11 @@ func refresh_profile() -> void:
 
 func _build_header() -> void:
 	_header = HBoxContainer.new()
-	physical_separation(_header, 12)
+	physical_separation(_header, 16)
 	_stack.add_child(_header)
 
 	var back := make_button("BACK", "ghost", "Return to the dashboard")
-	physical_min_size(back, 120.0, AegisTokens.MIN_TOUCH_PX)
+	physical_min_size(back, 150.0, AegisTokens.MIN_TOUCH_PX)
 	back.pressed.connect(func() -> void: completed.emit(&"DASHBOARD", {}))
 	_header.add_child(back)
 
@@ -142,27 +142,27 @@ func _build_header() -> void:
 func _build_body_containers() -> void:
 	_body_portrait = VBoxContainer.new()
 	_body_portrait.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	physical_separation(_body_portrait, 10)
+	physical_separation(_body_portrait, 14)
 
 	_body_landscape = HBoxContainer.new()
 	_body_landscape.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	physical_separation(_body_landscape, 14)
+	physical_separation(_body_landscape, 18)
 
 	_col_left = VBoxContainer.new()
 	_col_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_col_left.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	physical_separation(_col_left, 10)
+	physical_separation(_col_left, 14)
 
 	_col_right = VBoxContainer.new()
 	_col_right.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	physical_separation(_col_right, 10)
+	physical_separation(_col_right, 14)
 
 	_stack.add_child(_body_portrait)
 
 
 func _build_carousel() -> void:
 	_carousel_wrap = VBoxContainer.new()
-	physical_separation(_carousel_wrap, 6)
+	physical_separation(_carousel_wrap, 10)
 	_body_portrait.add_child(_carousel_wrap)
 
 	_carousel = ScrollContainer.new()
@@ -170,7 +170,7 @@ func _build_carousel() -> void:
 	_carousel.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	_carousel.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_carousel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_min_size(_carousel, 0.0, 96.0)
+	physical_min_size(_carousel, 0.0, 120.0)
 	_carousel_wrap.add_child(_carousel)
 
 	# MenuStage drives horizontal thumb-drags against `_card_scroll`; the
@@ -216,7 +216,7 @@ func _build_chip(definition: HeroDefinition) -> Control:
 	chip.mouse_filter = Control.MOUSE_FILTER_STOP
 	chip.set_meta("hero_id", String(definition.hero_id))
 	chip.tooltip_text = "%s — %s" % [definition.display_name, definition.status_line.to_lower()]
-	_size_both(chip, Vector2(84.0, 84.0), Vector2(68.0, 68.0))
+	_size_both(chip, Vector2(104.0, 104.0), Vector2(84.0, 84.0))
 	AegisTheme.set_button_variant(chip, "round")
 	chip.pressed.connect(_on_chip_pressed.bind(definition.hero_id))
 	_cards.append(chip)
@@ -289,7 +289,7 @@ func _build_panel() -> void:
 	_body_portrait.add_child(_panel)
 
 	var column := VBoxContainer.new()
-	physical_separation(column, 8)
+	physical_separation(column, 12)
 	_panel.add_child(column)
 
 	# Single-line with an ellipsis, not wrapping: a wrapped Label reports a
@@ -314,7 +314,7 @@ func _build_panel() -> void:
 ## card also keeps the card's height a function of two text lines.
 func _build_actions() -> void:
 	_actions = HBoxContainer.new()
-	physical_separation(_actions, 10)
+	physical_separation(_actions, 14)
 	# Parented here, in the portrait arrangement, exactly like the other blocks:
 	# `_apply_orientation()` returns early when the orientation has not changed,
 	# so a first layout must not depend on it to put anything in the tree.
@@ -521,7 +521,7 @@ func _apply_orientation() -> void:
 		_panel.size_flags_vertical = Control.SIZE_SHRINK_END
 	# Landscape has room for the full label; portrait shares the header with the
 	# status line and clipped it to "SELECT OPER…" in the first capture.
-	physical_min_size(_carousel, 0.0, 68.0 if landscape else 96.0)
+	physical_min_size(_carousel, 0.0, 84.0 if landscape else 120.0)
 
 
 ## The model is the subject, so when height is short the *chrome* gives way, not
@@ -542,7 +542,7 @@ func _apply_density() -> void:
 	# Landscape has room for the full label; portrait shares the header with the
 	# status line and clipped it to "SELECT OPER…" when it did not fit.
 	_heading.text = "SELECT OPERATIVE" if is_landscape() else "OPERATIVE"
-	physical_min_size(_carousel, 0.0, 72.0 if short_screen else 96.0)
-	physical_separation(_stack, 6.0 if short_screen else 10.0)
-	physical_separation(_body_portrait, 6.0 if short_screen else 10.0)
-	physical_separation(_carousel_wrap, 2.0 if short_screen else 6.0)
+	physical_min_size(_carousel, 0.0, 88.0 if short_screen else 120.0)
+	physical_separation(_stack, 8.0 if short_screen else 14.0)
+	physical_separation(_body_portrait, 8.0 if short_screen else 14.0)
+	physical_separation(_carousel_wrap, 4.0 if short_screen else 10.0)

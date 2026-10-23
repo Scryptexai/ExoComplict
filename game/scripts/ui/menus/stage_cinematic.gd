@@ -1,19 +1,22 @@
-## The opening cinematic.
+## The opening.
 ##
-## Asset F asked for a video. One exists now -- `cinematic_opening.ogv`, encoded
-## by `tools/art/build_ui_video.py` from the loading key art -- and this stage
-## plays it when it loads. When it does not, the stage falls back to the same
-## beat composed in-engine: a slow push-in on `loading_keyart.jpg` under four
-## captions, skippable from the first frame. The two paths are the same length
-## and carry the same captions, so the journey cannot tell them apart.
+## This is the studio ident the project ships: `branding_studio_present.mp4`
+## (the file committed at the repository root) transcoded to
+## `res://assets/ui/cinematic_opening.ogv` by `tools/art/build_ui_video.py`.
+## It is a 768x768 square on a black field, and it is played *as authored*:
+## contained, centred, never stretched and never cropped, because the mark has
+## margins that a "cover" fit cuts off. The stage goes black behind it so the
+## square does not sit on a rectangle of key art.
 ##
-## The captions are UI text in both paths, never pixels in the video: text baked
-## into a frame cannot be localised (docs/ART_DIRECTION.md §2).
+## Nothing is drawn over the ident. No captions, no wordmark, no progress bar:
+## a company ident with the product's marketing copy on top of it is not a
+## ident. The one control is SKIP, in the bottom corner, from the first frame.
 ##
-## The captions state the premise the game actually implements (an arena, waves
-## of hostiles, Battle Points that unlock weapons). They invent no characters,
-## no faction history and no plot: GAME_CONCEPT.md is explicit that this game is
-## not story-driven, so a lore-dump intro would be a lie about the product.
+## When the video is absent -- or a device cannot decode Theora -- the stage
+## falls back to the beat it always had: a slow push-in on `loading_keyart.jpg`
+## under four captions, which *is* the product's premise (an arena, waves of
+## hostiles, Battle Points that unlock weapons) and stays UI text rather than
+## baked pixels so it can be localised (docs/ART_DIRECTION.md §2).
 extends MenuStage
 
 ## Seconds each caption is held, fade in/out included.
@@ -22,14 +25,16 @@ const FADE_SECONDS := 0.55
 const PUSH_SECONDS := 9.6
 const PUSH_SCALE := 1.14
 
-## The encoded intro, 1280x720 @ 24 fps. Absent -> the composed fallback runs.
+## The encoded ident, 768x768 @ 24 fps. Absent -> the composed fallback runs.
 const OPENING_VIDEO := "res://assets/ui/cinematic_opening.ogv"
 ## How long a started-but-frozen video is given before the composed opening
 ## takes over, so a device that cannot decode Theora is never stranded.
 const STALL_SECONDS := 2.5
 
-## Assumed until the decoder reports the real frame size.
-const DEFAULT_FRAME_SIZE := Vector2(1280.0, 720.0)
+## Assumed until the decoder reports the real frame size. The shipped ident is
+## square; the layout is *contain*, so a wrong guess only moves the frame for
+## one update instead of cropping it.
+const DEFAULT_FRAME_SIZE := Vector2(768.0, 768.0)
 
 ## Three of the four caption beats. The missing one is the theatre line, and it
 ## is built at runtime (see `_beat_caption`) because the theatre's name is the
@@ -46,6 +51,8 @@ const CAPTION_SECTOR := "SECTOR 01"
 
 var _video: VideoStreamPlayer
 var _plate: TextureRect
+## Scrim over the composed fallback only; the ident is shown undimmed.
+var _scrim: ColorRect
 var _caption: Label
 var _mark: TextureRect
 var _skip: AegisButton
@@ -67,6 +74,15 @@ var _finished := false
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
+	# The stage's own floor. With the key art hidden (the ident path) the
+	# letterbox bars have to be the colour a cinema is, not whatever the
+	# previous stage left behind.
+	var floor_fill := ColorRect.new()
+	floor_fill.color = AegisTokens.VOID
+	floor_fill.set_anchors_preset(Control.PRESET_FULL_RECT)
+	floor_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(floor_fill)
+
 	var viewport := Control.new()
 	viewport.set_anchors_preset(Control.PRESET_FULL_RECT)
 	viewport.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -84,9 +100,10 @@ func _ready() -> void:
 	_video.name = &"OpeningVideo"
 	_video.stream = try_video(OPENING_VIDEO)
 	# `expand` stretches the frame to the control's rect, so the rect has to
-	# keep the video's own aspect: on a 390x844 screen a full-rect 16:9 player
-	# would stretch the opening into a vertical smear. Sized to *cover* the
-	# stage instead, with the parent's clip_contents trimming the overflow.
+	# keep the video's own aspect: on a 390x844 screen a full-rect player would
+	# stretch the ident into a vertical smear. `_layout_video` fits the frame
+	# inside the stage and centres it; the parent clips, which only matters if
+	# a future film is wider than the screen.
 	_video.expand = true
 	_video.loop = false
 	_video.autoplay = false
@@ -94,11 +111,11 @@ func _ready() -> void:
 	_video.finished.connect(_on_video_finished)
 	viewport.add_child(_video)
 
-	var scrim := ColorRect.new()
-	scrim.color = Color(AegisTokens.VOID, 0.42)
-	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(scrim)
+	_scrim = ColorRect.new()
+	_scrim.color = Color(AegisTokens.VOID, 0.42)
+	_scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_scrim)
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -120,7 +137,7 @@ func _ready() -> void:
 	_mark.texture = try_texture("res://assets/ui/logo_wordmark.png")
 	_mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	physical_min_size(_mark, 300.0, 75.0)
+	_size_both(_mark, Vector2(300.0, 75.0), Vector2(520.0, 130.0))
 	_mark.modulate.a = 0.0
 	column.add_child(_mark)
 
@@ -135,11 +152,11 @@ func _ready() -> void:
 	_position.min_value = 0.0
 	_position.max_value = 1.0
 	_position.value = 0.0
-	physical_min_size(_position, 0.0, 4.0)
+	physical_min_size(_position, 0.0, 6.0)
 	column.add_child(_position)
 
 	_skip = make_button("SKIP", "ghost", "Skip the opening cinematic")
-	physical_min_size(_skip, 160.0, 56.0)
+	physical_min_size(_skip, 180.0, 64.0)
 	_skip.pressed.connect(_on_skip_pressed)
 	_connect_resized(_on_resized)
 	relayout()
@@ -166,6 +183,9 @@ func enter(_stage_payload: Dictionary) -> void:
 	# browser build). Start from the authored length and adopt the measured one
 	# as soon as the decoder reports it.
 	_video.visible = _video.stream != null and not _reduce_motion
+	# The product overlay belongs to the composed fallback. Over the ident it
+	# would be a caption and a wordmark laid on somebody else's brand film.
+	_show_ident_overlay(not _video.visible)
 	_layout_video()
 	if _video.visible:
 		_video.play()
@@ -174,7 +194,7 @@ func enter(_stage_payload: Dictionary) -> void:
 		_video.stop()
 		_video.stream_position = 0.0
 		print("MenuCinematic: playing the composed opening (%.2f s)" % _total)
-	_advance_beat()
+		_advance_beat()
 	set_process(true)
 
 
@@ -184,6 +204,20 @@ func exit() -> void:
 		_plate.scale = Vector2.ONE
 	if is_instance_valid(_video) and _video.is_playing():
 		_video.stop()
+
+
+## Two openings, two overlays. `ident: true` hides the key-art plate, the scrim,
+## the captions, the wordmark and the progress sliver, leaving the letterboxed
+## video on a black stage and the one control that can be pressed. The fallback
+## is the reverse, and is what every earlier frame of this stage looked like.
+func _show_ident_overlay(ident: bool) -> void:
+	_plate.visible = not ident
+	_scrim.visible = not ident
+	_caption.visible = not ident
+	_mark.visible = not ident
+	_position.visible = not ident
+	_caption.modulate.a = 0.0
+	_mark.modulate.a = 0.0
 
 
 func _process(delta: float) -> void:
@@ -213,6 +247,8 @@ func _process(delta: float) -> void:
 		_plate.scale = Vector2.ONE * lerpf(1.0, PUSH_SCALE, eased)
 		_plate.pivot_offset = _plate.size * 0.5
 	var beat := int(_elapsed / BEAT_SECONDS)
+	if _video.visible:
+		beat = _beats_are_over()
 	if beat != _beat and beat < _captions_count():
 		_beat = beat
 		_advance_beat()
@@ -270,8 +306,15 @@ func _fallback_to_composed() -> void:
 	_stall = 0.0
 
 
-## Cover the stage with the video's own aspect, centred, so nothing is
-## stretched and the overflow is clipped by the parent.
+## Fit the video inside the stage, centred, keeping its aspect.
+##
+## This used to *cover*, which was right for the 16:9 push-in it was written
+## for and wrong for the square ident that replaced it: covering a 768x768
+## frame with a 1280x720 window scales it to 1280 wide and crops the top and
+## bottom off the mark. Contained, the ident letters onto the stage's black and
+## is seen whole -- the frame is 720 px tall on a 720 px canvas, which is the
+## largest it can be without cutting the art.
+##
 ## True once the real frame size is known and the rect can stop moving.
 ##
 ## `VideoStream` carries no size -- `stream.get_size()` does not exist in this
@@ -289,11 +332,17 @@ func _layout_video() -> bool:
 		var decoded := texture.get_size()
 		if decoded.x > 0.0 and decoded.y > 0.0:
 			natural = decoded
-	var scale := maxf(size.x / natural.x, size.y / natural.y)
-	var wanted := natural * scale
+	var fit := minf(size.x / natural.x, size.y / natural.y)
+	var wanted := natural * fit
 	_video.size = wanted
 	_video.position = (size - wanted) * 0.5
 	return texture != null
+
+
+## A beat index that is already past the last caption: while the ident plays,
+## `_process` must not walk the caption timeline behind a hidden label.
+static func _beats_are_over() -> int:
+	return 1 << 20
 
 
 func _on_skip_pressed() -> void:
@@ -314,6 +363,7 @@ func _finish() -> void:
 
 func _on_resized() -> void:
 	relayout()
+	_orient_nodes([_mark])
 	_layout_video()
 
 

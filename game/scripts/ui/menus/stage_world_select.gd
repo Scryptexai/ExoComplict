@@ -56,9 +56,9 @@ func _ready() -> void:
 	add_child(scrim)
 
 	_stack = VBoxContainer.new()
-	physical_separation(_stack, 14)
+	physical_separation(_stack, 18)
 	make_margin().add_child(_stack)
-	var split := _make_selection_split(300.0)
+	var split := _make_selection_split(360.0)
 	_split = split["split"]
 	_info = split["info"]
 
@@ -84,19 +84,19 @@ func _ready() -> void:
 		list.add_child(_build_locked_card(index))
 
 	var footer := HBoxContainer.new()
-	physical_separation(footer, 12)
+	physical_separation(footer, 16)
 	_stack.add_child(footer)
 	_below = [footer]
 
 	var back := make_button("BACK", "ghost", "Return to weapon selection")
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_min_size(back, 0.0, 56.0)
+	physical_min_size(back, 0.0, AegisTokens.MIN_TOUCH_PX)
 	back.pressed.connect(func() -> void: completed.emit(&"WEAPON", {}))
 	footer.add_child(back)
 
 	var launch := make_button("LAUNCH", "primary", "Load the arena and start the run")
 	launch.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_min_size(launch, 0.0, 56.0)
+	physical_min_size(launch, 0.0, AegisTokens.MIN_TOUCH_PX)
 	launch.pressed.connect(_on_launch_pressed)
 	footer.add_child(launch)
 
@@ -122,7 +122,7 @@ func _build_world_card(group: ButtonGroup, definition: WorldDefinition) -> Contr
 	card.toggle_mode = true
 	card.focus_mode = Control.FOCUS_ALL
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
-	_size_both(card, Vector2(0.0, 168.0), Vector2(LANDSCAPE_CARD_WIDTH, 168.0))
+	_size_both(card, Vector2(0.0, 208.0), Vector2(LANDSCAPE_CARD_WIDTH, 208.0))
 	# The card is the boundary for its own copy: see the weapon card.
 	card.clip_contents = true
 	_oriented.append(card)
@@ -133,21 +133,21 @@ func _build_world_card(group: ButtonGroup, definition: WorldDefinition) -> Contr
 	var row := HBoxContainer.new()
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	physical_separation(row, 14)
+	physical_separation(row, 18)
 	card.add_child(row)
 
 	var plate := TextureRect.new()
 	plate.texture = try_texture(definition.plate_path)
 	plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	_size_both(plate, Vector2(120.0, 100.0), Vector2(100.0, 100.0))
+	_size_both(plate, Vector2(152.0, 126.0), Vector2(126.0, 110.0))
 	_oriented.append(plate)
 	row.add_child(plate)
 
 	var column := VBoxContainer.new()
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	physical_separation(column, 4)
+	physical_separation(column, 6)
 	row.add_child(column)
 	column.add_child(
 		_limit_lines(card_line(definition.display_name.to_upper(), "title", AegisTokens.INK), 1)
@@ -160,7 +160,7 @@ func _build_world_card(group: ButtonGroup, definition: WorldDefinition) -> Contr
 			1
 		)
 	)
-	# Bounded like the hero card: the same registry field, the same 168 px card.
+	# Bounded like the hero card: the same registry field, the same 208 px card.
 	column.add_child(
 		_limit_lines(card_line(definition.role_description, "body_s", AegisTokens.INK_2), 3)
 	)
@@ -179,7 +179,7 @@ func _build_locked_card(index: int) -> Control:
 	card.disabled = true
 	card.focus_mode = Control.FOCUS_NONE
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_size_both(card, Vector2(0.0, 96.0), Vector2(LANDSCAPE_CARD_WIDTH * 0.5, 96.0))
+	_size_both(card, Vector2(0.0, 112.0), Vector2(LANDSCAPE_CARD_WIDTH * 0.5, 112.0))
 	_oriented.append(card)
 	AegisTheme.set_button_variant(card, "round")
 

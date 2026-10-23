@@ -127,16 +127,17 @@ Step by step:
    Images with no flat backdrop (`dashboard_bg`, `hero_portrait`,
    `loading_keyart`, `world_neon_frontier`) are correctly left alone — the
    survey measured their content bbox at ~100% of area.
-2. **Union crop across animation frames** — the robot walk frames carry their
-   subject in only 14–26% of the frame, and the subject bbox drifts across
-   x 483..938 between frames. Cropping each frame to its own content box would
-   make the robot jitter against the background, so one crop is computed from
-   the union of all frames and applied to all of them.
+2. **Luma key to alpha** — the wordmark arrives with the generator's backdrop
+   painted on: a near-black navy plate, which every menu then drew as a black
+   box around the logo. `key_to_alpha` measures that plate's luma from the
+   source's most common colour and gives each pixel an alpha equal to how far
+   it rises above that floor, ramped over 16 levels so the glow keeps a soft
+   edge. A hard threshold was tried first and ate the glyphs' shaded interiors;
+   the ramp does not.
 3. **Resize** — `cover` for full-bleed backdrops, `content_cover` for portrait
-   subjects (crop to the subject bbox first, then cover).
-4. **Sprite sheet** — the four selected walk frames are laid out horizontally
-   into `loading_robot_sheet.png`, 2048×512, 4 frames at 512 px, 8 fps.
-5. **Palette audit** — every output is downsampled and each pixel bucketed by
+   subjects (crop to the subject bbox first, then cover), `contain_alpha` for
+   the keyed wordmark (letterboxed onto transparency, not onto a colour).
+4. **Palette audit** — every output is downsampled and each pixel bucketed by
    HSV. Anything outside the families in §1 is counted. The build reports
    `ok`/`DRIFT` per asset and writes the numbers to
    `game/assets/ui/art_manifest.json`.
@@ -146,10 +147,11 @@ Step by step:
 * `DRIFT` above **8%** off-palette. Below that the build prints `ok`.
 * The audit is **HSV-only**. It cannot see composition, legibility, silhouette
   or quality. A texture that passes is on-palette, nothing more.
-* **No vision.** Nobody looked at these images in the ordinary sense; the
-  installer has no image display. Every statement about them comes from measured
-  pixel statistics. "The robot walks" is not a claim this pipeline can support —
-  it can only say four frames differ from each other in the union crop region.
+* **The audit is not a review.** It cannot see composition, legibility or
+  quality. As of 2026-10-23 the assets *have* been looked at — the keyed
+  wordmark was composited over three backgrounds and inspected pixel by pixel
+  before it shipped (docs/VERIFICATION_2026-10-23.md 4) — but the audit itself
+  is still HSV-only, and passing it means "on-palette", nothing more.
 
 ### Output formats
 
@@ -169,7 +171,7 @@ Sizes are the real imported sizes, verified at runtime by
 
 | Key | File | Res | Format | Off-palette | Integration |
 | --- | --- | --- | --- | --- | --- |
-| `wordmark` | `logo_wordmark.png` | 1024×256 | PNG | 1.2% | BOOT, CINEMATIC, CHAPTER, DASHBOARD |
+| `wordmark` | `logo_wordmark.png` | 1024×256 | PNG **RGBA** | 0.8% | BOOT, CINEMATIC, CHAPTER, DASHBOARD, LOADING — alpha keyed, no plate |
 | `loading_keyart` | `loading_keyart.jpg` | 1920×1080 | JPEG q90 | 0.0% | LOADING, PRELOAD, CINEMATIC |
 | `dashboard_bg` | `dashboard_bg.jpg` | 1920×1080 | JPEG q90 | 0.2% | DASHBOARD, HERO, WEAPON |
 | `hero_portrait` | `portrait_hero.png` | 768×1024 | PNG | 0.2% | HERO selection card |
@@ -177,64 +179,65 @@ Sizes are the real imported sizes, verified at runtime by
 | `weapon_pulse_rifle` | `weapon_pulse_rifle.png` | 768×512 | PNG | 0.0% | WEAPON selection card |
 | `weapon_nova_launcher` | `weapon_nova_launcher.png` | 768×512 | PNG | 1.3% | WEAPON selection card |
 | `weapon_arc_shooter` | `weapon_arc_shooter.png` | 768×512 | PNG | 0.1% | WEAPON selection card |
-| `loading_robot` | `loading_robot_sheet.png` | 2048×512 | PNG | 0.0% | LOADING, PRELOAD (4-frame sheet, 8 fps) |
 
 Every texture is loaded through `MenuStage.try_texture()`, which returns null
 for a missing file instead of crashing, so a lost plate is a visual regression
-rather than a boot failure. `tests/ui_art_smoke.gd` loads all nine at
-runtime and compares the size the engine reports against this table.
+rather than a boot failure. `tests/ui_art_smoke.gd` loads all eight at
+runtime, compares the size the engine reports against this table, and — for the
+wordmark — asserts the alpha channel exists and its corners are transparent, so
+a future build that lost the key fails the suite instead of quietly shipping a
+black box again.
 
-Total on disk: **5.3 MB**. Sources in `generated/` are kept (22 MB) so the build
+Total on disk: **4.5 MB**. Sources in `generated/` are kept (16 MB) so the build
 is reproducible; without them `build_ui_art.py` cannot run.
 
 ## 6b. Video
 
-`tools/art/build_ui_video.py` renders and encodes the two video assets. It needs
-an ffmpeg with `libtheora`; it looks at `$FFMPEG`, then `PATH`, then the
+`tools/art/build_ui_video.py` transcodes the one video the project ships. It
+needs an ffmpeg with `libtheora`; it looks at `$FFMPEG`, then `PATH`, then the
 `imageio-ffmpeg` wheel, and **fails loudly** if none of them can encode Theora.
-It renders deterministic frames with Pillow and hands them to ffmpeg, so the
-same sources produce the same video.
 
-| Key | File | Res | FPS | Length | Size | Off-palette | Integration |
+The source is `branding_studio_present.mp4` at the repository root — the studio
+ident committed by the project owner: 768×768, 24 fps, 10.14 s, with an audio
+bed. The build re-encodes it; it does not render, crop, re-time or silence it.
+
+| Key | File | Res | FPS | Length | Size | Audio | Integration |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Asset C — loading robot | `loading_robot.ogv` | 512×512 | 8 | 0.5 s (loops) | 63 kB | 0.1 % | LOADING, PRELOAD — the sprite sheet is the fallback |
-| Asset F — cinematic opening | `cinematic_opening.ogv` | 1280×720 | 24 | 9.58 s | 1.6 MB | 0.0 % | CINEMATIC — the composed in-engine opening is the fallback |
+| `cinematic_opening` | `cinematic_opening.ogv` | 768×768 | 24 | 10.14 s | 1.8 MB | Vorbis, from the source | CINEMATIC — the composed in-engine opening is the fallback |
 
 Container is **OGV (Theora + Vorbis)**, which is what Godot 4.7.2 can play:
 `modules/theora` ships `ResourceFormatLoaderTheora`, which claims `.ogv` on every
-platform it builds for, web included. Both videos carry a silent Vorbis track
-because the playback implementation seeks by audio granule position when a
-stream has one.
+platform it builds for, web included.
 
-Two rules the encoder keeps:
+Rules the encoder keeps:
 
-* **Asset C is the sprite sheet's animation, not a second one.** Same four
-  generated frames, same union crop, same scale, same 8 fps, same 512 px cell —
-  the sheet and the video are one walk cycle in two containers.
-* **Asset F carries no baked-in text.** 9.58 s, the same beat the in-engine
-  cinematic runs (4 × 2.4 s), a push-in from 1.00 to 1.18 with a vignette and a
-  fade at each end — and no captions, because the stage overlays them as UI text
-  and text in pixels cannot be localised (§2).
+* **The film is the film.** Same frame size, same frame rate, same length, same
+  audio: the build *checks* all four against the source and fails if any moved.
+  A silent or truncated output is the failure a "file exists" check misses.
+* **Nothing is drawn over it.** The ident has no captions and no wordmark on
+  top of it; the stage's product overlay belongs to the composed fallback.
+* **It is not forced into 16:9.** The frame stays square and the stage fits it
+  (see below), because baking a 16:9 crop here would cut the mark on every
+  device that is not 16:9.
 
-Sampled frames of both are audited with the same `audit()` the textures use. The
-palette audit is HSV-only and says nothing about motion, timing or quality, and
-nobody has *watched* these videos in this environment.
-
-### Previously not delivered — now delivered
-
-| Asset | Was | Now |
-| --- | --- | --- |
-| Asset C — loading robot video | **NOT DELIVERED** — no encoder (`ffmpeg`/`ffprobe` absent, Debian mirrors unreachable); a 4-frame sprite sheet shipped instead | **DELIVERED** as `loading_robot.ogv`, integrated, with the sheet kept as the fallback |
-| Asset F — cinematic opening video | **BLOCKED** — same, and the opening cinematic needed a real encode before it could be integrated | **DELIVERED** as `cinematic_opening.ogv`, integrated, with the composed in-engine opening kept as the fallback |
+Every sampled frame is pulled back **out of the encoded file** and run through
+the same `audit()` the textures use, so the palette number describes what ships.
+The ident's lime sits at hue 75–90, between this palette's amber (15–70) and
+green (95–175) windows, so 32 % of a frame classifies as off-palette. That is
+recorded in `video_manifest.json` as a measured exemption with its reason, not
+silently forgiven: the film is a supplied brand asset and no rule here may
+re-grade it.
 
 ### The aspect rule for `VideoStreamPlayer`
 
 `expand = true` stretches the decoded frame to whatever rect the control has, so
-the rect has to carry the video's own aspect. Both players are sized to *cover*
-their parent and centred, with the parent clipping the overflow
-(`stage_cinematic.gd::_layout_video`, `stage_loading.gd` via
-`SIZE_SHRINK_CENTER`). What happens without it, measured in a browser build: a
-16:9 opening stretched into 390×844, and a square 512×512 robot drawn 318×160.
+the rect has to carry the video's own aspect. The ident is sized to *contain*:
+`stage_cinematic.gd::_layout_video` scales by `min(size/frame)` and centres the
+result, so a square film on a 1280×720 stage is 720×720 with black either side.
+It used to *cover* — scale by `max` and let the parent clip — which was right
+for the 16:9 push-in that preceded this film and crops the top and bottom off a
+square ident. What happens without any fit at all, measured in a browser build:
+a 16:9 opening stretched into 390×844.
 
 Note that `VideoStream` exposes **no** size or length: `get_size()` and
 `get_length()` do not exist on it (`has_method` is false on `VideoStreamTheora`),

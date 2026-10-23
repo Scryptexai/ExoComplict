@@ -1,16 +1,15 @@
 ## Video asset smoke test.
 ##
-## Assets C and F were the two things the art pipeline could not deliver: no
-## video encoder existed in this environment. One does now (a static ffmpeg with
-## libtheora, from a PyPI wheel), and Godot 4.7.2 ships `modules/theora`, whose
-## `ResourceFormatLoaderTheora` claims `.ogv` on every platform it builds for.
+## The front end has one video: the studio ident, transcoded from the project's
+## own `branding_studio_present.mp4` into `cinematic_opening.ogv` by
+## `tools/art/build_ui_video.py`. (The LOADING walk cycle that used to be the
+## second one was cut on 2026-10-23 -- docs/VERIFICATION_2026-10-23.md 3.)
 ##
-## A file on disk proves nothing about an export -- a texture can sit in the
-## repo and never be imported, and a video can sit there and never decode. So
-## this test loads both videos through `ResourceLoader` the way the stages do
-## and compares what the *engine* reports against
-## `game/assets/ui/video_manifest.json`, then checks the two stages that consume
-## them really did pick the video path over their composed fallbacks.
+## A file on disk proves nothing about an export -- a video can sit there and
+## never decode. So this test loads it through `ResourceLoader` the way the
+## stage does and compares what the *engine* reports against
+## `game/assets/ui/video_manifest.json`, then checks the stage really did pick
+## the video path over its composed fallback.
 ##
 ## What it cannot tell you is whether a frame is ever presented: the headless
 ## runner has neither a display nor an audio device. Playback is measured in a
@@ -18,7 +17,6 @@
 extends SceneTree
 
 const VIDEOS := {
-	"loading_robot": "res://assets/ui/loading_robot.ogv",
 	"cinematic_opening": "res://assets/ui/cinematic_opening.ogv",
 }
 const MANIFEST := "res://assets/ui/video_manifest.json"
@@ -40,11 +38,27 @@ func _run_smoke_test() -> void:
 	for key in VIDEOS:
 		await _check_video(key, VIDEOS[key], manifest)
 	await _check_stage("cinematic", CinematicScene, "_video")
-	await _check_stage("loading", LoadingScene, "_robot_video")
 	await _check_the_two_stages_are_not_the_same_picture()
+
+	# The robot is gone, and "gone" is asserted rather than assumed: a stage
+	# that still held a player for it would be loading a file that no longer
+	# exists, and the test suite is the only place that can notice.
+	var loading: Control = LoadingScene.instantiate()
+	root.add_child(loading)
+	await process_frame
+	_expect(
+		not loading.has_method("_use_video_robot"),
+		"loading: no walk cycle left to play",
+	)
+	_expect(
+		not _art_textures(loading).has("res://assets/ui/loading_robot_sheet.png"),
+		"loading: the robot sprite sheet is not referenced",
+	)
+	loading.free()
+
 	_expect(
 		_measured == VIDEOS.size(),
-		"both videos were measured (%d of %d)" % [_measured, VIDEOS.size()]
+		"every shipped video was measured (%d of %d)" % [_measured, VIDEOS.size()]
 	)
 	if _failures.is_empty():
 		print("Video asset smoke test passed.")

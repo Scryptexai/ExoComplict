@@ -20,7 +20,7 @@ const SCROLL_DEADZONE := 10.0
 
 ## Widest a landscape card may be. Wide enough for a plate and two lines of
 ## text, narrow enough that two of them fit on an 844 px wide screen.
-const LANDSCAPE_CARD_WIDTH := 340.0
+const LANDSCAPE_CARD_WIDTH := 400.0
 
 ## Set by FrontEnd when the stage is instantiated, before `enter()` runs.
 ## Typed as Node rather than FrontEnd because the two cannot preload each other;
@@ -300,14 +300,14 @@ func _make_card_list(scroll: ScrollContainer) -> Dictionary:
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_separation(column, 12)
+	physical_separation(column, 16)
 	host.add_child(column)
 
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.visible = false
-	physical_separation(row, 12)
+	physical_separation(row, 16)
 	host.add_child(row)
 	_card_scroll = scroll
 	# Screen events only reach `_input()` on a node that processes input.
@@ -360,13 +360,13 @@ func _make_selection_split(info_width: float) -> Dictionary:
 	# the 284 px a landscape phone actually has.
 	split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	physical_separation(split, 18)
+	physical_separation(split, 22)
 	var info := VBoxContainer.new()
 	# SHRINK_BEGIN, not the default FILL: the column keeps its authored width
 	# and the card list takes everything that is left.
 	info.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	info.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	physical_separation(info, 14)
+	physical_separation(info, 18)
 	_size_both(info, Vector2(info_width, 0.0), Vector2(info_width, 0.0))
 	# Remembered for `_orient_selection`, which narrows the column on a wide
 	# screen every time the stage is resized.
@@ -476,7 +476,7 @@ func make_margin() -> MarginContainer:
 ## Push a container's margins out to the safe area plus a comfortable inset.
 ## Every menu screen calls this so the reserved edge is defined once.
 func apply_safe_margins(
-	container: MarginContainer, extra_side: float = 28.0, extra_bottom: float = 24.0
+	container: MarginContainer, extra_side: float = 36.0, extra_bottom: float = 28.0
 ) -> void:
 	_refresh_metrics()
 	var insets := _safe_insets(physical_size())
@@ -489,7 +489,7 @@ func apply_safe_margins(
 	container.add_theme_constant_override(
 		"margin_bottom", roundi(px(maxf(insets.z, 0.0) + extra_bottom))
 	)
-	container.add_theme_constant_override("margin_top", roundi(_top_inset() + px(24.0)))
+	container.add_theme_constant_override("margin_top", roundi(_top_inset() + px(28.0)))
 
 
 ## Grow every font under `root` so it renders at MIN_PHYSICAL_FONT_PX on the

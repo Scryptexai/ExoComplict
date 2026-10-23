@@ -55,13 +55,13 @@ the sweep and the caption reads `PREPARING`. A resource that fails to load
 raises `push_error` and is recorded, so the failure is visible in the log rather
 than hidden behind a completed bar.
 
-The robot walk cycle is `loading_robot.ogv` (512×512, four frames, 8 fps,
-looping) — Asset C as a real video, encoded by `tools/art/build_ui_video.py`
-from the same four generated frames, with the same union crop and scale as the
-sprite sheet. The sheet (`loading_robot_sheet.png`, 2048×512, four 512 px cells)
-is still shipped and is the fallback: a device that cannot decode Theora gets
-the same animation by moving an `AtlasTexture` region instead. `reduce_motion`
-holds the first frame of whichever one is in use.
+The walk cycle is gone. The screen carried a 160 px robot sprite (a four-cell
+sheet, plus a video made from the same frames) until 2026-10-23, when it was cut:
+it competed with the wordmark for the only focal point a load screen has and it
+said nothing about the game. The stage is now the wordmark, the title, the
+status line and the bar, at the sizes a load screen is read from
+(docs/VERIFICATION_2026-10-23.md 3). `reduce_motion` still governs the
+indeterminate sweep.
 
 ## CINEMATIC — `stage_cinematic.gd`
 
@@ -71,12 +71,14 @@ holds the first frame of whichever one is in use.
 | Progress shown | **real playback position** (elapsed / duration) |
 | Advances | on completion or on SKIP |
 
-This plays `cinematic_opening.ogv` (1280×720, 24 fps, 9.58 s) when the video
-loads — Asset F, encoded by `tools/art/build_ui_video.py` — and falls back to
-the same beat composed in-engine: a slow push-in on `loading_keyart.jpg` under
-four captions, 4 × 2.4 s. The key art stays behind the video as its poster
-frame, so a device that cannot decode Theora sees the composed opening rather
-than a hole. Either way it is skippable from the first frame, and the progress
+This plays `cinematic_opening.ogv` (768×768, 24 fps, 10.14 s) — the project's
+own studio ident, `branding_studio_present.mp4` at the repository root,
+transcoded by `tools/art/build_ui_video.py` — on a black stage, fitted
+(contained) and centred, with nothing drawn over it but SKIP. When the video is
+absent or cannot be decoded, the stage falls back to the beat it has always
+had: a slow push-in on `loading_keyart.jpg` under four captions, 4 × 2.4 s,
+which *is* the product's premise. The two paths share a length only in the
+fallback case; the ident plays for exactly as long as the film does. Either way it is skippable from the first frame, and the progress
 bar is driven by whichever clock is running (`stream_position`, or elapsed
 time). The video carries no captions: the stage overlays them as UI text.
 

@@ -74,24 +74,24 @@ func _ready() -> void:
 	add_child(scrim)
 
 	_stack = VBoxContainer.new()
-	physical_separation(_stack, 10)
+	physical_separation(_stack, 14)
 	make_margin().add_child(_stack)
 
 	_build_header()
 	_body = HBoxContainer.new()
 	_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	physical_separation(_body, 14)
+	physical_separation(_body, 18)
 	_stack.add_child(_body)
 
 	_col_model = VBoxContainer.new()
 	_col_model.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_col_model.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	physical_separation(_col_model, 8)
+	physical_separation(_col_model, 12)
 	_body.add_child(_col_model)
 
 	_col_info = VBoxContainer.new()
 	_col_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	physical_separation(_col_info, 8)
+	physical_separation(_col_info, 12)
 	_body.add_child(_col_info)
 
 	_build_carousel()
@@ -132,11 +132,11 @@ func refresh_profile() -> void:
 
 func _build_header() -> void:
 	_header = HBoxContainer.new()
-	physical_separation(_header, 12)
+	physical_separation(_header, 16)
 	_stack.add_child(_header)
 
 	var back := make_button("BACK", "ghost", "Return to operative selection")
-	physical_min_size(back, 120.0, AegisTokens.MIN_TOUCH_PX)
+	physical_min_size(back, 150.0, AegisTokens.MIN_TOUCH_PX)
 	back.pressed.connect(func() -> void: completed.emit(&"HERO", {}))
 	_header.add_child(back)
 
@@ -152,7 +152,7 @@ func _build_header() -> void:
 
 func _build_carousel() -> void:
 	_carousel_wrap = VBoxContainer.new()
-	physical_separation(_carousel_wrap, 4)
+	physical_separation(_carousel_wrap, 8)
 	_col_model.add_child(_carousel_wrap)
 
 	_carousel = ScrollContainer.new()
@@ -160,14 +160,14 @@ func _build_carousel() -> void:
 	_carousel.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	_carousel.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_carousel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_min_size(_carousel, 0.0, 72.0)
+	physical_min_size(_carousel, 0.0, 96.0)
 	_carousel_wrap.add_child(_carousel)
 	# Register the carousel with MenuStage so a thumb swipe scrolls it; the base
 	# class only knows the scroll container it built itself.
 	_card_scroll = _carousel
 
 	var row := HBoxContainer.new()
-	physical_separation(row, 8)
+	physical_separation(row, 12)
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_carousel.add_child(row)
 
@@ -188,7 +188,7 @@ func _build_chip(definition: WeaponDefinition, group: ButtonGroup) -> Control:
 	chip.mouse_filter = Control.MOUSE_FILTER_STOP
 	chip.tooltip_text = definition.display_name
 	chip.set_meta("weapon_id", String(definition.weapon_id))
-	_size_both(chip, Vector2(88.0, 64.0), Vector2(88.0, 64.0))
+	_size_both(chip, Vector2(116.0, 86.0), Vector2(116.0, 86.0))
 	AegisTheme.set_button_variant(chip, "round")
 	chip.pressed.connect(_on_chip_pressed.bind(definition.weapon_id))
 	_cards.append(chip)
@@ -254,7 +254,7 @@ func _build_panel() -> void:
 	_col_info.add_child(_panel)
 
 	var column := VBoxContainer.new()
-	physical_separation(column, 6)
+	physical_separation(column, 10)
 	_panel.add_child(column)
 
 	_class_label = make_label("", "label", AegisTokens.INK_3)
@@ -521,7 +521,7 @@ func _showcase_fill() -> float:
 func _apply_density() -> void:
 	var short_screen := physical_size().y < (520.0 if is_landscape() else 760.0)
 	_heading.text = "SELECT WEAPON" if is_landscape() or short_screen else "LOADOUT"
-	physical_min_size(_carousel, 0.0, 64.0 if short_screen else 72.0)
-	physical_separation(_stack, 6.0 if short_screen else 10.0)
-	physical_separation(_col_model, 6.0 if short_screen else 8.0)
-	physical_separation(_col_info, 6.0 if short_screen else 8.0)
+	physical_min_size(_carousel, 0.0, 84.0 if short_screen else 96.0)
+	physical_separation(_stack, 8.0 if short_screen else 14.0)
+	physical_separation(_col_model, 8.0 if short_screen else 12.0)
+	physical_separation(_col_info, 8.0 if short_screen else 12.0)
