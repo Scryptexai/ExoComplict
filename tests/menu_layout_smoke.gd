@@ -128,6 +128,19 @@ func _probe(stage_name: StringName, size_name: String, physical: Vector2) -> voi
 	if not _expect(is_instance_valid(stage), "%s %s: stage is mounted" % [stage_name, size_name]):
 		return
 	var stretch: float = UiLayout.compute_stretch(stage, physical)
+	var chrome: Variant = stage.get("_chrome")
+	print(
+		(
+			"DEBUG %s %s physical=%s landscape=%s level=%s"
+			% [
+				stage_name,
+				size_name,
+				stage.call("physical_size"),
+				stage.call("is_landscape"),
+				str(chrome.get("_level")) if chrome != null else "-",
+			]
+		)
+	)
 	var viewport := Rect2(Vector2.ZERO, physical)
 	# First, because the first ten failure lines are the ones a CI annotation
 	# keeps: if the page itself is too wide, say so before naming every label it
