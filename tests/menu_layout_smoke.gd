@@ -133,7 +133,7 @@ func _probe(stage_name: StringName, size_name: String, physical: Vector2) -> voi
 		_expect(
 			false,
 			(
-				"DEBUG physical=%s landscape=%s level=%s budget=%s mark=%s nav=%s"
+				"DEBUG physical=%s landscape=%s level=%s budget=%s mark=%s nav=%s tabmin=%s tabtext=%s navmin=%s"
 				% [
 					stage.call("physical_size"),
 					stage.call("is_landscape"),
@@ -152,6 +152,17 @@ func _probe(stage_name: StringName, size_name: String, physical: Vector2) -> voi
 							if stage.find_child("DockNav", true, false) != null
 							else "-"
 						)
+					),
+					(
+						str((chrome.get("_tabs")[0] as Control).custom_minimum_size)
+						if chrome != null
+						else "-"
+					),
+					str((chrome.get("_tabs")[0] as Button).text) if chrome != null else "-",
+					(
+						str((chrome.get("_nav") as Control).get_combined_minimum_size())
+						if chrome != null
+						else "-"
 					),
 				]
 			)
