@@ -504,11 +504,16 @@ func _apply_density() -> void:
 			physical_min_size(_mission_plate, 146.0, 124.0)
 	elif compact:
 		if cramped:
+			# The last 14 px. Two portrait plates are the only blocks left that
+			# are picture rather than type, and a 110 px operative still reads as
+			# an operative; REPLAY INTRO at y=590 was 14 px past a 640 px screen.
 			physical_min_size(_mark, 236.0, 58.0)
+			physical_min_size(_hero_plate, 84.0, 110.0)
+			physical_min_size(_mission_plate, 96.0, 84.0)
 		else:
 			physical_min_size(_mark, 310.0, 78.0)
-		physical_min_size(_hero_plate, 96.0, 128.0)
-		physical_min_size(_mission_plate, 108.0, 92.0)
+			physical_min_size(_hero_plate, 96.0, 128.0)
+			physical_min_size(_mission_plate, 108.0, 92.0)
 
 
 func _on_resized() -> void:
