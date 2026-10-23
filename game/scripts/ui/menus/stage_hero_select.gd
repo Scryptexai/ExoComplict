@@ -689,6 +689,10 @@ func _apply_density() -> void:
 	var short_landscape := is_landscape() and physical_size().y < 520.0
 	if is_instance_valid(_weapon_row):
 		_weapon_row.visible = not short_landscape
+	# On a 390 px tall landscape screen the two action buttons were 19 px past the
+	# bottom edge; this line is the 21 px that pays for them.
+	if is_instance_valid(_development_label):
+		_development_label.visible = not short_landscape
 	if is_instance_valid(_weapon_stat):
 		# The stat line is one more row than the old header had, and on 390 px of
 		# height it was the row that pushed EQUIPPED/CONTINUE past the bottom edge.

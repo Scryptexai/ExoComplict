@@ -37,7 +37,8 @@ var _status: Label
 var _launch: AegisButton
 
 var _stack: VBoxContainer
-var _body: HBoxContainer
+var _body: BoxContainer
+var _side: HBoxContainer
 var _map: Control
 var _info: AegisPanel
 var _info_text: VBoxContainer
@@ -65,11 +66,20 @@ func _ready() -> void:
 	_chrome.navigate.connect(_on_nav_requested)
 	_stack.add_child(_chrome.bar)
 
-	_body = HBoxContainer.new()
+	# Two explicit arrangements, the same way HERO does it: a `vertical` flag on
+	# a container is not the same thing as the other container class, and the
+	# landscape body kept stacking its children vertically -- the info panel drew
+	# under the map, 400 px down an 844x390 screen.
+	_body = VBoxContainer.new()
 	_body.name = &"TheatreBody"
 	_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	physical_separation(_body, 18)
+	physical_separation(_body, 12)
 	_stack.add_child(_body)
+
+	_side = HBoxContainer.new()
+	_side.name = &"TheatreSide"
+	_side.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	physical_separation(_side, 18)
 
 	_build_map()
 	_build_info()
@@ -176,15 +186,23 @@ func reframe() -> void:
 	var landscape := is_landscape()
 	var height := physical_size().y
 	if landscape:
-		_body.vertical = false
+		_reparent(_map, _side)
+		_reparent(_info, _side)
+		_reparent(_side, _body)
+		_reparent(_pin_row, _body)
 		_info.size_flags_vertical = Control.SIZE_SHRINK_END
-		physical_min_size(_info, 340.0, 0.0)
+		physical_min_size(_info, 320.0, 0.0)
 		_info.size_flags_horizontal = Control.SIZE_FILL
+		physical_min_size(_map, 0.0, 0.0)
+		_map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_info_text.add_theme_constant_override("separation", 6)
 		physical_min_size(_launch, 0.0, 64.0)
 	else:
-		_body.vertical = true
+		_reparent(_map, _body)
+		_reparent(_pin_row, _body)
+		_reparent(_info, _body)
 		_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_info.size_flags_vertical = Control.SIZE_SHRINK_END
 		physical_min_size(_info, 0.0, 0.0)
 		physical_min_size(_map, 0.0, height * 0.5)
 		physical_min_size(_launch, 0.0, 72.0)
@@ -199,6 +217,16 @@ func reframe() -> void:
 	_chapter.visible = not short_landscape
 	_brief.visible = not short_landscape
 	physical_min_size(_status, 0.0, 20.0 if short_landscape else 24.0)
+
+
+## Moves a node only when it is somewhere else; re-adding on every resize would
+## restart the layout every frame.
+func _reparent(node: Node, target: Node) -> void:
+	if node.get_parent() == target:
+		return
+	if node.get_parent() != null:
+		node.get_parent().remove_child(node)
+	target.add_child(node)
 
 
 func _on_resized() -> void:
