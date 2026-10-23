@@ -707,6 +707,17 @@ func _apply_density() -> void:
 		# 64 px is the project's touch floor (`AegisTokens.MIN_TOUCH_PX`); 52 was
 		# under it on every portrait size the suite measures.
 		physical_min_size(pin, 0.0, AegisTokens.MIN_TOUCH_PX)
+	# A phone in portrait has 640-844 px of height and three 64 px chips is 192 of
+	# it: the action row landed 14 px below the bottom edge. What a phone shows
+	# is the gun it will deploy with; the other two are priced, disabled and
+	# named in the armory, which is where buying happens anyway.
+	var room_for_rail := physical_size().y >= (520.0 if is_landscape() else 900.0)
+	for pin in _weapon_pins:
+		var owned := true
+		var progression := progression_service()
+		if progression != null:
+			owned = progression.is_unlocked(StringName(str(pin.get_meta("weapon_id", ""))))
+		pin.visible = owned or room_for_rail
 	# A row of three chips is only honest when there is room for three; below
 	# that they stack, full width, and the loadout reads as a list of choices
 	# rather than three clipped words.
