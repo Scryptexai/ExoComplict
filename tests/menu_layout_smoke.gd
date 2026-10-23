@@ -297,12 +297,10 @@ func _check_page_fits(stage: Control, viewport: Rect2, stretch: float, where: St
 			if _inside_scroll_container(control):
 				continue
 			var width := control.get_combined_minimum_size().x * stretch
-			if (
-				width > widest
-				and (best == null or width > best.get_combined_minimum_size().x * stretch)
-			):
+			if best == null or width > best.get_combined_minimum_size().x * stretch:
 				best = control
-				widest = width
+		if best != null:
+			widest = maxf(widest, best.get_combined_minimum_size().x * stretch)
 		if best == null:
 			break
 		path.append("%s(%.0f)" % [best.name, best.get_combined_minimum_size().x * stretch])
