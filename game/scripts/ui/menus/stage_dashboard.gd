@@ -169,7 +169,8 @@ func _build_top_bar() -> void:
 
 	# The wallet is a chip, not a row: a borderless line of type on a lobby is
 	# invisible against the backdrop, and every reference puts the currency on
-	# a surface of its own.
+	# a surface of its own. On a 360 px screen it moves into the record instead
+	# -- see `_place_wallet()`.
 	_wallet = AegisPanel.new()
 	_wallet.name = &"WalletChip"
 	_wallet.interactive = false
@@ -630,7 +631,7 @@ func _apply_density() -> void:
 		physical_min_size(_balance, 124.0, 0.0)
 		physical_min_size(_hero_plate, 76.0, 96.0)
 		physical_min_size(_mission_plate, 92.0, 70.0)
-		physical_min_size(_deploy, 0.0, 88.0)
+		physical_min_size(_deploy, 0.0, 76.0)
 		for tab in _secondary.get_children():
 			physical_min_size(tab as Control, 0.0, 64.0)
 	else:
@@ -683,6 +684,7 @@ func _apply_density() -> void:
 	# The record is the last thing a player reads and the first thing that goes
 	# when the dock has to fit: the profile line duplicates the counts under it.
 	_rank_line.visible = not compact
+	_place_wallet(cramped)
 	# The operative card already says FIELD READY, so the header's copy of it is
 	# the first thing to go when the bar has to share 390 px with the wordmark
 	# and the wallet.
@@ -693,6 +695,30 @@ func _apply_density() -> void:
 	if is_instance_valid(_showcase) and _showcase.has_model():
 		_showcase.frame_to_fill(SHOWCASE_FILL, 0.04)
 	_apply_armory_and_settings_sizes()
+
+
+## The wallet chip lives in the top bar, except on the narrowest screen, where
+## "BATTLE POINTS  0" at `label` size is 158 px and the bar only has room for it
+## by eating the wordmark. There it becomes the first row of the record, which is
+## the same three figures a player came to read, in one stack.
+##
+## One label is moved between two parents rather than duplicated, so there is
+## never a second copy of the number that could disagree with the first.
+func _place_wallet(in_record: bool) -> void:
+	if not is_instance_valid(_balance):
+		return
+	var wanted: Node = _numbers if in_record else _wallet
+	if _balance.get_parent() == wanted:
+		return
+	if _balance.get_parent() != null:
+		_balance.get_parent().remove_child(_balance)
+	if in_record:
+		wanted.add_child(_balance)
+		_numbers.move_child(_balance, 0)
+		_wallet.visible = false
+	else:
+		wanted.add_child(_balance)
+		_wallet.visible = true
 
 
 func _apply_armory_and_settings_sizes() -> void:
