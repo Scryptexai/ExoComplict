@@ -310,14 +310,22 @@ func _build_dock() -> void:
 	_secondary.name = &"LobbyTabs"
 	physical_separation(_secondary, 12)
 
+	# `clip_text` on both tabs: a Button reports its text as its minimum width,
+	# so "ARMORY" and "SETTINGS" at the enforced font floor were 170 px each and
+	# the row was 348 of the 320 a 360 px phone has inside its margins -- which
+	# made the page itself 340 wide and pushed four labels off the right edge.
+	# A tab that says its word in a slightly tighter box beats a page that
+	# scrolls sideways.
 	var armory := make_button("ARMORY", "card", "Unlock and equip weapons with Battle Points")
 	armory.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	armory.clip_text = true
 	physical_min_size(armory, 0.0, 68.0)
 	armory.pressed.connect(_on_armory_pressed)
 	_secondary.add_child(armory)
 
 	var settings := make_button("SETTINGS", "card", "Audio, HUD and control preferences")
 	settings.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	settings.clip_text = true
 	physical_min_size(settings, 0.0, 68.0)
 	settings.pressed.connect(_on_settings_pressed)
 	_secondary.add_child(settings)
@@ -561,6 +569,9 @@ func _apply_density() -> void:
 		8.0 if (cramped or short_landscape) else (16.0 if compact else 28.0),
 		8.0 if compact else 28.0
 	)
+	# A Button's minimum width is its text; a tab, a caption and the primary
+	# action all clip instead of claiming it.
+	_deploy.clip_text = true
 	# The card surface costs its inset twice per card in width and in height.
 	for panel in [_hero_panel, _mission_panel, _stats, _deploy_chip]:
 		panel.set_surface_pad(px(4.0 if cramped else (6.0 if compact else 12.0)))
