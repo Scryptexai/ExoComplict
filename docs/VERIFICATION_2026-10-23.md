@@ -321,3 +321,55 @@ regressions that four rounds of looking at 1280×720 screenshots had not.
   place for a layout regression outside the menus.
 * Layout is verified at four synthetic viewports; nothing here is measured on a
   real phone, where font hinting and the browser's own scaling are in the loop.
+
+---
+
+## 9. The lobby rebuild, and the working title
+
+### "Project Overdrive" is gone from the framework
+
+It was not only on screen: it was the application's name. Removed everywhere,
+case-insensitively, with no working title left in the tree —
+
+| Where | Was | Now |
+| --- | --- | --- |
+| `game/project.godot` | `config/name="Project Overdrive - Combat Prototype"` | `config/name="Exocomplict"` (the window title and the Android app label) |
+| `game/web_shell/index.html` | the chip, the `<title>` and the boot line | `Exocomplict` |
+| the custom shell marker id | `overdrive-shell` | `exocomplict-shell`, in the shell, `web_preset.py` and `verify_web_build.py` together |
+| root `index.html` | `<h1>Project <span>…</span></h1>` | `EXOCOMPLICT` |
+| Android preset, scripts, CI, banners | `projectoverdrive`, `project-overdrive`, "Project Overdrive" | `exocomplict` |
+
+`grep -ri overdrive` over the tree (excluding the generated `web/` payload and
+`node_modules`) returns nothing.
+
+### The dashboard is a lobby
+
+The screen had been a column of cards whose sizes grew. Size was never the
+problem: the *composition* was a form. It now follows the four lobbies measured
+in §1 —
+
+| Reference behaviour | What this screen does |
+| --- | --- |
+| CoD Mobile, Valorant, Apex, Free Fire all put the character at the centre of the lobby | the equipped operative, in 3D, in a band that is a share of the screen (24–42 %) |
+| edge-docked card stacks of 300–360 px (Valorant's rail, Free Fire's preset panel) | the operative and theatre cards, side by side, in a dock column |
+| currency in the top corner of every reference | the wallet chip, top right, opposite the wordmark |
+| Apex's READY bar and Free Fire's start tile: the primary action is the bottom row | DEPLOY, amber, bottom of the dock, under a chip naming the theatre |
+| Free Fire's bottom tab bar | ARMORY / SETTINGS as a tab row above the tile |
+| the record is never a headline | best score and runs in a quiet strip |
+
+Frames: `exports/flow/lobby/` (1280×720), `lobby_phone/` (390×844),
+`lobby_small/` (360×640), `lobby_land/` (844×390), all captured on the payload
+CI built from `4c4f588`.
+
+**What did not ship.** A full-bleed overlay — cards floating over a character
+that fills the screen, which is what CoD Mobile and Free Fire actually do — was
+built twice and reverted twice: a container inside a plain `Control` keeps
+whatever rect it was last given, so the dock's bottom edge landed past an 844 px
+screen after the smoke test had measured it. The column is what measures. The
+overlay is the next honest step, and it needs a `Container`-based version rather
+than anchors on a plain node.
+
+**PASS** for the rename (no occurrence left), the composition (four frames), and
+`menu_layout_smoke` on all four sizes — including a changed assertion: DEPLOY is
+now asserted to sit *under* the tab row, nearest the thumb, which is the
+reference order and the reverse of the pre-lobby rule.

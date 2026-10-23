@@ -118,6 +118,14 @@ sixth row would be decoration disagreeing with gameplay.
 | ARMORY | `ArmoryUi`, the in-game shop widget, spending real BP for real unlocks |
 | SETTINGS | `AegisSettingsMenu`, writing `user://aegis.cfg` |
 
+The screen is composed like a lobby, not a form (docs/VERIFICATION_2026-10-23.md
+9): a top bar with the wordmark and the wallet chip at opposite corners, the
+operative in 3D in a band sized as a share of the screen, the operative and
+theatre cards side by side, then the dock — record, tab row, and the amber
+DEPLOY tile as the bottom row, nearest the thumb. Landscape puts the cards and
+the dock either side of the character. On a 360 px screen the wallet moves into
+the record rather than being clipped in the top bar.
+
 ## HERO SELECTION — `stage_hero_select.gd`
 
 **One operative exists.** The rig in `assets/characters/hero/` is the only
