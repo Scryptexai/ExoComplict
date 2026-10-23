@@ -693,6 +693,13 @@ func _apply_density() -> void:
 	# bottom edge; this line is the 21 px that pays for them.
 	if is_instance_valid(_development_label):
 		_development_label.visible = not short_landscape
+	# Two more lines that restate what is already on screen: the role is the
+	# card's own subtitle and the loadout is the rail. On 390 px of height they
+	# are the difference between the buttons fitting and not.
+	if is_instance_valid(_role_label):
+		_role_label.visible = not short_landscape
+	if is_instance_valid(_loadout_label):
+		_loadout_label.visible = not short_landscape
 	if is_instance_valid(_weapon_stat):
 		# The stat line is one more row than the old header had, and on 390 px of
 		# height it was the row that pushed EQUIPPED/CONTINUE past the bottom edge.

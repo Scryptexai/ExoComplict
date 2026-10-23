@@ -204,7 +204,10 @@ func reframe() -> void:
 		_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_info.size_flags_vertical = Control.SIZE_SHRINK_END
 		physical_min_size(_info, 0.0, 0.0)
-		physical_min_size(_map, 0.0, height * 0.5)
+		# 50 % of the height for the map left nothing for the pins and the panel
+		# on an 844 px phone: both pins drew at y=857. A third of it is enough
+		# for the plate to read, and the body still expands into any slack.
+		physical_min_size(_map, 0.0, height * 0.32)
 		physical_min_size(_launch, 0.0, 72.0)
 	# 64 px is the touch floor (`AegisTokens.MIN_TOUCH_PX`); 56 failed it.
 	for pin in _pins:
