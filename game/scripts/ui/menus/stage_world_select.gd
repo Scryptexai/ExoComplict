@@ -286,7 +286,7 @@ func reframe() -> void:
 		physical_min_size(_map, 0.0, 0.0)
 		_map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_info_text.add_theme_constant_override("separation", 6)
-		physical_min_size(_launch, 0.0, 64.0)
+		physical_min_size(_launch, 0.0, 56.0 if short_landscape else 64.0)
 	else:
 		_reparent(_map, _body)
 		_reparent(_info, _body)
@@ -314,8 +314,7 @@ func reframe() -> void:
 	# The framed plate on the left already shows the theatre's name, and three
 	# 64 px pins plus the panel plus the map are what has to fit. The paragraph
 	# stays where there is height for it.
-	_brief.visible = landscape
-	_title.visible = landscape
+	_brief.visible = landscape and not short_landscape
 	# The status line says FIELD READY, which the pin above it already says, and
 	# the three pins plus the panel are what has to fit under the map. Landscape
 	# has the width to say it twice; portrait does not have the height.
