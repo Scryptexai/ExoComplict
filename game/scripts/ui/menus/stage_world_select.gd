@@ -30,6 +30,8 @@ extends MenuStage
 ## `data_source_smoke.gd` reads to prove every registry entry is offered.
 var _pins: Array[AegisButton] = []
 var _plate: TextureRect
+var _map_plate: TextureRect
+var _map_name: Label
 var _title: Label
 var _chapter: Label
 var _brief: Label
@@ -55,7 +57,7 @@ func _ready() -> void:
 	var scrim := ColorRect.new()
 	# Light on purpose. The plate is the screen's subject; the old 0.55 scrim
 	# over a thumbnail was two ways of hiding the same artwork.
-	scrim.color = Color(AegisTokens.VOID, 0.34)
+	scrim.color = Color(AegisTokens.VOID, 0.62)
 	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(scrim)
@@ -123,6 +125,45 @@ func _build_map() -> void:
 	_map.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_map.clip_contents = true
 	_body.add_child(_map)
+
+	# The picture *is* the map. An empty expanding box over a dimmed backdrop is
+	# what "the middle is empty" looked like in the frame: the theatre art was
+	# the page background and nothing was in the map's own frame.
+	_map_plate = TextureRect.new()
+	_map_plate.name = &"MapPlate"
+	_map_plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_map_plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	_map_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_map_plate.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_map.add_child(_map_plate)
+
+	var map_scrim := ColorRect.new()
+	map_scrim.color = Color(AegisTokens.VOID, 0.28)
+	map_scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	map_scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_map.add_child(map_scrim)
+
+	var frame := Panel.new()
+	frame.set_anchors_preset(Control.PRESET_FULL_RECT)
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var frame_box := StyleBoxFlat.new()
+	frame_box.bg_color = Color(0, 0, 0, 0)
+	frame_box.border_color = Color(AegisTokens.LINE_HI, 0.8)
+	frame_box.set_border_width_all(1)
+	frame.add_theme_stylebox_override("panel", frame_box)
+	_map.add_child(frame)
+
+	var map_caption := VBoxContainer.new()
+	map_caption.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	map_caption.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	map_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	physical_separation(map_caption, 2)
+	_map.add_child(map_caption)
+	var kicker := make_label("DEPLOYMENT THEATRE", "label_s", AegisTokens.ACCENT)
+	map_caption.add_child(kicker)
+	_map_name = make_label("", "display_m", AegisTokens.INK)
+	_map_name.autowrap_mode = TextServer.AUTOWRAP_OFF
+	map_caption.add_child(_map_name)
 
 	_pin_row = VBoxContainer.new()
 	_pin_row.name = &"TheatrePins"
@@ -256,7 +297,7 @@ func reframe() -> void:
 		# 50 % of the height for the map left nothing for the pins and the panel
 		# on an 844 px phone: both pins drew at y=857. A third of it is enough
 		# for the plate to read, and the body still expands into any slack.
-		physical_min_size(_map, 0.0, height * 0.16)
+		physical_min_size(_map, 0.0, height * 0.34)
 		physical_min_size(_launch, 0.0, 72.0)
 	# 64 px is the touch floor (`AegisTokens.MIN_TOUCH_PX`); 56 failed it. Every
 	# child of the row, not just `_pins`: the roadmap slot was built after the
@@ -373,6 +414,10 @@ func _refresh() -> void:
 	_selected = world_id
 	_chapter.text = "CHAPTER  %s" % String(definition.world_id).replace("_", " ").to_upper()
 	_title.text = definition.display_name.to_upper()
+	if is_instance_valid(_map_name):
+		_map_name.text = definition.display_name.to_upper()
+	if is_instance_valid(_map_plate):
+		_map_plate.texture = try_texture(definition.plate_path)
 	_brief.text = _first_sentence(definition.role_description)
 	_status.text = definition.status_line.to_upper()
 	if definition.field_ready:

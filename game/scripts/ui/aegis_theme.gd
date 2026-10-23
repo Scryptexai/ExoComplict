@@ -116,6 +116,14 @@ static func icon(icon_name: String, filled: bool = false) -> Texture2D:
 	# source at 256 px instead of rasterizing tiny SVG weapon details at runtime.
 	var extension := "png" if icon_name == "shot-burst" else "svg"
 	var path := "%s/%s/%s.%s" % [ICON_ROOT, folder, icon_name, extension]
+	# Not every glyph ships in both weights: `shield`, `target` and `chart-bar`
+	# are regular-only, and a tab whose icon resolved to null drew as an empty
+	# button -- which is exactly how the lobby's dock looked on a phone.
+	if not ResourceLoader.exists(path):
+		var other := "regular" if filled else "fill"
+		var alternate := "%s/%s/%s.%s" % [ICON_ROOT, other, icon_name, extension]
+		if ResourceLoader.exists(alternate):
+			path = alternate
 	var texture: Texture2D = null
 	if ResourceLoader.exists(path):
 		texture = load(path) as Texture2D
