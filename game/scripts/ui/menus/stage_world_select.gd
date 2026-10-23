@@ -133,13 +133,12 @@ func _build_map() -> void:
 	# at y=465. Normal flow cannot do that.
 	_stack.add_child(_pin_row)
 
-	var group := ButtonGroup.new()
 	for definition in WorldDefinition.load_all_definitions():
-		_pin_row.add_child(_build_pin(group, definition))
+		_pin_row.add_child(_build_pin(definition))
 	_pin_row.add_child(_build_placeholder_pin(len(_pins)))
 
 
-func _build_pin(group: ButtonGroup, definition: WorldDefinition) -> AegisButton:
+func _build_pin(definition: WorldDefinition) -> AegisButton:
 	var pin := AegisButton.new()
 	pin.name = "%sPin" % String(definition.world_id).to_pascal_case()
 	# A theatre that cannot be launched says so on its own pin, and the pin is
@@ -152,8 +151,6 @@ func _build_pin(group: ButtonGroup, definition: WorldDefinition) -> AegisButton:
 	)
 	pin.disabled = not definition.field_ready
 	pin.set_meta("world_id", String(definition.world_id))
-	pin.toggle_mode = true
-	pin.button_group = group
 	pin.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	pin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pin.focus_mode = Control.FOCUS_ALL
@@ -358,8 +355,8 @@ func _refresh() -> void:
 		_status.add_theme_color_override("font_color", AegisTokens.DANGER)
 	for pin in _pins:
 		var live: bool = String(pin.get_meta("world_id", "")) == String(world_id)
-		pin.set_pressed_no_signal(live)
 		pin.edge_active = live
+		pin.modulate = Color(1, 1, 1, 1.0 if live else 0.72)
 		pin.queue_redraw()
 	# The plate changes with the selection, fading rather than cutting: a map
 	# that snaps from one horizon to another reads as a bug, not a choice.

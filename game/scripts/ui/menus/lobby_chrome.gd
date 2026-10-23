@@ -77,6 +77,10 @@ static func build(
 	chrome._with_settings = with_settings
 	chrome._build()
 	chrome.set_active(active_tab)
+	# Built full, not empty: a stage that forgets to call `refresh` showed two
+	# blank chips, and "the dock is empty until something updates it" is a bug
+	# waiting for the next screen.
+	chrome.refresh(stage.progression_service())
 	return chrome
 
 
