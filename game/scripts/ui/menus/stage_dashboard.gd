@@ -480,6 +480,11 @@ func _apply_density() -> void:
 	var width := physical_size().x
 	var compact := height < (520.0 if landscape else 900.0)
 	var cramped := not landscape and height < 700.0
+	# A width budget as well as a height one. On a 390 px phone the rows are
+	# three plates and three names wide before any copy wraps, and 844 px of
+	# height says nothing about that: measured at 390x844 the row minimum came
+	# out 472 px and every label under it was drawn past the right edge.
+	var narrow := width < 560.0
 	var desktop := not compact and height >= 600.0
 	var short_landscape := landscape and compact
 
@@ -522,6 +527,9 @@ func _apply_density() -> void:
 	elif compact:
 		row_height = 96.0
 		plate = Vector2(96.0, 72.0)
+	if narrow:
+		# The plate is the first thing that gives way, not a target.
+		plate = Vector2(64.0, 48.0)
 
 	for panel in [_hero_row, _mission_row, _arsenal_row]:
 		physical_min_size(panel, 0.0, row_height)
@@ -540,6 +548,10 @@ func _apply_density() -> void:
 
 	# --- what gives way -------------------------------------------------- #
 	_intro.visible = not (cramped or short_landscape)
+	# The heading stays (it is what makes the page a board), the profile line
+	# goes: "PROFILE · FIELD READY" beside a 265 px wordmark is 472 px of row on
+	# a 390 px screen.
+	_profile_line.visible = not (cramped or short_landscape or narrow)
 	_hero_caption.visible = not cramped
 	_mission_caption.visible = not cramped
 	_arsenal_caption.visible = not cramped
@@ -560,10 +572,10 @@ func _apply_density() -> void:
 	# wider than the screen, and a row that wraps its own name still measures
 	# the longest word.
 	for label in [_hero_name_label, _mission_name, _arsenal_name]:
-		label.clip_text = cramped
+		label.clip_text = cramped or narrow
 		_limit_lines(label, 2)
-	for label in [_hero_status, _mission_brief, _arsenal_state]:
-		label.clip_text = cramped
+	for label in [_hero_status, _mission_brief, _arsenal_state, _hero_caption, _mission_caption]:
+		label.clip_text = cramped or narrow
 
 	_apply_armory_and_settings_sizes()
 
