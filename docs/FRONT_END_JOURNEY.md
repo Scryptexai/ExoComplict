@@ -121,7 +121,8 @@ daily reward and no second currency.
 | ARMORY | `ArmoryUi`, the in-game shop widget, spending real BP for real unlocks |
 | SETTINGS | `AegisSettingsMenu`, writing `user://aegis.cfg` (the gear in the dock) |
 
-Portrait is one column: heading, rows, actions, ribbon. Landscape puts the rows
+Portrait is one column: heading, rows, record ribbon, actions -- DEPLOY last,
+nearest the thumb. Landscape puts the rows
 in the height they need and moves the ribbon and the actions into a 300–340 px
 rail beside them, because 390 px of height cannot hold four bands.
 

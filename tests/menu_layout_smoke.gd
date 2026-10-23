@@ -225,52 +225,50 @@ func _card_ancestor(node: Node) -> Control:
 	return null
 
 
-## The dashboard's *order* is the fix, not its contents.
+## The board's *order* is the fix, not its contents.
 ##
-## The order changed once already: DEPLOY was originally the last button, below
-## the profile numbers and 40 px from the bottom, and the audit's rule became
-## "operative, theatre, primary action, then the secondary row". The lobby
-## rebuild reversed the last two deliberately, to match the reference lobbies:
-## the primary tile is the row nearest the thumb (Apex's READY bar, Free Fire's
-## start tile), and the tabs sit above it. So what this asserts now is that
-## stacking -- record, then tabs, then DEPLOY at the bottom of the dock -- in
-## physical pixels, because the canvas is letterboxed.
+## HOME is a manifest now, not a showcase (docs/DECISIONS.md 29): three numbered
+## rows, then the record ribbon, then ARMORY and DEPLOY. What this asserts is
+## that stacking in physical pixels -- 01 above 02 above ARMORY above DEPLOY --
+## and that DEPLOY is the bottom row, nearest the thumb, the way Apex's READY bar
+## and Free Fire's start tile are. On a landscape screen the rows keep the left
+## column, so "above" is only required within the rail.
 func _check_dashboard_hierarchy(stage: Control, stretch: float, where: String) -> void:
 	var deploy: Button = _find_button(stage, "DEPLOY")
 	if not _expect(deploy != null, "%s: DEPLOY exists" % where):
 		return
-	var secondary := stage.get("_secondary") as Control
-	if not _expect(secondary != null, "%s: the secondary row exists" % where):
+	var armory: Button = _find_button(stage, "ARMORY")
+	if not _expect(armory != null, "%s: ARMORY exists" % where):
+		return
+	var hero := stage.get("_hero_row") as Control
+	var mission := stage.get("_mission_row") as Control
+	if not _expect(hero != null and mission != null, "%s: both rows exist" % where):
 		return
 	var deploy_rect := _physical(deploy.get_global_rect(), stretch)
-	var secondary_rect := _physical(secondary.get_global_rect(), stretch)
+	var armory_rect := _physical(armory.get_global_rect(), stretch)
 	_expect(
-		deploy_rect.position.y >= secondary_rect.end.y - 1.0,
+		deploy_rect.position.y >= armory_rect.end.y - 1.0,
 		(
-			"%s: DEPLOY (top %.0f) sits under ARMORY/SETTINGS (bottom %.0f), nearest the thumb"
-			% [where, deploy_rect.position.y, secondary_rect.end.y]
+			"%s: DEPLOY (top %.0f) sits under ARMORY (bottom %.0f), nearest the thumb"
+			% [where, deploy_rect.position.y, armory_rect.end.y]
 		)
 	)
 	_expect(
 		deploy.is_visible_in_tree() and not deploy.disabled,
 		"%s: DEPLOY is enabled and on screen" % where,
 	)
-	# The hero card and the theatre card come before it. A landscape layout puts
-	# them in a left column, so compare against DEPLOY's own column only when
-	# they are stacked -- otherwise "above" is simply "not required".
-	var hero := stage.get("_hero_panel") as Control
-	var mission := stage.get("_mission_panel") as Control
-	if hero != null and mission != null and not is_landscape(stage):
+	# Portrait stacks the rows above the actions; landscape puts them in the
+	# left column, where their order to each other is still the manifest's.
+	var hero_rect := _physical(hero.get_global_rect(), stretch)
+	var mission_rect := _physical(mission.get_global_rect(), stretch)
+	_expect(
+		hero_rect.end.y <= mission_rect.position.y + 1.0,
+		"%s: row 01 (operative) sits above row 02 (theatre)" % where,
+	)
+	if not is_landscape(stage):
 		_expect(
-			(
-				_physical(hero.get_global_rect(), stretch).end.y
-				<= _physical(mission.get_global_rect(), stretch).position.y + 1.0
-			),
-			"%s: the operative card sits above the theatre card" % where,
-		)
-		_expect(
-			_physical(mission.get_global_rect(), stretch).end.y <= deploy_rect.position.y + 1.0,
-			"%s: the theatre card sits above DEPLOY" % where,
+			mission_rect.end.y <= armory_rect.position.y + 1.0,
+			"%s: the rows sit above ARMORY" % where,
 		)
 
 

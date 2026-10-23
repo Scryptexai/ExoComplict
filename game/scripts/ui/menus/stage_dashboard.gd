@@ -428,8 +428,9 @@ func refresh_profile() -> void:
 # --- arrangement ------------------------------------------------------------ #
 
 
-## Portrait: heading, the three rows, the actions, the record -- one column, in
-## the order a player reads them. Landscape: the rows keep the height they need
+## Portrait: heading, the three rows, the record, the actions -- one column, in
+## the order a player reads them, with DEPLOY last and therefore nearest the
+## thumb. Landscape: the rows keep the height they need
 ## and the record and actions move into a rail beside them, because 390 px of
 ## height cannot hold four bands.
 ##
@@ -466,8 +467,8 @@ func _apply_orientation() -> void:
 		if _body_portrait.get_parent() == null:
 			_root.add_child(_body_portrait)
 		_body_portrait.add_child(_rows)
-		_body_portrait.add_child(_actions)
 		_body_portrait.add_child(_ribbon)
+		_body_portrait.add_child(_actions)
 		_rows.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
 
