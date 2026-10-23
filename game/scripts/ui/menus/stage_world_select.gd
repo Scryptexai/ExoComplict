@@ -154,7 +154,12 @@ func _build_map() -> void:
 	_map.add_child(frame)
 
 	var map_caption := VBoxContainer.new()
+	# Offsets, not a bare preset: the caption sits *inside* the hairline frame so
+	# its second line is not clipped by the panel under the map.
 	map_caption.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	map_caption.offset_left = 10.0
+	map_caption.offset_bottom = -8.0
+	map_caption.offset_top = -52.0
 	map_caption.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	map_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	physical_separation(map_caption, 2)
@@ -315,6 +320,9 @@ func reframe() -> void:
 	# 64 px pins plus the panel plus the map are what has to fit. The paragraph
 	# stays where there is height for it.
 	_brief.visible = landscape and not short_landscape
+	# The framed plate's own caption names the theatre; printing it again 40 px
+	# below it is the kind of repetition that reads as a placeholder.
+	_title.visible = landscape
 	# The status line says FIELD READY, which the pin above it already says, and
 	# the three pins plus the panel are what has to fit under the map. Landscape
 	# has the width to say it twice; portrait does not have the height.
@@ -415,7 +423,10 @@ func _refresh() -> void:
 		return
 	var first_time := _selected != world_id
 	_selected = world_id
-	_chapter.text = "CHAPTER  %s" % String(definition.world_id).replace("_", " ").to_upper()
+	# The registry has no chapter number, so the line states the theatre's own
+	# role rather than inventing "CHAPTER 2" or echoing the id with its
+	# underscores taken out.
+	_chapter.text = ("DEPLOYMENT THEATRE" if definition.field_ready else "NOT YET DEPLOYABLE")
 	_title.text = definition.display_name.to_upper()
 	if is_instance_valid(_map_name):
 		_map_name.text = definition.display_name.to_upper()
