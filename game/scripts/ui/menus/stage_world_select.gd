@@ -189,7 +189,7 @@ func reframe() -> void:
 		_reparent(_map, _side)
 		_reparent(_info, _side)
 		_reparent(_side, _body)
-		_reparent(_pin_row, _body)
+		_reparent(_pin_row, _stack)
 		_info.size_flags_vertical = Control.SIZE_SHRINK_END
 		physical_min_size(_info, 320.0, 0.0)
 		_info.size_flags_horizontal = Control.SIZE_FILL
@@ -199,15 +199,15 @@ func reframe() -> void:
 		physical_min_size(_launch, 0.0, 64.0)
 	else:
 		_reparent(_map, _body)
-		_reparent(_pin_row, _body)
 		_reparent(_info, _body)
+		_reparent(_pin_row, _stack)
 		_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_info.size_flags_vertical = Control.SIZE_SHRINK_END
 		physical_min_size(_info, 0.0, 0.0)
 		# 50 % of the height for the map left nothing for the pins and the panel
 		# on an 844 px phone: both pins drew at y=857. A third of it is enough
 		# for the plate to read, and the body still expands into any slack.
-		physical_min_size(_map, 0.0, height * 0.32)
+		physical_min_size(_map, 0.0, height * 0.26)
 		physical_min_size(_launch, 0.0, 72.0)
 	# 64 px is the touch floor (`AegisTokens.MIN_TOUCH_PX`); 56 failed it.
 	for pin in _pins:
@@ -216,10 +216,20 @@ func reframe() -> void:
 		_pin_row.vertical = false
 	# 390 px of height is enough for the name and one line about the theatre, not
 	# for the chapter tag as well; the pin under the map already carries the name.
+	var cramped := height < 700.0 and not landscape
 	var short_landscape := landscape and height < 520.0
-	_chapter.visible = not short_landscape
-	_brief.visible = not short_landscape
+	_chapter.visible = not (short_landscape or cramped)
+	_brief.visible = not (short_landscape or cramped)
+	# Two pins side by side need 380 px of text at `label` size; a 360 px phone
+	# has 328 inside its margins, so they stack there.
+	_pin_row.vertical = _stage_width() < 560.0
 	physical_min_size(_status, 0.0, 20.0 if short_landscape else 24.0)
+
+
+## Moves a node only when it is somewhere else; re-adding on every resize would
+## restart the layout every frame.
+func _stage_width() -> float:
+	return physical_size().x
 
 
 ## Moves a node only when it is somewhere else; re-adding on every resize would

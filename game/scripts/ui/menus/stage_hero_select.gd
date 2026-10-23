@@ -754,7 +754,14 @@ func _apply_density() -> void:
 		heading_role,
 		maxi(AegisTheme.type_size(heading_role), _minimum_font_size(_stretch))
 	)
-	physical_min_size(_carousel, 0.0, 88.0 if short_screen else 120.0)
+	# 88 px of carousel plus 84 px chips plus the header, the panel and a 64 px
+	# action row was 400 px of content on a 390 px screen -- the actions drew at
+	# y=345. The carousel gives up 24 px and the chips 12 on a short landscape.
+	var carousel_height := (
+		64.0 if (short_screen and is_landscape()) else (88.0 if short_screen else 120.0)
+	)
+	physical_min_size(_carousel, 0.0, carousel_height)
+	physical_min_size(_carousel_wrap, 0.0, 0.0)
 	physical_separation(_stack, 8.0 if short_screen else 14.0)
 	physical_separation(_body_portrait, 8.0 if short_screen else 14.0)
 	physical_separation(_carousel_wrap, 4.0 if short_screen else 10.0)
