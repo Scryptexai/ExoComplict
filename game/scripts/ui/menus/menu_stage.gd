@@ -1,7 +1,7 @@
 ## Base class for one screen of the front-end journey.
 ##
 ## The journey is STUDIO -> BOOT -> LOADING -> CHAPTER -> DASHBOARD -> HERO
-## -> WEAPON -> WORLD -> PRELOAD -> gameplay. A stage owns its own layout and
+## -> WORLD -> PRELOAD -> gameplay. A stage owns its own layout and
 ## its own input, and knows nothing about the others: it finishes by emitting
 ## `completed` with the name of the stage it wants next, and `FrontEnd` decides
 ## whether that request is legal. Keeping the decision in one place is what
@@ -58,7 +58,7 @@ var _stretch := 1.0
 ## Connects `resized` once per stage, however many times the stage is entered.
 ##
 ## Stages are entered over and over in one session -- HERO to DASHBOARD and
-## back, WEAPON to HERO and back -- and every one of them connected `resized`
+## back, WORLD to HERO and back -- and every one of them connected `resized`
 ## from `enter()`. The second visit stacked a second handler: Godot printed
 ## "Signal 'resized' is already connected to given callable" and every later
 ## resize ran that stage's layout twice, once more per revisit. Guarding it here
@@ -165,7 +165,7 @@ func make_button(
 		#     mouse_filter = MOUSE_FILTER_STOP so a click is absorbed by the
 		#     GUI before the stage's _unhandled_input() sees it, and the
 		#     button's global rect reads 0,0 while it is inside the front-end
-		#     viewport — see docs/AUDIT_2026-10-21.md §12.3 for the three
+		#     viewport — see docs/DECISIONS.md §12.3 for the three
 		#     approaches that were measured and did not work.
 		# Deferred: the button has to be in the tree before it can take focus.
 		button.grab_focus.call_deferred()

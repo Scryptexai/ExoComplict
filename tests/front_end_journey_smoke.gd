@@ -6,7 +6,7 @@ extends SceneTree
 ## is never instantiated, a `completed` signal nobody wired, a chapter card that
 ## replays forever because the flag is never written. This test instantiates the
 ## real `front_end.tscn`, walks STUDIO -> BOOT -> LOADING -> CHAPTER ->
-## DASHBOARD -> HERO -> WEAPON -> WORLD and asserts, at each stop:
+## DASHBOARD -> HERO -> WORLD and asserts, at each stop:
 ##
 ##   * the stage exists, is visible, and is the one the journey asked for;
 ##   * no enabled button is inert -- every one has a `pressed` connection;
@@ -43,7 +43,6 @@ const INTERACTIVE_STAGES: Array[StringName] = [
 	&"CHAPTER",
 	&"DASHBOARD",
 	&"HERO",
-	&"WEAPON",
 	&"WORLD",
 ]
 
@@ -100,16 +99,14 @@ func _run_smoke_test() -> void:
 	_check_stage(&"DASHBOARD")
 	_check_dashboard_numbers()
 
+	# The weapon rail lives on HERO now: one page, one loadout -- who you are and
+	# what you carry. `_check_weapon_stats_are_real` walks the registry through
+	# the rail rather than a page of its own.
 	_front_end.go_to(&"HERO", {})
 	await process_frame
 	_check_stage(&"HERO")
-	_check_locked_content_disabled(&"HERO")
-
-	_front_end.go_to(&"WEAPON", {})
-	await process_frame
-	_check_stage(&"WEAPON")
 	await _check_weapon_stats_are_real()
-	_check_locked_content_disabled(&"WEAPON")
+	_check_locked_content_disabled(&"HERO")
 
 	_front_end.go_to(&"WORLD", {})
 	await process_frame
@@ -285,24 +282,28 @@ func _check_dashboard_numbers() -> void:
 ## a stronger check than the old one: it fails if the panel stops following the
 ## selection, which the card version could not.
 func _check_weapon_stats_are_real() -> void:
-	var stage := _stage(&"WEAPON")
+	var stage := _stage(&"HERO")
 	for definition in WeaponDefinition.load_all_definitions():
 		var chip := _weapon_chip(stage, definition.weapon_id)
 		if not _expect(chip != null, "%s: the carousel offers a chip" % definition.weapon_id):
 			continue
 		if chip.disabled:
 			# A weapon the profile has not unlocked cannot be selected, so what
-			# the screen owes the player is its name and its price.
-			var text := _all_label_text(stage)
+			# the screen owes the player is its name and its price -- both of
+			# which are the chip's own text now, not a caption under it.
 			_expect(
-				text.contains(definition.display_name.to_upper()),
+				chip.text.contains(definition.display_name.to_upper()),
 				"%s: the locked chip is still named" % definition.weapon_id
+			)
+			_expect(
+				chip.text.contains("BP"),
+				"%s: the locked chip states its price" % definition.weapon_id
 			)
 			continue
 		chip.pressed.emit()
 		await process_frame
 		await process_frame
-		var shown := _all_label_text(_stage(&"WEAPON"))
+		var shown := _all_label_text(_stage(&"HERO"))
 		# Straight off the WeaponDefinition: 18/34/20 damage at 5.0/0.8/2.0 shots
 		# per second, 24/6/12 rounds. If these drift, the screen is lying.
 		for expected in [
@@ -349,11 +350,10 @@ func _check_locked_content_disabled(name: StringName) -> void:
 		if button != null and button.disabled:
 			disabled += 1
 	_expect(disabled > 0, "%s marks content the project does not ship as disabled" % name)
-	if name != &"WEAPON":
-		_expect(
-			_all_label_text(stage).contains("IN DEVELOPMENT"),
-			"%s labels its placeholder slots IN DEVELOPMENT" % name
-		)
+	_expect(
+		_all_label_text(stage).contains("IN DEVELOPMENT"),
+		"%s labels its placeholder slots IN DEVELOPMENT" % name
+	)
 
 
 ## Pressing LAUNCH must hand PRELOAD a payload naming a scene that exists. The

@@ -4,7 +4,7 @@
 The project has been burned twice by passes that counted files instead of
 looking at them: eight byte-identical "world tour" frames, and a tour that
 photographed a live game while claiming to show a review camera
-(docs/AUDIT_2026-10-21.md §12.3, docs/VERIFICATION_2026-10-22.md §3). A PNG
+(docs/DECISIONS.md §12.3, docs/DECISIONS.md §3). A PNG
 that exists proves nothing; these numbers decide whether it is a render.
 
 Usage:

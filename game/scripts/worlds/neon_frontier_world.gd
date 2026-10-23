@@ -65,7 +65,7 @@ func _is_selected() -> bool:
 
 
 func _create_materials() -> void:
-	# The same palette the FBX kit and the whole UI use (docs/UX_AUDIT_2026-10-22.md
+	# The same palette the FBX kit and the whole UI use (docs/DECISIONS.md
 	# 5.1). These were bright slate and pearl -- the 38 m arena deck alone was
 	# Color(0.58, 0.65, 0.70), the lightest value in the game and the largest
 	# surface on screen -- which is why the world read as pastel next to the
@@ -229,7 +229,7 @@ func _build_lighting_and_atmosphere() -> void:
 	# measures navy 51 %, amber 24 %, steel 14 %, cyan 8 % against a near-black
 	# base. The previous sky was 4x brighter than the art it was supposed to be
 	# the same world as, which is most of why gameplay and menus looked like two
-	# products (docs/UX_AUDIT_2026-10-22.md 5.1).
+	# products (docs/DECISIONS.md 5.1).
 	sky_material.sky_top_color = Color(0.012, 0.03, 0.06)
 	sky_material.sky_horizon_color = Color(0.055, 0.11, 0.16)
 	sky_material.ground_bottom_color = Color(0.02, 0.045, 0.07)

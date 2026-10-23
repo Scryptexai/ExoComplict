@@ -100,7 +100,7 @@ and a loading-animation sprite sheet.
 
 **They are not the game's 3D representation.** The playable hero is the skinned
 `hero_rig`/`character_visual` model measured in
-`docs/asset-inspections/HERO_VISIBILITY_QA_2026-10-20.md`; the playable weapons
+`docs/DECISIONS.md`; the playable weapons
 are the ones attached in `weapon_controller.gd`. No portrait in this document
 shows the in-game model, and no model was changed to match a portrait. Where a
 portrait and the rig disagree, the rig is right and the portrait is decoration.
@@ -150,7 +150,7 @@ Step by step:
 * **The audit is not a review.** It cannot see composition, legibility or
   quality. As of 2026-10-23 the assets *have* been looked at — the keyed
   wordmark was composited over three backgrounds and inspected pixel by pixel
-  before it shipped (docs/VERIFICATION_2026-10-23.md 4) — but the audit itself
+  before it shipped (docs/DECISIONS.md 4) — but the audit itself
   is still HSV-only, and passing it means "on-palette", nothing more.
 
 ### Output formats

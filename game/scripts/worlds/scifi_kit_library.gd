@@ -106,7 +106,7 @@ const SIZE := {
 ## The world's palette, derived from the same tokens the UI is built from.
 ##
 ## This is the fix for the largest visual defect the audit found (docs/
-## UX_AUDIT_2026-10-22.md 5.1): the menus were near-black cinematic and the
+## DECISIONS.md 5.1): the menus were near-black cinematic and the
 ## arena was bright pastel, because the world kept a private palette that had
 ## never been compared with `AegisTokens`.
 ##

@@ -12,7 +12,7 @@
 #
 # Why this exists: the repository carries 217 MB of tracked files, 75 MB of it
 # build output that CI regenerates and uploads as an artifact every push
-# (docs/AUDIT_2026-10-21.md §4). New commits get lighter the moment LFS is in
+# (docs/DECISIONS.md §4). New commits get lighter the moment LFS is in
 # place; history only gets lighter if someone runs --migrate, which rewrites
 # every commit and therefore needs every collaborator to re-clone.
 

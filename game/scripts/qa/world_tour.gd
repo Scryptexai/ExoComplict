@@ -29,7 +29,7 @@ const FRONTIER_VANTAGES := [
 		# Raised and pulled back off the 42 m deck: at (-27, 14, 27) the pale
 		# perimeter structure crossed the bottom third of the frame and the
 		# hazard disc filled the centre, so the vantage meant to review the
-		# arena was framed through it (docs/VERIFICATION_2026-10-22.md §5).
+		# arena was framed through it (docs/DECISIONS.md §5).
 		"name": "arena",
 		"from": Vector3(-44.0, 30.0, 44.0),
 		"at": Vector3(0.0, 0.5, 0.0),
@@ -217,7 +217,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Chromium swallows it before the page sees it, so the review camera could
 	# not be engaged from tools/web_qa.mjs at all — the eight "tour" frames were
 	# the live game, and the check that compared them reported a pass because
-	# they differed, not because the camera moved (docs/AUDIT_2026-10-21.md
+	# they differed, not because the camera moved (docs/DECISIONS.md
 	# §12.3, the same defect one layer deeper). P is also the key to use on a
 	# laptop where F10 is a system volume/mute key.
 	if key == KEY_F10 or key == KEY_P:

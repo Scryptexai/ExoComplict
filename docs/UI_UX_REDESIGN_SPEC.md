@@ -3,8 +3,7 @@
 **Tanggal spesifikasi:** 17 Oktober 2026
 **Status (koreksi 18 Oktober 2026):** persetujuan AEGIS adalah **historis**; pengguna menolak hasil visual, animasi, pacing, dan keterbacaan UI build sekarang. Arah redesign **belum disepakati ulang**.
 **Branch:** `arena/5257bce8-cyber-strike` · **PR:** #1 (open, jangan di-merge)
-**Papan visual:** [`docs/ui-redesign/board/`](ui-redesign/board) — 7 board, PNG + SVG
-**Audit ulang dan rujukan game rilis:** [`REBASE_VISUAL_GAMEPLAY_2026-10-18.md`](REBASE_VISUAL_GAMEPLAY_2026-10-18.md)
+**Audit ulang dan rujukan game rilis:** [`DECISIONS.md`](DECISIONS.md)
 
 Dokumen ini mencatat arah token/layout AEGIS yang **pernah** disetujui, bukan
 spesifikasi kualitas visual final. Angka pada board adalah target desain waktu
@@ -143,7 +142,7 @@ tombol danger selalu *outlined*, tidak pernah filled.
 | Tabler | ~5.000 | MIT | Strokenya lebih ringan |
 
 Semua komersial-aman tanpa atribusi wajib; lisensi tetap disertakan di
-`docs/ui-redesign/assets/icons/LICENSE-Phosphor.txt`.
+`game/assets/ui/icons/LICENSE-Phosphor.txt`.
 
 ---
 
@@ -419,7 +418,6 @@ diimplementasikan; perlu validasi touch asli di perangkat.
 ## 8. Ikon
 
 41 glyph regular + 16 fill, semuanya Phosphor (MIT). Lihat
-[`board/07-icons.png`](ui-redesign/board/07-icons.png).
 
 | Aksi | Ikon | State |
 |---|---|---|
@@ -607,7 +605,7 @@ Estimasi kasar: M0–M2 = 2 hari, M3–M4 = 2 hari, M5–M6 = 1 hari.
 
 Pertanyaan di bawah berasal dari fase AEGIS. **Jangan** menganggap keputusan
 historisnya masih berlaku; keputusan yang memblokir redesign tercantum dalam
-[`REBASE_VISUAL_GAMEPLAY_2026-10-18.md` §4](REBASE_VISUAL_GAMEPLAY_2026-10-18.md#4-keputusan-pengguna-yang-masih-dibutuhkan).
+[`DECISIONS.md` §4](DECISIONS.md#4-keputusan-pengguna-yang-masih-dibutuhkan).
 
 1. Apakah aksen amber disetujui, atau tetap mint/cyan seperti reticle sekarang?
 2. Portrait: dipertahankan sebagai mode setara, atau hanya fallback?

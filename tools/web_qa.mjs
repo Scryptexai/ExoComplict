@@ -325,7 +325,7 @@ async function checkPage(target, viewport) {
   // (`MenuCTA: x,y,w,h in <viewport w>,<viewport h>`) and this pass clicks it,
   // stage by stage, until the gameplay scene reports in. Without it the tour
   // pressed F10 in the front-end menu, where the review camera does not exist,
-  // and reported eight menu frames as a success (docs/AUDIT_2026-10-21.md
+  // and reported eight menu frames as a success (docs/DECISIONS.md
   // §12.3).
   // Each stage opens with its primary action focused, so ui_accept (Enter)
   // activates it: one Enter per stage, no coordinates and no guessing. A Godot
@@ -333,7 +333,7 @@ async function checkPage(target, viewport) {
   // means the GUI absorbs a click before the stage's _unhandled_input() sees
   // it, and the button's global rect reads 0,0 while the stage sits in the
   // front-end viewport — all three measured, see
-  // docs/AUDIT_2026-10-21.md §12.3.
+  // docs/DECISIONS.md §12.3.
   const advanceToGameplay = async () => {
     const reached = () => consoleLines.some((line) => line.includes('Encounter: Explore safe'));
     const stageLine = () => consoleLines.filter((l) => l.includes('FrontEnd: stage')).pop() || '';
@@ -418,7 +418,7 @@ async function checkPage(target, viewport) {
   // even when no tour or encounter was asked for. Before this, `--play` on its
   // own clicked the centre of whichever menu stage was on screen: the shot
   // check could never pass, which is worse than no check
-  // (docs/AUDIT_2026-10-21.md §12.3, the same defect as the tour
+  // (docs/DECISIONS.md §12.3, the same defect as the tour
   // photographing the menu).
   let inGameplay = false;
   if (booted && (tourMode || encounterMode || playSeconds > 0)) {
@@ -532,7 +532,7 @@ async function checkPage(target, viewport) {
     if (viewportCentre) await page.mouse.click(viewportCentre.x, viewportCentre.y);
     // P, not F10: F10 is reserved by browsers and never reaches the page, so
     // the review camera was never engaged while this pass reported that it had
-    // captured a "world tour" (docs/AUDIT_2026-10-21.md §12.3).
+    // captured a "world tour" (docs/DECISIONS.md §12.3).
     await page.keyboard.press('KeyP');
     await new Promise((r) => setTimeout(r, 600));
     const engaged = consoleLines.some((line) => line.includes('World tour: review camera engaged'));
@@ -588,7 +588,7 @@ async function checkPage(target, viewport) {
     // gameplay at all — the eight frames above only mean something if the
     // review camera moved, and the release key is not asserted: it depends on
     // the Godot window owning keyboard focus, which a freshly loaded page does
-    // not have (docs/AUDIT_2026-10-21.md §12.3). Ordering removes the need.
+    // not have (docs/DECISIONS.md §12.3). Ordering removes the need.
     checks.push([
       'world tour engaged the review camera in gameplay',
       consoleLines.some((line) => line.includes('World tour: review camera engaged')),

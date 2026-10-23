@@ -68,9 +68,15 @@ const DISABLED_ALPHA := 0.55
 # HUD still boots in a stripped export.
 const FONT_DISPLAY := "res://assets/ui/fonts/ChakraPetch-SemiBold.ttf"
 const FONT_DISPLAY_M := "res://assets/ui/fonts/ChakraPetch-Medium.ttf"
-const FONT_UI := "res://assets/ui/fonts/Barlow-Regular.ttf"
-const FONT_UI_M := "res://assets/ui/fonts/Barlow-Medium.ttf"
-const FONT_UI_SB := "res://assets/ui/fonts/Barlow-SemiBold.ttf"
+# Rajdhani carries the interface. It was chosen over Barlow because it is the
+# face the reference lobbies actually use: squarish, condensed, built for
+# uppercase rows and numerals, and it keeps a 15 px label legible where Barlow
+# at the same size read as body copy. Chakra Petch stays on headings and labels
+# so the two agree on a squared silhouette instead of mixing a geometric face
+# with a humanist one.
+const FONT_UI := "res://assets/ui/fonts/Rajdhani-Regular.ttf"
+const FONT_UI_M := "res://assets/ui/fonts/Rajdhani-Medium.ttf"
+const FONT_UI_SB := "res://assets/ui/fonts/Rajdhani-SemiBold.ttf"
 const FONT_MONO := "res://assets/ui/fonts/JetBrainsMono-Medium.ttf"
 const FONT_MONO_B := "res://assets/ui/fonts/JetBrainsMono-Bold.ttf"
 
@@ -87,7 +93,7 @@ const FAMILY_MONO_B := "mono_b"
 #
 # Sizes are measured, not taste. The first shipped scale was authored for a
 # 1280x720 canvas at 11-15 px for everything below a heading, and a screenshot
-# review of the whole journey (docs/VERIFICATION_2026-10-23.md 2) called it
+# review of the whole journey (docs/DECISIONS.md 2) called it
 # what it was: body copy that disappears next to the world art. So the scale
 # was set against three references measured at 16:9 and re-based on 720 px of
 # height, which is this project's canvas:
@@ -102,24 +108,21 @@ const FAMILY_MONO_B := "mono_b"
 # big titles at 38-52 (was 28-40). Nothing here is "one notch up": at 720 px a
 # 15 px label is half the size of the smallest body text in the references.
 const TYPE := {
-	"display_xl": [FAMILY_DISPLAY, 52, 2.0, true],
-	"display_l": [FAMILY_DISPLAY, 38, 2.0, true],
-	# `display_m` is new. HERO and WEAPON both asked for it and silently fell
-	# back to `body`, which is why their headings rendered at 14 px under a
-	# BACK button -- measured in the same screenshot pass.
-	"display_m": [FAMILY_DISPLAY, 30, 2.0, true],
-	"heading": [FAMILY_DISPLAY, 24, 1.0, true],
-	"heading_s": [FAMILY_DISPLAY_M, 19, 1.0, true],
-	"title": [FAMILY_UI_SB, 21, 1.0, false],
-	"body": [FAMILY_UI, 18, 0.0, false],
-	"body_s": [FAMILY_UI, 15, 0.0, false],
-	"label": [FAMILY_UI_M, 15, 12.0, true],
-	"label_s": [FAMILY_UI_M, 13, 10.0, true],
-	"caption": [FAMILY_UI, 14, 2.0, false],
-	"mono_xl": [FAMILY_MONO, 44, 0.0, false],
-	"mono_l": [FAMILY_MONO, 27, 0.0, false],
-	"mono_m": [FAMILY_MONO, 17, 0.0, false],
-	"mono_s": [FAMILY_MONO, 14, 0.0, false],
+	"display_xl": [FAMILY_DISPLAY, 56, 2.0, true],
+	"display_l": [FAMILY_DISPLAY, 40, 2.0, true],
+	"display_m": [FAMILY_DISPLAY, 32, 2.0, true],
+	"heading": [FAMILY_DISPLAY, 26, 1.0, true],
+	"heading_s": [FAMILY_DISPLAY_M, 20, 1.0, true],
+	"title": [FAMILY_UI_SB, 24, 1.0, false],
+	"body": [FAMILY_UI, 20, 0.0, false],
+	"body_s": [FAMILY_UI, 17, 0.0, false],
+	"label": [FAMILY_UI_M, 16, 12.0, true],
+	"label_s": [FAMILY_UI_M, 14, 10.0, true],
+	"caption": [FAMILY_UI, 16, 2.0, false],
+	"mono_xl": [FAMILY_MONO, 46, 0.0, false],
+	"mono_l": [FAMILY_MONO, 29, 0.0, false],
+	"mono_m": [FAMILY_MONO, 18, 0.0, false],
+	"mono_s": [FAMILY_MONO, 15, 0.0, false],
 }
 
 # --- Spacing, shape, motion ------------------------------------------------ #
@@ -150,7 +153,7 @@ const DAMAGE_VIGNETTE := 0.28
 ## Baseline for supporting HUD text. Raised with the type scale above: at
 ## 16 px a label is still smaller than any body text in the measured
 ## references, but it is legible on a phone held at arm's length, which 13 was
-## not (docs/VERIFICATION_2026-10-23.md 2).
+## not (docs/DECISIONS.md 2).
 const MIN_PHYSICAL_FONT_PX := 16.0
 ## Comfortable touch target. 64 is the Android/Material floor (48 dp at 1.33x)
 ## and the height Free Fire's START and COD Mobile's Store button land on.

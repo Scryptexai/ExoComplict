@@ -66,6 +66,14 @@ var _panel: AegisPanel
 var _actions: HBoxContainer
 var _carousel_wrap: VBoxContainer
 var _landscape_built := false
+var _chrome: LobbyChrome
+## The weapon rail. The WEAPON stage is gone -- its screen was a carousel of
+## three chips around a 3D rifle, which is a section of a loadout, not a page in
+## a journey. It lives here now as one row under the operative's card: choose the
+## weapon you deploy with, see the numbers it will actually fire.
+var _weapon_row: HBoxContainer
+var _weapon_stat: Label
+var _weapon_pins: Array[AegisButton] = []
 
 
 func _ready() -> void:
@@ -94,6 +102,82 @@ func _ready() -> void:
 	relayout()
 
 
+## The dock navigates between the three lobby pages, so HERO can go straight
+## home or to the theatre without walking back through the dashboard.
+## Equipping writes to the service, which is what DEPLOY reads. A locked weapon
+## is shown, priced, and not saved until it is bought in the armory.
+func _on_weapon_pressed(weapon_id: StringName) -> void:
+	var progression := progression_service()
+	if progression == null or not progression.is_unlocked(weapon_id):
+		return
+	if progression.selected_weapon_id == weapon_id:
+		return
+	progression.select_weapon(weapon_id)
+	Sfx.play_ui(&"ui_click")
+	_refresh()
+
+
+func _refresh_weapons(progression: ProgressionService) -> void:
+	for pin in _weapon_pins:
+		var weapon_id := StringName(str(pin.get_meta("weapon_id", "")))
+		var definition := WeaponDefinition.load_definition(weapon_id)
+		if definition == null:
+			continue
+		var owned: bool = progression == null or progression.is_unlocked(weapon_id)
+		var live: bool = progression != null and progression.selected_weapon_id == weapon_id
+		pin.disabled = not owned
+		pin.text = (
+			definition.display_name.to_upper()
+			if owned
+			else (
+				"%s  ·  %d BP" % [definition.display_name.to_upper(), definition_id_cost(weapon_id)]
+			)
+		)
+		pin.edge_active = live
+		pin.queue_redraw()
+	if progression == null:
+		return
+	var selected := WeaponDefinition.load_definition(progression.selected_weapon_id)
+	if selected == null or not is_instance_valid(_weapon_stat):
+		return
+	var parts: Array[String] = [
+		"DMG %d" % roundi(selected.damage),
+		"RATE %s/s" % _numeral(selected.fire_rate),
+		"MAG %d" % selected.magazine_size,
+		"RELOAD %ss" % _numeral(selected.reload_seconds),
+		"RNG %d" % roundi(selected.max_range),
+	]
+	if selected.splash_damage > 0.0:
+		parts.append("SPLASH %d" % roundi(selected.splash_damage))
+	if selected.chain_count > 0:
+		parts.append("CHAIN %d" % selected.chain_count)
+	_weapon_stat.text = "  ·  ".join(parts)
+
+
+## 5.0 prints "5", 1.35 prints "1.35": the same trimming the old weapon screen
+## did, because "RATE 5.00/s" reads like a spreadsheet.
+static func _numeral(value: float) -> String:
+	var text := "%.2f" % value
+	while text.ends_with("0") and text.contains("."):
+		text = text.substr(0, text.length() - 1)
+	return text.substr(0, text.length() - 1) if text.ends_with(".") else text
+
+
+func definition_id_cost(weapon_id: StringName) -> int:
+	var progression := progression_service()
+	return 0 if progression == null else progression.unlock_cost(weapon_id)
+
+
+func _on_nav_requested(tab_id: StringName) -> void:
+	match tab_id:
+		LobbyChrome.TAB_HOME:
+			completed.emit(&"DASHBOARD", {})
+		LobbyChrome.TAB_WORLD:
+			completed.emit(&"WORLD", {"world_id": String(progression_service().selected_world_id)})
+		_:
+			pass
+
+
 func enter(_stage_payload: Dictionary) -> void:
 	apply_safe_margins(_margin)
 	_selected = OPERATIVE_ID
@@ -113,12 +197,18 @@ func exit() -> void:
 
 func refresh_profile() -> void:
 	_refresh()
+	if _chrome != null:
+		_chrome.refresh(progression_service())
 
 
 # --- construction ----------------------------------------------------------- #
 
 
 func _build_header() -> void:
+	_chrome = LobbyChrome.build(self, LobbyChrome.TAB_OPERATIVE, false)
+	_chrome.navigate.connect(_on_nav_requested)
+	_stack.add_child(_chrome.bar)
+
 	_header = HBoxContainer.new()
 	physical_separation(_header, 16)
 	_stack.add_child(_header)
@@ -326,6 +416,32 @@ func _build_panel() -> void:
 	_loadout_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	column.add_child(_loadout_label)
 
+	_weapon_row = HBoxContainer.new()
+	_weapon_row.name = &"WeaponRail"
+	physical_separation(_weapon_row, 8)
+	column.add_child(_weapon_row)
+	for definition in WeaponDefinition.load_all_definitions():
+		var pin := AegisButton.new()
+		pin.name = "%sWeapon" % String(definition.weapon_id).to_pascal_case()
+		pin.set_meta("weapon_id", String(definition.weapon_id))
+		pin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		pin.focus_mode = Control.FOCUS_ALL
+		pin.set_meta("aegis_role", "label_s")
+		AegisTheme.set_button_variant(pin, "card")
+		pin.pressed.connect(_on_weapon_pressed.bind(definition.weapon_id))
+		_weapon_row.add_child(pin)
+		_weapon_pins.append(pin)
+	# The numbers are printed straight from the WeaponDefinition: if this line
+	# and the resource ever disagree, the screen is lying about damage.
+	_weapon_stat = make_label("", "label_s", AegisTokens.INK_3)
+	# Marked `stat_line` because it *is* the loadout's stat line, the same role
+	# the WEAPON page's panel had before the rail moved here; the data test reads
+	# every marked line and compares it with the WeaponDefinition.
+	_weapon_stat.set_meta("stat_line", true)
+	_weapon_stat.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_limit_lines(_weapon_stat, 1)
+	column.add_child(_weapon_stat)
+
 
 ## The two buttons are a row of their own under the information card, the way the
 ## dashboard puts DEPLOY above its secondary controls. Keeping them out of the
@@ -374,6 +490,7 @@ func _refresh() -> void:
 		if _select_requested
 		else "%s is equipped" % _hero_name(_selected)
 	)
+	_refresh_weapons(progression)
 
 
 ## Puts the selected hero's model on the stage and updates every panel line from
@@ -483,7 +600,7 @@ func _on_continue_pressed() -> void:
 	var progression := progression_service()
 	if progression != null:
 		progression.select_hero(_selected)
-	completed.emit(&"WEAPON", {})
+	completed.emit(&"WORLD", {})
 
 
 # --- layout ----------------------------------------------------------------- #
@@ -557,8 +674,10 @@ func _apply_orientation() -> void:
 ## card keeps two lines. DEPLOY-scale buttons never shrink -- they are the
 ## controls a thumb has to hit on a phone.
 func _apply_density() -> void:
+	for pin in _weapon_pins:
+		physical_min_size(pin, 0.0, 44.0 if is_landscape() and physical_size().y < 520.0 else 52.0)
 	var short_screen := physical_size().y < (520.0 if is_landscape() else 760.0)
-	# Same trade as WEAPON: on a portrait phone the header keeps BACK and the
+	# Same trade as the old WEAPON page: on a portrait phone the header keeps BACK and the
 	# heading, and the field-ready state lives on the card itself.
 	_status_label.visible = is_landscape() or physical_size().x >= 560.0
 	# 64 px chips clipped their own slot label: "SLOT 02" is 71 px at the current

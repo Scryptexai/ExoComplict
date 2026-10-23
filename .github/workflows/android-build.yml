@@ -1,6 +1,6 @@
 name: Android debug APK
 
-# The device half of the two-path rule in docs/STRUCTURE_PLAN.md §4: the web
+# The device half of the two-path rule in docs/ARCHITECTURE.md §4: the web
 # preview proves a change builds and runs, the APK is what goes on a phone for
 # real visual and frame-rate testing. The web pipeline already exists in
 # godot-ci.yml; this job is the one that was missing.

@@ -86,7 +86,7 @@ SCAFFOLD_OPTIONS: list[tuple[str, str]] = [
 # Files that must never reach a player. `tests/*` is the whole smoke suite: 26
 # scripts, 8,141 lines, found packed into the shipped web payload as compiled
 # `.gdc` + `.remap` pairs because no preset carried an exclude filter
-# (docs/AUDIT_2026-10-21.md §5). `tools/check_payload.py` is the gate that
+# (docs/DECISIONS.md §5). `tools/check_payload.py` is the gate that
 # catches a regression here; it reads the exported .pck, not this file.
 EXCLUDE_FROM_EXPORT = "tests/*"
 

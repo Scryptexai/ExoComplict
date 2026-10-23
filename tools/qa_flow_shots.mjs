@@ -19,7 +19,7 @@
  * a mock: the payload, the scenes and the scripts are the shipped ones.
  *
  * Two things this tool refuses to do, both learned the hard way
- * (docs/AUDIT_2026-10-21.md §12.3, docs/VERIFICATION_2026-10-22.md §3):
+ * (docs/DECISIONS.md §12.3, docs/DECISIONS.md §3):
  *
  *  - it will not call a screenshot a "screen" without checking that the engine
  *    reached the stage it asked for (stage log line, or the gameplay marker);
@@ -186,7 +186,7 @@ for (const viewport of viewports) {
     // soon as their work finishes, which in a web build is immediately. The
     // settle delay used to be spent after they had already left, so the frame
     // filed as LOADING was a photograph of the ident -- the two looked
-    // identical in the audit (docs/UX_AUDIT_2026-10-22.md 4) for that reason.
+    // identical in the audit (docs/DECISIONS.md 4) for that reason.
     // Those three are photographed the moment they announce themselves; the
     // rest get the settle they need to finish laying out.
     const transient = TRANSIENT_STAGES.has(stage);
@@ -267,7 +267,7 @@ for (const viewport of viewports) {
   console.log(`  ${reachedGameplay ? 'ok  ' : 'MISS'} ${'GAMEPLAY'.padEnd(10)} ${viewport.spec}`);
 
   if (requested.includes('TOUR')) {
-    // P, not F10: F10 never reaches the page (docs/VERIFICATION_2026-10-22.md §3.2).
+    // P, not F10: F10 never reaches the page (docs/DECISIONS.md §3.2).
     await page.keyboard.press('KeyP');
     await new Promise((resolve) => setTimeout(resolve, 900));
     const engaged = lines.some((line) => line.includes('World tour: review camera engaged'));

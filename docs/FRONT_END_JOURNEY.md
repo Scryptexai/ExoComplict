@@ -60,7 +60,7 @@ sheet, plus a video made from the same frames) until 2026-10-23, when it was cut
 it competed with the wordmark for the only focal point a load screen has and it
 said nothing about the game. The stage is now the wordmark, the title, the
 status line and the bar, at the sizes a load screen is read from
-(docs/VERIFICATION_2026-10-23.md 3). `reduce_motion` still governs the
+(docs/DECISIONS.md 3). `reduce_motion` still governs the
 indeterminate sweep.
 
 ## STUDIO — `stage_studio_ident.gd`
@@ -118,7 +118,7 @@ sixth row would be decoration disagreeing with gameplay.
 | ARMORY | `ArmoryUi`, the in-game shop widget, spending real BP for real unlocks |
 | SETTINGS | `AegisSettingsMenu`, writing `user://aegis.cfg` |
 
-The screen is composed like a lobby, not a form (docs/VERIFICATION_2026-10-23.md
+The screen is composed like a lobby, not a form (docs/DECISIONS.md
 9): a top bar with the wordmark and the wallet chip at opposite corners, the
 operative in 3D in a band sized as a share of the screen, the operative and
 theatre cards side by side, then the dock — record, tab row, and the amber
@@ -327,4 +327,4 @@ health, speed or ability in this project and no per-world wave count in data, so
 a number in the resource would be decoration -- readable by the player, used by
 nothing.
 
-Results are recorded in `docs/asset-inspections/` once the suite has been run.
+Frames are written to `exports/flow/` by `tools/qa_flow_shots.mjs`.

@@ -4,7 +4,7 @@
 ## bar that reports the engine's own count. It carried a walking robot until
 ## 2026-10-23; the robot was cut because it competed with the product mark for
 ## the only focal point a load screen has, and because it said nothing about
-## the game (docs/VERIFICATION_2026-10-23.md 3). What is left is the hierarchy
+## the game (docs/DECISIONS.md 3). What is left is the hierarchy
 ## the screen actually needs, at the size a load screen is read from.
 ##
 ## The bar is driven by `ResourceLoader.load_threaded_get_status`, so the
@@ -44,7 +44,7 @@ func _ready() -> void:
 	# Deliberately *not* `loading_keyart.jpg`. An older opening used the same
 	# key art behind the same scrim, so for as long as the load took the two
 	# were the same picture -- the audit's "two stages look like one screen"
-	# (docs/UX_AUDIT_2026-10-22.md 4). A load is a utility moment, not the
+	# (docs/DECISIONS.md 4). A load is a utility moment, not the
 	# poster. The backdrop is a flat colour, so it is also up on the first frame
 	# instead of waiting for a 40 KB JPEG to decode.
 	var plate := ColorRect.new()

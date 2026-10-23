@@ -126,9 +126,11 @@ func _check_registry_matches_gameplay() -> void:
 	player.free()
 
 
-## The numbers on the WEAPON cards, parsed back out of the rendered text. This
-## is the whole "no decorative stats" rule in one loop, and it is why the
-## expected values are read from the resource instead of written here.
+## The numbers on the weapon rail, parsed back out of the rendered text. The
+## rail lives on HERO since the WEAPON page was retired -- the loadout is one
+## screen -- so this walks HERO's chips. It is the whole "no decorative stats"
+## rule in one loop, and it is why the expected values are read from the
+## resource instead of written here.
 func _check_cards_match_the_definitions() -> void:
 	_front_end = FrontEndScene.instantiate()
 	_front_end.get_node("ProgressionService").set("profile_path", PROFILE_PATH)
@@ -136,12 +138,12 @@ func _check_cards_match_the_definitions() -> void:
 	await process_frame
 	await process_frame
 	_profile = _front_end.get_node("ProgressionService")
-	_front_end.go_to(&"WEAPON", {})
+	_front_end.go_to(&"HERO", {})
 	await process_frame
 	await process_frame
 
-	var stage: Control = _front_end.get_node_or_null("StageHost/WEAPON")
-	if not _expect(stage != null, "the WEAPON stage is instantiated"):
+	var stage: Control = _front_end.get_node_or_null("StageHost/HERO")
+	if not _expect(stage != null, "the HERO stage is instantiated"):
 		return
 	var cards := 0
 	for child in stage.find_children("*", "Button", true, false):
@@ -155,14 +157,13 @@ func _check_cards_match_the_definitions() -> void:
 			definition != null, "%s: the card reads a definition from the registry" % weapon_id
 		):
 			continue
-		# Each carousel item is the chip plus its caption; the caption carries the
-		# name and the state, because an 88 px plate cannot hold a word.
-		var item: Node = button.get_parent()
-		var item_text := text_of(item)
+		# A chip in the rail carries its own name, because the row has no room
+		# for a caption under every slot.
+		var item_text := button.text
 		_expect(
 			item_text.contains(definition.display_name.to_upper()),
 			(
-				"%s: the carousel item names the weapon the definition names (%s)"
+				"%s: the rail chip names the weapon the definition names (%s)"
 				% [weapon_id, definition.display_name]
 			)
 		)
@@ -232,6 +233,7 @@ func _check_stat(key: String, line: String, expected: float, weapon_id: StringNa
 func _check_selection_ids_are_known() -> void:
 	for entry in [
 		{"stage": &"HERO", "meta": "hero_id", "known": ProgressionService.HERO_IDS},
+		{"stage": &"HERO", "meta": "weapon_id", "known": ProgressionService.WEAPON_IDS},
 		{"stage": &"WORLD", "meta": "world_id", "known": ProgressionService.WORLD_IDS},
 	]:
 		var name: StringName = entry["stage"]
@@ -343,7 +345,6 @@ func _check_referenced_art_exists() -> void:
 		&"CHAPTER",
 		&"DASHBOARD",
 		&"HERO",
-		&"WEAPON",
 		&"WORLD",
 	]:
 		_front_end.go_to(name, {})
@@ -489,10 +490,10 @@ func _check_unlock_economics() -> void:
 	# has to quote the same number the service will take.
 	_reset_unlocks()
 	_profile.set("balance", 0)
-	_front_end.go_to(&"WEAPON", {})
+	_front_end.go_to(&"HERO", {})
 	await process_frame
 	await process_frame
-	var stage: Control = _front_end.get_node_or_null("StageHost/WEAPON")
+	var stage: Control = _front_end.get_node_or_null("StageHost/HERO")
 	if stage == null:
 		return
 	for child in stage.find_children("*", "Button", true, false):
@@ -503,8 +504,9 @@ func _check_unlock_economics() -> void:
 		if bool(_profile.is_unlocked(weapon_id)):
 			continue
 		var cost := int(_profile.unlock_cost(weapon_id))
-		var state := _meta_labels(button, "state_line")
-		if state.is_empty():
+		# The chip's own text is the state line: this rail has no caption row.
+		var state := button.text
+		if not state.contains("BP"):
 			continue
 		_expect(
 			state.contains("%d BP" % cost),

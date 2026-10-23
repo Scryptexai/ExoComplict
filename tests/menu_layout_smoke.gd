@@ -37,7 +37,7 @@ const SIZES := {
 ## selection lists. STUDIO/BOOT/LOADING/CHAPTER/PRELOAD are single-purpose
 ## panels with no edge-hugging actions (STUDIO has no controls at all: it is the
 ## studio's ident and nothing of ours is drawn on it).
-const STAGES := [&"DASHBOARD", &"HERO", &"WEAPON", &"WORLD"]
+const STAGES := [&"DASHBOARD", &"HERO", &"WORLD"]
 ## AegisTokens.MIN_TOUCH_PX, less a pixel of rounding.
 const MIN_TOUCH := 63.0
 

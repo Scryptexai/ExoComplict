@@ -25,7 +25,7 @@ project (and of every `const X = preload(...)` alias), then resolves each
 following `extends` chains. A call to a non-static function on a class name is
 a violation, and so is a call to a method that no class in the chain declares.
 
-Two things make the check honest rather than decorative (docs/AUDIT_2026-10-21.md
+Two things make the check honest rather than decorative (docs/DECISIONS.md
 §6, §12):
 
 * Comments and string literals are stripped before the call sites are scanned,

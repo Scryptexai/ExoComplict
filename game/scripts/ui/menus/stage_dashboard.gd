@@ -1,7 +1,7 @@
 ## MAIN DASHBOARD: the lobby.
 ##
 ## This screen is composed the way a AAA lobby is composed, from the references
-## measured in docs/VERIFICATION_2026-10-23.md 1 rather than from taste:
+## measured in docs/DECISIONS.md 1 rather than from taste:
 ##
 ##   * a **full-height character** in the middle, the thing the screen is about
 ##     (CoD Mobile's lobby, Valorant's, Apex's and Free Fire's all do this);
@@ -23,14 +23,14 @@
 ## shows. A sixth row would mean inventing data the game does not track.
 ##
 ## Every button does something:
-##   DEPLOY     starts the loadout chain HERO -> WEAPON -> WORLD -> PRELOAD
+##   DEPLOY     starts the loadout chain HERO -> WORLD -> PRELOAD
 ##   ARMORY     the in-game shop, spending real BP for real unlocks
 ##   SETTINGS   the shared AegisSettingsMenu, writing user://aegis.cfg
 ##
 ## There is no REPLAY INTRO. The studio ident is not this game's content: it is
 ## the studio's mark, played at launch like a publisher card, and a dashboard
 ## row offering to rewatch somebody else's brand film was the wrong idea about
-## what that file is (docs/VERIFICATION_2026-10-23.md 5).
+## what that file is (docs/DECISIONS.md 5).
 extends MenuStage
 
 const ShowcaseViewportScript = preload("res://scripts/ui/widgets/showcase_viewport.gd")
@@ -44,12 +44,9 @@ const SHOWCASE_FILL := 0.94
 
 # --- top bar ---------------------------------------------------------------- #
 var _top: HBoxContainer
-var _mark: TextureRect
-var _status_label: Label
-var _wallet: AegisPanel
+var _chrome: LobbyChrome
 ## The wallet figure, in the "BATTLE POINTS  n" shape the tests and the screen
 ## reader read as one phrase.
-var _balance: Label
 
 # --- the three bands -------------------------------------------------------- #
 var _root: VBoxContainer
@@ -137,55 +134,29 @@ func _ready() -> void:
 # --- construction ----------------------------------------------------------- #
 
 
-## Wordmark left, readiness in the middle, wallet right. This is the shape all
-## four references use: identity on one corner, money on the other, and nothing
-## between them competing with the character.
+## The shared lobby dock: wordmark, HOME / OPERATIVE / THEATRE, the two figures
+## the save file stores, the operative plate and the gear. Every lobby page
+## builds this same dock (see `LobbyChrome`), which is the difference between a
+## product with a top bar and three screens that each invented one.
 func _build_top_bar() -> void:
-	_top = HBoxContainer.new()
-	_top.name = &"LobbyTopBar"
-	_top.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_separation(_top, 16)
-	_root.add_child(_top)
+	_chrome = LobbyChrome.build(self, LobbyChrome.TAB_HOME)
+	_chrome.navigate.connect(_on_nav_requested)
+	_chrome.settings_requested.connect(_on_settings_pressed)
+	_top = _chrome.row
+	_root.add_child(_chrome.bar)
 
-	_mark = TextureRect.new()
-	_mark.name = &"Wordmark"
-	_mark.texture = try_texture("res://assets/ui/logo_wordmark.png")
-	_mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_size_both(_mark, Vector2(230.0, 58.0), Vector2(300.0, 75.0))
-	_top.add_child(_mark)
 
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_top.add_child(spacer)
-
-	_status_label = make_label("FIELD READY", "label", AegisTokens.OK)
-	_status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_status_label.max_lines_visible = 1
-	_status_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_top.add_child(_status_label)
-
-	# The wallet is a chip, not a row: a borderless line of type on a lobby is
-	# invisible against the backdrop, and every reference puts the currency on
-	# a surface of its own. On a 360 px screen it moves into the record instead
-	# -- see `_place_wallet()`.
-	_wallet = AegisPanel.new()
-	_wallet.name = &"WalletChip"
-	_wallet.interactive = false
-	_wallet.accent_side = "none"
-	_wallet.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_wallet.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_top.add_child(_wallet)
-	_balance = make_label("BATTLE POINTS  0", "label", AegisTokens.ACCENT)
-	# One line, and wide enough for its own text. Wrapping it was the fix for a
-	# different problem (a Label's minimum width is its text width) but an
-	# ellipsised wrapped label collapses to its longest *word* when the row is
-	# tight, and the chip drew as a 40 px empty box beside the spacer. The width
-	# now comes from `_apply_density`, which knows how much the row has.
-	_balance.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_wallet.add_child(_balance)
+## The dock is a *navigator*, so a tab means "go to that page" -- not "open the
+## thing this page already is". HOME from HOME does nothing, which the chrome
+## already filters out before emitting.
+func _on_nav_requested(tab_id: StringName) -> void:
+	match tab_id:
+		LobbyChrome.TAB_OPERATIVE:
+			completed.emit(&"HERO", {"hero_id": String(progression_service().selected_hero_id)})
+		LobbyChrome.TAB_WORLD:
+			completed.emit(&"WORLD", {"world_id": String(progression_service().selected_world_id)})
+		_:
+			pass
 
 
 func _build_bands() -> void:
@@ -431,7 +402,8 @@ func refresh_profile() -> void:
 	var progression := progression_service()
 	if progression == null:
 		return
-	_balance.text = "BATTLE POINTS  %d" % progression.balance
+	if _chrome != null:
+		_chrome.refresh(progression)
 	_best.text = "BEST SCORE  %d" % progression.best_score
 	_runs.text = "RUNS COMPLETED  %d" % progression.completed_runs
 	var hero := _hero_name(progression.selected_hero_id)
@@ -590,7 +562,7 @@ func _apply_density() -> void:
 		8.0 if compact else 28.0
 	)
 	# The card surface costs its inset twice per card in width and in height.
-	for panel in [_hero_panel, _mission_panel, _stats, _wallet, _deploy_chip]:
+	for panel in [_hero_panel, _mission_panel, _stats, _deploy_chip]:
 		panel.set_surface_pad(px(4.0 if cramped else (6.0 if compact else 12.0)))
 
 	physical_separation(_root, 8.0 if cramped else (12.0 if compact else 20.0))
@@ -607,16 +579,12 @@ func _apply_density() -> void:
 
 	# --- typography and plate sizes -------------------------------------- #
 	if desktop:
-		physical_min_size(_mark, 300.0, 75.0)
-		physical_min_size(_balance, 190.0, 0.0)
 		physical_min_size(_hero_plate, 120.0, 160.0)
 		physical_min_size(_mission_plate, 132.0, 100.0)
 		physical_min_size(_deploy, 0.0, 100.0)
 		for tab in _secondary.get_children():
 			physical_min_size(tab as Control, 0.0, 68.0)
 	elif short_landscape:
-		physical_min_size(_mark, 150.0, 40.0)
-		physical_min_size(_balance, 150.0, 0.0)
 		physical_min_size(_hero_plate, 72.0, 96.0)
 		physical_min_size(_mission_plate, 92.0, 70.0)
 		physical_min_size(_deploy, 0.0, 76.0)
@@ -627,16 +595,12 @@ func _apply_density() -> void:
 		# wordmark plus a 132 px chip plus the gap is 316 before either control's
 		# own inset, and the row was 4 px wider than the screen -- which stretched
 		# every card under it and put four labels past the right edge.
-		physical_min_size(_mark, 150.0, 38.0)
-		physical_min_size(_balance, 124.0, 0.0)
 		physical_min_size(_hero_plate, 76.0, 96.0)
 		physical_min_size(_mission_plate, 92.0, 70.0)
 		physical_min_size(_deploy, 0.0, 76.0)
 		for tab in _secondary.get_children():
 			physical_min_size(tab as Control, 0.0, 64.0)
 	else:
-		physical_min_size(_mark, 150.0, 40.0)
-		physical_min_size(_balance, 150.0, 0.0)
 		physical_min_size(_hero_plate, 84.0, 112.0)
 		physical_min_size(_mission_plate, 100.0, 76.0)
 		physical_min_size(_deploy, 0.0, 96.0)
@@ -684,41 +648,12 @@ func _apply_density() -> void:
 	# The record is the last thing a player reads and the first thing that goes
 	# when the dock has to fit: the profile line duplicates the counts under it.
 	_rank_line.visible = not compact
-	_place_wallet(cramped)
-	# The operative card already says FIELD READY, so the header's copy of it is
-	# the first thing to go when the bar has to share 390 px with the wordmark
-	# and the wallet.
-	_status_label.visible = width >= 560.0 and not cramped
 	_deploy_chip.visible = not cramped
 	_limit_lines(_deploy_caption, 1)
 
 	if is_instance_valid(_showcase) and _showcase.has_model():
 		_showcase.frame_to_fill(SHOWCASE_FILL, 0.04)
 	_apply_armory_and_settings_sizes()
-
-
-## The wallet chip lives in the top bar, except on the narrowest screen, where
-## "BATTLE POINTS  0" at `label` size is 158 px and the bar only has room for it
-## by eating the wordmark. There it becomes the first row of the record, which is
-## the same three figures a player came to read, in one stack.
-##
-## One label is moved between two parents rather than duplicated, so there is
-## never a second copy of the number that could disagree with the first.
-func _place_wallet(in_record: bool) -> void:
-	if not is_instance_valid(_balance):
-		return
-	var wanted: Node = _numbers if in_record else _wallet
-	if _balance.get_parent() == wanted:
-		return
-	if _balance.get_parent() != null:
-		_balance.get_parent().remove_child(_balance)
-	if in_record:
-		wanted.add_child(_balance)
-		_numbers.move_child(_balance, 0)
-		_wallet.visible = false
-	else:
-		wanted.add_child(_balance)
-		_wallet.visible = true
 
 
 func _apply_armory_and_settings_sizes() -> void:
@@ -735,7 +670,7 @@ func _apply_armory_and_settings_sizes() -> void:
 
 func _on_resized() -> void:
 	relayout()
-	_orient_nodes([_mark, _hero_plate, _mission_plate])
+	_orient_nodes([_hero_plate, _mission_plate])
 	_apply_orientation()
 	_apply_density()
 

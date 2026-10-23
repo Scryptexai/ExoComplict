@@ -1,11 +1,16 @@
 ## Owns the front-end journey: STUDIO -> BOOT -> LOADING -> CHAPTER ->
-## DASHBOARD -> HERO -> WEAPON -> WORLD -> PRELOAD -> gameplay.
+## DASHBOARD -> HERO -> WORLD -> PRELOAD -> gameplay.
 ##
 ## This is the only place that knows the order. A stage asks for the next one by
 ## name and FrontEnd decides whether that is legal, which is what keeps the
 ## onboarding honest: the CHAPTER 01 card is skipped on a second launch because
 ## *this* object reads `intro_seen` off the profile, not because each screen
 ## remembers whether it played.
+##
+## There is no WEAPON stage any more. Its screen was three weapon chips around a
+## 3D rifle -- a section of a loadout, not a page in a journey -- so the rail
+## moved into HERO, next to the operative who carries it. The journey is shorter
+## and the loadout is still two choices: who, and with what.
 ##
 ## STUDIO is first and unguarded. A studio ident is a launch beat, the way a
 ## Garena or Moonton card is, so it comes before the game's own logo on every
@@ -27,7 +32,6 @@ const STAGE_SCENES := {
 	&"CHAPTER": preload("res://scenes/ui/menus/stage_chapter.tscn"),
 	&"DASHBOARD": preload("res://scenes/ui/menus/stage_dashboard.tscn"),
 	&"HERO": preload("res://scenes/ui/menus/stage_hero_select.tscn"),
-	&"WEAPON": preload("res://scenes/ui/menus/stage_weapon_select.tscn"),
 	&"WORLD": preload("res://scenes/ui/menus/stage_world_select.tscn"),
 	&"PRELOAD": preload("res://scenes/ui/menus/stage_preload.tscn"),
 }
@@ -36,8 +40,7 @@ const STAGE_SCENES := {
 ## and ignore the key.
 const BACK_TARGET := {
 	&"HERO": &"DASHBOARD",
-	&"WEAPON": &"HERO",
-	&"WORLD": &"WEAPON",
+	&"WORLD": &"HERO",
 	&"PRELOAD": &"WORLD",
 }
 

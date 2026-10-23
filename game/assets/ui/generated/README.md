@@ -41,7 +41,7 @@ Real on-disk sizes as measured. These are **not** the sizes the game uses; see
 ## The robot frames are gone
 
 `robot_walk_01`-`04`, `robot_walk_alt1` and `robot_walk_alt2` were deleted with
-the LOADING walk cycle on 2026-10-23 (docs/VERIFICATION_2026-10-23.md 3). The
+the LOADING walk cycle on 2026-10-23 (docs/DECISIONS.md 3). The
 robot was cut from the loading screen for competing with the product mark; the
 sources went with it, because a build step that reads six inputs to produce no
 output is a pipeline that lies about what it ships.

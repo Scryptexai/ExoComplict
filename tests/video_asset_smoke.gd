@@ -4,7 +4,7 @@
 ## `branding_studio_present.mp4` (committed by its owner at the repository root)
 ## into `studio_ident.ogv` by `tools/art/build_ui_video.py`. (The LOADING walk
 ## cycle that used to be the second one was cut on 2026-10-23 --
-## docs/VERIFICATION_2026-10-23.md 3.)
+## docs/DECISIONS.md 3.)
 ##
 ## It is a *studio brand film* -- somebody else's mark -- so this test checks
 ## the asset and the stage's restraint: the file is the delivered film (same
@@ -19,7 +19,7 @@
 ##
 ## What it cannot tell you is whether a frame is ever presented: the headless
 ## runner has neither a display nor an audio device. Playback is measured in a
-## real browser build and recorded in docs/asset-inspections/, not asserted here.
+## real browser build and recorded in docs/DECISIONS.md, not asserted here.
 extends SceneTree
 
 const VIDEOS := {
@@ -165,7 +165,7 @@ func _check_video(key: String, path: String, manifest: Dictionary) -> void:
 ## stage holds the video and nothing else. No key art behind it, no wordmark on
 ## it, no caption and no skip button -- which is also how it stays different
 ## from LOADING, the screen the audit said it used to be identical to
-## (docs/UX_AUDIT_2026-10-22.md 4).
+## (docs/DECISIONS.md 4).
 func _check_the_ident_carries_no_product_art() -> void:
 	var ident: Control = StudioIdentScene.instantiate()
 	var loading: Control = LoadingScene.instantiate()

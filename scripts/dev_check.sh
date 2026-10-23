@@ -198,7 +198,7 @@ printf '\n'
 # A folder tree is a suggestion; this is the part that holds. The known
 # violations from the phase-0 audit are recorded in the baseline so the check
 # enforces "no new ones" from today, and the baseline shrinks phase by phase
-# until it is empty (docs/STRUCTURE_PLAN.md §5).
+# until it is empty (docs/ARCHITECTURE.md §5).
 printf '[5/7] Module and layer boundaries\n'
 ARCH_CHECK="$ROOT_DIR/tools/check_architecture.py"
 ARCH_BASELINE="$ROOT_DIR/tools/architecture_baseline.json"

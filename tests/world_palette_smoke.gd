@@ -2,7 +2,7 @@ extends SceneTree
 
 ## Guards the one thing that made gameplay and menus look like two products:
 ## the world's palette had drifted away from the design tokens the entire UI is
-## built from (docs/UX_AUDIT_2026-10-22.md 5.1).
+## built from (docs/DECISIONS.md 5.1).
 ##
 ## This is not a style test -- no test can say whether a colour looks right.
 ## It asserts that the two palettes are *the same palette*: the world's colours
