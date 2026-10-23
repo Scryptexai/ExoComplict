@@ -58,6 +58,12 @@ var _root: VBoxContainer
 ## moved between them, so a rotation is a reconciliation rather than a rebuild.
 var _body_portrait: Control
 var _body_landscape: HBoxContainer
+## Portrait only: two full-band containers that pin the card stack to the top
+## edge and the dock to the bottom edge. Containers own their children's rects,
+## so nothing here has to guess a height a frame early -- the earlier version
+## placed both by hand and was still reading last frame's minimum.
+var _cards_host: VBoxContainer
+var _dock_host: VBoxContainer
 ## The edge-docked card stack.
 var _cards: VBoxContainer
 ## The character's box. It is a Control the 3D viewport fills.
@@ -198,6 +204,18 @@ func _build_bands() -> void:
 	_body_portrait.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_body_portrait.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_body_portrait.clip_contents = true
+
+	_cards_host = VBoxContainer.new()
+	_cards_host.name = &"LobbyCardsHost"
+	_cards_host.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_cards_host.alignment = BoxContainer.ALIGNMENT_BEGIN
+	_cards_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	_dock_host = VBoxContainer.new()
+	_dock_host.name = &"LobbyDockHost"
+	_dock_host.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_dock_host.alignment = BoxContainer.ALIGNMENT_END
+	_dock_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	_body_landscape = HBoxContainer.new()
 	_body_landscape.name = &"LobbyBandsLandscape"
@@ -547,6 +565,9 @@ func _apply_orientation() -> void:
 			_root.remove_child(_body_portrait)
 		if _body_landscape.get_parent() == null:
 			_root.add_child(_body_landscape)
+		for host in [_cards_host, _dock_host]:
+			if host.get_parent() != null:
+				host.get_parent().remove_child(host)
 		_body_landscape.add_child(_cards)
 		_body_landscape.add_child(_stage)
 		_body_landscape.add_child(_dock)
@@ -562,11 +583,13 @@ func _apply_orientation() -> void:
 		_body_portrait.add_child(_stage)
 		_body_portrait.add_child(_cards)
 		_body_portrait.add_child(_dock)
-		# The stage fills the band; the cards and the dock are placed against its
-		# edges by `_layout_overlay()`, which runs after the band has a size.
-		# (`PRESET_BOTTOM_WIDE` alone put the dock's *top* on the bottom edge, so
-		# it drew from y=832 downward, off a 844 px screen.)
+		# The stage fills the band and the two hosts float over it: cards against
+		# the top edge, dock against the bottom edge, character between them.
 		_stage.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_body_portrait.add_child(_cards_host)
+		_body_portrait.add_child(_dock_host)
+		_cards_host.add_child(_cards)
+		_dock_host.add_child(_dock)
 
 
 ## Four budgets, measured on the four viewports the smoke test uses. The
@@ -690,32 +713,6 @@ func _apply_density() -> void:
 	if is_instance_valid(_showcase) and _showcase.has_model():
 		_showcase.frame_to_fill(SHOWCASE_FILL, 0.04)
 	_apply_armory_and_settings_sizes()
-	_layout_overlay()
-	# The band's real size arrives one frame later (it is being given a minimum
-	# by the pass above), so the edges are re-placed once the layout has run.
-	_layout_overlay.call_deferred()
-
-
-## Places the card stack against the top edge and the dock against the bottom
-## edge of the portrait overlay, leaving the character between them. Containers
-## inside a plain Control keep their own rect, so this is the one place that
-## decides it -- and it runs after the band has a size, twice, because the first
-## call is made before the containers have computed their minimums.
-func _layout_overlay() -> void:
-	if not is_instance_valid(_body_portrait) or is_landscape():
-		return
-	if not _body_portrait.is_inside_tree():
-		return
-	var band := _body_portrait.size
-	if band.y <= 0.0:
-		return
-	_cards.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_cards.position = Vector2.ZERO
-	_cards.size = Vector2(band.x, _cards.get_combined_minimum_size().y)
-	var dock_height := _dock.get_combined_minimum_size().y
-	_dock.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_dock.size = Vector2(band.x, dock_height)
-	_dock.position = Vector2(0.0, maxf(band.y - dock_height, 0.0))
 
 
 func _apply_armory_and_settings_sizes() -> void:
