@@ -49,6 +49,7 @@ var _stage: MenuStage
 var _active: StringName
 var _tabs: Array[AegisButton] = []
 var _labels: Array[Label] = []
+var _tab_glyphs: Array[TextureRect] = []
 var _nav: HBoxContainer
 var _plate: HBoxContainer
 var _plate_state: Label
@@ -127,19 +128,32 @@ func _build_nav() -> void:
 	_stage.physical_separation(_nav, 2.0)
 	for tab_id in [TAB_HOME, TAB_OPERATIVE, TAB_WORLD]:
 		var spec: Array = TABS[tab_id]
+		# No `Button.icon`. A Button draws its icon texture at the SVG's raster
+		# size and ignores `icon_max_width` for these assets -- on the compact
+		# dock the glyph came out as a 10 px fragment in a 40 px tab. A
+		# TextureRect sized in physical pixels is what the resource chips
+		# already use, and those draw correctly at 18 px.
 		var button := AegisButton.new()
 		button.name = "DockTab%s" % String(tab_id).capitalize()
 		button.text = ""
-		button.icon = AegisTheme.icon(spec[1], true)
-		# `expand_icon` makes the glyph fill the tab's content box; without it
-		# Godot draws the SVG at its raster default, which on the compact dock
-		# came out as a 10 px fragment in the middle of a 40 px tab.
-		button.expand_icon = true
 		button.focus_mode = Control.FOCUS_ALL
 		button.tooltip_text = spec[0]
 		button.set_meta("tab_id", tab_id)
-		button.add_theme_constant_override("icon_max_width", 22)
-		button.add_theme_constant_override("h_separation", 0)
+		var glyph := TextureRect.new()
+		glyph.name = &"DockTabGlyph"
+		glyph.texture = AegisTheme.icon(spec[1], true)
+		glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Anchored to the button's centre with a fixed size in physical pixels,
+		# which is the one thing a Button cannot do for its own icon.
+		glyph.set_anchors_preset(Control.PRESET_FULL_RECT)
+		glyph.offset_left = 0.0
+		glyph.offset_top = 0.0
+		glyph.offset_right = 0.0
+		glyph.offset_bottom = 0.0
+		button.add_child(glyph)
+		_tab_glyphs.append(glyph)
 		button.pressed.connect(_on_tab_pressed.bind(tab_id))
 		AegisTheme.set_button_variant(button, "ghost")
 		_nav.add_child(button)
@@ -294,6 +308,11 @@ func _apply_density() -> void:
 	_stage.physical_min_size(_mark, 96.0 if compact else 168.0, 24.0 if compact else 40.0)
 	_stage.physical_min_size(_avatar, 26.0 if compact else 36.0, 26.0 if compact else 36.0)
 	_stage.physical_min_size(_nav, 0.0, icon_size)
+	for glyph in _tab_glyphs:
+		# 20 px inside a 32 px tab: the glyph keeps a 6 px margin, which is what
+		# makes it read as an icon rather than a smudge.
+		var side := 18.0 if compact else 20.0
+		_stage.physical_min_size(glyph, side, side)
 	bar.set_surface_pad(_stage.px(3.0 if compact else 7.0))
 	_stage.physical_min_size(_balance_chip, 64.0 if compact else 132.0, 0.0)
 	if is_instance_valid(_avatar):
