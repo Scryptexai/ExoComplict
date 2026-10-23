@@ -42,6 +42,8 @@ const TABS := {
 ## their words: a dock whose labels are clipped is worse than one that reads as
 ## a row of glyphs, and the glyphs are distinct.
 const LABEL_MIN_WIDTH := 560.0
+## How many leaner configurations `_apply_density` is allowed to try.
+const LEVELS := 7
 
 var bar: AegisPanel
 var row: HBoxContainer
@@ -61,6 +63,8 @@ var _avatar: TextureRect
 var _with_settings := true
 ## True when the dock has room for words as well as glyphs.
 var _wide := true
+## Which of the `LEVELS` configurations is in force.
+var _level := -1
 var _gear: AegisButton
 var _mark: TextureRect
 var _plate_text: VBoxContainer
@@ -276,46 +280,65 @@ func _on_tab_pressed(tab_id: StringName) -> void:
 	navigate.emit(tab_id)
 
 
-## Re-authored on every resize.
+## Re-authored on every resize, and the *content* is decided by measurement.
 ##
 ## The dock is the one row that has to hold identity, navigation, two figures, a
-## portrait and a control, so it is also the row most able to push a 390 px
-## screen wider than itself -- which is exactly what happened: the page inherited
-## the dock's 745 px minimum and every card under it was reported off-screen.
+## portrait and a control, so it is also the row most able to push the page
+## wider than the screen. A table of breakpoints was tried and kept costing
+## frames: the thresholds were tuned against the portrait phone and the desktop
+## and said nothing about a 844x390 landscape phone, where the runs chip was
+## still shown and the gear was drawn 120 px past the right edge (measured in
+## the r4 capture, `?qa_menu=1`).
 ##
-## So the dock gives things up in a fixed order, by *physical* width, and never
-## clips:
+## So the dock now walks its own contents from richest to leanest and keeps the
+## first configuration whose real combined minimum width fits the screen. What
+## it gives up, in order:
 ##
-##   >= 900 px  words everywhere: BATTLE POINTS 0, RUNS 0, tab labels
-##   >= 720 px  no runs chip (the DASHBOARD record still has the figure)
-##   >= 560 px  no plate caption, no tab labels -- glyphs only
-##   >= 420 px  no settings gear (DASHBOARD's tab row opens the same overlay)
-##   <  420 px  no wordmark: the dock becomes resources + navigation
+##   1. tab labels go from 104 px to 88 px
+##   2. the RUNS chip goes (HOME's record ribbon already prints the figure)
+##   3. tab labels go to 76 px
+##   4. the operative's name and state go -- the portrait stays
+##   5. the tabs lose their words entirely and become glyphs
+##   6. the settings gear goes
+##   7. the wordmark goes
 ##
-## What is left always fits: 34 (avatar) + 3x38 (tabs) + 82 (chip) + gaps = 254
-## of the 358 px a 390 screen has inside its margins.
+## Nothing is ever clipped to make it fit, and the order is the one a player
+## would choose: a word you cannot read is worse than a glyph, and a figure the
+## page already shows is the first thing that can leave.
 func _apply_density() -> void:
-	var width := _stage.physical_size().x
-	_wide = width >= 900.0
-	_runs_chip.visible = width >= 720.0
-	_plate_text.visible = width >= 560.0
-	_mark.visible = width >= 420.0
-	if is_instance_valid(_gear):
-		_gear.visible = _with_settings and width >= 420.0
+	var stretch := 1.0 / maxf(_stage.px(1.0), 0.0001)
+	# The bar's own inset and the page's margin are spent before any child is.
+	var budget := _stage.physical_size().x * 0.94
+	var chosen := LEVELS
+	for level in range(LEVELS + 1):
+		_apply_level(level)
+		if row.get_combined_minimum_size().x * stretch <= budget:
+			chosen = level
+			break
+	_apply_level(chosen)
 
-	# These numbers are a budget, and the budget is 358 px on a 360 px phone:
-	# avatar + three tabs + a chip + the bar's own inset. 3 px over the edge is
-	# how the whole page started scrolling sideways.
-	var compact := width < 560.0
+
+func _apply_level(level: int) -> void:
+	var named := level <= 4
+	var compact := level >= 5
+	var tab_width := 40.0
+	if level == 0:
+		tab_width = 104.0
+	elif level <= 3:
+		tab_width = 88.0 if level <= 2 else 76.0
+	elif level == 4:
+		tab_width = 76.0
+
+	_runs_chip.visible = level <= 1
+	_plate_text.visible = level <= 3
+	_mark.visible = level <= 6
+	if is_instance_valid(_gear):
+		_gear.visible = _with_settings and level <= 5
+	_avatar.visible = true
+
 	var icon_size := 32.0 if compact else 40.0
-	# The measured budget at 360 px was 348 for the dock alone -- 12 px of icon
-	# padding per tab and the chip's own inset add up faster than the arithmetic
-	# suggests. So the compact dock drops to what it can prove: 40 px tabs, a
-	# 64 px chip, an 8 px gutter, and no avatar -- the operative's portrait is on
-	# the OPERATIVE page, and the dock still names them.
-	var tab_width := 40.0 if compact else (88.0 if width < 900.0 else 104.0)
 	for tab in _tabs:
-		tab.text = "" if compact else str(TABS[tab.get_meta("tab_id")][0])
+		tab.text = str(TABS[tab.get_meta("tab_id")][0]) if named else ""
 		tab.add_theme_font_override("font", AegisTheme.font(AegisTokens.FAMILY_UI_M))
 		tab.add_theme_font_size_override("font_size", 15)
 		_stage.physical_min_size(tab, tab_width, icon_size)
@@ -338,8 +361,14 @@ func _apply_density() -> void:
 		glyph.offset_bottom = -_stage.px(6.0)
 	bar.set_surface_pad(_stage.px(3.0 if compact else 7.0))
 	_stage.physical_min_size(_balance_chip, 64.0 if compact else 132.0, 0.0)
-	if is_instance_valid(_avatar):
-		_avatar.visible = not compact
+
+	var wide := named and level <= 3
+	if wide != _wide:
+		_wide = wide
+		# The chips say "BATTLE POINTS  0" or plain "0" depending on this, and a
+		# resize does not otherwise re-render their text.
+		refresh(_stage.progression_service())
+	_level = level
 
 
 func set_active(tab_id: StringName) -> void:
@@ -357,7 +386,6 @@ func refresh(progression: ProgressionService) -> void:
 	# The word is part of the value, not a second label: on a wide screen a chip
 	# reads "BATTLE POINTS  1234", and on a phone it reads "1234" next to the
 	# trophy. One label, so the number can never disagree with its own caption.
-	_wide = _stage.physical_size().x >= 900.0
 	_balance_value.text = _figure(
 		str(_balance_chip.get_meta("caption", "")), progression.balance, _wide
 	)
