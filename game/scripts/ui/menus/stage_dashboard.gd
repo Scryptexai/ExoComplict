@@ -639,6 +639,27 @@ func _apply_density() -> void:
 	# of something still on the screen: the role is the card above the name, the
 	# brief is the WORLD card, the loadout is the three cards themselves.
 	_hero_role.visible = not cramped
+	# A `display_m` name is 32 px: "EXO OPERATIVE" measures 250 px and "NEON
+	# FRONTIER" 234, and each sits in a card whose plate already takes 76. That
+	# is the 364 px a 360 px screen was being asked for. Wrapping the name makes
+	# its minimum width the card's, which is the rule this project keeps
+	# relearning: a Label's minimum width is its text width unless it wraps.
+	for name_label in [_hero_name_label, _mission_name]:
+		if name_label == null:
+			continue
+		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_limit_lines(name_label, 2)
+		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	if cramped:
+		for name_label in [_hero_name_label, _mission_name]:
+			if name_label == null:
+				continue
+			name_label.set_meta("aegis_role", "heading")
+			AegisTheme.resize_label(
+				name_label,
+				"heading",
+				maxi(AegisTheme.type_size("heading"), _minimum_font_size(_stretch))
+			)
 	_mission_caption.visible = not cramped
 	# The brief is the WORLD card's paragraph. On a phone the theatre's *name*
 	# is the information; the sentence is what pays for the character's height.

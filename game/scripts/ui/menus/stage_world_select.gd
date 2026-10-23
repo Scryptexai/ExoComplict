@@ -288,7 +288,7 @@ func reframe() -> void:
 		physical_min_size(_map, 0.0, 0.0)
 		_map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_info_text.add_theme_constant_override("separation", 6)
-		physical_min_size(_launch, 0.0, 56.0 if short_landscape else 64.0)
+		physical_min_size(_launch, 0.0, 64.0)
 	else:
 		_reparent(_map, _body)
 		_reparent(_info, _body)
