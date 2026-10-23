@@ -476,7 +476,10 @@ func make_margin() -> MarginContainer:
 ## Push a container's margins out to the safe area plus a comfortable inset.
 ## Every menu screen calls this so the reserved edge is defined once.
 func apply_safe_margins(
-	container: MarginContainer, extra_side: float = 36.0, extra_bottom: float = 28.0
+	container: MarginContainer,
+	extra_side: float = 36.0,
+	extra_bottom: float = 28.0,
+	extra_top: float = 28.0
 ) -> void:
 	_refresh_metrics()
 	var insets := _safe_insets(physical_size())
@@ -489,7 +492,7 @@ func apply_safe_margins(
 	container.add_theme_constant_override(
 		"margin_bottom", roundi(px(maxf(insets.z, 0.0) + extra_bottom))
 	)
-	container.add_theme_constant_override("margin_top", roundi(_top_inset() + px(28.0)))
+	container.add_theme_constant_override("margin_top", roundi(_top_inset() + px(extra_top)))
 
 
 ## Grow every font under `root` so it renders at MIN_PHYSICAL_FONT_PX on the

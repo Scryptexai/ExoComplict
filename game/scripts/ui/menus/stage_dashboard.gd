@@ -46,6 +46,10 @@ var _left: VBoxContainer
 var _right: VBoxContainer
 var _mark: TextureRect
 var _stats: AegisPanel
+## The folder inside the stats panel, kept so a short screen can tighten it.
+var _stat_column: VBoxContainer
+## The primary action, kept so the compact arrangement can give 12 px back.
+var _deploy: AegisButton
 var _actions: VBoxContainer
 var _spacer: Control
 var _landscape_built := false
@@ -193,7 +197,8 @@ func _ready() -> void:
 	_stack.add_child(actions)
 	_actions = actions
 
-	var deploy := make_button("DEPLOY", "primary", "Choose your loadout and start a run")
+	_deploy = make_button("DEPLOY", "primary", "Choose your loadout and start a run")
+	var deploy := _deploy
 	physical_min_size(deploy, 0.0, 78.0)
 	deploy.pressed.connect(_on_deploy_pressed)
 	actions.add_child(deploy)
@@ -211,6 +216,7 @@ func _ready() -> void:
 
 	var stat_column := VBoxContainer.new()
 	physical_separation(stat_column, 12)
+	_stat_column = stat_column
 	_stats.add_child(stat_column)
 
 	_rank_line = make_label("PROFILE", "label", AegisTokens.INK_3)
@@ -429,7 +435,14 @@ func _apply_density() -> void:
 	var compact := physical_size().y < (520.0 if landscape else 900.0)
 	# The safe margins also come in on a short screen: 8 px top and bottom is
 	# worth more to the content than to the composition at that size.
-	apply_safe_margins(_margin, 20.0 if compact else 36.0, 16.0 if compact else 28.0)
+	# A landscape phone is 390 px tall. The web shell already reserves 30 px at
+	# the top for its own bar, so the stage's own top inset is cut to 8 there --
+	# 28 px of air above a wordmark is a desktop luxury, and it was the
+	# difference between DEPLOY fitting and REPLAY INTRO hanging off the bottom
+	# edge (menu_layout_smoke, 844x390).
+	apply_safe_margins(
+		_margin, 20.0 if compact else 36.0, 16.0 if compact else 28.0, 8.0 if compact else 28.0
+	)
 	physical_separation(_stack, 12.0 if compact else 22.0)
 	physical_separation(_left, 12.0 if compact else 22.0)
 	physical_separation(_right, 10.0 if compact else 16.0)
@@ -443,6 +456,11 @@ func _apply_density() -> void:
 	# rows and reads as a list, which is what it is.
 	var width := physical_size().x
 	_numbers.columns = 1 if width < 480.0 else (2 if width < 560.0 else 3)
+	physical_separation(_stat_column, 8.0 if compact else 12.0)
+	# 78 px is the desktop DEPLOY. On a 390 px tall screen it is one of three
+	# blocks that have to fit under a 30 px browser bar, and 66 is still above
+	# the 64 px touch floor and twice the height of the old button.
+	physical_min_size(_deploy, 0.0, 66.0 if compact else 78.0)
 	_rank_line.visible = not compact
 	_limit_lines(_mission_brief, 1 if compact else 2)
 	_limit_lines(_loadout, 1 if compact else 2)

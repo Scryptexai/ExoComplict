@@ -546,6 +546,14 @@ func _apply_density() -> void:
 		physical_min_size(control, compact_chip.x, compact_chip.y)
 	# Landscape has room for the full label; portrait shares the header with the
 	# status line and clipped it to "SELECT OPER…" when it did not fit.
+	# A 390 px tall landscape screen cannot hold the heading, the showcase, the
+	# carousel, three panel lines and two 64 px actions. The two descriptive
+	# lines are the part that goes: the name above them already says what the
+	# operative is, and the panel keeps the actions it exists to reach.
+	_role_label.visible = not short_screen
+	_loadout_label.visible = not short_screen
+	physical_separation(_actions, 8.0 if short_screen else 14.0)
+	physical_min_size(_continue, 0.0, AegisTokens.MIN_TOUCH_PX)
 	_heading.text = "SELECT OPERATIVE" if is_landscape() else "OPERATIVE"
 	physical_min_size(_carousel, 0.0, 88.0 if short_screen else 120.0)
 	physical_separation(_stack, 8.0 if short_screen else 14.0)

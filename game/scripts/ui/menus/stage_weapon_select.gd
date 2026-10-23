@@ -534,6 +534,10 @@ func _apply_density() -> void:
 	_state_label.visible = is_landscape() or physical_size().x >= 560.0
 	_heading.text = "SELECT WEAPON" if is_landscape() or short_screen else "LOADOUT"
 	physical_min_size(_carousel, 0.0, 84.0 if short_screen else 96.0)
+	# Same budget as HERO: on a 390 px tall screen the brief line gives way so
+	# CONTINUE stays on it. The stats above it are the data the screen exists to
+	# show and stay.
+	_detail_label.visible = not short_screen
 	physical_separation(_stack, 8.0 if short_screen else 14.0)
 	physical_separation(_col_model, 8.0 if short_screen else 12.0)
 	physical_separation(_col_info, 8.0 if short_screen else 12.0)
