@@ -86,6 +86,15 @@ func exit() -> void:
 ## window (headless runs report a 64x64 dummy, which would make every layout
 ## decision wrong in the same way UiLayout guards against it).
 func physical_size() -> Vector2:
+	# A stage drawn inside a SubViewport -- the layout probe in
+	# `tests/menu_layout_smoke.gd` mounts the real front end in one and resizes
+	# it -- is the size of *that* viewport, not of the window behind it. Reading
+	# the window there made every stage lay out for the headless runner's
+	# default window while the probe measured against 390x844, so the two
+	# disagreed about every size and neither was wrong about the screen it saw.
+	var viewport := get_viewport()
+	if viewport is SubViewport:
+		return Vector2(viewport.size)
 	var window := get_window()
 	if is_instance_valid(window):
 		var window_size := Vector2(window.size)
