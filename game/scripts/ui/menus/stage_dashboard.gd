@@ -671,6 +671,10 @@ func _apply_density() -> void:
 	_rank_line.visible = not compact
 	_deploy_chip.visible = not cramped
 	_limit_lines(_deploy_caption, 1)
+	_limit_lines(_loadout, 1)
+	_limit_lines(_rank_line, 1)
+	if is_instance_valid(_hero_status):
+		_limit_lines(_hero_status, 1)
 
 	if is_instance_valid(_showcase) and _showcase.has_model():
 		_showcase.frame_to_fill(SHOWCASE_FILL, 0.04)

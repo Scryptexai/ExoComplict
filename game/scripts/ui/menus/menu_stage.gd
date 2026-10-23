@@ -456,8 +456,14 @@ func card_line(text: String, role: String, color: Color) -> Label:
 ## is below. The weapon list did exactly that at 390x844: the ARC SHOOTER's stat
 ## line ran out of its card and into the Battle Points legend. Fixed card
 ## heights are safe only if the copy has a bound, and this is the bound.
+## A one-line label that is allowed to ellipsise should not claim its text as
+## its *minimum* width: that is how a caption 20 px too long made a whole page
+## wider than the phone it was drawn on. `clip_text` takes the text out of the
+## minimum size calculation, and the overrun behaviour below still draws the
+## ellipsis.
 func _limit_lines(label: Label, limit: int) -> Label:
 	label.max_lines_visible = limit
+	label.clip_text = limit > 0
 	label.text_overrun_behavior = (
 		TextServer.OVERRUN_TRIM_ELLIPSIS if limit > 0 else TextServer.OVERRUN_NO_TRIMMING
 	)
