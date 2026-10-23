@@ -145,13 +145,11 @@ func _build_nav() -> void:
 		glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		# Anchored to the button's centre with a fixed size in physical pixels,
-		# which is the one thing a Button cannot do for its own icon.
-		glyph.set_anchors_preset(Control.PRESET_FULL_RECT)
-		glyph.offset_left = 0.0
-		glyph.offset_top = 0.0
-		glyph.offset_right = 0.0
-		glyph.offset_bottom = 0.0
+		# Centred at a fixed size, not full-rect: a full-rect child of a Button
+		# draws over the button's own text, which is exactly what happened on the
+		# desktop dock -- three large glyphs sat on top of HOME / OPERATIVE /
+		# THEATRE. The size is set in `_apply_density`.
+		glyph.set_anchors_preset(Control.PRESET_CENTER)
 		button.add_child(glyph)
 		_tab_glyphs.append(glyph)
 		button.pressed.connect(_on_tab_pressed.bind(tab_id))
@@ -308,11 +306,16 @@ func _apply_density() -> void:
 	_stage.physical_min_size(_mark, 96.0 if compact else 168.0, 24.0 if compact else 40.0)
 	_stage.physical_min_size(_avatar, 26.0 if compact else 36.0, 26.0 if compact else 36.0)
 	_stage.physical_min_size(_nav, 0.0, icon_size)
+	# The glyph is only drawn where the tab has no words: on a wide screen the
+	# word IS the icon, and two of them in one tab is a duplicate, not a design.
 	for glyph in _tab_glyphs:
-		# 20 px inside a 32 px tab: the glyph keeps a 6 px margin, which is what
-		# makes it read as an icon rather than a smudge.
-		var side := 18.0 if compact else 20.0
-		_stage.physical_min_size(glyph, side, side)
+		glyph.visible = compact
+		var side := 18.0
+		var half := _stage.px(side * 0.5)
+		glyph.offset_left = -half
+		glyph.offset_top = -half
+		glyph.offset_right = half
+		glyph.offset_bottom = half
 	bar.set_surface_pad(_stage.px(3.0 if compact else 7.0))
 	_stage.physical_min_size(_balance_chip, 64.0 if compact else 132.0, 0.0)
 	if is_instance_valid(_avatar):
