@@ -260,31 +260,6 @@ func _orient_pins(landscape: bool) -> void:
 ## two is 128 and did not fit a 390 px one (the second drew at y=350). Portrait
 ## has the opposite problem -- two pins side by side need 380 px of text and a
 ## 360 px phone has 328 -- so the pins change container with the orientation.
-func _orient_pins(landscape: bool) -> void:
-	var target: Container = _pin_row
-	var wants_row := landscape
-	if (wants_row and target is HBoxContainer) or (not wants_row and target is VBoxContainer):
-		return
-	target = HBoxContainer.new() if wants_row else VBoxContainer.new()
-	target.name = &"TheatrePins"
-	for pin in _pins:
-		if pin.get_parent() != null:
-			pin.get_parent().remove_child(pin)
-		target.add_child(pin)
-	if _pin_row != null and _pin_row.get_parent() != null:
-		var parent := _pin_row.get_parent()
-		var index := _pin_row.get_index()
-		parent.remove_child(_pin_row)
-		parent.add_child(target)
-		parent.move_child(target, index)
-	else:
-		_stack.add_child(target)
-	_pin_row = target
-	physical_separation(_pin_row, 8)
-
-
-## Moves a node only when it is somewhere else; re-adding on every resize would
-## restart the layout every frame.
 func _reparent(node: Node, target: Node) -> void:
 	if node.get_parent() == target:
 		return

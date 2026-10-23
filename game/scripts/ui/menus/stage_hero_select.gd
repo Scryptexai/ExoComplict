@@ -704,7 +704,9 @@ func _apply_density() -> void:
 		# height it was the row that pushed EQUIPPED/CONTINUE past the bottom edge.
 		_weapon_stat.visible = not short_landscape
 	for pin in _weapon_pins:
-		physical_min_size(pin, 0.0, 44.0 if is_landscape() and physical_size().y < 520.0 else 52.0)
+		# 64 px is the project's touch floor (`AegisTokens.MIN_TOUCH_PX`); 52 was
+		# under it on every portrait size the suite measures.
+		physical_min_size(pin, 0.0, AegisTokens.MIN_TOUCH_PX)
 	# A row of three chips is only honest when there is room for three; below
 	# that they stack, full width, and the loadout reads as a list of choices
 	# rather than three clipped words.
