@@ -136,6 +136,7 @@ func _build_map() -> void:
 	var group := ButtonGroup.new()
 	for definition in WorldDefinition.load_all_definitions():
 		_pin_row.add_child(_build_pin(group, definition))
+	_pin_row.add_child(_build_placeholder_pin(len(_pins)))
 
 
 func _build_pin(group: ButtonGroup, definition: WorldDefinition) -> AegisButton:
@@ -161,6 +162,21 @@ func _build_pin(group: ButtonGroup, definition: WorldDefinition) -> AegisButton:
 	pin.pressed.connect(_on_pin_pressed.bind(definition.world_id))
 	_pins.append(pin)
 	return pin
+
+
+## The roadmap slot. It carries no `world_id`, so it can never select, save or
+## launch anything -- it is labelled, disabled, and the only thing it owes the
+## player is that it does not pretend to be a theatre.
+func _build_placeholder_pin(index: int) -> AegisButton:
+	var slot := AegisButton.new()
+	slot.name = "LockedPin%d" % index
+	slot.text = "THEATRE %02d  ·  IN DEVELOPMENT" % (index + 1)
+	slot.disabled = true
+	slot.focus_mode = Control.FOCUS_NONE
+	slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slot.set_meta("aegis_role", "label")
+	AegisTheme.set_button_variant(slot, "card")
+	return slot
 
 
 func _build_info() -> void:
