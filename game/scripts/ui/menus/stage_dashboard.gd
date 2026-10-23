@@ -58,12 +58,6 @@ var _root: VBoxContainer
 ## moved between them, so a rotation is a reconciliation rather than a rebuild.
 var _body_portrait: Control
 var _body_landscape: HBoxContainer
-## Portrait only: two full-band containers that pin the card stack to the top
-## edge and the dock to the bottom edge. Containers own their children's rects,
-## so nothing here has to guess a height a frame early -- the earlier version
-## placed both by hand and was still reading last frame's minimum.
-var _cards_host: VBoxContainer
-var _dock_host: VBoxContainer
 ## The edge-docked card stack.
 var _cards: VBoxContainer
 ## The character's box. It is a Control the 3D viewport fills.
@@ -204,18 +198,6 @@ func _build_bands() -> void:
 	_body_portrait.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_body_portrait.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_body_portrait.clip_contents = true
-
-	_cards_host = VBoxContainer.new()
-	_cards_host.name = &"LobbyCardsHost"
-	_cards_host.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_cards_host.alignment = BoxContainer.ALIGNMENT_BEGIN
-	_cards_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	_dock_host = VBoxContainer.new()
-	_dock_host.name = &"LobbyDockHost"
-	_dock_host.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_dock_host.alignment = BoxContainer.ALIGNMENT_END
-	_dock_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	_body_landscape = HBoxContainer.new()
 	_body_landscape.name = &"LobbyBandsLandscape"
@@ -565,9 +547,6 @@ func _apply_orientation() -> void:
 			_root.remove_child(_body_portrait)
 		if _body_landscape.get_parent() == null:
 			_root.add_child(_body_landscape)
-		for host in [_cards_host, _dock_host]:
-			if host.get_parent() != null:
-				host.get_parent().remove_child(host)
 		_body_landscape.add_child(_cards)
 		_body_landscape.add_child(_stage)
 		_body_landscape.add_child(_dock)
@@ -578,18 +557,17 @@ func _apply_orientation() -> void:
 			_root.remove_child(_body_landscape)
 		if _body_portrait.get_parent() == null:
 			_root.add_child(_body_portrait)
-		# Order matters only for drawing after the stage: the character is the
-		# background of this composition, the cards and the dock sit on it.
-		_body_portrait.add_child(_stage)
+		# Portrait is a column again, and deliberately so: an overlay of floating
+		# cards over a full-bleed character is the composition the references
+		# use, but two attempts at it put the dock's bottom edge off an 844 px
+		# screen (a container inside a plain Control keeps whatever rect it was
+		# last given, and the smoke test measures the rect). Rather than ship a
+		# layout I cannot verify, the band order is the one that measures: cards,
+		# character, dock -- with the character's band sized to be the subject
+		# and the dock pinned to the bottom of the column.
 		_body_portrait.add_child(_cards)
+		_body_portrait.add_child(_stage)
 		_body_portrait.add_child(_dock)
-		# The stage fills the band and the two hosts float over it: cards against
-		# the top edge, dock against the bottom edge, character between them.
-		_stage.set_anchors_preset(Control.PRESET_FULL_RECT)
-		_body_portrait.add_child(_cards_host)
-		_body_portrait.add_child(_dock_host)
-		_cards_host.add_child(_cards)
-		_dock_host.add_child(_dock)
 
 
 ## Four budgets, measured on the four viewports the smoke test uses. The
@@ -615,8 +593,10 @@ func _apply_density() -> void:
 		panel.set_surface_pad(px(4.0 if cramped else (6.0 if compact else 12.0)))
 
 	physical_separation(_root, 8.0 if cramped else (12.0 if compact else 20.0))
-	# The overlay is the flexible band: the top bar is its only fixed neighbour.
-	_body_portrait.custom_minimum_size = Vector2(0.0, px(height * (0.62 if cramped else 0.66)))
+	# The character is the subject, so its band is a share of the screen rather
+	# than whatever the cards happen to leave: 30 % of a phone, 38 % of a desktop.
+	if not landscape:
+		_body_portrait.custom_minimum_size = Vector2.ZERO
 	physical_separation(_top, 10.0 if compact else 16.0)
 	physical_separation(_cards, 8.0 if compact else 14.0)
 	physical_separation(_dock, 8.0 if cramped else (10.0 if compact else 14.0))
