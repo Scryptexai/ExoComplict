@@ -131,11 +131,15 @@ func _build_nav() -> void:
 		button.name = "DockTab%s" % String(tab_id).capitalize()
 		button.text = ""
 		button.icon = AegisTheme.icon(spec[1], true)
-		button.expand_icon = false
+		# `expand_icon` makes the glyph fill the tab's content box; without it
+		# Godot draws the SVG at its raster default, which on the compact dock
+		# came out as a 10 px fragment in the middle of a 40 px tab.
+		button.expand_icon = true
 		button.focus_mode = Control.FOCUS_ALL
 		button.tooltip_text = spec[0]
 		button.set_meta("tab_id", tab_id)
 		button.add_theme_constant_override("icon_max_width", 22)
+		button.add_theme_constant_override("h_separation", 0)
 		button.pressed.connect(_on_tab_pressed.bind(tab_id))
 		AegisTheme.set_button_variant(button, "ghost")
 		_nav.add_child(button)
@@ -216,6 +220,7 @@ func _build_settings() -> void:
 	_gear = gear
 	gear.text = ""
 	gear.icon = AegisTheme.icon("gear-six", true)
+	gear.expand_icon = true
 	gear.focus_mode = Control.FOCUS_ALL
 	gear.tooltip_text = "SETTINGS"
 	gear.add_theme_constant_override("icon_max_width", 20)
