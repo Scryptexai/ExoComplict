@@ -476,6 +476,12 @@ func _check_saved_weapon_reaches_gameplay() -> void:
 
 func _all_label_text(root_node: Node) -> String:
 	var parts: Array[String] = []
+	# Buttons render their own text. A placeholder drawn as a disabled button
+	# says IN DEVELOPMENT in exactly the place a player reads it.
+	for child in root_node.find_children("*", "BaseButton", true, false):
+		var button := child as BaseButton
+		if button != null and not button.text.is_empty():
+			parts.append(button.text)
 	for child in root_node.find_children("*", "Label", true, false):
 		parts.append((child as Label).text)
 	return "\n".join(parts)
