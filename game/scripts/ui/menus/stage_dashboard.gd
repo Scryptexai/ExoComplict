@@ -1,152 +1,232 @@
-## MAIN DASHBOARD: the hub the player returns to between runs.
+## MAIN DASHBOARD: the lobby.
 ##
-## Every number here comes from ProgressionService, which is the only owner of
-## the persistent profile. There is no "profile level", no streak counter and no
-## daily reward: the save file holds Battle Points, best score, completed runs,
-## unlocks and the last loadout, so those five things are what the dashboard
-## shows. Adding a sixth row would mean inventing data the game does not track.
+## This screen is composed the way a AAA lobby is composed, from the references
+## measured in docs/VERIFICATION_2026-10-23.md 1 rather than from taste:
+##
+##   * a **full-height character** in the middle, the thing the screen is about
+##     (CoD Mobile's lobby, Valorant's, Apex's and Free Fire's all do this);
+##   * an **edge-docked card stack** down one side -- the operative and the
+##     theatre -- at 300-360 px, which is Valorant's left rail and Free Fire's
+##     weapon-preset panel;
+##   * a **currency chip** in the top-right corner next to the wordmark, which is
+##     where all four references put the wallet;
+##   * one **large amber action tile** at the bottom of the dock, the way Free
+##     Fire's BATTLE ROYALE tile and Apex's READY bar work -- not a full-width
+##     button in a column of buttons;
+##   * a **tab row** of secondary destinations under it, the Free Fire bottom bar;
+##   * the record (best score, runs) as a small strip, not a headline.
+##
+## Every number comes from ProgressionService, which is the only owner of the
+## persistent profile. There is no "profile level", no streak and no daily
+## reward: the save file holds Battle Points, best score, completed runs,
+## unlocks and the last loadout, so those five things are what this screen
+## shows. A sixth row would mean inventing data the game does not track.
 ##
 ## Every button does something:
-##   DEPLOY       starts the loadout chain HERO -> WEAPON -> WORLD -> PRELOAD
-##   ARMORY       the in-game shop widget, spending real BP for real unlocks
-##   SETTINGS     the shared AegisSettingsMenu, which writes user://aegis.cfg
-##                again without wiping a profile
+##   DEPLOY     starts the loadout chain HERO -> WEAPON -> WORLD -> PRELOAD
+##   ARMORY     the in-game shop, spending real BP for real unlocks
+##   SETTINGS   the shared AegisSettingsMenu, writing user://aegis.cfg
 ##
-## There is no REPLAY INTRO. The studio ident is not this game's content -- it
-## is the studio's mark, played once at launch like a publisher card, and a
-## dashboard row offering to rewatch somebody else's brand film was the wrong
-## idea about what that file is (docs/VERIFICATION_2026-10-23.md 5).
-##
-## The screen is ordered the way a player decides, not the way a profile is
-## stored (docs/UX_AUDIT_2026-10-22.md 5.2 had the old order as DEPLOY last,
-## with no hero and no mission on the screen at all):
-##
-##   1. the operative, with the portrait the HERO screen will also show
-##   2. the theatre this run will be deployed into
-##   3. DEPLOY -- the only amber control on the screen
-##   4. profile: rank line + best score + runs
-##   5. resources: the Battle Points wallet, which ARMORY spends
-##   6. secondary navigation: ARMORY, SETTINGS
-##
-## Everything above reads from ProgressionService / the definition registries.
-## The portrait and the theatre plate are the same files the selection screens
-## use, so the dashboard cannot promise art the next screen does not have.
+## There is no REPLAY INTRO. The studio ident is not this game's content: it is
+## the studio's mark, played at launch like a publisher card, and a dashboard
+## row offering to rewatch somebody else's brand film was the wrong idea about
+## what that file is (docs/VERIFICATION_2026-10-23.md 5).
 extends MenuStage
 
-var _balance: Label
-var _best: Label
-var _runs: Label
-var _loadout: Label
-var _armory: ArmoryUi
-var _settings: AegisSettingsMenu
-var _armory_hint_owner: bool = false
-## The four blocks the layout is built from. Portrait stacks them in `_stack`;
-## landscape moves them into `_split` so the stats sit beside the actions
-## instead of above them -- the stack is ~500 px tall and a landscape phone is
-## 390 px, which is what pushed DEPLOY past the bottom edge.
-var _stack: VBoxContainer
-var _split: HBoxContainer
-var _left: VBoxContainer
-var _right: VBoxContainer
+const ShowcaseViewportScript = preload("res://scripts/ui/widgets/showcase_viewport.gd")
+## The rig is 1.78 m tall; `ShowcaseViewport` normalises by height, so the
+## lobby and the HERO screen present the same operative at the same scale.
+const SHOWCASE_HEIGHT := 1.78
+## How much of the character's box the model fills. The lobby box is tall and
+## narrow on a phone and wide on a desktop; 0.9 reads as "standing in the room"
+## at both, where 1.0 crops the feet on the short one.
+const SHOWCASE_FILL := 0.9
+
+# --- top bar ---------------------------------------------------------------- #
+var _top: HBoxContainer
 var _mark: TextureRect
-var _stats: AegisPanel
-## The folder inside the stats panel, kept so a short screen can tighten it.
-var _stat_column: VBoxContainer
-## The primary action, kept so the compact arrangement can give 12 px back.
-var _deploy: AegisButton
-var _actions: VBoxContainer
-var _spacer: Control
+var _status_label: Label
+var _wallet: AegisPanel
+## The wallet figure, in the "BATTLE POINTS  n" shape the tests and the screen
+## reader read as one phrase.
+var _balance: Label
+
+# --- the three bands -------------------------------------------------------- #
+var _root: VBoxContainer
+## Portrait stacks cards, character, dock; landscape puts the cards and the
+## dock either side of the character. Both exist as parents and the blocks are
+## moved between them, so a rotation is a reconciliation rather than a rebuild.
+var _body_portrait: VBoxContainer
+var _body_landscape: HBoxContainer
+## The edge-docked card stack.
+var _cards: VBoxContainer
+## The character's box. It is a Control the 3D viewport fills.
+var _stage: Control
+var _showcase: ShowcaseViewport
+## The bottom dock: record, tabs, primary action.
+var _dock: VBoxContainer
 var _landscape_built := false
-## Screen 1: the operative. Portrait, name, role, status.
+var _hero_id := StringName()
+
+# --- the cards -------------------------------------------------------------- #
 var _hero_panel: AegisPanel
 var _hero_plate: TextureRect
-var _hero_name_label: Label
 var _hero_role: Label
+var _hero_name_label: Label
 var _hero_status: Label
-## Screen 2: the theatre and the chapter this run belongs to.
 var _mission_panel: AegisPanel
 var _mission_plate: TextureRect
 var _mission_name: Label
 var _mission_brief: Label
-## The three profile figures, in a grid whose column count follows the width.
+var _mission_caption: Label
+
+# --- the dock --------------------------------------------------------------- #
+var _stats: AegisPanel
+var _stat_column: VBoxContainer
 var _numbers: GridContainer
-## Rank line, above the numbers: the profile's own identity.
 var _rank_line: Label
-## Secondary navigation, grouped so it can move as one block.
-var _secondary: VBoxContainer
+var _best: Label
+var _runs: Label
+var _loadout: Label
+var _tabs: HBoxContainer
+var _deploy: AegisButton
+var _deploy_caption: Label
+
+# --- the modals ------------------------------------------------------------- #
+var _armory: ArmoryUi
+var _settings: AegisSettingsMenu
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(make_backdrop("res://assets/ui/dashboard_bg.jpg"))
 
+	# The lobby is lit, not dimmed: the character is the subject and a heavy
+	# scrim over it is the thing that made the old screen read as a form. Only
+	# the left third and the bottom dock get a shadow, and that is the cards'
+	# own surface, not a full-screen wash.
 	var scrim := ColorRect.new()
-	scrim.color = Color(AegisTokens.VOID, 0.55)
+	scrim.color = Color(AegisTokens.VOID, 0.18)
 	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(scrim)
 
-	_margin = MarginContainer.new()
-	_margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_margin)
+	make_margin()
+	_root = VBoxContainer.new()
+	physical_separation(_root, 16)
+	_margin.add_child(_root)
 
-	_stack = VBoxContainer.new()
-	physical_separation(_stack, 22)
-	_margin.add_child(_stack)
+	_build_top_bar()
+	_build_bands()
+	_build_cards()
+	_build_stage()
+	_build_dock()
+	_build_modals()
 
-	_split = HBoxContainer.new()
-	_split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_split.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	physical_separation(_split, 22)
-	_left = VBoxContainer.new()
-	physical_separation(_left, 22)
-	_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_right = VBoxContainer.new()
-	physical_separation(_right, 16)
-	_right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_split.add_child(_left)
-	_split.add_child(_right)
+	_connect_resized(_on_resized)
+	relayout()
+	_apply_orientation()
+	_apply_density()
+
+
+# --- construction ----------------------------------------------------------- #
+
+
+## Wordmark left, readiness in the middle, wallet right. This is the shape all
+## four references use: identity on one corner, money on the other, and nothing
+## between them competing with the character.
+func _build_top_bar() -> void:
+	_top = HBoxContainer.new()
+	_top.name = &"LobbyTopBar"
+	_top.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	physical_separation(_top, 16)
+	_root.add_child(_top)
 
 	_mark = TextureRect.new()
+	_mark.name = &"Wordmark"
 	_mark.texture = try_texture("res://assets/ui/logo_wordmark.png")
 	_mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_size_both(_mark, Vector2(300.0, 75.0), Vector2(470.0, 118.0))
-	_stack.add_child(_mark)
+	_mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_size_both(_mark, Vector2(230.0, 58.0), Vector2(300.0, 75.0))
+	_top.add_child(_mark)
 
-	# --- 1. the operative ------------------------------------------------ #
-	# Portrait on the left, identity on the right. This is the same portrait
-	# file the HERO screen sells, at the same crop, so the first thing the
-	# dashboard shows is the character the run will actually use.
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_top.add_child(spacer)
+
+	_status_label = make_label("FIELD READY", "label", AegisTokens.OK)
+	_status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_status_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_top.add_child(_status_label)
+
+	# The wallet is a chip, not a row: a borderless line of type on a lobby is
+	# invisible against the backdrop, and every reference puts the currency on
+	# a surface of its own.
+	_wallet = AegisPanel.new()
+	_wallet.name = &"WalletChip"
+	_wallet.interactive = false
+	_wallet.accent_side = "none"
+	_wallet.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_wallet.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_top.add_child(_wallet)
+	_balance = make_label("BATTLE POINTS  0", "label", AegisTokens.ACCENT)
+	_balance.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_wallet.add_child(_balance)
+
+
+func _build_bands() -> void:
+	_body_portrait = VBoxContainer.new()
+	_body_portrait.name = &"LobbyBandsPortrait"
+	_body_portrait.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_body_portrait.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	physical_separation(_body_portrait, 10)
+
+	_body_landscape = HBoxContainer.new()
+	_body_landscape.name = &"LobbyBandsLandscape"
+	_body_landscape.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_body_landscape.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	physical_separation(_body_landscape, 18)
+
+	_cards = VBoxContainer.new()
+	_cards.name = &"LobbyCards"
+	_cards.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	physical_separation(_cards, 12)
+
+	_dock = VBoxContainer.new()
+	_dock.name = &"LobbyDock"
+	physical_separation(_dock, 12)
+
+
+## The operative: the same portrait the HERO screen sells, at the same crop, so
+## the first thing the lobby shows is the character the run will use.
+func _build_cards() -> void:
 	_hero_panel = AegisPanel.new()
+	_hero_panel.name = &"OperativeCard"
 	_hero_panel.interactive = false
 	_hero_panel.accent_side = "left"
 	_hero_panel.accent_color = AegisTokens.INFO
 	_hero_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_stack.add_child(_hero_panel)
+	_cards.add_child(_hero_panel)
 
 	var hero_row := HBoxContainer.new()
-	physical_separation(hero_row, 18)
+	physical_separation(hero_row, 14)
 	_hero_panel.add_child(hero_row)
 
-	# The portrait and the theatre plate are the definitions' own files, loaded
-	# in `refresh_profile()` from `portrait_path` / `plate_path`. Writing the
-	# path here as a literal is the drift `data_source_smoke` reads this file
-	# for: a renamed portrait would break the dashboard while the HERO card,
-	# which reads the registry, kept working.
+	# The path is the definition's own, loaded in `refresh_profile()`; writing
+	# it here as a literal is the drift `data_source_smoke` reads this file for.
 	_hero_plate = TextureRect.new()
+	_hero_plate.name = &"OperativePortrait"
 	_hero_plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_hero_plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	_hero_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# A 3:4 portrait at 92 px wide is 123 px tall, which leaves the identity
-	# column room for three lines inside a 150 px panel on a 390 px screen.
-	_size_both(_hero_plate, Vector2(128.0, 170.0), Vector2(96.0, 128.0))
+	_size_both(_hero_plate, Vector2(84.0, 112.0), Vector2(120.0, 160.0))
 	hero_row.add_child(_hero_plate)
 
 	var hero_column := VBoxContainer.new()
 	hero_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_separation(hero_column, 8)
+	hero_column.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	physical_separation(hero_column, 6)
 	hero_row.add_child(hero_column)
 
 	_hero_role = make_label("OPERATIVE", "label", AegisTokens.INK_3)
@@ -155,33 +235,38 @@ func _ready() -> void:
 	_hero_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hero_column.add_child(_hero_name_label)
 	_hero_status = make_label("FIELD READY", "label", AegisTokens.OK)
+	_hero_status.autowrap_mode = TextServer.AUTOWRAP_OFF
 	hero_column.add_child(_hero_status)
 
-	# --- 2. the theatre --------------------------------------------------- #
+	# The theatre: where DEPLOY goes.
 	_mission_panel = AegisPanel.new()
+	_mission_panel.name = &"TheatreCard"
 	_mission_panel.interactive = false
 	_mission_panel.accent_side = "left"
 	_mission_panel.accent_color = AegisTokens.ACCENT
 	_mission_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_stack.add_child(_mission_panel)
+	_cards.add_child(_mission_panel)
 
 	var mission_row := HBoxContainer.new()
-	physical_separation(mission_row, 18)
+	physical_separation(mission_row, 14)
 	_mission_panel.add_child(mission_row)
 
 	_mission_plate = TextureRect.new()
+	_mission_plate.name = &"TheatrePlate"
 	_mission_plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_mission_plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	_mission_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_size_both(_mission_plate, Vector2(146.0, 124.0), Vector2(112.0, 96.0))
+	_size_both(_mission_plate, Vector2(92.0, 70.0), Vector2(132.0, 100.0))
 	mission_row.add_child(_mission_plate)
 
 	var mission_column := VBoxContainer.new()
 	mission_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_separation(mission_column, 8)
+	mission_column.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	physical_separation(mission_column, 6)
 	mission_row.add_child(mission_column)
 
-	mission_column.add_child(make_label("DEPLOYMENT THEATRE", "label", AegisTokens.INK_3))
+	_mission_caption = make_label("DEPLOYMENT THEATRE", "label", AegisTokens.INK_3)
+	mission_column.add_child(_mission_caption)
 	_mission_name = make_label("", "title", AegisTokens.INK)
 	_mission_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	mission_column.add_child(_mission_name)
@@ -189,60 +274,81 @@ func _ready() -> void:
 	_mission_brief.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	mission_column.add_child(_mission_brief)
 
-	# --- 3. DEPLOY -------------------------------------------------------- #
-	# A spacer above it, not below: the primary action sits in the lower thumb
-	# arc but never at the very edge, and nothing scrolls off a short screen.
-	_spacer = Control.new()
-	_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_stack.add_child(_spacer)
 
-	var actions := VBoxContainer.new()
-	physical_separation(actions, 14)
-	_stack.add_child(actions)
-	_actions = actions
+## The character. A plain Control so the 3D viewport can fill it while the
+## cards and the dock stay in the 2D layer beside it.
+func _build_stage() -> void:
+	_stage = Control.new()
+	_stage.name = &"LobbyStage"
+	_stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stage.clip_contents = false
+
+	_showcase = ShowcaseViewportScript.new()
+	_showcase.name = &"LobbyShowcase"
+	_showcase.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_stage.add_child(_showcase)
+
+
+## The dock: the record, the tab row, then the one amber tile. Ordered by how
+## often a player uses it, bottom-up: DEPLOY is nearest the thumb, the tabs are
+## above it, and the record is the thing you read once.
+func _build_dock() -> void:
+	_deploy_caption = make_label("", "label", AegisTokens.INK_3)
+	_deploy_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_deploy_caption.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_deploy_caption.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_deploy_caption.max_lines_visible = 1
+	_dock.add_child(_deploy_caption)
 
 	_deploy = make_button("DEPLOY", "primary", "Choose your loadout and start a run")
-	var deploy := _deploy
-	physical_min_size(deploy, 0.0, 78.0)
-	deploy.pressed.connect(_on_deploy_pressed)
-	actions.add_child(deploy)
+	physical_min_size(_deploy, 0.0, 100.0)
+	_deploy.pressed.connect(_on_deploy_pressed)
+	_dock.add_child(_deploy)
 
-	# --- 4/5. profile and resources --------------------------------------- #
-	# One panel, ordered: identity, then the wallet, then the record. Three
-	# numbers side by side instead of four stacked lines -- the old column spent
-	# 130 px of a 844 px phone screen on four single-value rows.
+	_tabs = HBoxContainer.new()
+	_tabs.name = &"LobbyTabs"
+	physical_separation(_tabs, 12)
+	_dock.add_child(_tabs)
+
+	var armory := make_button("ARMORY", "card", "Unlock and equip weapons with Battle Points")
+	armory.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	physical_min_size(armory, 0.0, 68.0)
+	armory.pressed.connect(_on_armory_pressed)
+	_tabs.add_child(armory)
+
+	var settings := make_button("SETTINGS", "card", "Audio, HUD and control preferences")
+	settings.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	physical_min_size(settings, 0.0, 68.0)
+	settings.pressed.connect(_on_settings_pressed)
+	_tabs.add_child(settings)
+
+	# The record, last and smallest. Three "CAPTION  value" labels in one panel;
+	# the wallet is the only one in amber because it is the only one a player
+	# acts on.
 	_stats = AegisPanel.new()
+	_stats.name = &"RecordPanel"
 	_stats.interactive = false
 	_stats.accent_side = "top"
 	_stats.accent_color = AegisTokens.INFO
 	_stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	actions.add_child(_stats)
+	_dock.add_child(_stats)
 
-	var stat_column := VBoxContainer.new()
-	physical_separation(stat_column, 12)
-	_stat_column = stat_column
-	_stats.add_child(stat_column)
+	_stat_column = VBoxContainer.new()
+	physical_separation(_stat_column, 10)
+	_stats.add_child(_stat_column)
 
 	_rank_line = make_label("PROFILE", "label", AegisTokens.INK_3)
-	stat_column.add_child(_rank_line)
+	_stat_column.add_child(_rank_line)
 
-	# A grid, not a row: three "CAPTION  value" labels are 95-110 px each at the
-	# font floor, and a phone's third of 306 px is narrower than that, so the row
-	# wrapped into ragged two-line cells. Two columns fit every label on one line
-	# and leave the third cell alone on its row, which reads as a list; a wide
-	# screen goes back to one row of three.
 	_numbers = GridContainer.new()
 	_numbers.columns = 3
 	_numbers.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_numbers.add_theme_constant_override("h_separation", roundi(px(10.0)))
+	_numbers.add_theme_constant_override("h_separation", roundi(px(12.0)))
 	_numbers.add_theme_constant_override("v_separation", roundi(px(6.0)))
-	stat_column.add_child(_numbers)
+	_stat_column.add_child(_numbers)
 
-	# The wallet is the only number a player acts on, so it is the only one in
-	# amber; score and runs are the record and stay neutral.
-	var wallet := _make_stat_cell("BATTLE POINTS", AegisTokens.ACCENT)
-	_numbers.add_child(wallet[0])
-	_balance = wallet[1]
 	var best := _make_stat_cell("BEST SCORE", AegisTokens.INK)
 	_numbers.add_child(best[0])
 	_best = best[1]
@@ -252,33 +358,10 @@ func _ready() -> void:
 
 	_loadout = make_label("LOADOUT", "label_s", AegisTokens.INK_2)
 	_loadout.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	stat_column.add_child(_loadout)
+	_stat_column.add_child(_loadout)
 
-	# --- 6. secondary navigation ------------------------------------------ #
-	_secondary = VBoxContainer.new()
-	physical_separation(_secondary, 12)
-	actions.add_child(_secondary)
 
-	var row := HBoxContainer.new()
-	physical_separation(row, 14)
-	_secondary.add_child(row)
-
-	# Every secondary control clears AegisTokens.MIN_TOUCH_PX. They were 52 px
-	# and 44 px, which is under the floor the rest of the front end holds and
-	# under a thumb: `menu_layout_smoke` measures button heights in physical
-	# pixels on four screens and failed on exactly these three.
-	var armory := make_button("ARMORY", "round", "Unlock and equip weapons with Battle Points")
-	armory.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_min_size(armory, 0.0, AegisTokens.MIN_TOUCH_PX)
-	armory.pressed.connect(_on_armory_pressed)
-	row.add_child(armory)
-
-	var settings := make_button("SETTINGS", "round", "Audio, HUD and control preferences")
-	settings.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	physical_min_size(settings, 0.0, AegisTokens.MIN_TOUCH_PX)
-	settings.pressed.connect(_on_settings_pressed)
-	row.add_child(settings)
-
+func _build_modals() -> void:
 	_armory = ArmoryUi.new()
 	_armory.name = "ArmoryPanel"
 	_armory.visible = false
@@ -292,8 +375,8 @@ func _ready() -> void:
 	_settings.close_requested.connect(_on_settings_close)
 	add_child(_settings)
 
-	_connect_resized(_on_resized)
-	relayout()
+
+# --- stage lifecycle -------------------------------------------------------- #
 
 
 func enter(_stage_payload: Dictionary) -> void:
@@ -304,38 +387,17 @@ func enter(_stage_payload: Dictionary) -> void:
 	refresh_profile()
 
 
+func exit() -> void:
+	if is_instance_valid(_showcase):
+		_showcase.clear_model()
+
+
 ## FrontEnd calls this on `profile_changed`, so an unlock made inside the armory
-## updates the dashboard underneath it without reopening the screen.
-## One number, sized to a third of the row. Returns [container, label] because
-## the caller needs both: the container goes into the row, the label is what
-## `refresh_profile()` writes.
-##
-## It is deliberately *one* label holding "CAPTION  value". The first cut had a
-## caption above a value, and `refresh_profile()` wrote the caption again inside
-## the value -- so the screen read "BATTLE POINTS" over "BATTLE POINTS 0" and
-## printed every label twice. The two-space string is what the data-source test
-## reads and what a screen reader reads as one phrase, so it belongs in one
-## label; a third of a phone is too narrow for caption-and-number columns, and
-## the wrapping at the double space reads as a caption and a figure anyway.
-func _make_stat_cell(caption: String, color: Color) -> Array:
-	var label := make_label(caption, "label_s", color)
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	# Bottom-aligned so the three figures share one baseline: "BATTLE POINTS"
-	# wraps to two lines on a phone and "BEST SCORE" does not, and centring the
-	# short one left its number floating between the other two lines.
-	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	return [label, label]
-
-
+## updates the lobby underneath it without reopening the screen.
 func refresh_profile() -> void:
 	var progression := progression_service()
 	if progression == null:
 		return
-	# The labels keep the "CAPTION  value" shape they have always had: the
-	# smoke tests and the data-source test both assert on that string, and it is
-	# also what a screen reader reads as one phrase. What changed is the
-	# arrangement -- three cells side by side instead of four stacked rows.
 	_balance.text = "BATTLE POINTS  %d" % progression.balance
 	_best.text = "BEST SCORE  %d" % progression.best_score
 	_runs.text = "RUNS COMPLETED  %d" % progression.completed_runs
@@ -345,17 +407,17 @@ func refresh_profile() -> void:
 	_loadout.text = "LOADOUT  %s  /  %s  /  %s" % [hero, weapon, world]
 	_hero_name_label.text = hero
 	_mission_name.text = world
+	_deploy_caption.text = "%s  ·  READY TO DEPLOY" % world
 	# The rank is the profile's own identity line. There is no rank ladder in
-	# the save file, so this states the operative's readiness and the record
-	# rather than inventing a level: "NO RUNS" on a fresh profile is true, and
-	# "SQUAD LEADER Lv 4" would not be.
+	# the save file, so this states the record rather than inventing a level:
+	# "NO RUNS" on a fresh profile is true, "SQUAD LEADER Lv 4" would not be.
 	_rank_line.text = (
 		"PROFILE  ·  FIELD READY"
 		if progression.completed_runs == 0
 		else "PROFILE  ·  %d RUNS" % progression.completed_runs
 	)
 	# Both status lines come from the definitions, not from literals here: the
-	# HERO and WORLD cards print the same strings, so the dashboard cannot say an
+	# HERO and WORLD cards print the same strings, so the lobby cannot say an
 	# operative is ready when their card says otherwise.
 	var hero_definition := HeroDefinition.load_definition(progression.selected_hero_id)
 	_hero_status.text = (
@@ -364,9 +426,6 @@ func refresh_profile() -> void:
 	_hero_plate.texture = (
 		try_texture(hero_definition.portrait_path) if hero_definition != null else null
 	)
-	# The brief is the theatre's own first sentence. The WORLD screen prints the
-	# whole description; a dashboard line is a reminder of where you are going,
-	# not a briefing document.
 	var world_definition := WorldDefinition.load_definition(progression.selected_world_id)
 	if world_definition != null:
 		_mission_brief.text = _first_sentence(world_definition.role_description)
@@ -374,6 +433,7 @@ func refresh_profile() -> void:
 	else:
 		_mission_brief.text = ""
 		_mission_plate.texture = null
+	_sync_showcase(progression.selected_hero_id)
 	if _armory.visible:
 		_armory.refresh_profile(
 			progression.balance,
@@ -383,143 +443,197 @@ func refresh_profile() -> void:
 		)
 
 
-## Picks the arrangement that fits the screen: one column in portrait, stats
-## beside actions in landscape. Only runs when the orientation actually
-## changes, so a resize inside the same orientation is a re-scale, not a
-## rebuild, and every block is detached before being re-added in reading order
-## so the arrangement never depends on the order it was first built in.
+## The lobby shows the operative the run will use, in 3D, between the cards and
+## the dock. Presentation is skipped when the definition has no rig: this game
+## ships exactly one, and a placeholder capsule in the middle of the lobby would
+## be worse than the empty stage.
+func _sync_showcase(hero_id: StringName) -> void:
+	if not is_instance_valid(_showcase):
+		return
+	if hero_id == _hero_id and _showcase.has_model():
+		return
+	_hero_id = hero_id
+	var definition := HeroDefinition.load_definition(hero_id)
+	if definition == null or not is_instance_valid(definition.model_scene):
+		_showcase.clear_model()
+		return
+	if _showcase.model_path() == definition.model_scene.resource_path:
+		return
+	(
+		_showcase
+		. present(
+			definition.model_scene,
+			{
+				"fit_axis": 1,
+				"height": SHOWCASE_HEIGHT,
+				# The rig faces +Z and the camera sits on +Z, so no yaw is what
+				# turns the operative towards the viewer.
+				"yaw": 0.0,
+				"clips": definition.showcase_clips,
+			}
+		)
+	)
+	_showcase.frame_to_fill(SHOWCASE_FILL, 0.04)
+
+
+## One "CAPTION  value" label per figure. Deliberately one label, not a caption
+## above a value: the first cut printed every caption twice, and the data-source
+## test reads this string.
+func _make_stat_cell(caption: String, color: Color) -> Array:
+	var label := make_label(caption, "label_s", color)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	return [label, label]
+
+
+# --- arrangement ------------------------------------------------------------ #
+
+
+## Portrait: cards, character, dock, top to bottom. Landscape: cards and dock
+## either side of the character, because a 390 px tall screen cannot stack three
+## bands and still show an operative.
+##
+## Every block is detached before it is re-parented, so the arrangement never
+## depends on the order it was first built in, and only a real orientation
+## change rebuilds it -- a resize inside the same orientation is a re-scale.
 func _apply_orientation() -> void:
 	var landscape := is_landscape()
-	if landscape == _landscape_built:
+	# A theme change is not a rotation: the blocks only move when the orientation
+	# changed, or when they are not in the tree yet (the first layout).
+	var placed := (
+		_body_landscape.get_parent() != null if landscape else _body_portrait.get_parent() != null
+	)
+	if landscape == _landscape_built and placed:
 		return
 	_landscape_built = landscape
-	for block in [_mark, _hero_panel, _mission_panel, _spacer, _actions]:
+	for block in [_cards, _stage, _dock]:
 		if block.get_parent() != null:
 			block.get_parent().remove_child(block)
 	if landscape:
-		# A landscape phone is 390 px tall in physical terms, so the hero and
-		# the theatre go side by side with DEPLOY beneath them instead of in one
-		# 700 px column that would push the primary action off the screen.
-		_stack.add_child(_split)
-		_left.add_child(_mark)
-		_left.add_child(_hero_panel)
-		_left.add_child(_mission_panel)
-		_right.add_child(_spacer)
-		_right.add_child(_actions)
+		if _body_portrait.get_parent() == _root:
+			_root.remove_child(_body_portrait)
+		if _body_landscape.get_parent() == null:
+			_root.add_child(_body_landscape)
+		_body_landscape.add_child(_cards)
+		_body_landscape.add_child(_stage)
+		_body_landscape.add_child(_dock)
+		_cards.size_flags_horizontal = Control.SIZE_FILL
+		_dock.size_flags_horizontal = Control.SIZE_FILL
 	else:
-		_stack.remove_child(_split)
-		_stack.add_child(_mark)
-		_stack.add_child(_hero_panel)
-		_stack.add_child(_mission_panel)
-		_stack.add_child(_spacer)
-		_stack.add_child(_actions)
+		if _body_landscape.get_parent() == _root:
+			_root.remove_child(_body_landscape)
+		if _body_portrait.get_parent() == null:
+			_root.add_child(_body_portrait)
+		_body_portrait.add_child(_cards)
+		_body_portrait.add_child(_stage)
+		_body_portrait.add_child(_dock)
+		_cards.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_dock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 
-## Two height budgets, one rule: the stack has to fit what it is given.
-##
-## Portrait below 700 px (a 360x640 phone) has no room for the full card set in
-## one column -- the stack measured 754 px -- and landscape is always short (a
-## rotated phone is 390 px tall), so both get the same treatment: tighter
-## margins and gaps, smaller wordmark and plates, the redundant PROFILE header
-## dropped, and the two descriptive lines held to one line each with an
-## ellipsis. Nothing is reworded, DEPLOY keeps its size, and the hierarchy is
-## identical -- the screen gets shorter, not different.
+## Four budgets, measured on the four viewports the smoke test uses. The
+## character keeps whatever is left after the cards and the dock have the sizes
+## they need; on a short screen the *copy* gives way, never a target.
 func _apply_density() -> void:
 	var landscape := is_landscape()
-	# A portrait phone is always the compact arrangement. The threshold used to
-	# be 700 px, which left a 390x844 phone on the full stack -- and the stack
-	# is 915 px tall at the sizes this screen now uses, 70 px past the bottom
-	# of the display. 900 keeps every phone portrait compact and leaves a
-	# tablet or a desktop on the full layout.
-	var compact := physical_size().y < (520.0 if landscape else 900.0)
-	# A 360x640 phone is the smallest surface the front end is tested on, and the
-	# compact stack still measured 60 px past its bottom (menu_layout_smoke; the
-	# last row at the time was the removed REPLAY INTRO). `cramped` is the last
-	# step before the layout would have to drop content -- it takes 72 px back
-	# out of margins, the wordmark, three gaps, DEPLOY and the one line that is
-	# already an ellipsis ("LOADOUT: EXO-OPERATIVE / PULSE…"), and leaves every
-	# control at or above the touch floor.
-	var cramped := not landscape and physical_size().y < 700.0
-	# The safe margins also come in on a short screen: 8 px top and bottom is
-	# worth more to the content than to the composition at that size.
-	# A landscape phone is 390 px tall. The web shell already reserves 30 px at
-	# the top for its own bar, so the stage's own top inset is cut to 8 there --
-	# 28 px of air above a wordmark is a desktop luxury, and it was the
-	# difference between DEPLOY fitting and the last row hanging off the bottom
-	# edge (menu_layout_smoke, 844x390).
+	var height := physical_size().y
+	var width := physical_size().x
+	var compact := height < (520.0 if landscape else 900.0)
+	var cramped := not landscape and height < 700.0
+	var desktop := not compact and height >= 600.0
+	var short_landscape := landscape and compact
+
 	apply_safe_margins(
 		_margin,
 		20.0 if compact else 36.0,
-		8.0 if cramped else (16.0 if compact else 28.0),
+		8.0 if (cramped or short_landscape) else (16.0 if compact else 28.0),
 		8.0 if compact else 28.0
 	)
-	# The card surface costs its inset twice per card in width and height, and a
-	# 360 px phone has neither: at 12 px the DEPLOY row measured 352 px of a 360
-	# px screen and the stack ran 44 px past the bottom (menu_layout_smoke).
-	for panel in [_hero_panel, _mission_panel, _stats]:
+	# The card surface costs its inset twice per card in width and in height.
+	for panel in [_hero_panel, _mission_panel, _stats, _wallet]:
 		panel.set_surface_pad(px(4.0 if cramped else (6.0 if compact else 12.0)))
-	physical_separation(_stack, 8.0 if cramped else (12.0 if compact else 22.0))
-	physical_separation(_left, 12.0 if compact else 22.0)
-	physical_separation(_right, 10.0 if compact else 16.0)
-	physical_separation(_actions, 10.0 if compact else 14.0)
-	# "PROFILE . FIELD READY" restates what the three cells below it already say
-	# on a screen this short; the header is the one line that can go.
-	# Three "CAPTION  value" cells. On a 390 px phone two columns leave one of
-	# them alone on its row, and "RUNS COMPLETED  0" then wraps its figure onto
-	# a second line -- the number you came to read, orphaned in the margin of
-	# the row below it (seen in the 390x844 capture). One column is three short
-	# rows and reads as a list, which is what it is.
-	var width := physical_size().x
-	_numbers.columns = 1 if width < 480.0 else (2 if width < 560.0 else 3)
-	physical_separation(_stat_column, 8.0 if compact else 12.0)
-	# 78 px is the desktop DEPLOY. On a 390 px tall screen it is one of three
-	# blocks that have to fit under a 30 px browser bar, and 66 is still above
-	# the 64 px touch floor and twice the height of the old button.
-	# 66, not 60: this is a primary action and menu_layout_smoke holds every
-	# button to within a pixel of AegisTokens.MIN_TOUCH_PX ("DEPLOY is only 60 px
-	# tall, under the 63 px touch floor"). The 6 px comes out of the wordmark
-	# instead.
-	physical_min_size(_deploy, 0.0, 66.0 if compact else 78.0)
-	# Already trimmed to one line with an ellipsis on a compact screen, and the
-	# first thing to lose its place when a stacked arrangement runs out of one.
-	_loadout.visible = not cramped
-	_rank_line.visible = not compact
-	_limit_lines(_mission_brief, 1 if compact else 2)
-	_limit_lines(_loadout, 1 if compact else 2)
-	# Only the compact sizes are set here. Every other size comes from
-	# `_orient_nodes()`, so a rotation back to a tall screen restores the
-	# authored values instead of keeping whatever this pass last wrote.
+
+	physical_separation(_root, 8.0 if cramped else (12.0 if compact else 20.0))
+	physical_separation(_cards, 8.0 if compact else 14.0)
+	physical_separation(_dock, 8.0 if cramped else (10.0 if compact else 14.0))
+	physical_separation(_tabs, 8.0 if cramped else (10.0 if compact else 14.0))
+	physical_separation(_stat_column, 6.0 if compact else 10.0)
+	physical_separation(_body_landscape, 14.0 if compact else 22.0)
+
+	# --- typography and plate sizes -------------------------------------- #
+	if desktop:
+		physical_min_size(_mark, 300.0, 75.0)
+		physical_min_size(_hero_plate, 120.0, 160.0)
+		physical_min_size(_mission_plate, 132.0, 100.0)
+		physical_min_size(_deploy, 0.0, 100.0)
+		for tab in _tabs.get_children():
+			physical_min_size(tab as Control, 0.0, 68.0)
+	elif short_landscape:
+		physical_min_size(_mark, 190.0, 48.0)
+		physical_min_size(_hero_plate, 72.0, 96.0)
+		physical_min_size(_mission_plate, 92.0, 70.0)
+		physical_min_size(_deploy, 0.0, 76.0)
+		for tab in _tabs.get_children():
+			physical_min_size(tab as Control, 0.0, 64.0)
+	elif cramped:
+		physical_min_size(_mark, 200.0, 50.0)
+		physical_min_size(_hero_plate, 76.0, 96.0)
+		physical_min_size(_mission_plate, 92.0, 70.0)
+		physical_min_size(_deploy, 0.0, 88.0)
+		for tab in _tabs.get_children():
+			physical_min_size(tab as Control, 0.0, 64.0)
+	else:
+		physical_min_size(_mark, 230.0, 58.0)
+		physical_min_size(_hero_plate, 84.0, 112.0)
+		physical_min_size(_mission_plate, 100.0, 76.0)
+		physical_min_size(_deploy, 0.0, 96.0)
+		for tab in _tabs.get_children():
+			physical_min_size(tab as Control, 0.0, 68.0)
+
+	# The character's box. Landscape gives it a share of the width so the cards
+	# and the dock keep a readable column; portrait gives it the height that is
+	# left, with a floor so it is never a sliver.
 	if landscape:
-		if compact:
-			physical_min_size(_mark, 260.0, 65.0)
-			physical_min_size(_hero_plate, 84.0, 112.0)
-			physical_min_size(_mission_plate, 96.0, 82.0)
-		elif physical_size().y >= 600.0:
-			# A desktop has the height a phone does not. The plates were authored
-			# at 78x104 for a rotated phone and looked undersized on a 720 px
-			# canvas, in a card with room to spare.
-			physical_min_size(_mark, 470.0, 118.0)
-			physical_min_size(_hero_plate, 128.0, 170.0)
-			physical_min_size(_mission_plate, 146.0, 124.0)
-	elif compact:
-		if cramped:
-			# The last 14 px. Two portrait plates are the only blocks left that
-			# are picture rather than type, and a 110 px operative still reads as
-			# an operative; the stack's last row was 14 px past a 640 px screen.
-			physical_min_size(_mark, 236.0, 58.0)
-			physical_min_size(_hero_plate, 84.0, 110.0)
-			physical_min_size(_mission_plate, 96.0, 84.0)
-		else:
-			physical_min_size(_mark, 310.0, 78.0)
-			physical_min_size(_hero_plate, 96.0, 128.0)
-			physical_min_size(_mission_plate, 108.0, 92.0)
+		_cards.custom_minimum_size.x = px(300.0 if compact else 340.0)
+		_dock.custom_minimum_size.x = px(300.0 if compact else 360.0)
+		_stage.custom_minimum_size = Vector2(0.0, px(120.0))
+		_cards.size_flags_vertical = Control.SIZE_FILL
+		_dock.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	else:
+		_cards.custom_minimum_size.x = 0.0
+		_dock.custom_minimum_size.x = 0.0
+		_cards.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		_dock.size_flags_vertical = Control.SIZE_SHRINK_END
+		_stage.custom_minimum_size = Vector2(
+			0.0, px(80.0 if cramped else (140.0 if compact else 220.0))
+		)
+
+	# Three cells share a row on a desktop; a phone gets one column, because two
+	# leave a lone third and "RUNS COMPLETED  0" then wraps its figure onto the
+	# next line -- the number orphaned in the margin of the row below it.
+	var dock_width := width if not landscape else maxf(width * 0.4, 280.0)
+	_numbers.columns = 1 if dock_width < 480.0 else (2 if dock_width < 620.0 else 3)
+
+	# Copy that gives way on a short screen. Every one of these is a restatement
+	# of something still on the screen: the role is the card above the name, the
+	# brief is the WORLD card, the loadout is the three cards themselves.
+	_hero_role.visible = not cramped
+	_mission_caption.visible = not cramped
+	_mission_brief.visible = not cramped
+	_limit_lines(_mission_brief, 2)
+	_loadout.visible = not (cramped or short_landscape)
+	_rank_line.visible = not (compact and landscape)
+	_status_label.visible = not cramped
+	_deploy_caption.visible = not cramped
+	_limit_lines(_deploy_caption, 1)
+
+	if is_instance_valid(_showcase) and _showcase.has_model():
+		_showcase.frame_to_fill(SHOWCASE_FILL, 0.04)
+	_apply_armory_and_settings_sizes()
 
 
-func _on_resized() -> void:
-	relayout()
-	_orient_nodes([_mark, _hero_plate, _mission_plate])
-	_apply_orientation()
-	_apply_density()
+func _apply_armory_and_settings_sizes() -> void:
 	# The armory and settings panels are sized in physical pixels too: they are
 	# lists of 56 px rows, and a panel authored in canvas units would be a third
 	# of that on a phone.
@@ -531,9 +645,19 @@ func _on_resized() -> void:
 	_centre(_settings)
 
 
+func _on_resized() -> void:
+	relayout()
+	_orient_nodes([_mark, _hero_plate, _mission_plate])
+	_apply_orientation()
+	_apply_density()
+
+
 func _centre(panel: Control) -> void:
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.position = (size - panel.size) * 0.5
+
+
+# --- actions ---------------------------------------------------------------- #
 
 
 func _on_deploy_pressed() -> void:
@@ -583,9 +707,11 @@ func _on_weapon_action(weapon_id: StringName) -> void:
 	refresh_profile()
 
 
+# --- naming ----------------------------------------------------------------- #
+
+
 ## The theatre's own blurb, cut to its first sentence. The WORLD screen prints
-## the whole paragraph; a dashboard line is a reminder of where you are going,
-## not a briefing document.
+## the whole paragraph; a lobby line is a reminder of where you are going.
 func _first_sentence(text: String) -> String:
 	var trimmed := text.strip_edges()
 	var stop := trimmed.find(".")
@@ -595,10 +721,9 @@ func _first_sentence(text: String) -> String:
 
 
 ## Heroes and worlds have no *numeric* model -- there is no per-hero health or
-## speed -- but they do have a name, and it lives in the `HeroDefinition` /
-## `WorldDefinition` registries exactly as a weapon's does. Reading it from
-## there instead of typing it out here is what stops the dashboard calling the
-## loadout something the HERO and WORLD cards do not.
+## speed -- but they do have a name, and it lives in the registry exactly as a
+## weapon's does. Reading it from there instead of typing it out here is what
+## stops the lobby calling the loadout something the HERO and WORLD cards do not.
 func _hero_name(hero_id: StringName) -> String:
 	var definition := HeroDefinition.load_definition(hero_id)
 	if definition != null:
@@ -614,7 +739,7 @@ func _world_name(world_id: StringName) -> String:
 
 
 ## The weapon names itself: `WeaponDefinition.display_name` is the same string
-## the selection card prints, so the dashboard cannot call it something else.
+## the selection card prints, so the lobby cannot call it something else.
 func _weapon_name(weapon_id: StringName) -> String:
 	var definition := WeaponDefinition.load_definition(weapon_id)
 	if definition != null and not definition.display_name.strip_edges().is_empty():
