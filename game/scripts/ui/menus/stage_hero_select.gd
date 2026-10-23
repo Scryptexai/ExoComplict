@@ -680,14 +680,14 @@ func _apply_orientation() -> void:
 ## controls a thumb has to hit on a phone.
 func _apply_density() -> void:
 	var width := physical_size().x
-	var narrow := width < 720.0
+	var stack_rail := width < 720.0
 	for pin in _weapon_pins:
 		physical_min_size(pin, 0.0, 44.0 if is_landscape() and physical_size().y < 520.0 else 52.0)
 	# A row of three chips is only honest when there is room for three; below
 	# that they stack, full width, and the loadout reads as a list of choices
 	# rather than three clipped words.
 	if is_instance_valid(_weapon_row):
-		_weapon_row.vertical = narrow
+		_weapon_row.vertical = stack_rail
 	var short_screen := physical_size().y < (520.0 if is_landscape() else 760.0)
 	# Same trade as the old WEAPON page: on a portrait phone the header keeps BACK and the
 	# heading, and the field-ready state lives on the card itself.
