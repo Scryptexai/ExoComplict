@@ -320,8 +320,14 @@ func _apply_density() -> void:
 
 
 func _apply_level(level: int) -> void:
-	var named := level <= 4
-	var compact := level >= 5
+	# A landscape phone is wide enough for words and only 390 px tall. A tab
+	# that carries a word has to meet the 64 px touch floor, which would cost
+	# the dock a fifth of that height; the glyphs are distinct and the tooltip
+	# names them, so in that one case the tabs go wordless whatever the width
+	# says.
+	var wordless := _stage.is_landscape() and _stage.physical_size().y < 520.0
+	var named := level <= 4 and not wordless
+	var compact := level >= 5 or wordless
 	var tab_width := 40.0
 	if level == 0:
 		tab_width = 104.0
@@ -337,14 +343,16 @@ func _apply_level(level: int) -> void:
 		_gear.visible = _with_settings and level <= 5
 	_avatar.visible = true
 
-	var icon_size := 32.0 if compact else 40.0
+	# 64 = AegisTokens.MIN_TOUCH_PX. A tab with a word on it is a touch target,
+	# and a 40 px one failed the layout probe at every width that showed words.
+	var icon_size := 32.0 if compact else 64.0
 	for tab in _tabs:
 		tab.text = str(TABS[tab.get_meta("tab_id")][0]) if named else ""
 		tab.add_theme_font_override("font", AegisTheme.font(AegisTokens.FAMILY_UI_M))
 		tab.add_theme_font_size_override("font_size", 15)
 		_stage.physical_min_size(tab, tab_width, icon_size)
 		tab.add_theme_constant_override("icon_max_width", 20 if compact else 22)
-	_stage.physical_min_size(_mark, 96.0 if compact else 168.0, 24.0 if compact else 40.0)
+	_stage.physical_min_size(_mark, 96.0 if compact else 168.0, 24.0 if compact else 28.0)
 	_stage.physical_min_size(_avatar, 26.0 if compact else 36.0, 26.0 if compact else 36.0)
 	_stage.physical_min_size(_nav, 0.0, icon_size)
 	# The glyph is only drawn where the tab has no words: on a wide screen the
