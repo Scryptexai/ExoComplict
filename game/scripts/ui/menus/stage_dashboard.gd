@@ -562,9 +562,11 @@ func _apply_orientation() -> void:
 		_body_portrait.add_child(_stage)
 		_body_portrait.add_child(_cards)
 		_body_portrait.add_child(_dock)
+		# The stage fills the band; the cards and the dock are placed against its
+		# edges by `_layout_overlay()`, which runs after the band has a size.
+		# (`PRESET_BOTTOM_WIDE` alone put the dock's *top* on the bottom edge, so
+		# it drew from y=832 downward, off a 844 px screen.)
 		_stage.set_anchors_preset(Control.PRESET_FULL_RECT)
-		_cards.set_anchors_preset(Control.PRESET_TOP_WIDE)
-		_dock.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 
 
 ## Four budgets, measured on the four viewports the smoke test uses. The
@@ -688,6 +690,32 @@ func _apply_density() -> void:
 	if is_instance_valid(_showcase) and _showcase.has_model():
 		_showcase.frame_to_fill(SHOWCASE_FILL, 0.04)
 	_apply_armory_and_settings_sizes()
+	_layout_overlay()
+	# The band's real size arrives one frame later (it is being given a minimum
+	# by the pass above), so the edges are re-placed once the layout has run.
+	_layout_overlay.call_deferred()
+
+
+## Places the card stack against the top edge and the dock against the bottom
+## edge of the portrait overlay, leaving the character between them. Containers
+## inside a plain Control keep their own rect, so this is the one place that
+## decides it -- and it runs after the band has a size, twice, because the first
+## call is made before the containers have computed their minimums.
+func _layout_overlay() -> void:
+	if not is_instance_valid(_body_portrait) or is_landscape():
+		return
+	if not _body_portrait.is_inside_tree():
+		return
+	var band := _body_portrait.size
+	if band.y <= 0.0:
+		return
+	_cards.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_cards.position = Vector2.ZERO
+	_cards.size = Vector2(band.x, _cards.get_combined_minimum_size().y)
+	var dock_height := _dock.get_combined_minimum_size().y
+	_dock.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_dock.size = Vector2(band.x, dock_height)
+	_dock.position = Vector2(0.0, maxf(band.y - dock_height, 0.0))
 
 
 func _apply_armory_and_settings_sizes() -> void:
