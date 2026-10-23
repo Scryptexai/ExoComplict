@@ -1,7 +1,7 @@
 ## Base class for one screen of the front-end journey.
 ##
-## The journey is STUDIO -> BOOT -> LOADING -> CHAPTER -> DASHBOARD -> HERO
-## -> WORLD -> PRELOAD -> gameplay. A stage owns its own layout and
+## The journey is BOOT -> LOADING -> CHAPTER -> DASHBOARD -> HERO -> WORLD
+## -> PRELOAD -> gameplay. A stage owns its own layout and
 ## its own input, and knows nothing about the others: it finishes by emitting
 ## `completed` with the name of the stage it wants next, and `FrontEnd` decides
 ## whether that request is legal. Keeping the decision in one place is what

@@ -5,7 +5,7 @@ extends SceneTree
 ## A menu tree can be authored, committed and still be unreachable: a stage that
 ## is never instantiated, a `completed` signal nobody wired, a chapter card that
 ## replays forever because the flag is never written. This test instantiates the
-## real `front_end.tscn`, walks STUDIO -> BOOT -> LOADING -> CHAPTER ->
+## real `front_end.tscn`, walks BOOT -> LOADING -> CHAPTER ->
 ## DASHBOARD -> HERO -> WORLD and asserts, at each stop:
 ##
 ##   * the stage exists, is visible, and is the one the journey asked for;
@@ -17,8 +17,8 @@ extends SceneTree
 ##     definition or scene backs;
 ##   * the loading screens report progress that comes from ResourceLoader, not
 ##     from a timer;
-##   * the studio ident is first, shows nothing of the product's, and gets out
-##     of the way on any input;
+##   * the journey opens on the engine's own load, with no film and no boot
+##     screen carrying engine words in front of it;
 ##   * the CHAPTER 01 card is marked seen once, persisted to a real ConfigFile,
 ##     and skipped on a second launch.
 ##
@@ -67,15 +67,12 @@ func _run_smoke_test() -> void:
 	await process_frame
 	_profile = _front_end.get_node("ProgressionService")
 
-	_expect(_front_end.get("current_stage_name") == &"STUDIO", "the journey starts at STUDIO")
-	_check_stage(&"STUDIO")
-	_check_ident_is_not_product_ui()
-	_dismiss_ident()
-	await process_frame
+	# The opening is the engine's own load. There is no ident film in front of
+	# it any more (docs/DECISIONS.md 17), so the first frame this test sees has
+	# to be BOOT.
+	_expect(_front_end.get("current_stage_name") == &"BOOT", "the journey starts at BOOT")
+	_check_stage(&"BOOT")
 
-	if not await _walk_to(&"BOOT", "STUDIO"):
-		_finish()
-		return
 	if not await _walk_to(&"LOADING", "BOOT"):
 		_finish()
 		return
@@ -144,45 +141,6 @@ func _walk_to(expected: StringName, from_label: String) -> bool:
 		)
 	)
 	return false
-
-
-## The ident has no button -- that is the point -- so the player's way out is
-## input. Driving the same handler a tap would is as close as a headless test
-## can get to a finger, and it exercises the dismissal rather than a private
-## shortcut.
-func _dismiss_ident() -> void:
-	var stage := _stage(&"STUDIO")
-	if not is_instance_valid(stage):
-		return
-	var event := InputEventMouseButton.new()
-	event.button_index = MOUSE_BUTTON_LEFT
-	event.pressed = true
-	stage.call("_gui_input", event)
-
-
-## The ident is the studio's mark. Anything the game drew on it -- a wordmark,
-## a caption, a progress bar, a skip button, key art behind it -- would be this
-## project putting its own branding over somebody else's.
-func _check_ident_is_not_product_ui() -> void:
-	var stage := _stage(&"STUDIO")
-	if not is_instance_valid(stage):
-		return
-	_expect(
-		stage.find_children("*", "Button", true, false).is_empty(),
-		"studio ident: no button of ours is on the mark",
-	)
-	_expect(
-		stage.find_children("*", "Label", true, false).is_empty(),
-		"studio ident: no caption of ours is on the mark",
-	)
-	_expect(
-		stage.find_children("*", "TextureRect", true, false).is_empty(),
-		"studio ident: no texture of ours (wordmark, key art) is on the mark",
-	)
-	_expect(
-		stage.get_node_or_null("StudioIdent") != null,
-		"studio ident: the video is the stage's only content",
-	)
 
 
 ## Presses a stage's primary action, whatever its copy is.
@@ -420,8 +378,7 @@ func _check_preload_contract() -> void:
 
 ## Second-launch behaviour: the flag written when the chapter card was cleared
 ## has to survive a reload of the profile, and a fresh FrontEnd must skip the
-## card. The studio ident is *not* gated on this -- a publisher card plays on
-## every launch -- which is why the test checks the card and not the ident.
+## card.
 func _check_intro_persists() -> void:
 	_expect(
 		bool(_profile.get("intro_seen")),

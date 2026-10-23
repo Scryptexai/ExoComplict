@@ -1,5 +1,5 @@
-## Owns the front-end journey: STUDIO -> BOOT -> LOADING -> CHAPTER ->
-## DASHBOARD -> HERO -> WORLD -> PRELOAD -> gameplay.
+## Owns the front-end journey: BOOT -> LOADING -> CHAPTER -> DASHBOARD ->
+## HERO -> WORLD -> PRELOAD -> gameplay.
 ##
 ## This is the only place that knows the order. A stage asks for the next one by
 ## name and FrontEnd decides whether that is legal, which is what keeps the
@@ -12,10 +12,12 @@
 ## moved into HERO, next to the operative who carries it. The journey is shorter
 ## and the loadout is still two choices: who, and with what.
 ##
-## STUDIO is first and unguarded. A studio ident is a launch beat, the way a
-## Garena or Moonton card is, so it comes before the game's own logo on every
-## start. It is not part of the onboarding, it is not replayable, and nothing in
-## the menus refers to it.
+## There is no studio ident and no opening film. The delivered clip was pulled
+## on 2026-10-24 because it was not good enough to be the first thing a player
+## saw, and a placeholder standing in for the mark would be worse than nothing
+## (docs/DECISIONS.md 17). BOOT is therefore first and unguarded: it is the
+## engine's own load, and the boot overlay in the web shell is deliberately a
+## dark frame with no words on it.
 ##
 ## Nothing here fakes progress. BOOT shows an indeterminate bar because a
 ## ConfigFile read reports no progress; LOADING and PRELOAD show a percentage
@@ -26,7 +28,6 @@ extends Control
 const GAMEPLAY_SCENE := "res://scenes/main.tscn"
 
 const STAGE_SCENES := {
-	&"STUDIO": preload("res://scenes/ui/menus/stage_studio_ident.tscn"),
 	&"BOOT": preload("res://scenes/ui/menus/stage_boot.tscn"),
 	&"LOADING": preload("res://scenes/ui/menus/stage_loading.tscn"),
 	&"CHAPTER": preload("res://scenes/ui/menus/stage_chapter.tscn"),
@@ -70,14 +71,14 @@ func _ready() -> void:
 		# `_process`, even though nothing called set_process(true) -- measured in
 		# this build: a bare Control reports is_processing() false after new(),
 		# true immediately after add_child(). Left alone every stage ticks from
-		# the moment the front end boots, and the ident runs to completion before
-		# it is ever shown. So the opt-out has to come *after* add_child, and
-		# stages opt back in from enter().
+		# the moment the front end boots, and a loading stage drains its queue
+		# before it is ever shown. So the opt-out has to come *after* add_child,
+		# and stages opt back in from enter().
 		stage.set_process(false)
 		stage.set_physics_process(false)
 		_stages[key] = stage
 	progression_service.profile_changed.connect(_on_profile_changed)
-	_enter(&"STUDIO", {})
+	_enter(&"BOOT", {})
 	_enter_qa_stage()
 
 

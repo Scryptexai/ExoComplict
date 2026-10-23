@@ -11,12 +11,15 @@ dashboard, no selection screens — so every stage here is new code rather than 
 re-skin.
 
 ```
-STUDIO ──> BOOT ──> LOADING ──> CHAPTER ──> DASHBOARD ──> HERO
-                         │                         ▲
-                         └── (skipped once seen) ───┘
+BOOT ──> LOADING ──> CHAPTER ──> DASHBOARD ──> HERO
+                │                    ▲             │
+                └── (skipped once seen) ───────────┘
                                                    │
                        GAMEPLAY <── PRELOAD <── WORLD <──┘
 ```
+
+There is no STUDIO stage. The delivered ident film was pulled on 2026-10-24
+(docs/DECISIONS.md 28), so a launch opens on the engine's own load.
 
 `scenes/ui/front_end.tscn` is the project's main scene and the only object that
 knows the order. A stage finishes by emitting `completed(next_stage, payload)`;
@@ -63,32 +66,6 @@ status line and the bar, at the sizes a load screen is read from
 (docs/DECISIONS.md 3). `reduce_motion` still governs the
 indeterminate sweep.
 
-## STUDIO — `stage_studio_ident.gd`
-
-| | |
-| --- | --- |
-| Real work | decode and present the studio's own brand film |
-| Progress shown | none, and no control either |
-| Advances | when the film ends, on any input, or on a decode stall |
-
-This is the studio's ident, not this game's opening: the same beat a Garena or
-Moonton card is, and it sits where those sit — at the very start of a launch,
-before the game's own wordmark. It plays `studio_ident.ogv` (768×768, 24 fps,
-10.14 s), the delivered `branding_studio_present.mp4` transcoded by
-`tools/art/build_ui_video.py` with nothing added and nothing cut, fitted
-(contained) and centred on black so the square frame is whole on any screen.
-
-**Nothing of ours is drawn over it.** No wordmark, no caption, no key art
-behind it, no scrim, no progress bar and no SKIP button: an ident with the
-product's UI on top of it is no longer the studio's ident. Any input dismisses
-it, because that draws nothing and a splash you cannot get out of is a wall.
-
-There is no stand-in either. If the file is missing or the device cannot decode
-Theora, the stage logs why and moves on; it does not play a sequence of ours in
-the mark's place. It is also not gated on the profile and not reachable from any
-menu: the ident plays on every launch, and there is no REPLAY INTRO, because a
-publisher card is not content a player rewatches.
-
 ## CHAPTER — `stage_chapter.gd`
 
 A title card: `CHAPTER 01 / FIRST LIGHT`, the objective the run measures, and a
@@ -96,35 +73,40 @@ CONTINUE action. It also advances on any tap.
 
 Clearing it marks `intro_seen` on the profile (`ProgressionService`), which is
 what makes a second launch go from LOADING straight to the dashboard. The
-persisted key keeps its old name; the studio ident is not gated on it.
+persisted key keeps its old name.
 
-## DASHBOARD — `stage_dashboard.gd`
+## HOME — `stage_dashboard.gd`
+
+HOME is a **deployment board**, not a second showcase. It used to carry a
+full-height 3D operative, an edge-docked portrait card and a bottom dock — the
+same composition as OPERATIVE — and a player moving between the two tabs saw one
+screen twice (docs/DECISIONS.md 29). What it is now:
+
+* a heading and the profile line (`PROFILE · FIELD READY`, or the run count);
+* three numbered rows — `01 OPERATIVE`, `02 DEPLOYMENT THEATRE`, `03 ARSENAL` —
+  each with its own plate, the name read from the definition, and one line of
+  state;
+* the record ribbon: `BEST SCORE  n`, `RUNS COMPLETED  n`, `LOADOUT …`;
+* ARMORY and DEPLOY, in the thumb arc, DEPLOY amber and last.
+
+The rows are a manifest, not buttons: what they report is a choice already made,
+and the two ways to change it are the OPERATIVE and THEATRE tabs in the shared
+dock. No 3D is presented on this page — that is OPERATIVE's job.
 
 Every number is read from `ProgressionService`, the single owner of the
-persistent profile:
-
-* Battle Points
-* Best score
-* Runs completed
-* The loadout the next launch will use
-
-There is no profile level, no streak, no daily reward and no second currency.
-The save file holds five things and the dashboard shows those five things; a
-sixth row would be decoration disagreeing with gameplay.
+persistent profile: Battle Points (in the dock), best score, runs completed, and
+the loadout the next launch will use. There is no profile level, no streak, no
+daily reward and no second currency.
 
 | Button | Action |
 | --- | --- |
 | DEPLOY | starts HERO → WORLD → PRELOAD |
 | ARMORY | `ArmoryUi`, the in-game shop widget, spending real BP for real unlocks |
-| SETTINGS | `AegisSettingsMenu`, writing `user://aegis.cfg` |
+| SETTINGS | `AegisSettingsMenu`, writing `user://aegis.cfg` (the gear in the dock) |
 
-The screen is composed like a lobby, not a form (docs/DECISIONS.md
-9): a top bar with the wordmark and the wallet chip at opposite corners, the
-operative in 3D in a band sized as a share of the screen, the operative and
-theatre cards side by side, then the dock — record, tab row, and the amber
-DEPLOY tile as the bottom row, nearest the thumb. Landscape puts the cards and
-the dock either side of the character. On a 360 px screen the wallet moves into
-the record rather than being clipped in the top bar.
+Portrait is one column: heading, rows, actions, ribbon. Landscape puts the rows
+in the height they need and moves the ribbon and the actions into a 300–340 px
+rail beside them, because 390 px of height cannot hold four bands.
 
 ## HERO SELECTION — `stage_hero_select.gd`
 
@@ -243,18 +225,8 @@ journey asked for, that no enabled button is inert, that no control crosses the
 reserved edge, that absent content is disabled, and that `intro_seen` round-trips
 through a real `ConfigFile`.
 
-`tests/video_asset_smoke.gd` loads the ident the way the stage does, compares
-the size, length and playback the engine reports against
-`game/assets/ui/video_manifest.json`, and then asserts the restraint the stage
-is for: the ident scene holds no texture of ours, no button and no caption.
-
-In a browser build the same thing is measured from outside the engine:
-`?qa_stage=STUDIO&qa_menu=1` logs the stream position
-(`MenuStudioIdent: stream at 2.00 s of 10.14 s`), which is how a screenshot pass
-tells a decoded film from a black frame.
-The same `?qa_menu=1` report prints each `VideoStreamPlayer` rect, which is how
-the two aspect defects were caught (a 16:9 opening at `0,0,390x844` and a square
-robot at `36,590,318x160`); both are cover rects now. A loading stage can only
+The project ships no video any more, so there is no video asset test and no
+`video_manifest.json` to compare against. A loading stage can only
 be photographed via `?qa_stage=LOADING|PRELOAD` because with no targets it leaves
 on the next frame.
 
@@ -295,8 +267,8 @@ build, so it fails for the right reason.
 
 The HERO and WORLD screens, the dashboard's loadout line and
 `ProgressionService` used to each keep their own copy of the same names -- the
-world's name in four places, the hero's in three. (A fifth, the opening's
-theatre caption, is gone: that caption was drawn on the studio's ident.)
+world's name in four places, the hero's in three. (A fifth, an opening caption,
+is gone with the ident film that carried it.)
 They now read `HeroDefinition`, `WeaponDefinition` and `WorldDefinition`, and
 the progression service's id lists and defaults are read *out of* those
 registries rather than typed again beside them. The screens are built by

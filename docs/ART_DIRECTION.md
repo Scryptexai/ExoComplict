@@ -171,7 +171,7 @@ Sizes are the real imported sizes, verified at runtime by
 
 | Key | File | Res | Format | Off-palette | Integration |
 | --- | --- | --- | --- | --- | --- |
-| `wordmark` | `logo_wordmark.png` | 1024×256 | PNG **RGBA** | 0.8% | BOOT, CHAPTER, DASHBOARD, LOADING — alpha keyed, no plate. Never on the studio ident |
+| `wordmark` | `logo_wordmark.png` | 1024×256 | PNG **RGBA** | 0.8% | BOOT, CHAPTER, DASHBOARD, LOADING — alpha keyed, no plate |
 | `loading_keyart` | `loading_keyart.jpg` | 1920×1080 | JPEG q90 | 0.0% | LOADING, PRELOAD |
 | `dashboard_bg` | `dashboard_bg.jpg` | 1920×1080 | JPEG q90 | 0.2% | DASHBOARD, HERO, WEAPON |
 | `hero_portrait` | `portrait_hero.png` | 768×1024 | PNG | 0.2% | HERO selection card |
@@ -193,57 +193,17 @@ is reproducible; without them `build_ui_art.py` cannot run.
 
 ## 6b. Video
 
-`tools/art/build_ui_video.py` transcodes the one video the project ships. It
-needs an ffmpeg with `libtheora`; it looks at `$FFMPEG`, then `PATH`, then the
-`imageio-ffmpeg` wheel, and **fails loudly** if none of them can encode Theora.
+**The project ships no video.** The studio ident (`branding_studio_present.mp4`
+and its Theora transcode `studio_ident.ogv`) was removed on 2026-10-24 on the
+owner's instruction, together with `stage_studio_ident.gd`,
+`tools/art/build_ui_video.py`, `video_manifest.json` and
+`tests/video_asset_smoke.gd` (docs/DECISIONS.md 28). There is nothing to encode,
+nothing to audit and no aspect rule left to keep.
 
-The source is `branding_studio_present.mp4` at the repository root — the studio
-ident committed by the project owner: 768×768, 24 fps, 10.14 s, with an audio
-bed. The build re-encodes it; it does not render, crop, re-time or silence it.
-
-| Key | File | Res | FPS | Length | Size | Audio | Integration |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `studio_ident` | `studio_ident.ogv` | 768×768 | 24 | 10.14 s | 1.8 MB | Vorbis, from the source | STUDIO — the studio's mark, at launch. No product art is drawn on it |
-
-Container is **OGV (Theora + Vorbis)**, which is what Godot 4.7.2 can play:
-`modules/theora` ships `ResourceFormatLoaderTheora`, which claims `.ogv` on every
-platform it builds for, web included.
-
-Rules the encoder keeps:
-
-* **The film is the film.** Same frame size, same frame rate, same length, same
-  audio: the build *checks* all four against the source and fails if any moved.
-  A silent or truncated output is the failure a "file exists" check misses.
-* **Nothing is drawn over it.** The ident has no captions and no wordmark on
-  top of it; the stage's product overlay belongs to the composed fallback.
-* **It is not forced into 16:9.** The frame stays square and the stage fits it
-  (see below), because baking a 16:9 crop here would cut the mark on every
-  device that is not 16:9.
-
-Every sampled frame is pulled back **out of the encoded file** and run through
-the same `audit()` the textures use, so the palette number describes what ships.
-The ident's lime sits at hue 75–90, between this palette's amber (15–70) and
-green (95–175) windows, so 32 % of a frame classifies as off-palette. That is
-recorded in `video_manifest.json` as a measured exemption with its reason, not
-silently forgiven: the film is a supplied brand asset and no rule here may
-re-grade it.
-
-### The aspect rule for `VideoStreamPlayer`
-
-`expand = true` stretches the decoded frame to whatever rect the control has, so
-the rect has to carry the video's own aspect. The ident is sized to *contain*:
-`stage_studio_ident.gd::_layout_video` scales by `min(size/frame)` and centres the
-result, so a square film on a 1280×720 stage is 720×720 with black either side.
-It used to *cover* — scale by `max` and let the parent clip — which was right
-for the 16:9 push-in that preceded this film and crops the top and bottom off a
-square ident. What happens without any fit at all, measured in a browser build:
-a 16:9 opening stretched into 390×844.
-
-Note that `VideoStream` exposes **no** size or length: `get_size()` and
-`get_length()` do not exist on it (`has_method` is false on `VideoStreamTheora`),
-and `VideoStreamPlayer.stream_length` reads 0.00 until the decoder opens the
-file. Sizes come from `get_video_texture().get_size()` after the first decoded
-frame; lengths are adopted from `get_stream_length()` once it is non-zero.
+If a film is ever added back, the rule it has to satisfy is unchanged:
+`expand = true` on a `VideoStreamPlayer` stretches the decoded frame to whatever
+rect the control has, so the rect must carry the video's own aspect and the fit
+is `contain` (`min(size/frame)`, centred), never `cover`.
 
 ---
 
@@ -254,10 +214,6 @@ frame; lengths are adopted from `get_stream_length()` once it is non-zero.
 | Palette audit | `python3 tools/art/build_ui_art.py --check` | 9/9 within palette |
 | Textures load in-engine at documented size | `godot --headless --path game --script res://tests/ui_art_smoke.gd` | see §7 note |
 | Not flat rectangles | same | luma spread > 40/255 required |
-| Videos load in-engine at documented size and length | `godot --headless --path game --script res://tests/video_asset_smoke.gd` | 2/2, sizes and lengths match `video_manifest.json` |
-| Video audit only | `python3 tools/art/build_ui_video.py --check` | 2/2 within palette |
-| Video plays in a browser build | `node tools/qa_flow_shots.mjs --tag ident --stages STUDIO --viewport 1280x720 --transient-delay 2500` | log `MenuStudioIdent: stream at 2.50 s of 10.14 s`; the frame is the studio's mark, centred on black |
-| Video is not stretched on screen | same, with `?qa_menu=1` | `OpeningVideo=-555,0,1500x844` at 390×844, `0,-42,844x475` at 844×390, `RobotVideo=115,590,160x160` — cover rects at the video's own aspect |
 
 §7 note: the runtime test is the one that matters. A file can be on disk, listed
 in this document, and still 404 in an export because it was never imported.

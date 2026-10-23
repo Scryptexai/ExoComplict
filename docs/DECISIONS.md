@@ -13,8 +13,7 @@ only an opinion is not here.
 
 1. **`FrontEnd` is the only place that knows the journey.** Stages ask for the
    next one by name; `FrontEnd` decides whether that is legal. Journey:
-   `STUDIO → BOOT → LOADING → CHAPTER → DASHBOARD → HERO → WORLD → PRELOAD →
-   gameplay`.
+   `BOOT → LOADING → CHAPTER → DASHBOARD → HERO → WORLD → PRELOAD → gameplay`.
 2. **There is no WEAPON stage.** It was three weapon chips around a 3D rifle:
    a section of a loadout, not a page. The rail lives on `HERO`, next to the
    operative who carries it.
@@ -70,9 +69,11 @@ only an opinion is not here.
     physical pixels is the reliable way to draw a glyph at a given size — and a
     full-rect child of a Button draws *over* its text.
 17. **The boot overlay is not a screen.** A wordmark, a progress bar and a
-    sentence about the engine are a developer's view of a download; the opening
-    is the film, so the overlay is a dark frame that fades when the engine is
-    ready.
+    sentence about the engine are a developer's view of a download. The overlay
+    in the web shell is a dark frame that fades when the engine is ready, and
+    the landing page at the repository root is a dark frame with one hairline
+    and no words at all. Not one engine string is legible at launch — "half
+    removed" looks worse than not started.
 18. **The primary action is the bottom row** — nearest the thumb — which is the
     order Apex's READY bar and Free Fire's start tile use. Tabs sit above it.
 
@@ -86,9 +87,10 @@ only an opinion is not here.
     Fire (tabs 15 px, START ≈ 13 % of screen height).
 21. **Never pure black or pure white**; the palette lives in `AegisTokens` and
     nothing hard-codes a colour.
-22. **The character is the subject.** A lobby gives the operative the centre and
-    a band that is a share of the screen (a phone 24–42 %, a desktop ~42 %), not
-    the space the cards left over.
+22. **The character is the subject — on OPERATIVE.** The showcase page gives the
+    operative the centre and a band that is a share of the screen (a phone
+    24–42 %, a desktop ~42 %), not the space the cards left over. HOME shows no
+    model at all (rule 29).
 
 ## 4. QA
 
@@ -100,7 +102,19 @@ only an opinion is not here.
 25. **The smoke suite runs at four sizes** — 1280×720, 390×844, 360×640,
     844×390 — and asserts that every control is inside the viewport, that copy
     stays inside its own card, and that the journey's order holds.
-21. **Renaming a field the tests read by name fails as a *layout* failure.**
+26. **Renaming a field the tests read by name fails as a *layout* failure.**
     Grep `tests/` for `get("_…")` before renaming anything on a stage.
 27. **`data_source_smoke.gd` scans screen *sources* for registry strings**, so a
     registry name inside a comment fails the build.
+28. **There is no studio ident.** `branding_studio_present.mp4`,
+    `studio_ident.ogv`, `stage_studio_ident.gd`, `tools/art/build_ui_video.py`,
+    `video_manifest.json` and `tests/video_asset_smoke.gd` were deleted on
+    2026-10-24: the owner's verdict on the delivered clip was that it looked
+    bad, which reverses the earlier "the ident film opens the app". A launch now
+    opens on BOOT. No stand-in film was authored in its place, and no
+    placeholder card pretends to be the mark.
+29. **HOME is a board, OPERATIVE is a showcase.** Two lobby pages that present
+    the same 3D operative in the same composition are one page printed twice;
+    the duplication is the defect, not the styling. HOME is a numbered manifest
+    (01 operative, 02 theatre, 03 arsenal) with a record ribbon and the actions
+    in the thumb arc; the 3D model lives on OPERATIVE only.

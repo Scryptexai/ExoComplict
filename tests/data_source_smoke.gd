@@ -339,7 +339,6 @@ func _check_dashboard_matches_the_service() -> void:
 ## where the weapon plates live) and asks the engine whether each file is real.
 func _check_referenced_art_exists() -> void:
 	for name in [
-		&"STUDIO",
 		&"BOOT",
 		&"LOADING",
 		&"CHAPTER",
@@ -354,18 +353,6 @@ func _check_referenced_art_exists() -> void:
 		if not _expect(stage != null, "the %s stage is instantiated" % name):
 			continue
 		var paths := _art_paths_in(stage)
-		# STUDIO is the studio's ident: it names its own film and deliberately
-		# draws none of this project's art, so both halves of this rule invert
-		# for it. Asserted rather than skipped -- "no product art on the mark"
-		# is the thing that screen has to get right.
-		if name == &"STUDIO":
-			_expect(paths.is_empty(), "STUDIO names none of this project's art (%s)" % [paths])
-			var marks := 0
-			for child in stage.find_children("*", "TextureRect", true, false):
-				if (child as TextureRect).texture != null:
-					marks += 1
-			_expect(marks == 0, "STUDIO draws no product texture (%d)" % marks)
-			continue
 		if name != &"BOOT":
 			_expect(paths.size() > 0, "%s names at least one art file (%d)" % [name, paths.size()])
 		for path in paths:
@@ -720,7 +707,6 @@ func _check_no_roster_literals_in_screens() -> void:
 		"HERO": "res://scripts/ui/menus/stage_hero_select.gd",
 		"WORLD": "res://scripts/ui/menus/stage_world_select.gd",
 		"DASHBOARD": "res://scripts/ui/menus/stage_dashboard.gd",
-		"STUDIO": "res://scripts/ui/menus/stage_studio_ident.gd",
 	}
 	var owned: Array[String] = []
 	for definition in HeroDefinition.load_all_definitions():

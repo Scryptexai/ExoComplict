@@ -33,10 +33,9 @@ const SIZES := {
 	"small portrait": Vector2i(360, 640),
 	"desktop": Vector2i(1280, 720),
 }
-## The four menu screens that carry the layout: the hub and the three
-## selection lists. STUDIO/BOOT/LOADING/CHAPTER/PRELOAD are single-purpose
-## panels with no edge-hugging actions (STUDIO has no controls at all: it is the
-## studio's ident and nothing of ours is drawn on it).
+## The screens that carry the layout: the hub and the selection lists.
+## BOOT/LOADING/CHAPTER/PRELOAD are single-purpose panels with no
+## edge-hugging actions.
 const STAGES := [&"DASHBOARD", &"HERO", &"WORLD"]
 ## AegisTokens.MIN_TOUCH_PX, less a pixel of rounding.
 const MIN_TOUCH := 63.0
