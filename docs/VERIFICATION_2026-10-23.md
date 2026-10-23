@@ -204,9 +204,25 @@ lime is hue 75–90 and this palette's windows are amber 15–70 and green 95–
 Recorded in `video_manifest.json` as `palette_exemption`. The film is supplied;
 no rule in this repo may re-grade it.
 
-**PASS** for the artefact and for the stage's restraint, in the headless suite.
-**NOT TESTED** until the frames below: the ident on a 1280×720 and a 390×844
-screen, on the CI-built payload.
+### The frames
+
+`exports/flow/ui_ident_new/studio-1280x720.png` and
+`exports/flow/ui_ident_phone/studio-390x844.png`, captured on the payload CI
+built from `0fd623d` with `--stages STUDIO --transient-delay 4000`:
+
+| Viewport | What the frame shows | Log |
+| --- | --- | --- |
+| 1280×720 | the mark fills a **720×720** square, pillarboxed on black, 280 px of black either side | `MenuStudioIdent: stream at 2.02 s of 10.14 s` |
+| 390×844 | the mark fills a **390×390** band, letterboxed on black, centred vertically | `stream at 2.00 s of 10.14 s` |
+
+Nothing of the game is on either frame: no wordmark, no caption, no bar, no
+button. The one thing visible in the corner of both is the **web shell's**
+`SHOW CONTROLS (WEB)` bar, which belongs to `game/web_shell` and is drawn over
+every screen in a browser preview — it is not part of the game and not part of
+this stage (docs/UX_AUDIT_2026-10-22.md 5.4 flags it for the same reason).
+
+**PASS** for the artefact, the stage's restraint, and the fit: contained,
+centred, square at both aspects, film decoding from the CI-built payload.
 
 ---
 
@@ -224,6 +240,7 @@ Final set, on the pushed head, after the payload bot refreshed `web/`:
 | `exports/flow/ui_final_phone/` | 390×844 | DASHBOARD, HERO, WEAPON, WORLD |
 | `exports/flow/ui_final_small/` | 360×640 | DASHBOARD, HERO, WEAPON |
 | `exports/flow/ui_final_land/` | 844×390 | DASHBOARD, HERO, WEAPON |
+| `exports/flow/ui_ident_new/`, `ui_ident_phone/` | 1280×720, 390×844 | STUDIO |
 | `exports/flow/ui_before/` | 1280×720 | the pre-change set |
 
 Pre-change, at 1280×720, for the record:
