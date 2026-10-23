@@ -71,7 +71,9 @@ var _chrome: LobbyChrome
 ## three chips around a 3D rifle, which is a section of a loadout, not a page in
 ## a journey. It lives here now as one row under the operative's card: choose the
 ## weapon you deploy with, see the numbers it will actually fire.
-var _weapon_row: VBoxContainer
+## HBox where three chips fit side by side, VBox on a narrow screen: the
+## direction is the container class, and a `vertical` flag did nothing.
+var _weapon_row: Container
 var _weapon_stat: Label
 var _weapon_pins: Array[AegisButton] = []
 
@@ -115,6 +117,32 @@ func _on_weapon_pressed(weapon_id: StringName) -> void:
 	progression.select_weapon(weapon_id)
 	Sfx.play_ui(&"ui_click")
 	_refresh()
+
+
+## Three chips in a portrait column cost 192 px of height and put the action row
+## 76 px past the bottom edge on a 1280x720 desktop; side by side they cost 64.
+func _orient_rail(horizontal: bool) -> void:
+	if not is_instance_valid(_weapon_row):
+		return
+	if (
+		(horizontal and _weapon_row is HBoxContainer)
+		or (not horizontal and _weapon_row is VBoxContainer)
+	):
+		return
+	var target: Container = HBoxContainer.new() if horizontal else VBoxContainer.new()
+	target.name = &"WeaponRail"
+	for pin in _weapon_pins:
+		if pin.get_parent() != null:
+			pin.get_parent().remove_child(pin)
+		target.add_child(pin)
+	var parent := _weapon_row.get_parent()
+	if parent != null:
+		var index := _weapon_row.get_index()
+		parent.remove_child(_weapon_row)
+		parent.add_child(target)
+		parent.move_child(target, index)
+	_weapon_row = target
+	physical_separation(_weapon_row, 8)
 
 
 func _refresh_weapons(progression: ProgressionService) -> void:
@@ -712,6 +740,7 @@ func _apply_density() -> void:
 	# is the gun it will deploy with; the other two are priced, disabled and
 	# named in the armory, which is where buying happens anyway.
 	var room_for_rail := physical_size().y >= (520.0 if is_landscape() else 900.0)
+	_orient_rail(physical_size().x >= 720.0)
 	for pin in _weapon_pins:
 		var owned := true
 		var progression := progression_service()
