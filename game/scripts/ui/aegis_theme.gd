@@ -274,6 +274,17 @@ static func set_button_variant(button: Button, variant: String) -> void:
 			radius = 999.0
 			pad_h = 4.0
 			pad_v = 4.0
+		"card":
+			# For anything tall enough to be a card rather than a chip. `round`
+			# is radius 999, which Godot clamps to half the short side: on a
+			# 400x208 theatre card that is a lozenge with 104 px semicircular
+			# ends, and the plate inside it ended up floating outside the shape
+			# the eye reads as "the card". A card keeps a small radius.
+			fill = Color(AegisTokens.PANEL, 0.86)
+			border = Color(AegisTokens.LINE, 0.95)
+			radius = AegisTokens.RADIUS * 3.0
+			pad_h = 12.0
+			pad_v = 10.0
 		"fire":
 			fill = Color(AegisTokens.ACCENT, 0.94)
 			border = Color(AegisTokens.ACCENT, 1.0)

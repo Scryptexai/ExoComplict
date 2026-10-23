@@ -436,7 +436,13 @@ func _apply_density() -> void:
 	physical_separation(_actions, 10.0 if compact else 14.0)
 	# "PROFILE . FIELD READY" restates what the three cells below it already say
 	# on a screen this short; the header is the one line that can go.
-	_numbers.columns = 2 if physical_size().x < 560.0 else 3
+	# Three "CAPTION  value" cells. On a 390 px phone two columns leave one of
+	# them alone on its row, and "RUNS COMPLETED  0" then wraps its figure onto
+	# a second line -- the number you came to read, orphaned in the margin of
+	# the row below it (seen in the 390x844 capture). One column is three short
+	# rows and reads as a list, which is what it is.
+	var width := physical_size().x
+	_numbers.columns = 1 if width < 480.0 else (2 if width < 560.0 else 3)
 	_rank_line.visible = not compact
 	_limit_lines(_mission_brief, 1 if compact else 2)
 	_limit_lines(_loadout, 1 if compact else 2)

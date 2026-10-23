@@ -128,7 +128,7 @@ func _build_world_card(group: ButtonGroup, definition: WorldDefinition) -> Contr
 	_oriented.append(card)
 	card.set_meta("world_id", String(world_id))
 	card.pressed.connect(_on_card_pressed.bind(world_id))
-	AegisTheme.set_button_variant(card, "round")
+	AegisTheme.set_button_variant(card, "card")
 
 	var row := HBoxContainer.new()
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -181,7 +181,7 @@ func _build_locked_card(index: int) -> Control:
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_size_both(card, Vector2(0.0, 112.0), Vector2(LANDSCAPE_CARD_WIDTH * 0.5, 112.0))
 	_oriented.append(card)
-	AegisTheme.set_button_variant(card, "round")
+	AegisTheme.set_button_variant(card, "card")
 
 	var column := VBoxContainer.new()
 	column.set_anchors_preset(Control.PRESET_FULL_RECT)
