@@ -92,6 +92,10 @@ var _loadout: Label
 var _secondary: HBoxContainer
 var _deploy: AegisButton
 var _deploy_caption: Label
+## The caption sits on a chip: bare type over the 3D stage was unreadable
+## against a lit backdrop, and "NEON FRONTIER · READY TO DEPLOY" is the one
+## line that says what the amber tile will do.
+var _deploy_chip: AegisPanel
 
 # --- the modals ------------------------------------------------------------- #
 var _armory: ArmoryUi
@@ -306,22 +310,26 @@ func _build_stage() -> void:
 ## often a player uses it, bottom-up: DEPLOY is nearest the thumb, the tabs are
 ## above it, and the record is the thing you read once.
 func _build_dock() -> void:
-	_deploy_caption = make_label("", "label", AegisTokens.INK_3)
+	_deploy = make_button("DEPLOY", "primary", "Choose your loadout and start a run")
+	physical_min_size(_deploy, 0.0, 100.0)
+	_deploy.pressed.connect(_on_deploy_pressed)
+
+	_deploy_chip = AegisPanel.new()
+	_deploy_chip.name = &"DeployChip"
+	_deploy_chip.interactive = false
+	_deploy_chip.accent_side = "none"
+	_deploy_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_deploy_chip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_deploy_caption = make_label("", "label_s", AegisTokens.INK_2)
 	_deploy_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_deploy_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_deploy_caption.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_deploy_caption.max_lines_visible = 1
-	_dock.add_child(_deploy_caption)
-
-	_deploy = make_button("DEPLOY", "primary", "Choose your loadout and start a run")
-	physical_min_size(_deploy, 0.0, 100.0)
-	_deploy.pressed.connect(_on_deploy_pressed)
-	_dock.add_child(_deploy)
+	_deploy_chip.add_child(_deploy_caption)
 
 	_secondary = HBoxContainer.new()
 	_secondary.name = &"LobbyTabs"
 	physical_separation(_secondary, 12)
-	_dock.add_child(_secondary)
 
 	var armory := make_button("ARMORY", "card", "Unlock and equip weapons with Battle Points")
 	armory.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -344,7 +352,6 @@ func _build_dock() -> void:
 	_stats.accent_side = "top"
 	_stats.accent_color = AegisTokens.INFO
 	_stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_dock.add_child(_stats)
 
 	_stat_column = VBoxContainer.new()
 	physical_separation(_stat_column, 10)
@@ -370,6 +377,13 @@ func _build_dock() -> void:
 	_loadout = make_label("LOADOUT", "label_s", AegisTokens.INK_2)
 	_loadout.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_stat_column.add_child(_loadout)
+
+	# Bottom-up: the record is read once, the tabs are destinations, the chip
+	# names the theatre, and DEPLOY is the row under the thumb.
+	_dock.add_child(_stats)
+	_dock.add_child(_secondary)
+	_dock.add_child(_deploy_chip)
+	_dock.add_child(_deploy)
 
 
 func _build_modals() -> void:
@@ -562,7 +576,7 @@ func _apply_density() -> void:
 		8.0 if compact else 28.0
 	)
 	# The card surface costs its inset twice per card in width and in height.
-	for panel in [_hero_panel, _mission_panel, _stats, _wallet]:
+	for panel in [_hero_panel, _mission_panel, _stats, _wallet, _deploy_chip]:
 		panel.set_surface_pad(px(4.0 if cramped else (6.0 if compact else 12.0)))
 
 	physical_separation(_root, 8.0 if cramped else (12.0 if compact else 20.0))
@@ -590,8 +604,8 @@ func _apply_density() -> void:
 		for tab in _secondary.get_children():
 			physical_min_size(tab as Control, 0.0, 64.0)
 	elif cramped:
-		physical_min_size(_mark, 140.0, 36.0)
-		physical_min_size(_balance, 140.0, 0.0)
+		physical_min_size(_mark, 168.0, 42.0)
+		physical_min_size(_balance, 132.0, 0.0)
 		physical_min_size(_hero_plate, 76.0, 96.0)
 		physical_min_size(_mission_plate, 92.0, 70.0)
 		physical_min_size(_deploy, 0.0, 88.0)
@@ -644,12 +658,14 @@ func _apply_density() -> void:
 	_mission_brief.visible = not (cramped or (compact and not landscape))
 	_limit_lines(_mission_brief, 2)
 	_loadout.visible = not (cramped or compact or short_landscape)
-	_rank_line.visible = not (compact and landscape)
+	# The record is the last thing a player reads and the first thing that goes
+	# when the dock has to fit: the profile line duplicates the counts under it.
+	_rank_line.visible = not compact
 	# The operative card already says FIELD READY, so the header's copy of it is
 	# the first thing to go when the bar has to share 390 px with the wordmark
 	# and the wallet.
 	_status_label.visible = width >= 560.0 and not cramped
-	_deploy_caption.visible = not cramped
+	_deploy_chip.visible = not cramped
 	_limit_lines(_deploy_caption, 1)
 
 	if is_instance_valid(_showcase) and _showcase.has_model():
