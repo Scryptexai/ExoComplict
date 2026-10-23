@@ -157,7 +157,9 @@ func _build_top_bar() -> void:
 
 	_status_label = make_label("FIELD READY", "label", AegisTokens.OK)
 	_status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_status_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_status_label.max_lines_visible = 1
+	_status_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_top.add_child(_status_label)
 
 	# The wallet is a chip, not a row: a borderless line of type on a lobby is
@@ -171,7 +173,13 @@ func _build_top_bar() -> void:
 	_wallet.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_top.add_child(_wallet)
 	_balance = make_label("BATTLE POINTS  0", "label", AegisTokens.ACCENT)
-	_balance.autowrap_mode = TextServer.AUTOWRAP_OFF
+	# Wrapped so its *minimum* width is its longest word, not the whole phrase:
+	# "BATTLE POINTS  0" is 158 px at `label` size, and a 390 px phone has that
+	# much spare only if the wordmark is tiny. One ellipsised line keeps it a
+	# chip and lets the mark stay readable.
+	_balance.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_balance.max_lines_visible = 1
+	_balance.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_wallet.add_child(_balance)
 
 
@@ -235,7 +243,9 @@ func _build_cards() -> void:
 	_hero_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hero_column.add_child(_hero_name_label)
 	_hero_status = make_label("FIELD READY", "label", AegisTokens.OK)
-	_hero_status.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_hero_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_hero_status.max_lines_visible = 1
+	_hero_status.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	hero_column.add_child(_hero_status)
 
 	# The theatre: where DEPLOY goes.
@@ -297,7 +307,7 @@ func _build_stage() -> void:
 func _build_dock() -> void:
 	_deploy_caption = make_label("", "label", AegisTokens.INK_3)
 	_deploy_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_deploy_caption.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_deploy_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_deploy_caption.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_deploy_caption.max_lines_visible = 1
 	_dock.add_child(_deploy_caption)
@@ -570,21 +580,21 @@ func _apply_density() -> void:
 		for tab in _tabs.get_children():
 			physical_min_size(tab as Control, 0.0, 68.0)
 	elif short_landscape:
-		physical_min_size(_mark, 190.0, 48.0)
+		physical_min_size(_mark, 180.0, 46.0)
 		physical_min_size(_hero_plate, 72.0, 96.0)
 		physical_min_size(_mission_plate, 92.0, 70.0)
 		physical_min_size(_deploy, 0.0, 76.0)
 		for tab in _tabs.get_children():
 			physical_min_size(tab as Control, 0.0, 64.0)
 	elif cramped:
-		physical_min_size(_mark, 200.0, 50.0)
+		physical_min_size(_mark, 168.0, 42.0)
 		physical_min_size(_hero_plate, 76.0, 96.0)
 		physical_min_size(_mission_plate, 92.0, 70.0)
 		physical_min_size(_deploy, 0.0, 88.0)
 		for tab in _tabs.get_children():
 			physical_min_size(tab as Control, 0.0, 64.0)
 	else:
-		physical_min_size(_mark, 230.0, 58.0)
+		physical_min_size(_mark, 190.0, 48.0)
 		physical_min_size(_hero_plate, 84.0, 112.0)
 		physical_min_size(_mission_plate, 100.0, 76.0)
 		physical_min_size(_deploy, 0.0, 96.0)
@@ -624,7 +634,10 @@ func _apply_density() -> void:
 	_limit_lines(_mission_brief, 2)
 	_loadout.visible = not (cramped or short_landscape)
 	_rank_line.visible = not (compact and landscape)
-	_status_label.visible = not cramped
+	# The operative card already says FIELD READY, so the header's copy of it is
+	# the first thing to go when the bar has to share 390 px with the wordmark
+	# and the wallet.
+	_status_label.visible = width >= 560.0 and not cramped
 	_deploy_caption.visible = not cramped
 	_limit_lines(_deploy_caption, 1)
 
