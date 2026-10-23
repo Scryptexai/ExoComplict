@@ -37,10 +37,10 @@ const ShowcaseViewportScript = preload("res://scripts/ui/widgets/showcase_viewpo
 ## The rig is 1.78 m tall; `ShowcaseViewport` normalises by height, so the
 ## lobby and the HERO screen present the same operative at the same scale.
 const SHOWCASE_HEIGHT := 1.78
-## How much of the character's box the model fills. The lobby box is tall and
-## narrow on a phone and wide on a desktop; 0.9 reads as "standing in the room"
-## at both, where 1.0 crops the feet on the short one.
-const SHOWCASE_FILL := 0.9
+## How much of the character's box the model fills. The cards and the dock float
+## over it in portrait, so it can use nearly all of its box, where a model
+## sharing a column with them had a strip to stand in.
+const SHOWCASE_FILL := 0.94
 
 # --- top bar ---------------------------------------------------------------- #
 var _top: HBoxContainer
@@ -56,7 +56,7 @@ var _root: VBoxContainer
 ## Portrait stacks cards, character, dock; landscape puts the cards and the
 ## dock either side of the character. Both exist as parents and the blocks are
 ## moved between them, so a rotation is a reconciliation rather than a rebuild.
-var _body_portrait: VBoxContainer
+var _body_portrait: Control
 var _body_landscape: HBoxContainer
 ## The edge-docked card stack.
 var _cards: VBoxContainer
@@ -188,11 +188,16 @@ func _build_top_bar() -> void:
 
 
 func _build_bands() -> void:
-	_body_portrait = VBoxContainer.new()
-	_body_portrait.name = &"LobbyBandsPortrait"
+	# Portrait is an overlay, not a column. The character is full-bleed behind
+	# the cards and the dock -- that is the composition CoD Mobile's, Free
+	# Fire's and Apex's lobbies use, and it is the difference between "a lobby
+	# with a character in a slot" and "a character with the menu on top of it".
+	# A column could only ever give the model the strip the cards left over.
+	_body_portrait = Control.new()
+	_body_portrait.name = &"LobbyOverlayPortrait"
 	_body_portrait.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_body_portrait.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	physical_separation(_body_portrait, 10)
+	_body_portrait.clip_contents = true
 
 	_body_landscape = HBoxContainer.new()
 	_body_landscape.name = &"LobbyBandsLandscape"
@@ -552,11 +557,14 @@ func _apply_orientation() -> void:
 			_root.remove_child(_body_landscape)
 		if _body_portrait.get_parent() == null:
 			_root.add_child(_body_portrait)
-		_body_portrait.add_child(_cards)
+		# Order matters only for drawing after the stage: the character is the
+		# background of this composition, the cards and the dock sit on it.
 		_body_portrait.add_child(_stage)
+		_body_portrait.add_child(_cards)
 		_body_portrait.add_child(_dock)
-		_cards.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_dock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_stage.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_cards.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		_dock.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 
 
 ## Four budgets, measured on the four viewports the smoke test uses. The
@@ -582,6 +590,8 @@ func _apply_density() -> void:
 		panel.set_surface_pad(px(4.0 if cramped else (6.0 if compact else 12.0)))
 
 	physical_separation(_root, 8.0 if cramped else (12.0 if compact else 20.0))
+	# The overlay is the flexible band: the top bar is its only fixed neighbour.
+	_body_portrait.custom_minimum_size = Vector2(0.0, px(height * (0.62 if cramped else 0.66)))
 	physical_separation(_top, 10.0 if compact else 16.0)
 	physical_separation(_cards, 8.0 if compact else 14.0)
 	physical_separation(_dock, 8.0 if cramped else (10.0 if compact else 14.0))
@@ -644,7 +654,7 @@ func _apply_density() -> void:
 		_cards.custom_minimum_size.x = 0.0
 		_dock.custom_minimum_size.x = 0.0
 		_cards.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		_dock.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		_dock.size_flags_vertical = Control.SIZE_SHRINK_END
 		_stage.custom_minimum_size = Vector2(
 			0.0, px(80.0 if cramped else (140.0 if compact else 220.0))
 		)
