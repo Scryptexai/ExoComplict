@@ -433,6 +433,14 @@ func _apply_density() -> void:
 	# of the display. 900 keeps every phone portrait compact and leaves a
 	# tablet or a desktop on the full layout.
 	var compact := physical_size().y < (520.0 if landscape else 900.0)
+	# A 360x640 phone is the smallest surface the front end is tested on, and the
+	# compact stack still measured 60 px past its bottom: REPLAY INTRO sat at
+	# y=636 with a 64 px height (menu_layout_smoke). `cramped` is the last step
+	# before the layout would have to drop content -- it takes 72 px back out of
+	# margins, the wordmark, three gaps, DEPLOY and the one line that is already
+	# an ellipsis ("LOADOUT: EXO-OPERATIVE / PULSE…"), and leaves every control
+	# at or above the touch floor.
+	var cramped := not landscape and physical_size().y < 700.0
 	# The safe margins also come in on a short screen: 8 px top and bottom is
 	# worth more to the content than to the composition at that size.
 	# A landscape phone is 390 px tall. The web shell already reserves 30 px at
@@ -441,9 +449,12 @@ func _apply_density() -> void:
 	# difference between DEPLOY fitting and REPLAY INTRO hanging off the bottom
 	# edge (menu_layout_smoke, 844x390).
 	apply_safe_margins(
-		_margin, 20.0 if compact else 36.0, 16.0 if compact else 28.0, 8.0 if compact else 28.0
+		_margin,
+		20.0 if compact else 36.0,
+		8.0 if cramped else (16.0 if compact else 28.0),
+		8.0 if compact else 28.0
 	)
-	physical_separation(_stack, 12.0 if compact else 22.0)
+	physical_separation(_stack, 8.0 if cramped else (12.0 if compact else 22.0))
 	physical_separation(_left, 12.0 if compact else 22.0)
 	physical_separation(_right, 10.0 if compact else 16.0)
 	physical_separation(_actions, 10.0 if compact else 14.0)
@@ -460,7 +471,10 @@ func _apply_density() -> void:
 	# 78 px is the desktop DEPLOY. On a 390 px tall screen it is one of three
 	# blocks that have to fit under a 30 px browser bar, and 66 is still above
 	# the 64 px touch floor and twice the height of the old button.
-	physical_min_size(_deploy, 0.0, 66.0 if compact else 78.0)
+	physical_min_size(_deploy, 0.0, 60.0 if cramped else (66.0 if compact else 78.0))
+	# Already trimmed to one line with an ellipsis on a compact screen, and the
+	# first thing to lose its place when a stacked arrangement runs out of one.
+	_loadout.visible = not cramped
 	_rank_line.visible = not compact
 	_limit_lines(_mission_brief, 1 if compact else 2)
 	_limit_lines(_loadout, 1 if compact else 2)
@@ -480,7 +494,10 @@ func _apply_density() -> void:
 			physical_min_size(_hero_plate, 128.0, 170.0)
 			physical_min_size(_mission_plate, 146.0, 124.0)
 	elif compact:
-		physical_min_size(_mark, 310.0, 78.0)
+		if cramped:
+			physical_min_size(_mark, 248.0, 62.0)
+		else:
+			physical_min_size(_mark, 310.0, 78.0)
 		physical_min_size(_hero_plate, 96.0, 128.0)
 		physical_min_size(_mission_plate, 108.0, 92.0)
 

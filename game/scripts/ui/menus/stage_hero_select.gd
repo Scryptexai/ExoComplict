@@ -199,7 +199,15 @@ func _build_carousel() -> void:
 		"label_s",
 		AegisTokens.INK_3
 	)
-	development.autowrap_mode = TextServer.AUTOWRAP_OFF
+	# This caption is the widest single-line text on the screen (334 px at 13 px
+	# with its 10 px tracking), and with autowrap off it set the *minimum width*
+	# of the whole column: on a 360 px phone that put the panel's right edge at
+	# 370 and menu_layout_smoke reported three labels outside the viewport at
+	# once. Word wrapping gives the label a minimum of its longest word, and one
+	# line with an ellipsis keeps it a caption.
+	development.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_limit_lines(development, 1)
+	development.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_carousel_wrap.add_child(development)
 
 
@@ -535,7 +543,13 @@ func _apply_density() -> void:
 	# Same trade as WEAPON: on a portrait phone the header keeps BACK and the
 	# heading, and the field-ready state lives on the card itself.
 	_status_label.visible = is_landscape() or physical_size().x >= 560.0
-	var compact_chip := Vector2(64.0, 64.0) if short_screen else Vector2(84.0, 84.0)
+	# 64 px chips clipped their own slot label: "SLOT 02" is 71 px at the current
+	# `label_s` size, and menu_layout_smoke asserted exactly that on the pushed
+	# build (text 548,142 71x20 in card 548,120 64x64). A 390 px tall landscape
+	# screen does not get its height back from a control that has to stay wide
+	# enough to be read and tapped; it gets it from copy, which is what the three
+	# lines below give up instead.
+	var compact_chip := Vector2(84.0, 84.0)
 	for chip in _cards + _locked:
 		var control := chip as Control
 		if control == null:
@@ -555,6 +569,18 @@ func _apply_density() -> void:
 	physical_separation(_actions, 8.0 if short_screen else 14.0)
 	physical_min_size(_continue, 0.0, AegisTokens.MIN_TOUCH_PX)
 	_heading.text = "SELECT OPERATIVE" if is_landscape() else "OPERATIVE"
+	# BACK + heading + status have to share 288 px on a 360 px phone. "OPERATIVE"
+	# set in `display_m` is 208 of them, which is what pushed the heading to
+	# x=162 and its right edge to 370 (menu_layout_smoke, 360x640). The heading
+	# steps down one role there; the wording is the same.
+	var narrow := physical_size().x < 420.0
+	var heading_role := "heading" if narrow else "display_m"
+	_heading.set_meta("aegis_role", heading_role)
+	AegisTheme.resize_label(
+		_heading,
+		heading_role,
+		maxi(AegisTheme.type_size(heading_role), _minimum_font_size(_stretch))
+	)
 	physical_min_size(_carousel, 0.0, 88.0 if short_screen else 120.0)
 	physical_separation(_stack, 8.0 if short_screen else 14.0)
 	physical_separation(_body_portrait, 8.0 if short_screen else 14.0)
