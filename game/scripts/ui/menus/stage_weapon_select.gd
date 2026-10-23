@@ -524,9 +524,16 @@ func _apply_orientation() -> void:
 	_col_info.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
 
-## The fill for the box the rifle is drawn into right now.
+## The fill for the box the rifle is drawn into right now. 1.15 is right when
+## the model has a tall box to itself; on a 640 px phone the box is ~230 px tall
+## and the rifle was drawn over the information card below it, so the short
+## portrait pulls the camera back until it fits.
 func _showcase_fill() -> float:
-	return SHOWCASE_FILL_LANDSCAPE if is_landscape() else SHOWCASE_FILL_PORTRAIT
+	if is_landscape():
+		return SHOWCASE_FILL_LANDSCAPE
+	if physical_size().y < 760.0:
+		return 0.62
+	return SHOWCASE_FILL_PORTRAIT
 
 
 func _apply_density() -> void:
