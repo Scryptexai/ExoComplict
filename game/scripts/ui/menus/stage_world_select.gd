@@ -235,9 +235,12 @@ func reframe() -> void:
 		# for the plate to read, and the body still expands into any slack.
 		physical_min_size(_map, 0.0, height * 0.26)
 		physical_min_size(_launch, 0.0, 72.0)
-	# 64 px is the touch floor (`AegisTokens.MIN_TOUCH_PX`); 56 failed it.
-	for pin in _pins:
-		physical_min_size(pin, 0.0, 64.0)
+	# 64 px is the touch floor (`AegisTokens.MIN_TOUCH_PX`); 56 failed it. Every
+	# child of the row, not just `_pins`: the roadmap slot was built after the
+	# list and kept its 41 px text height.
+	for child in _pin_row.get_children():
+		if child is Control:
+			physical_min_size(child as Control, 0.0, 64.0)
 	_orient_pins(landscape)
 	# 390 px of height is enough for the name and one line about the theatre, not
 	# for the chapter tag as well; the pin under the map already carries the name.
