@@ -11,7 +11,7 @@ dashboard, no selection screens — so every stage here is new code rather than 
 re-skin.
 
 ```
-STUDIO ──> BOOT ──> LOADING ──> CHAPTER ──> DASHBOARD ──> HERO ──> WEAPON
+STUDIO ──> BOOT ──> LOADING ──> CHAPTER ──> DASHBOARD ──> HERO
                          │                         ▲
                          └── (skipped once seen) ───┘
                                                    │
@@ -114,7 +114,7 @@ sixth row would be decoration disagreeing with gameplay.
 
 | Button | Action |
 | --- | --- |
-| DEPLOY | starts HERO → WEAPON → WORLD → PRELOAD |
+| DEPLOY | starts HERO → WORLD → PRELOAD |
 | ARMORY | `ArmoryUi`, the in-game shop widget, spending real BP for real unlocks |
 | SETTINGS | `AegisSettingsMenu`, writing `user://aegis.cfg` |
 
@@ -137,21 +137,12 @@ no per-hero health, speed or damage — so any number printed here would be
 decoration. The portrait is concept art, not the playable model
 (`docs/ART_DIRECTION.md` §4).
 
-## WEAPON SELECTION — `stage_weapon_select.gd`
+## THE LOADOUT LIVES ON HERO
 
-All three weapons are real: the stats are read off the `WeaponDefinition`
-resource at runtime, so the screen cannot drift from the weapon the player
-fires.
-
-| | Damage | Rate | Mag | Reload | Range | Notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| Pulse Rifle | 18 | 5.0/s | 24 | 1.35 s | 45 m | starter |
-| Nova Launcher | 34 | 0.8/s | 6 | 2.2 s | 32 m | splash 24 / 4 m |
-| Arc Shooter | 20 | 2.0/s | 12 | 1.7 s | 30 m | chain 2 |
-
-Locked weapons are **disabled** and priced from `ProgressionService.COSTS`
-(pulse 0, nova 120, arc 250). Unlocking happens in the Armory, which is the one
-place that spends Battle Points, so there is exactly one purchase path.
+There is no WEAPON page. Its screen was three chips around a 3D rifle -- a
+section of a loadout, not a page in a journey -- so the rail moved onto HERO,
+under the operative's card: choose who, and with what, in one place. See
+`docs/DECISIONS.md` 2 for the reasoning and `stage_hero_select.gd` for the rail.
 
 ## WORLD SELECTION — `stage_world_select.gd`
 
@@ -222,7 +213,7 @@ without rebuilding it:
   bottom-anchored, closest to the thumb). In landscape it splits: stats left,
   actions right. The stack is ~500 px tall and a landscape phone is 390 px,
   which is what put DEPLOY at y=444, 114 px past the bottom edge.
-* **HERO / WEAPON / WORLD** scroll one card per row in portrait. In landscape the
+* **HERO / WORLD** scroll one card per row in portrait. In landscape the
   heading, the summary and the footer move into a fixed-width info column and the
   card list becomes a row that scrolls sideways beside it: a stacked header
   leaves the list ~130 px of a 390 px screen, and a 216 px card in a 130 px
@@ -239,7 +230,6 @@ Measured, in physical pixels, from the browser's own rect report
 > hero id; the card is now `ExoOperativeCard`, and the rects are unchanged.
 
 | HERO | `ExoOperativeCard=36,132,318x190`, `BACK=36,736,153x56` | `ExoOperativeCard=346,54,340x190`, `BACK=36,282,144x56` |
-| WEAPON | `PulseRifleCard=36,115,316x216`, `CONTINUE=201,736,153x56` | `PulseRifleCard=346,54,340x216`, `CONTINUE=191,282,144x56` |
 | WORLD | `NeonFrontierCard=36,115,318x168`, `LAUNCH=201,736,153x56` | `NeonFrontierCard=346,54,340x168`, `LAUNCH` bottom right |
 
 Every action is 56–60 px tall, and in every measurement above the lowest pixel
@@ -303,7 +293,7 @@ build, so it fails for the right reason.
 
 ## The roster is one list
 
-The HERO, WEAPON and WORLD screens, the dashboard's loadout line and
+The HERO and WORLD screens, the dashboard's loadout line and
 `ProgressionService` used to each keep their own copy of the same names -- the
 world's name in four places, the hero's in three. (A fifth, the opening's
 theatre caption, is gone: that caption was drawn on the studio's ident.)

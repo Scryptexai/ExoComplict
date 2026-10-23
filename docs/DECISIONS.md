@@ -50,34 +50,57 @@ only an opinion is not here.
     because the canvas is letterboxed and a phone is not a small desktop.
 12. **Portrait is a first-class layout, not a squeezed landscape.** Both are
     built, both are photographed, both are asserted.
-13. **The primary action is the bottom row** — nearest the thumb — which is the
+13. **`clip_text` is what takes a label out of its minimum width.** Wrapping
+    only changes the height a label reserves; an ellipsised one-line caption
+    still reports its full text width as its minimum unless `clip_text` is set,
+    and one such caption made a 360 px page 340 px wide. A Button is worse: its
+    minimum width is its own `text`, which is how two 170 px tabs became a 348 px
+    row on a 320 px boundary.
+14. **`HBoxContainer` and `VBoxContainer` are two classes, not one with a
+    `vertical` flag.** Assigning `vertical` silently does nothing; the engine
+    then lays out the row in the other direction, and the failure reads as a
+    layout bug rather than a typo. Reparent into the right container instead.
+15. **`gdparse` does not catch duplicate locals, undeclared identifiers or a
+    field typed as the wrong container.** All three reached CI while
+    `dev_check.sh` was green, because those are type-resolution errors and
+    `gdparse` only parses. Trust the headless run for anything a type checker
+    would catch.
+16. **A Button does not scale its icon texture.** `icon_max_width` and
+    `expand_icon` change nothing for these SVG assets; a TextureRect sized in
+    physical pixels is the reliable way to draw a glyph at a given size — and a
+    full-rect child of a Button draws *over* its text.
+17. **The boot overlay is not a screen.** A wordmark, a progress bar and a
+    sentence about the engine are a developer's view of a download; the opening
+    is the film, so the overlay is a dark frame that fades when the engine is
+    ready.
+18. **The primary action is the bottom row** — nearest the thumb — which is the
     order Apex's READY bar and Free Fire's start tile use. Tabs sit above it.
 
 ## 3. Art and type
 
-14. **Chakra Petch for display, Rajdhani for the interface.** Both are squared,
+19. **Chakra Petch for display, Rajdhani for the interface.** Both are squared,
     condensed, and built for uppercase rows; mixing a geometric face with a
     humanist one is what made the old menus read as a form.
-15. **Minimum 16 physical pixels for supporting text, 64 for a touch target.**
+20. **Minimum 16 physical pixels for supporting text, 64 for a touch target.**
     Measured against CoD Mobile (body 22 px at 1568×882), Apex (26 px), Free
     Fire (tabs 15 px, START ≈ 13 % of screen height).
-16. **Never pure black or pure white**; the palette lives in `AegisTokens` and
+21. **Never pure black or pure white**; the palette lives in `AegisTokens` and
     nothing hard-codes a colour.
-17. **The character is the subject.** A lobby gives the operative the centre and
+22. **The character is the subject.** A lobby gives the operative the centre and
     a band that is a share of the screen (a phone 24–42 %, a desktop ~42 %), not
     the space the cards left over.
 
 ## 4. QA
 
-18. **Every visual claim is a captured frame.** `tools/qa_flow_shots.mjs` walks
+23. **Every visual claim is a captured frame.** `tools/qa_flow_shots.mjs` walks
     the real stages from the committed payload and writes image statistics per
     frame, so a blank capture is visible instead of being a file that exists.
-19. **A screenshot without the stage log is not a screenshot of that stage.**
+24. **A screenshot without the stage log is not a screenshot of that stage.**
     The tool refuses to file one that way.
-20. **The smoke suite runs at four sizes** — 1280×720, 390×844, 360×640,
+25. **The smoke suite runs at four sizes** — 1280×720, 390×844, 360×640,
     844×390 — and asserts that every control is inside the viewport, that copy
     stays inside its own card, and that the journey's order holds.
 21. **Renaming a field the tests read by name fails as a *layout* failure.**
     Grep `tests/` for `get("_…")` before renaming anything on a stage.
-22. **`data_source_smoke.gd` scans screen *sources* for registry strings**, so a
+27. **`data_source_smoke.gd` scans screen *sources* for registry strings**, so a
     registry name inside a comment fails the build.
