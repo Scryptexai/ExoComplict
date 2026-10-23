@@ -662,14 +662,18 @@ func _apply_density() -> void:
 		_limit_lines(name_label, 2)
 		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	if cramped:
-		for name_label in [_hero_name_label, _mission_name]:
+		# `clip_text` is what takes the text out of the *minimum* width; the role
+		# only decides how big it is. Without both, a card is as wide as its
+		# longest label plus its portrait plate -- 340 px on a 360 px phone.
+		for step in [[_hero_name_label, "heading_s"], [_mission_name, "body_s"]]:
+			var name_label: Label = step[0]
+			var role: String = step[1]
 			if name_label == null:
 				continue
-			name_label.set_meta("aegis_role", "heading")
+			name_label.clip_text = true
+			name_label.set_meta("aegis_role", role)
 			AegisTheme.resize_label(
-				name_label,
-				"heading",
-				maxi(AegisTheme.type_size("heading"), _minimum_font_size(_stretch))
+				name_label, role, maxi(AegisTheme.type_size(role), _minimum_font_size(_stretch))
 			)
 	_mission_caption.visible = not cramped
 	# The brief is the WORLD card's paragraph. On a phone the theatre's *name*
