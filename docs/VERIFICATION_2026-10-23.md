@@ -74,7 +74,7 @@ rail width 300 → 360, safe margin 28 → 36, primary action 62 → 78 px,
 dashboard plates 96×128 → 128×170.
 
 The wordmark was 240–360 px wide depending on the screen; it is now 300 px in
-portrait and 440–540 px on a desktop (`_size_both` in BOOT, LOADING, CINEMATIC
+portrait and 440–540 px on a desktop (`_size_both` in BOOT, LOADING
 and DASHBOARD). It cannot be one large number: a 390 px wide phone with a 36 px
 margin has 318 px to put it in, and a 540 px mark there hangs off both edges.
 
@@ -145,42 +145,39 @@ suite instead of shipping the box again.
 
 ---
 
-## 5. The opening is the committed film
+## 5. The studio ident — corrected
 
 `branding_studio_present.mp4` (768×768, 24 fps, 10.14 s, AAC audio) →
-`cinematic_opening.ogv` (Theora q7, Vorbis q4, 768×768, 24 fps, 10.14 s, 1.77 MB,
+`studio_ident.ogv` (Theora q7, Vorbis q4, 768×768, 24 fps, 10.14 s, 1.77 MB,
 audio present). The build asserts frame size, length and audio against the
 source and fails if any of them moved.
 
-The stage changed in three ways:
+### What this file is, and what the first attempt got wrong
 
-1. **Contain, not cover.** `_layout_video` scaled by `max(size/frame)`; a square
-   film on a 16:9 stage therefore rendered 1280×1280 and lost 280 px off the top
-   and bottom of the mark. It now scales by `min` and centres: 720×720 on the
-   canvas, black either side.
-2. **Black stage, no poster.** The key-art plate and the scrim are hidden while
-   the ident plays, so the film is not framed by a rectangle of game art.
-3. **Nothing on top.** No captions, no wordmark, no progress bar — SKIP only,
-   bottom centre, from the first frame.
+It is a **studio's brand film**: a company ident, the beat a Garena or Moonton
+card is. It is somebody else's mark. The first version of this work treated it
+as *this game's opening cinematic*, and that misreading produced five concrete
+mistakes, all now reversed:
 
-The composed fallback (push-in on the key art, four captions) is untouched and
-runs when the video is missing or stalled; it is the path that carries the
-product's premise, and it is still UI text rather than baked pixels.
+| The wrong treatment | What it should be |
+| --- | --- |
+| A stage in the middle of the journey (`BOOT -> LOADING -> CINEMATIC -> CHAPTER`) | **first**, before the game's own wordmark: a publisher card opens the application |
+| Gated on the profile and played once | played on **every launch**; it is not onboarding |
+| Replayable from the dashboard (`REPLAY INTRO`) | not reachable from any menu; a studio mark is not content to rewatch |
+| A composed fallback that played *this project's* key art under four captions when the film was absent | **nothing substituted**: log it and move on |
+| A SKIP button in product chrome, plus a progress bar, a caption and the wordmark | **nothing of ours on the mark**; any input dismisses it, and dismissal draws nothing |
 
-Palette: 31.6 % of a sampled frame classifies as off-palette because the ident's
-lime is hue 75–90 and this palette's windows are amber 15–70 and green 95–175.
-Recorded in `video_manifest.json` as `palette_exemption` with that reason. The
-film is a supplied brand asset; no rule in this repo may re-grade it.
+The stage is therefore `STUDIO` / `stage_studio_ident.gd`, the asset is
+`studio_ident.ogv` (the delivered encoding, renamed — no re-encode, no crop, no
+re-time, no re-score), and the fallback sequence, the captions, the progress bar
+and the SKIP control are deleted rather than hidden.
 
-**PASS** for the artefact (manifest carries source, size, duration, audio and
-the exemption).
+### What the frames found before the correction
 
-### The bug the frames found
-
-The first three captures of this stage showed the ident playing on top of the
-key-art plate, with the scrim, the progress sliver and a caption still drawn —
-a state the code says cannot exist. Two captures were spent guessing. What
-settled it was a print, not a theory:
+The first three captures showed the ident playing on top of the key-art plate,
+with the scrim, the progress sliver and a caption still drawn — a state the code
+says cannot exist. Two captures were spent guessing. What settled it was a
+print, not a theory:
 
 ```
 MenuCinematic: overlay video=true plate=true scrim=true caption=true
@@ -188,15 +185,28 @@ MenuCinematic: overlay video=true plate=true scrim=true caption=true
 
 All four true at once means the helper had been *called with the wrong
 argument*: `_show_ident_overlay(not _video.visible)` passes `false` while the
-film is playing, and `false` is "hide nothing". One `not` inverted the whole
-decision, and it hid the real bug behind a plausible story ("the plate must be
-being re-shown by something"). Fixed to `_show_ident_overlay(_video.visible)`.
+film is playing, and `false` is "hide nothing". One `not` inverted the decision.
+The deeper problem was the design that produced the question: there should never
+have been an overlay to hide.
 
-The same frame pass found SKIP rendering at 13 px while every other control was
-at 21: it was added to the column **after** `relayout()`, and the layout pass
-only reaches what is under the stage. Adding it before the pass fixed it.
+### What is now asserted
 
-**NOT TESTED** until the next capture: the film on a black stage with only SKIP.
+* `video_asset_smoke.gd` — the engine measures 768×768 and 10.14 s against the
+  manifest, playback advances, and **the ident scene holds no texture of ours,
+  no button and no caption**.
+* `front_end_journey_smoke.gd` — the journey starts at `STUDIO`; the ident has
+  no button, no label and no texture; a tap advances it; `intro_seen` is now
+  written when the CHAPTER 01 card is cleared, and the card — not the ident — is
+  what a second launch skips.
+
+Palette: 31.6 % of a sampled frame classifies as off-palette because the ident's
+lime is hue 75–90 and this palette's windows are amber 15–70 and green 95–175.
+Recorded in `video_manifest.json` as `palette_exemption`. The film is supplied;
+no rule in this repo may re-grade it.
+
+**PASS** for the artefact and for the stage's restraint, in the headless suite.
+**NOT TESTED** until the frames below: the ident on a 1280×720 and a 390×844
+screen, on the CI-built payload.
 
 ---
 
@@ -233,7 +243,7 @@ After, measured in the same tool at the same viewport:
 | --- | --- |
 | BOOT | wordmark 640×160 with no plate, status 21 px |
 | LOADING | wordmark centred on black, `LOADING` 34 px, `READY` 21 px, a 6 px track across the full width, `100%` right-aligned. No robot: the asset is deleted, not hidden |
-| CINEMATIC | the committed film, letterboxed on black, with SKIP and nothing else on top of it |
+| STUDIO | the studio's mark, pillarboxed on black at 720×720, with nothing of ours on it |
 | CHAPTER | `FIRST LIGHT` 38 px, body 18 px, CONTINUE 64 px |
 | DASHBOARD | DEPLOY 78 px, stats 18 px in three columns, ARMORY/SETTINGS 64 px, a drawn card behind each block |
 | HERO | `SELECT OPERATIVE` 30 px, 104 px chips, an 84 px information card with the operative's name as its heading, EQUIPPED + CONTINUE 64 px in one row |

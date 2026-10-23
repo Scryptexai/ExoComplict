@@ -1,11 +1,16 @@
-## Owns the front-end journey: BOOT -> LOADING -> CINEMATIC -> CHAPTER ->
+## Owns the front-end journey: STUDIO -> BOOT -> LOADING -> CHAPTER ->
 ## DASHBOARD -> HERO -> WEAPON -> WORLD -> PRELOAD -> gameplay.
 ##
 ## This is the only place that knows the order. A stage asks for the next one by
 ## name and FrontEnd decides whether that is legal, which is what keeps the
-## onboarding honest: the cinematic is skipped on a second launch because
+## onboarding honest: the CHAPTER 01 card is skipped on a second launch because
 ## *this* object reads `intro_seen` off the profile, not because each screen
 ## remembers whether it played.
+##
+## STUDIO is first and unguarded. A studio ident is a launch beat, the way a
+## Garena or Moonton card is, so it comes before the game's own logo on every
+## start. It is not part of the onboarding, it is not replayable, and nothing in
+## the menus refers to it.
 ##
 ## Nothing here fakes progress. BOOT shows an indeterminate bar because a
 ## ConfigFile read reports no progress; LOADING and PRELOAD show a percentage
@@ -16,9 +21,9 @@ extends Control
 const GAMEPLAY_SCENE := "res://scenes/main.tscn"
 
 const STAGE_SCENES := {
+	&"STUDIO": preload("res://scenes/ui/menus/stage_studio_ident.tscn"),
 	&"BOOT": preload("res://scenes/ui/menus/stage_boot.tscn"),
 	&"LOADING": preload("res://scenes/ui/menus/stage_loading.tscn"),
-	&"CINEMATIC": preload("res://scenes/ui/menus/stage_cinematic.tscn"),
 	&"CHAPTER": preload("res://scenes/ui/menus/stage_chapter.tscn"),
 	&"DASHBOARD": preload("res://scenes/ui/menus/stage_dashboard.tscn"),
 	&"HERO": preload("res://scenes/ui/menus/stage_hero_select.tscn"),
@@ -62,14 +67,14 @@ func _ready() -> void:
 		# `_process`, even though nothing called set_process(true) -- measured in
 		# this build: a bare Control reports is_processing() false after new(),
 		# true immediately after add_child(). Left alone every stage ticks from
-		# the moment the front end boots, and the cinematic runs to completion
-		# before it is ever shown. So the opt-out has to come *after* add_child,
-		# and stages opt back in from enter().
+		# the moment the front end boots, and the ident runs to completion before
+		# it is ever shown. So the opt-out has to come *after* add_child, and
+		# stages opt back in from enter().
 		stage.set_process(false)
 		stage.set_physics_process(false)
 		_stages[key] = stage
 	progression_service.profile_changed.connect(_on_profile_changed)
-	_enter(&"BOOT", {})
+	_enter(&"STUDIO", {})
 	_enter_qa_stage()
 
 
@@ -147,11 +152,14 @@ func go_to(stage_name: StringName, stage_payload: Dictionary = {}) -> void:
 	_enter(stage_name, stage_payload)
 
 
-## Where the front-end art load leads: the cinematic on a first launch, the
-## dashboard once it has been seen. Resolved here rather than in BOOT so the
-## "play the intro once" rule lives in exactly one place.
+## Where the front-end art load leads: the CHAPTER 01 card on a first launch,
+## the dashboard once it has been seen. Resolved here rather than in BOOT so the
+## "play the chapter card once" rule lives in exactly one place.
+##
+## The studio ident is deliberately not part of this: it played before BOOT and
+## it plays again on the next launch, whatever the profile says.
 func stage_after_loading() -> StringName:
-	return &"DASHBOARD" if progression_service.intro_seen else &"CINEMATIC"
+	return &"DASHBOARD" if progression_service.intro_seen else &"CHAPTER"
 
 
 func start_gameplay() -> void:
@@ -266,9 +274,9 @@ func _report_menu_rects() -> void:
 func _on_stage_completed(
 	next_stage: StringName, stage_payload: Dictionary, from_stage: StringName
 ) -> void:
-	# The cinematic plays once. Skipping it counts as seeing it: being dropped
-	# straight into the dashboard is the reward the skip button is offering.
-	if from_stage == &"CINEMATIC":
+	# The CHAPTER 01 card plays once. Clearing it counts as seeing it: being
+	# dropped straight into the dashboard is the reward for clearing it.
+	if from_stage == &"CHAPTER":
 		progression_service.mark_intro_seen()
 	if not STAGE_SCENES.has(next_stage):
 		push_error("FrontEnd: stage '%s' asked for unknown stage '%s'." % [from_stage, next_stage])

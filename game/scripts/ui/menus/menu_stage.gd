@@ -1,6 +1,6 @@
 ## Base class for one screen of the front-end journey.
 ##
-## The journey is BOOT -> LOADING -> CINEMATIC -> CHAPTER -> DASHBOARD -> HERO
+## The journey is STUDIO -> BOOT -> LOADING -> CHAPTER -> DASHBOARD -> HERO
 ## -> WEAPON -> WORLD -> PRELOAD -> gameplay. A stage owns its own layout and
 ## its own input, and knows nothing about the others: it finishes by emitting
 ## `completed` with the name of the stage it wants next, and `FrontEnd` decides

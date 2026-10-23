@@ -29,7 +29,6 @@ extends SceneTree
 
 const FrontEndScene = preload("res://scenes/ui/front_end.tscn")
 const PlayerScene = preload("res://scenes/player/player.tscn")
-const CinematicStage = preload("res://scripts/ui/menus/stage_cinematic.gd")
 
 ## Distinct from the real `user://progression.cfg` so the suite never spends or
 ## unlocks anything in a profile a developer might care about.
@@ -338,9 +337,9 @@ func _check_dashboard_matches_the_service() -> void:
 ## where the weapon plates live) and asks the engine whether each file is real.
 func _check_referenced_art_exists() -> void:
 	for name in [
+		&"STUDIO",
 		&"BOOT",
 		&"LOADING",
-		&"CINEMATIC",
 		&"CHAPTER",
 		&"DASHBOARD",
 		&"HERO",
@@ -354,6 +353,18 @@ func _check_referenced_art_exists() -> void:
 		if not _expect(stage != null, "the %s stage is instantiated" % name):
 			continue
 		var paths := _art_paths_in(stage)
+		# STUDIO is the studio's ident: it names its own film and deliberately
+		# draws none of this project's art, so both halves of this rule invert
+		# for it. Asserted rather than skipped -- "no product art on the mark"
+		# is the thing that screen has to get right.
+		if name == &"STUDIO":
+			_expect(paths.is_empty(), "STUDIO names none of this project's art (%s)" % [paths])
+			var marks := 0
+			for child in stage.find_children("*", "TextureRect", true, false):
+				if (child as TextureRect).texture != null:
+					marks += 1
+			_expect(marks == 0, "STUDIO draws no product texture (%d)" % marks)
+			continue
 		if name != &"BOOT":
 			_expect(paths.size() > 0, "%s names at least one art file (%d)" % [name, paths.size()])
 		for path in paths:
@@ -688,23 +699,11 @@ func _check_world_roster_is_one_list() -> void:
 				"the dashboard calls %s '%s', the name in its own definition" % [world_id, shown]
 			)
 
-	# The cinematic names the theatre in its second caption. This is a wiring
-	# check, not a drift check: renaming the definition moves both sides
-	# together, so what it proves is that the line is still *derived*. Drift is
-	# what `_check_no_roster_literals_in_screens` catches -- a name typed into
-	# the cinematic instead of read from the registry fails there.
-	var caption := String(CinematicStage._beat_caption(1))
-	# The opening drops into the *default* theatre, so it names that one. With a
-	# single world this looped over the roster and happened to be right; with two
-	# it asked one caption to name every theatre the game ships.
-	for world_id in [WorldDefinition.DEFAULT_WORLD_ID]:
-		var definition := WorldDefinition.load_definition(world_id)
-		if definition == null:
-			continue
-		_expect(
-			caption.contains(definition.display_name.to_upper()),
-			"the opening names the theatre it drops into ('%s')" % caption
-		)
+	# The studio ident used to be checked here: it named the theatre in a
+	# caption it drew over the film. It has no captions now -- drawing this
+	# game's copy on a studio's mark was the mistake -- so there is no line to
+	# derive, and the screen-literal check below still covers the screens that
+	# do name worlds.
 
 
 ## The other half of the same rule, and the half that can actually fail.
@@ -719,7 +718,7 @@ func _check_no_roster_literals_in_screens() -> void:
 		"HERO": "res://scripts/ui/menus/stage_hero_select.gd",
 		"WORLD": "res://scripts/ui/menus/stage_world_select.gd",
 		"DASHBOARD": "res://scripts/ui/menus/stage_dashboard.gd",
-		"CINEMATIC": "res://scripts/ui/menus/stage_cinematic.gd",
+		"STUDIO": "res://scripts/ui/menus/stage_studio_ident.gd",
 	}
 	var owned: Array[String] = []
 	for definition in HeroDefinition.load_all_definitions():

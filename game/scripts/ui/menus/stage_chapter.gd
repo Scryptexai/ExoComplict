@@ -1,4 +1,4 @@
-## CHAPTER 01 title card between the cinematic and the dashboard.
+## CHAPTER 01 title card between LOADING and the dashboard.
 ##
 ## Deliberately small: it names the chapter and the objective the run actually
 ## measures, then gets out of the way. It advances on CONTINUE or on any tap

@@ -3,8 +3,9 @@
   "container": "ogv",
   "videos": [
     {
-      "key": "cinematic_opening",
-      "file": "res://assets/ui/cinematic_opening.ogv",
+      "key": "studio_ident",
+      "role": "studio ident: shown once at launch, before the game's own logo, with no product UI on it, never replayed from a menu and never stood in for",
+      "file": "res://assets/ui/studio_ident.ogv",
       "format": "OGV (Theora + Vorbis)",
       "source": "branding_studio_present.mp4",
       "source_size": [
@@ -25,5 +26,6 @@
       "within_palette": false,
       "palette_exemption": "the committed brand ident (lime, hue 75-90) is outside the game-art palette by design; supplied, not generated"
     }
-  ]
+  ],
+  "note": "studio ident: shown once at launch, before the game's own logo, with no product UI on it, never replayed from a menu and never stood in for"
 }

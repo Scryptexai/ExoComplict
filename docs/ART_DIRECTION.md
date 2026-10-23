@@ -171,8 +171,8 @@ Sizes are the real imported sizes, verified at runtime by
 
 | Key | File | Res | Format | Off-palette | Integration |
 | --- | --- | --- | --- | --- | --- |
-| `wordmark` | `logo_wordmark.png` | 1024×256 | PNG **RGBA** | 0.8% | BOOT, CINEMATIC, CHAPTER, DASHBOARD, LOADING — alpha keyed, no plate |
-| `loading_keyart` | `loading_keyart.jpg` | 1920×1080 | JPEG q90 | 0.0% | LOADING, PRELOAD, CINEMATIC |
+| `wordmark` | `logo_wordmark.png` | 1024×256 | PNG **RGBA** | 0.8% | BOOT, CHAPTER, DASHBOARD, LOADING — alpha keyed, no plate. Never on the studio ident |
+| `loading_keyart` | `loading_keyart.jpg` | 1920×1080 | JPEG q90 | 0.0% | LOADING, PRELOAD |
 | `dashboard_bg` | `dashboard_bg.jpg` | 1920×1080 | JPEG q90 | 0.2% | DASHBOARD, HERO, WEAPON |
 | `hero_portrait` | `portrait_hero.png` | 768×1024 | PNG | 0.2% | HERO selection card |
 | `world_neon_frontier` | `world_neon_frontier.jpg` | 1600×900 | JPEG q90 | 0.0% | CHAPTER, WORLD selection |
@@ -203,7 +203,7 @@ bed. The build re-encodes it; it does not render, crop, re-time or silence it.
 
 | Key | File | Res | FPS | Length | Size | Audio | Integration |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `cinematic_opening` | `cinematic_opening.ogv` | 768×768 | 24 | 10.14 s | 1.8 MB | Vorbis, from the source | CINEMATIC — the composed in-engine opening is the fallback |
+| `studio_ident` | `studio_ident.ogv` | 768×768 | 24 | 10.14 s | 1.8 MB | Vorbis, from the source | STUDIO — the studio's mark, at launch. No product art is drawn on it |
 
 Container is **OGV (Theora + Vorbis)**, which is what Godot 4.7.2 can play:
 `modules/theora` ships `ResourceFormatLoaderTheora`, which claims `.ogv` on every
@@ -232,7 +232,7 @@ re-grade it.
 
 `expand = true` stretches the decoded frame to whatever rect the control has, so
 the rect has to carry the video's own aspect. The ident is sized to *contain*:
-`stage_cinematic.gd::_layout_video` scales by `min(size/frame)` and centres the
+`stage_studio_ident.gd::_layout_video` scales by `min(size/frame)` and centres the
 result, so a square film on a 1280×720 stage is 720×720 with black either side.
 It used to *cover* — scale by `max` and let the parent clip — which was right
 for the 16:9 push-in that preceded this film and crops the top and bottom off a
@@ -256,7 +256,7 @@ frame; lengths are adopted from `get_stream_length()` once it is non-zero.
 | Not flat rectangles | same | luma spread > 40/255 required |
 | Videos load in-engine at documented size and length | `godot --headless --path game --script res://tests/video_asset_smoke.gd` | 2/2, sizes and lengths match `video_manifest.json` |
 | Video audit only | `python3 tools/art/build_ui_video.py --check` | 2/2 within palette |
-| Video plays in a browser build | `node tools/qa_avatar_shot.mjs --serve <exported web build> --page "/index.html?qa_stage=CINEMATIC&qa_menu=1"` | log `stream at 2.02 s of 9.58 s`; 89.8 % of pixels change across 3 frames 2 s apart |
+| Video plays in a browser build | `node tools/qa_flow_shots.mjs --tag ident --stages STUDIO --viewport 1280x720 --transient-delay 2500` | log `MenuStudioIdent: stream at 2.50 s of 10.14 s`; the frame is the studio's mark, centred on black |
 | Video is not stretched on screen | same, with `?qa_menu=1` | `OpeningVideo=-555,0,1500x844` at 390×844, `0,-42,844x475` at 844×390, `RobotVideo=115,590,160x160` — cover rects at the video's own aspect |
 
 §7 note: the runtime test is the one that matters. A file can be on disk, listed

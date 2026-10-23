@@ -10,7 +10,7 @@
  * Why this exists: every review so far argued about a flow it had photographed
  * one screen at a time, so "is the product coherent?" was answered from memory
  * of five separate sessions. This walks the real stages the real journey uses
- * — BOOT -> LOADING -> CINEMATIC -> CHAPTER -> DASHBOARD -> HERO -> WEAPON ->
+ * — STUDIO -> BOOT -> LOADING -> CHAPTER -> DASHBOARD -> HERO -> WEAPON ->
  * WORLD -> gameplay — from the committed payload in one run, at mobile and
  * desktop sizes, and writes a manifest with per-frame statistics.
  *
@@ -58,7 +58,7 @@ const port = Number(flag('--port', '8133'));
 const settleMs = Number(flag('--settle', '6000'));
 const stageTimeoutMs = Number(flag('--stage-timeout', '240000'));
 const serveDir = path.resolve(ROOT, flag('--serve', '.'));
-/* Extra wait before a transient stage (BOOT, LOADING, CINEMATIC) is
+/* Extra wait before a transient stage (STUDIO, BOOT, LOADING) is
  * photographed. Those three are shot the moment they announce themselves
  * because a web build leaves them in a frame or two -- which is right for a
  * splash and wrong for a film: the opening is 10 s long and the interesting
@@ -66,7 +66,7 @@ const serveDir = path.resolve(ROOT, flag('--serve', '.'));
  * capture behaves exactly as before. */
 const transientDelayMs = Number(flag('--transient-delay', '0'));
 
-const DEFAULT_STAGES = ['BOOT', 'LOADING', 'CINEMATIC', 'CHAPTER', 'DASHBOARD', 'HERO', 'WEAPON', 'WORLD'];
+const DEFAULT_STAGES = ['STUDIO', 'BOOT', 'LOADING', 'CHAPTER', 'DASHBOARD', 'HERO', 'WEAPON', 'WORLD'];
 const requested = (list('--stages').join(',') || DEFAULT_STAGES.join(','))
   .split(',')
   .map((name) => name.trim().toUpperCase())
@@ -136,7 +136,7 @@ async function openPage(viewport) {
   return { page, lines };
 }
 
-const TRANSIENT_STAGES = new Set(['BOOT', 'LOADING', 'CINEMATIC']);
+const TRANSIENT_STAGES = new Set(['STUDIO', 'BOOT', 'LOADING']);
 
 /** The stage the front end moved on to after `stage`, or null. */
 function laterStage(lines, stage) {
@@ -182,10 +182,10 @@ for (const viewport of viewports) {
       stageTimeoutMs,
       `FrontEnd: stage ${stage}`
     );
-    // BOOT, LOADING and CINEMATIC are *transient*: they advance themselves as
+    // STUDIO, BOOT and LOADING are *transient*: they advance themselves as
     // soon as their work finishes, which in a web build is immediately. The
     // settle delay used to be spent after they had already left, so the frame
-    // filed as LOADING was a photograph of CINEMATIC -- the two looked
+    // filed as LOADING was a photograph of the ident -- the two looked
     // identical in the audit (docs/UX_AUDIT_2026-10-22.md 4) for that reason.
     // Those three are photographed the moment they announce themselves; the
     // rest get the settle they need to finish laying out.

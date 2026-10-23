@@ -10,8 +10,12 @@
 ##   DEPLOY       starts the loadout chain HERO -> WEAPON -> WORLD -> PRELOAD
 ##   ARMORY       the in-game shop widget, spending real BP for real unlocks
 ##   SETTINGS     the shared AegisSettingsMenu, which writes user://aegis.cfg
-##   REPLAY INTRO clears intro_seen, which is how the cinematic can be seen
 ##                again without wiping a profile
+##
+## There is no REPLAY INTRO. The studio ident is not this game's content -- it
+## is the studio's mark, played once at launch like a publisher card, and a
+## dashboard row offering to rewatch somebody else's brand film was the wrong
+## idea about what that file is (docs/VERIFICATION_2026-10-23.md 5).
 ##
 ## The screen is ordered the way a player decides, not the way a profile is
 ## stored (docs/UX_AUDIT_2026-10-22.md 5.2 had the old order as DEPLOY last,
@@ -22,7 +26,7 @@
 ##   3. DEPLOY -- the only amber control on the screen
 ##   4. profile: rank line + best score + runs
 ##   5. resources: the Battle Points wallet, which ARMORY spends
-##   6. secondary navigation: ARMORY, SETTINGS, REPLAY INTRO
+##   6. secondary navigation: ARMORY, SETTINGS
 ##
 ## Everything above reads from ProgressionService / the definition registries.
 ## The portrait and the theatre plate are the same files the selection screens
@@ -275,11 +279,6 @@ func _ready() -> void:
 	settings.pressed.connect(_on_settings_pressed)
 	row.add_child(settings)
 
-	var replay := make_button("REPLAY INTRO", "ghost", "Watch the opening cinematic again")
-	physical_min_size(replay, 0.0, AegisTokens.MIN_TOUCH_PX)
-	replay.pressed.connect(_on_replay_pressed)
-	_secondary.add_child(replay)
-
 	_armory = ArmoryUi.new()
 	_armory.name = "ArmoryPanel"
 	_armory.visible = false
@@ -434,19 +433,19 @@ func _apply_density() -> void:
 	# tablet or a desktop on the full layout.
 	var compact := physical_size().y < (520.0 if landscape else 900.0)
 	# A 360x640 phone is the smallest surface the front end is tested on, and the
-	# compact stack still measured 60 px past its bottom: REPLAY INTRO sat at
-	# y=636 with a 64 px height (menu_layout_smoke). `cramped` is the last step
-	# before the layout would have to drop content -- it takes 72 px back out of
-	# margins, the wordmark, three gaps, DEPLOY and the one line that is already
-	# an ellipsis ("LOADOUT: EXO-OPERATIVE / PULSE…"), and leaves every control
-	# at or above the touch floor.
+	# compact stack still measured 60 px past its bottom (menu_layout_smoke; the
+	# last row at the time was the removed REPLAY INTRO). `cramped` is the last
+	# step before the layout would have to drop content -- it takes 72 px back
+	# out of margins, the wordmark, three gaps, DEPLOY and the one line that is
+	# already an ellipsis ("LOADOUT: EXO-OPERATIVE / PULSE…"), and leaves every
+	# control at or above the touch floor.
 	var cramped := not landscape and physical_size().y < 700.0
 	# The safe margins also come in on a short screen: 8 px top and bottom is
 	# worth more to the content than to the composition at that size.
 	# A landscape phone is 390 px tall. The web shell already reserves 30 px at
 	# the top for its own bar, so the stage's own top inset is cut to 8 there --
 	# 28 px of air above a wordmark is a desktop luxury, and it was the
-	# difference between DEPLOY fitting and REPLAY INTRO hanging off the bottom
+	# difference between DEPLOY fitting and the last row hanging off the bottom
 	# edge (menu_layout_smoke, 844x390).
 	apply_safe_margins(
 		_margin,
@@ -506,7 +505,7 @@ func _apply_density() -> void:
 		if cramped:
 			# The last 14 px. Two portrait plates are the only blocks left that
 			# are picture rather than type, and a 110 px operative still reads as
-			# an operative; REPLAY INTRO at y=590 was 14 px past a 640 px screen.
+			# an operative; the stack's last row was 14 px past a 640 px screen.
 			physical_min_size(_mark, 236.0, 58.0)
 			physical_min_size(_hero_plate, 84.0, 110.0)
 			physical_min_size(_mission_plate, 96.0, 84.0)
@@ -561,16 +560,6 @@ func _on_settings_pressed() -> void:
 
 func _on_settings_close() -> void:
 	_settings.visible = false
-
-
-func _on_replay_pressed() -> void:
-	# Clearing the flag is what makes the cinematic reachable again; FrontEnd
-	# re-marks it the moment the cinematic completes or is skipped.
-	var progression := progression_service()
-	if progression == null:
-		return
-	progression.reset_intro()
-	completed.emit(&"CINEMATIC", {})
 
 
 ## Same rules as Main._on_armory_weapon_action: buying spends real BP and

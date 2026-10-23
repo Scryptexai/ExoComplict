@@ -3,9 +3,9 @@ extends SceneTree
 ## Proof that the front-end journey actually runs, in order, end to end.
 ##
 ## A menu tree can be authored, committed and still be unreachable: a stage that
-## is never instantiated, a `completed` signal nobody wired, a cinematic that
+## is never instantiated, a `completed` signal nobody wired, a chapter card that
 ## replays forever because the flag is never written. This test instantiates the
-## real `front_end.tscn`, walks BOOT -> LOADING -> CINEMATIC -> CHAPTER ->
+## real `front_end.tscn`, walks STUDIO -> BOOT -> LOADING -> CHAPTER ->
 ## DASHBOARD -> HERO -> WEAPON -> WORLD and asserts, at each stop:
 ##
 ##   * the stage exists, is visible, and is the one the journey asked for;
@@ -17,8 +17,10 @@ extends SceneTree
 ##     definition or scene backs;
 ##   * the loading screens report progress that comes from ResourceLoader, not
 ##     from a timer;
-##   * the cinematic is marked seen once, persisted to a real ConfigFile, and
-##     skipped on a second launch.
+##   * the studio ident is first, shows nothing of the product's, and gets out
+##     of the way on any input;
+##   * the CHAPTER 01 card is marked seen once, persisted to a real ConfigFile,
+##     and skipped on a second launch.
 ##
 ## It does not judge whether the journey is *pleasant*. It proves the wiring.
 
@@ -38,7 +40,6 @@ const MAX_WAIT_FRAMES := 6000
 ## there is nothing to press while resources are in flight -- so the
 ## "at least one action" half of the rule is skipped for them.
 const INTERACTIVE_STAGES: Array[StringName] = [
-	&"CINEMATIC",
 	&"CHAPTER",
 	&"DASHBOARD",
 	&"HERO",
@@ -67,28 +68,34 @@ func _run_smoke_test() -> void:
 	await process_frame
 	_profile = _front_end.get_node("ProgressionService")
 
-	_expect(_front_end.get("current_stage_name") == &"BOOT", "the journey starts at BOOT")
+	_expect(_front_end.get("current_stage_name") == &"STUDIO", "the journey starts at STUDIO")
+	_check_stage(&"STUDIO")
+	_check_ident_is_not_product_ui()
+	_dismiss_ident()
+	await process_frame
+
+	if not await _walk_to(&"BOOT", "STUDIO"):
+		_finish()
+		return
 	if not await _walk_to(&"LOADING", "BOOT"):
 		_finish()
 		return
 
 	# LOADING drains its own queue. Waiting on it is the point: it proves the
 	# stage advances because the resources arrived, not because a timer fired.
-	if not await _walk_to(&"CINEMATIC", "LOADING"):
+	if not await _walk_to(&"CHAPTER", "LOADING"):
 		_finish()
 		return
 
 	_expect(
 		not bool(_profile.get("intro_seen")),
-		"the cinematic is not marked seen while it is still playing"
+		"the chapter card is not marked seen while it is still on screen"
 	)
-	_check_stage(&"CINEMATIC")
-
-	_skip_cinematic()
-	await process_frame
 	_check_stage(&"CHAPTER")
 
-	_front_end.go_to(&"DASHBOARD", {})
+	# Clearing the card is what marks the first launch done; FrontEnd owns that
+	# rule, so the test drives the card's own action rather than go_to().
+	_press_continue(&"CHAPTER")
 	await process_frame
 	_check_stage(&"DASHBOARD")
 	_check_dashboard_numbers()
@@ -142,19 +149,57 @@ func _walk_to(expected: StringName, from_label: String) -> bool:
 	return false
 
 
-## Presses SKIP, which is both the player's way out and the path that has to
-## mark the intro as seen. Driving this through go_to() would bypass the rule
-## the test exists to check.
-func _skip_cinematic() -> void:
-	var stage := _stage(&"CINEMATIC")
+## The ident has no button -- that is the point -- so the player's way out is
+## input. Driving the same handler a tap would is as close as a headless test
+## can get to a finger, and it exercises the dismissal rather than a private
+## shortcut.
+func _dismiss_ident() -> void:
+	var stage := _stage(&"STUDIO")
+	if not is_instance_valid(stage):
+		return
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = true
+	stage.call("_gui_input", event)
+
+
+## The ident is the studio's mark. Anything the game drew on it -- a wordmark,
+## a caption, a progress bar, a skip button, key art behind it -- would be this
+## project putting its own branding over somebody else's.
+func _check_ident_is_not_product_ui() -> void:
+	var stage := _stage(&"STUDIO")
+	if not is_instance_valid(stage):
+		return
+	_expect(
+		stage.find_children("*", "Button", true, false).is_empty(),
+		"studio ident: no button of ours is on the mark",
+	)
+	_expect(
+		stage.find_children("*", "Label", true, false).is_empty(),
+		"studio ident: no caption of ours is on the mark",
+	)
+	_expect(
+		stage.find_children("*", "TextureRect", true, false).is_empty(),
+		"studio ident: no texture of ours (wordmark, key art) is on the mark",
+	)
+	_expect(
+		stage.get_node_or_null("StudioIdent") != null,
+		"studio ident: the video is the stage's only content",
+	)
+
+
+## Presses a stage's primary action, whatever its copy is.
+func _press_continue(stage_name: StringName) -> void:
+	var stage := _stage(stage_name)
 	if not is_instance_valid(stage):
 		return
 	for child in stage.find_children("*", "Button", true, false):
 		var button := child as Button
-		if button != null and button.text == "SKIP":
-			button.pressed.emit()
-			return
-	_expect(false, "the cinematic exposes a SKIP control")
+		if button == null or button.disabled or button.text.is_empty():
+			continue
+		button.pressed.emit()
+		return
+	_expect(false, "%s exposes a primary action" % stage_name)
 
 
 func _stage(name: StringName) -> Control:
@@ -372,12 +417,14 @@ func _check_preload_contract() -> void:
 	stage.free()
 
 
-## Second-launch behaviour: the flag written when the cinematic completed has
-## to survive a reload of the profile, and a fresh FrontEnd must skip it.
+## Second-launch behaviour: the flag written when the chapter card was cleared
+## has to survive a reload of the profile, and a fresh FrontEnd must skip the
+## card. The studio ident is *not* gated on this -- a publisher card plays on
+## every launch -- which is why the test checks the card and not the ident.
 func _check_intro_persists() -> void:
 	_expect(
 		bool(_profile.get("intro_seen")),
-		"completing the cinematic marks intro_seen on the live profile"
+		"clearing the chapter card marks intro_seen on the live profile"
 	)
 	_expect(
 		FileAccess.file_exists(PROFILE_PATH),

@@ -11,7 +11,7 @@ dashboard, no selection screens — so every stage here is new code rather than 
 re-skin.
 
 ```
-BOOT ──> LOADING ──> CINEMATIC ──> CHAPTER ──> DASHBOARD ──> HERO ──> WEAPON
+STUDIO ──> BOOT ──> LOADING ──> CHAPTER ──> DASHBOARD ──> HERO ──> WEAPON
                          │                         ▲
                          └── (skipped once seen) ───┘
                                                    │
@@ -47,7 +47,7 @@ beat for the wordmark, not a loading claim, and the caption reads
 | Advances | when the queue drains |
 
 One implementation serves both stages; the payload decides. `LOADING` fetches
-the nine front-end textures and goes to `CINEMATIC`. `PRELOAD` fetches
+the nine front-end textures and goes to `CHAPTER`. `PRELOAD` fetches
 `res://scenes/main.tscn` and changes scene.
 
 If the queue is empty the stage does not animate a number: it swaps the bar for
@@ -63,38 +63,40 @@ status line and the bar, at the sizes a load screen is read from
 (docs/VERIFICATION_2026-10-23.md 3). `reduce_motion` still governs the
 indeterminate sweep.
 
-## CINEMATIC — `stage_cinematic.gd`
+## STUDIO — `stage_studio_ident.gd`
 
 | | |
 | --- | --- |
-| Real work | a scripted 9.6 s sequence over the loading key art |
-| Progress shown | **real playback position** (elapsed / duration) |
-| Advances | on completion or on SKIP |
+| Real work | decode and present the studio's own brand film |
+| Progress shown | none, and no control either |
+| Advances | when the film ends, on any input, or on a decode stall |
 
-This plays `cinematic_opening.ogv` (768×768, 24 fps, 10.14 s) — the project's
-own studio ident, `branding_studio_present.mp4` at the repository root,
-transcoded by `tools/art/build_ui_video.py` — on a black stage, fitted
-(contained) and centred, with nothing drawn over it but SKIP. When the video is
-absent or cannot be decoded, the stage falls back to the beat it has always
-had: a slow push-in on `loading_keyart.jpg` under four captions, 4 × 2.4 s,
-which *is* the product's premise. The two paths share a length only in the
-fallback case; the ident plays for exactly as long as the film does. Either way it is skippable from the first frame, and the progress
-bar is driven by whichever clock is running (`stream_position`, or elapsed
-time). The video carries no captions: the stage overlays them as UI text.
+This is the studio's ident, not this game's opening: the same beat a Garena or
+Moonton card is, and it sits where those sit — at the very start of a launch,
+before the game's own wordmark. It plays `studio_ident.ogv` (768×768, 24 fps,
+10.14 s), the delivered `branding_studio_present.mp4` transcoded by
+`tools/art/build_ui_video.py` with nothing added and nothing cut, fitted
+(contained) and centred on black so the square frame is whole on any screen.
 
-The captions state the premise the game implements and nothing else: a training
-facility, the Neon Frontier, inbound waves, Battle Points. `GAME_CONCEPT.md` is
-explicit that this game is not story-driven, so a lore-dump intro would be a
-misrepresentation of the product.
+**Nothing of ours is drawn over it.** No wordmark, no caption, no key art
+behind it, no scrim, no progress bar and no SKIP button: an ident with the
+product's UI on top of it is no longer the studio's ident. Any input dismisses
+it, because that draws nothing and a splash you cannot get out of is a wall.
 
-Finishing **or skipping** marks `intro_seen` on the profile. Skipping has to
-count as seeing it: being dropped straight into the dashboard *is* what the
-skip button is offering.
+There is no stand-in either. If the file is missing or the device cannot decode
+Theora, the stage logs why and moves on; it does not play a sequence of ours in
+the mark's place. It is also not gated on the profile and not reachable from any
+menu: the ident plays on every launch, and there is no REPLAY INTRO, because a
+publisher card is not content a player rewatches.
 
 ## CHAPTER — `stage_chapter.gd`
 
 A title card: `CHAPTER 01 / FIRST LIGHT`, the objective the run measures, and a
 CONTINUE action. It also advances on any tap.
+
+Clearing it marks `intro_seen` on the profile (`ProgressionService`), which is
+what makes a second launch go from LOADING straight to the dashboard. The
+persisted key keeps its old name; the studio ident is not gated on it.
 
 ## DASHBOARD — `stage_dashboard.gd`
 
@@ -115,7 +117,6 @@ sixth row would be decoration disagreeing with gameplay.
 | DEPLOY | starts HERO → WEAPON → WORLD → PRELOAD |
 | ARMORY | `ArmoryUi`, the in-game shop widget, spending real BP for real unlocks |
 | SETTINGS | `AegisSettingsMenu`, writing `user://aegis.cfg` |
-| REPLAY INTRO | clears `intro_seen` so the cinematic can be seen again without wiping anything |
 
 ## HERO SELECTION — `stage_hero_select.gd`
 
@@ -163,7 +164,7 @@ the only stage allowed to change scene.
 
 | Key | Meaning | Fallback if edited to garbage |
 | --- | --- | --- |
-| `intro_seen` | cinematic played (or skipped) | `false` |
+| `intro_seen` | CHAPTER 01 card cleared once | `false` |
 | `selected_hero` | last chosen hero | `exo_operative` |
 | `selected_weapon` | last chosen weapon | `pulse_rifle` |
 | `selected_world` | last chosen world | `neon_frontier` |
@@ -244,15 +245,15 @@ journey asked for, that no enabled button is inert, that no control crosses the
 reserved edge, that absent content is disabled, and that `intro_seen` round-trips
 through a real `ConfigFile`.
 
-`tests/video_asset_smoke.gd` loads both videos the way the stages do and
-compares the size and length the engine reports against
-`game/assets/ui/video_manifest.json`, then checks that CINEMATIC and LOADING
-really did select the video over their composed fallbacks.
+`tests/video_asset_smoke.gd` loads the ident the way the stage does, compares
+the size, length and playback the engine reports against
+`game/assets/ui/video_manifest.json`, and then asserts the restraint the stage
+is for: the ident scene holds no texture of ours, no button and no caption.
 
 In a browser build the same thing is measured from outside the engine:
-`?qa_stage=CINEMATIC&qa_menu=1` logs which path ran and the stream position
-(`stream at 2.02 s of 9.58 s`), and three frames taken 2 s apart differ across
-89.8 % of the screen — the decoded video, on screen and moving, not a poster.
+`?qa_stage=STUDIO&qa_menu=1` logs the stream position
+(`MenuStudioIdent: stream at 2.00 s of 10.14 s`), which is how a screenshot pass
+tells a decoded film from a black frame.
 The same `?qa_menu=1` report prints each `VideoStreamPlayer` rect, which is how
 the two aspect defects were caught (a 16:9 opening at `0,0,390x844` and a square
 robot at `36,590,318x160`); both are cover rects now. A loading stage can only
@@ -294,9 +295,10 @@ build, so it fails for the right reason.
 
 ## The roster is one list
 
-The HERO, WEAPON and WORLD screens, the dashboard's loadout line, the
-cinematic's theatre caption and `ProgressionService` used to each keep their own
-copy of the same names -- the world's name in four places, the hero's in three.
+The HERO, WEAPON and WORLD screens, the dashboard's loadout line and
+`ProgressionService` used to each keep their own copy of the same names -- the
+world's name in four places, the hero's in three. (A fifth, the opening's
+theatre caption, is gone: that caption was drawn on the studio's ident.)
 They now read `HeroDefinition`, `WeaponDefinition` and `WorldDefinition`, and
 the progression service's id lists and defaults are read *out of* those
 registries rather than typed again beside them. The screens are built by

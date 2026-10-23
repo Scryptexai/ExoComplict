@@ -41,14 +41,12 @@ var _hold := false
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	# Deliberately *not* the cinematic's key art. Both stages used to open on
-	# `loading_keyart.jpg` with a scrim, so for as long as the load took they
+	# Deliberately *not* `loading_keyart.jpg`. An older opening used the same
+	# key art behind the same scrim, so for as long as the load took the two
 	# were the same picture -- the audit's "two stages look like one screen"
 	# (docs/UX_AUDIT_2026-10-22.md 4). A load is a utility moment, not the
-	# poster: this screen is a dark plate with the wordmark, the walk cycle and
-	# a bar, and the opening's key art belongs to the opening alone. The
-	# backdrop is a flat colour, so it is also up on the first frame instead of
-	# waiting for a 40 KB JPEG to decode.
+	# poster. The backdrop is a flat colour, so it is also up on the first frame
+	# instead of waiting for a 40 KB JPEG to decode.
 	var plate := ColorRect.new()
 	plate.name = &"LoadingPlate"
 	plate.color = AegisTokens.VOID

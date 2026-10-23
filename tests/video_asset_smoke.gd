@@ -1,9 +1,15 @@
 ## Video asset smoke test.
 ##
-## The front end has one video: the studio ident, transcoded from the project's
-## own `branding_studio_present.mp4` into `cinematic_opening.ogv` by
-## `tools/art/build_ui_video.py`. (The LOADING walk cycle that used to be the
-## second one was cut on 2026-10-23 -- docs/VERIFICATION_2026-10-23.md 3.)
+## The front end has one video: the studio ident, transcoded from
+## `branding_studio_present.mp4` (committed by its owner at the repository root)
+## into `studio_ident.ogv` by `tools/art/build_ui_video.py`. (The LOADING walk
+## cycle that used to be the second one was cut on 2026-10-23 --
+## docs/VERIFICATION_2026-10-23.md 3.)
+##
+## It is a *studio brand film* -- somebody else's mark -- so this test checks
+## the asset and the stage's restraint: the file is the delivered film (same
+## frame size, same length, audio present, playback advances) and the stage it
+## plays in carries no product art at all.
 ##
 ## A file on disk proves nothing about an export -- a video can sit there and
 ## never decode. So this test loads it through `ResourceLoader` the way the
@@ -17,10 +23,10 @@
 extends SceneTree
 
 const VIDEOS := {
-	"cinematic_opening": "res://assets/ui/cinematic_opening.ogv",
+	"studio_ident": "res://assets/ui/studio_ident.ogv",
 }
 const MANIFEST := "res://assets/ui/video_manifest.json"
-const CinematicScene = preload("res://scenes/ui/menus/stage_cinematic.tscn")
+const StudioIdentScene = preload("res://scenes/ui/menus/stage_studio_ident.tscn")
 const LoadingScene = preload("res://scenes/ui/menus/stage_loading.tscn")
 
 var _failures: Array[String] = []
@@ -37,8 +43,8 @@ func _run_smoke_test() -> void:
 	var manifest := _read_manifest()
 	for key in VIDEOS:
 		await _check_video(key, VIDEOS[key], manifest)
-	await _check_stage("cinematic", CinematicScene, "_video")
-	await _check_the_two_stages_are_not_the_same_picture()
+	await _check_stage("studio_ident", StudioIdentScene, "_video")
+	await _check_the_ident_carries_no_product_art()
 
 	# The robot is gone, and "gone" is asserted rather than assumed: a stage
 	# that still held a player for it would be loading a file that no longer
@@ -155,42 +161,35 @@ func _check_video(key: String, path: String, manifest: Dictionary) -> void:
 	player.free()
 
 
-## A stage that wants a video keeps its composed fallback, so the test has to
-## prove it picked the video -- not merely that the file loads.
-## The two stages opened on the same key art behind the same scrim, so for as
-## long as a load took they were literally the same frame -- the audit's
-## "LOADING is visually identical to CINEMATIC" (docs/UX_AUDIT_2026-10-22.md 4),
-## and the reason a 45.8/45.8 mean pair appears in the flow capture.
-##
-## Timing cannot be the thing that tells them apart: a fast load shows the
-## loading screen for one frame and a slow one for four seconds, and the player
-## sees the same distinction either way. So the *composition* is asserted: the
-## cinematic owns the key art, the loading screen does not use it at all, and
-## both carry the wordmark so neither is an anonymous black frame.
-func _check_the_two_stages_are_not_the_same_picture() -> void:
-	var cinematic: Control = CinematicScene.instantiate()
+## The ident is somebody else's mark, so the assertion is about restraint: the
+## stage holds the video and nothing else. No key art behind it, no wordmark on
+## it, no caption and no skip button -- which is also how it stays different
+## from LOADING, the screen the audit said it used to be identical to
+## (docs/UX_AUDIT_2026-10-22.md 4).
+func _check_the_ident_carries_no_product_art() -> void:
+	var ident: Control = StudioIdentScene.instantiate()
 	var loading: Control = LoadingScene.instantiate()
-	root.add_child(cinematic)
+	root.add_child(ident)
 	root.add_child(loading)
 	await process_frame
 	await process_frame
-	var cinematic_art := _art_textures(cinematic)
-	var loading_art := _art_textures(loading)
 	_expect(
-		cinematic_art.has("res://assets/ui/loading_keyart.jpg"),
-		"cinematic: the opening is built on the key art",
+		_art_textures(ident).is_empty(),
+		"studio ident: no texture of ours on the mark (got %s)" % [_art_textures(ident)],
 	)
 	_expect(
-		not loading_art.has("res://assets/ui/loading_keyart.jpg"),
-		"loading: does not reuse the cinematic's key art",
+		ident.find_children("*", "Button", true, false).is_empty(),
+		"studio ident: no skip button, no control, on the mark",
 	)
-	for pair in [["cinematic", cinematic], ["loading", loading]]:
-		var stage := pair[1] as Control
-		_expect(
-			stage.find_child("Wordmark", true, false) != null,
-			"%s: carries the product wordmark" % pair[0],
-		)
-	cinematic.free()
+	_expect(
+		not _art_textures(loading).has("res://assets/ui/loading_keyart.jpg"),
+		"loading: does not use the key art",
+	)
+	_expect(
+		loading.find_child("Wordmark", true, false) != null,
+		"loading: carries the product wordmark, so it is not an anonymous frame",
+	)
+	ident.free()
 	loading.free()
 
 
