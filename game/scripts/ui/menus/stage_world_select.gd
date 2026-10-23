@@ -42,7 +42,9 @@ var _side: HBoxContainer
 var _map: Control
 var _info: AegisPanel
 var _info_text: VBoxContainer
-var _pin_row: VBoxContainer
+## HBox on a wide screen, VBox on a phone: two container classes, because the
+## direction is the class.
+var _pin_row: Container
 var _chrome: LobbyChrome
 var _selected := &""
 
@@ -212,8 +214,7 @@ func reframe() -> void:
 	# 64 px is the touch floor (`AegisTokens.MIN_TOUCH_PX`); 56 failed it.
 	for pin in _pins:
 		physical_min_size(pin, 0.0, 64.0)
-	if _pin_row != null:
-		_pin_row.vertical = false
+	_orient_pins(landscape)
 	# 390 px of height is enough for the name and one line about the theatre, not
 	# for the chapter tag as well; the pin under the map already carries the name.
 	var cramped := height < 700.0 and not landscape
@@ -226,8 +227,62 @@ func reframe() -> void:
 	physical_min_size(_status, 0.0, 20.0 if short_landscape else 24.0)
 
 
+## A row of two pins is 64 px tall and fits any landscape screen; a column of
+## two is 128 and did not fit a 390 px one (the second drew at y=350). Portrait
+## has the opposite problem -- two pins side by side need 380 px of text and a
+## 360 px phone has 328 -- so the pins change container with the orientation.
+func _orient_pins(landscape: bool) -> void:
+	var target: Container = _pin_row
+	var wants_row := landscape
+	if (wants_row and target is HBoxContainer) or (not wants_row and target is VBoxContainer):
+		return
+	target = HBoxContainer.new() if wants_row else VBoxContainer.new()
+	target.name = &"TheatrePins"
+	for pin in _pins:
+		if pin.get_parent() != null:
+			pin.get_parent().remove_child(pin)
+		target.add_child(pin)
+	if _pin_row != null and _pin_row.get_parent() != null:
+		var parent := _pin_row.get_parent()
+		var index := _pin_row.get_index()
+		parent.remove_child(_pin_row)
+		parent.add_child(target)
+		parent.move_child(target, index)
+	else:
+		_stack.add_child(target)
+	_pin_row = target
+	physical_separation(_pin_row, 8)
+
+
 ## Moves a node only when it is somewhere else; re-adding on every resize would
 ## restart the layout every frame.
+## A row of two pins is 64 px tall and fits any landscape screen; a column of
+## two is 128 and did not fit a 390 px one (the second drew at y=350). Portrait
+## has the opposite problem -- two pins side by side need 380 px of text and a
+## 360 px phone has 328 -- so the pins change container with the orientation.
+func _orient_pins(landscape: bool) -> void:
+	var target: Container = _pin_row
+	var wants_row := landscape
+	if (wants_row and target is HBoxContainer) or (not wants_row and target is VBoxContainer):
+		return
+	target = HBoxContainer.new() if wants_row else VBoxContainer.new()
+	target.name = &"TheatrePins"
+	for pin in _pins:
+		if pin.get_parent() != null:
+			pin.get_parent().remove_child(pin)
+		target.add_child(pin)
+	if _pin_row != null and _pin_row.get_parent() != null:
+		var parent := _pin_row.get_parent()
+		var index := _pin_row.get_index()
+		parent.remove_child(_pin_row)
+		parent.add_child(target)
+		parent.move_child(target, index)
+	else:
+		_stack.add_child(target)
+	_pin_row = target
+	physical_separation(_pin_row, 8)
+
+
 ## Moves a node only when it is somewhere else; re-adding on every resize would
 ## restart the layout every frame.
 func _reparent(node: Node, target: Node) -> void:
