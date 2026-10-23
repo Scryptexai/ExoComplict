@@ -416,7 +416,7 @@ func _build_panel() -> void:
 	_loadout_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	column.add_child(_loadout_label)
 
-	_weapon_row = HBoxContainer.new()
+	_weapon_row = VBoxContainer.new()
 	_weapon_row.name = &"WeaponRail"
 	physical_separation(_weapon_row, 8)
 	column.add_child(_weapon_row)
@@ -680,7 +680,6 @@ func _apply_orientation() -> void:
 ## controls a thumb has to hit on a phone.
 func _apply_density() -> void:
 	var width := physical_size().x
-	var stack_rail := width < 720.0
 	# A 390 px tall landscape screen has no room under the operative for three
 	# 52 px chips: they drew 104 px tall at y=333 and the last line of the panel
 	# fell off the bottom. The armory swaps weapons, and the stat line below
@@ -709,8 +708,10 @@ func _apply_density() -> void:
 	# A row of three chips is only honest when there is room for three; below
 	# that they stack, full width, and the loadout reads as a list of choices
 	# rather than three clipped words.
-	if is_instance_valid(_weapon_row):
-		_weapon_row.vertical = stack_rail
+	# A column, always: a `vertical` flag is not a container class, and the flag
+	# silently did nothing on this build. The rail is a list of choices.
+	if is_instance_valid(_carousel_wrap):
+		_carousel_wrap.visible = not short_landscape
 	var short_screen := physical_size().y < (520.0 if is_landscape() else 760.0)
 	# Same trade as the old WEAPON page: on a portrait phone the header keeps BACK and the
 	# heading, and the field-ready state lives on the card itself.

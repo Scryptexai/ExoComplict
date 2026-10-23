@@ -122,7 +122,7 @@ func _build_map() -> void:
 	_map.clip_contents = true
 	_body.add_child(_map)
 
-	_pin_row = HBoxContainer.new()
+	_pin_row = VBoxContainer.new()
 	_pin_row.name = &"TheatrePins"
 	physical_separation(_pin_row, 8)
 	# In the stack, under the body, not floating inside the map: a pin laid out
@@ -220,18 +220,14 @@ func reframe() -> void:
 	var short_landscape := landscape and height < 520.0
 	_chapter.visible = not (short_landscape or cramped)
 	_brief.visible = not (short_landscape or cramped)
-	# Two pins side by side need 380 px of text at `label` size; a 360 px phone
-	# has 328 inside its margins, so they stack there.
-	_pin_row.vertical = _stage_width() < 560.0
+	# A column, always. Two pins side by side need 380 px of text at `label`
+	# size and a 360 px phone has 328; a `vertical` flag on the other container
+	# class is not the same thing and did nothing here.
 	physical_min_size(_status, 0.0, 20.0 if short_landscape else 24.0)
 
 
 ## Moves a node only when it is somewhere else; re-adding on every resize would
 ## restart the layout every frame.
-func _stage_width() -> float:
-	return physical_size().x
-
-
 ## Moves a node only when it is somewhere else; re-adding on every resize would
 ## restart the layout every frame.
 func _reparent(node: Node, target: Node) -> void:
