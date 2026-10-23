@@ -174,13 +174,12 @@ func _build_top_bar() -> void:
 	_wallet.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_top.add_child(_wallet)
 	_balance = make_label("BATTLE POINTS  0", "label", AegisTokens.ACCENT)
-	# Wrapped so its *minimum* width is its longest word, not the whole phrase:
-	# "BATTLE POINTS  0" is 158 px at `label` size, and a 390 px phone has that
-	# much spare only if the wordmark is tiny. One ellipsised line keeps it a
-	# chip and lets the mark stay readable.
-	_balance.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_balance.max_lines_visible = 1
-	_balance.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	# One line, and wide enough for its own text. Wrapping it was the fix for a
+	# different problem (a Label's minimum width is its text width) but an
+	# ellipsised wrapped label collapses to its longest *word* when the row is
+	# tight, and the chip drew as a 40 px empty box beside the spacer. The width
+	# now comes from `_apply_density`, which knows how much the row has.
+	_balance.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_wallet.add_child(_balance)
 
 
@@ -204,6 +203,7 @@ func _build_bands() -> void:
 
 	_dock = VBoxContainer.new()
 	_dock.name = &"LobbyDock"
+	_dock.alignment = BoxContainer.ALIGNMENT_END
 	physical_separation(_dock, 12)
 
 
@@ -575,27 +575,31 @@ func _apply_density() -> void:
 	# --- typography and plate sizes -------------------------------------- #
 	if desktop:
 		physical_min_size(_mark, 300.0, 75.0)
+		physical_min_size(_balance, 190.0, 0.0)
 		physical_min_size(_hero_plate, 120.0, 160.0)
 		physical_min_size(_mission_plate, 132.0, 100.0)
 		physical_min_size(_deploy, 0.0, 100.0)
 		for tab in _secondary.get_children():
 			physical_min_size(tab as Control, 0.0, 68.0)
 	elif short_landscape:
-		physical_min_size(_mark, 180.0, 46.0)
+		physical_min_size(_mark, 150.0, 40.0)
+		physical_min_size(_balance, 150.0, 0.0)
 		physical_min_size(_hero_plate, 72.0, 96.0)
 		physical_min_size(_mission_plate, 92.0, 70.0)
 		physical_min_size(_deploy, 0.0, 76.0)
 		for tab in _secondary.get_children():
 			physical_min_size(tab as Control, 0.0, 64.0)
 	elif cramped:
-		physical_min_size(_mark, 168.0, 42.0)
+		physical_min_size(_mark, 140.0, 36.0)
+		physical_min_size(_balance, 140.0, 0.0)
 		physical_min_size(_hero_plate, 76.0, 96.0)
 		physical_min_size(_mission_plate, 92.0, 70.0)
 		physical_min_size(_deploy, 0.0, 88.0)
 		for tab in _secondary.get_children():
 			physical_min_size(tab as Control, 0.0, 64.0)
 	else:
-		physical_min_size(_mark, 190.0, 48.0)
+		physical_min_size(_mark, 150.0, 40.0)
+		physical_min_size(_balance, 150.0, 0.0)
 		physical_min_size(_hero_plate, 84.0, 112.0)
 		physical_min_size(_mission_plate, 100.0, 76.0)
 		physical_min_size(_deploy, 0.0, 96.0)
@@ -610,12 +614,16 @@ func _apply_density() -> void:
 		_dock.custom_minimum_size.x = px(300.0 if compact else 360.0)
 		_stage.custom_minimum_size = Vector2(0.0, px(120.0))
 		_cards.size_flags_vertical = Control.SIZE_FILL
-		_dock.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		# The primary action belongs in the bottom thumb arc, not at the top of
+		# the column: Apex's READY bar and Free Fire's start tile are both
+		# bottom-anchored, and DEPLOY was drawing level with the operative's
+		# shoulder.
+		_dock.size_flags_vertical = Control.SIZE_SHRINK_END
 	else:
 		_cards.custom_minimum_size.x = 0.0
 		_dock.custom_minimum_size.x = 0.0
 		_cards.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		_dock.size_flags_vertical = Control.SIZE_SHRINK_END
+		_dock.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		_stage.custom_minimum_size = Vector2(
 			0.0, px(80.0 if cramped else (140.0 if compact else 220.0))
 		)
@@ -624,16 +632,18 @@ func _apply_density() -> void:
 	# leave a lone third and "RUNS COMPLETED  0" then wraps its figure onto the
 	# next line -- the number orphaned in the margin of the row below it.
 	var dock_width := width if not landscape else maxf(width * 0.4, 280.0)
-	_numbers.columns = 1 if dock_width < 480.0 else (2 if dock_width < 620.0 else 3)
+	_numbers.columns = 1 if dock_width < 620.0 else 3
 
 	# Copy that gives way on a short screen. Every one of these is a restatement
 	# of something still on the screen: the role is the card above the name, the
 	# brief is the WORLD card, the loadout is the three cards themselves.
 	_hero_role.visible = not cramped
 	_mission_caption.visible = not cramped
-	_mission_brief.visible = not cramped
+	# The brief is the WORLD card's paragraph. On a phone the theatre's *name*
+	# is the information; the sentence is what pays for the character's height.
+	_mission_brief.visible = not (cramped or (compact and not landscape))
 	_limit_lines(_mission_brief, 2)
-	_loadout.visible = not (cramped or short_landscape)
+	_loadout.visible = not (cramped or compact or short_landscape)
 	_rank_line.visible = not (compact and landscape)
 	# The operative card already says FIELD READY, so the header's copy of it is
 	# the first thing to go when the bar has to share 390 px with the wordmark
