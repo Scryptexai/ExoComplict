@@ -94,6 +94,11 @@ func _ready() -> void:
 	# that cannot decode Theora shows the composed opening instead of a hole.
 	_plate = make_backdrop("res://assets/ui/loading_keyart.jpg")
 	_plate.pivot_offset = Vector2(960.0, 540.0)
+	# Hidden until `enter()` picks the composed path. Starting hidden makes the
+	# ident the default the stage is *built* on rather than a state it has to
+	# reach: a frame drawn between construction and entry shows the film's
+	# letterbox, never the key art.
+	_plate.visible = false
 	viewport.add_child(_plate)
 
 	_video = VideoStreamPlayer.new()
@@ -115,6 +120,7 @@ func _ready() -> void:
 	_scrim.color = Color(AegisTokens.VOID, 0.42)
 	_scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_scrim.visible = false
 	add_child(_scrim)
 
 	var margin := MarginContainer.new()
@@ -231,6 +237,15 @@ func _process(delta: float) -> void:
 			_total = measured
 		if not _video_sized:
 			_video_sized = _layout_video()
+	# The state of the two overlays, once, at 2 s: a still of this stage that
+	# disagrees with these booleans is a drawing bug and not a decision one.
+	if not _reported and _elapsed >= 2.0:
+		print(
+			(
+				"MenuCinematic: overlay video=%s plate=%s scrim=%s caption=%s"
+				% [_video.visible, _plate.visible, _scrim.visible, _caption.visible]
+			)
+		)
 	if _video.visible and not _reported and _elapsed >= 2.0:
 		# One line, once: which path this device is on is exactly the question
 		# a QA run has to be able to answer from the log alone.
@@ -301,6 +316,10 @@ func _watch_video(delta: float) -> bool:
 func _fallback_to_composed() -> void:
 	_video.visible = false
 	_video.stop()
+	# Bring the overlay back with it. Without this the stage would keep the
+	# ident's black set and run the composed opening on it -- captions over
+	# nothing, which is the one thing the fallback exists to avoid.
+	_show_ident_overlay(false)
 	_total = _captions_count() * BEAT_SECONDS
 	_elapsed = _last_position
 	_stall = 0.0
