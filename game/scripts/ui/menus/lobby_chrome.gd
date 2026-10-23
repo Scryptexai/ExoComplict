@@ -149,7 +149,7 @@ func _build_nav() -> void:
 		# draws over the button's own text, which is exactly what happened on the
 		# desktop dock -- three large glyphs sat on top of HOME / OPERATIVE /
 		# THEATRE. The size is set in `_apply_density`.
-		glyph.set_anchors_preset(Control.PRESET_CENTER)
+		glyph.set_anchors_preset(Control.PRESET_FULL_RECT)
 		button.add_child(glyph)
 		_tab_glyphs.append(glyph)
 		button.pressed.connect(_on_tab_pressed.bind(tab_id))
@@ -310,12 +310,15 @@ func _apply_density() -> void:
 	# word IS the icon, and two of them in one tab is a duplicate, not a design.
 	for glyph in _tab_glyphs:
 		glyph.visible = compact
-		var side := 18.0
-		var half := _stage.px(side * 0.5)
-		glyph.offset_left = -half
-		glyph.offset_top = -half
-		glyph.offset_right = half
-		glyph.offset_bottom = half
+		# The tab is 40x32 physical; insetting a full-rect child leaves the glyph
+		# 26x20, which is the size that rendered correctly when it filled the
+		# button. Anchoring to the centre with explicit offsets drew a fragment
+		# instead -- a Control's anchors are evaluated against a rect Godot may
+		# not have given the child yet.
+		glyph.offset_left = _stage.px(7.0)
+		glyph.offset_top = _stage.px(6.0)
+		glyph.offset_right = -_stage.px(7.0)
+		glyph.offset_bottom = -_stage.px(6.0)
 	bar.set_surface_pad(_stage.px(3.0 if compact else 7.0))
 	_stage.physical_min_size(_balance_chip, 64.0 if compact else 132.0, 0.0)
 	if is_instance_valid(_avatar):
