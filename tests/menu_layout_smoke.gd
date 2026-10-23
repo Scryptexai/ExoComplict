@@ -130,6 +130,10 @@ func _probe(stage_name: StringName, size_name: String, physical: Vector2) -> voi
 		return
 	var stretch: float = UiLayout.compute_stretch(stage, physical)
 	var viewport := Rect2(Vector2.ZERO, physical)
+	# First, because the first ten failure lines are the ones a CI annotation
+	# keeps: if the page itself is too wide, say so before naming every label it
+	# pushed aside.
+	_check_page_fits(stage, viewport, stretch, "%s %s" % [stage_name, size_name])
 	var lines := PackedStringArray()
 	lines.append("STAGE=%s %s" % [stage_name, size_name])
 	lines.append(
