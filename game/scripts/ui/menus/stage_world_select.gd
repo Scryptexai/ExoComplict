@@ -138,24 +138,43 @@ func _build_map() -> void:
 	_pin_row.add_child(_build_placeholder_pin(len(_pins)))
 
 
+## A pin is a button with its text *inside it* as labels, the way every card in
+## this project is built. A Button's own `text` gives it a minimum width equal to
+## one unwrapped line, and two of those in a row were wider than the screen: the
+## selected pin drew as a 1190 px empty plate and the second theatre was pushed
+## off the right edge. A Label in a container wraps, so the pin's width is the
+## row's width, and what it says is a name with its state under it.
 func _build_pin(definition: WorldDefinition) -> AegisButton:
 	var pin := AegisButton.new()
 	pin.name = "%sPin" % String(definition.world_id).to_pascal_case()
-	# A theatre that cannot be launched says so on its own pin, and the pin is
-	# disabled: the map can hold the whole roadmap without pretending any of it
-	# is playable, which is the rule the rest of the lobby follows.
-	pin.text = (
-		definition.display_name.to_upper()
-		if definition.field_ready
-		else "%s  ·  IN DEVELOPMENT" % definition.display_name.to_upper()
-	)
+	pin.text = ""
 	pin.disabled = not definition.field_ready
 	pin.set_meta("world_id", String(definition.world_id))
-	pin.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	pin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pin.focus_mode = Control.FOCUS_ALL
-	pin.set_meta("aegis_role", "label")
 	AegisTheme.set_button_variant(pin, "card")
+	var column := VBoxContainer.new()
+	column.set_anchors_preset(Control.PRESET_FULL_RECT)
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_theme_constant_override("separation", 0)
+	pin.add_child(column)
+	var name_label := make_label(definition.display_name.to_upper(), "label", AegisTokens.INK)
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_limit_lines(name_label, 2)
+	column.add_child(name_label)
+	# A theatre that cannot be launched says so on its own pin, and the pin is
+	# disabled: the map holds the whole roadmap without pretending any of it is
+	# playable.
+	var state := make_label(
+		definition.status_line.to_upper() if definition.field_ready else "IN DEVELOPMENT",
+		"label_s",
+		AegisTokens.OK if definition.field_ready else AegisTokens.INK_3
+	)
+	state.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_limit_lines(state, 1)
+	state.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	column.add_child(state)
 	pin.pressed.connect(_on_pin_pressed.bind(definition.world_id))
 	_pins.append(pin)
 	return pin
@@ -167,12 +186,19 @@ func _build_pin(definition: WorldDefinition) -> AegisButton:
 func _build_placeholder_pin(index: int) -> AegisButton:
 	var slot := AegisButton.new()
 	slot.name = "LockedPin%d" % index
-	slot.text = "THEATRE %02d  ·  IN DEVELOPMENT" % (index + 1)
+	slot.text = ""
 	slot.disabled = true
 	slot.focus_mode = Control.FOCUS_NONE
 	slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slot.set_meta("aegis_role", "label")
 	AegisTheme.set_button_variant(slot, "card")
+	var label := make_label(
+		"THEATRE %02d  ·  IN DEVELOPMENT" % (index + 1), "label_s", AegisTokens.INK_3
+	)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slot.add_child(label)
 	return slot
 
 
@@ -356,7 +382,6 @@ func _refresh() -> void:
 	for pin in _pins:
 		var live: bool = String(pin.get_meta("world_id", "")) == String(world_id)
 		pin.edge_active = live
-		pin.modulate = Color(1, 1, 1, 1.0 if live else 0.72)
 		pin.queue_redraw()
 	# The plate changes with the selection, fading rather than cutting: a map
 	# that snaps from one horizon to another reads as a bug, not a choice.

@@ -157,9 +157,9 @@ func _check_cards_match_the_definitions() -> void:
 			definition != null, "%s: the card reads a definition from the registry" % weapon_id
 		):
 			continue
-		# A chip in the rail carries its own name, because the row has no room
-		# for a caption under every slot.
-		var item_text := button.text
+		# A chip in the rail carries its own name and price on a label inside it,
+		# because the row has no room for a caption under every slot.
+		var item_text := text_of(button)
 		_expect(
 			item_text.contains(definition.display_name.to_upper()),
 			(
@@ -505,7 +505,7 @@ func _check_unlock_economics() -> void:
 			continue
 		var cost := int(_profile.unlock_cost(weapon_id))
 		# The chip's own text is the state line: this rail has no caption row.
-		var state := button.text
+		var state := text_of(button)
 		if not state.contains("BP"):
 			continue
 		_expect(

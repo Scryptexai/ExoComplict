@@ -291,12 +291,13 @@ func _check_weapon_stats_are_real() -> void:
 			# A weapon the profile has not unlocked cannot be selected, so what
 			# the screen owes the player is its name and its price -- both of
 			# which are the chip's own text now, not a caption under it.
+			var chip_text := _all_label_text(chip)
 			_expect(
-				chip.text.contains(definition.display_name.to_upper()),
+				chip_text.contains(definition.display_name.to_upper()),
 				"%s: the locked chip is still named" % definition.weapon_id
 			)
 			_expect(
-				chip.text.contains("BP"),
+				chip_text.contains("BP"),
 				"%s: the locked chip states its price" % definition.weapon_id
 			)
 			continue

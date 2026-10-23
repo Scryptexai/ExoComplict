@@ -106,6 +106,31 @@ func _ready() -> void:
 
 ## The dock navigates between the three lobby pages, so HERO can go straight
 ## home or to the theatre without walking back through the dashboard.
+## A rail chip is a button with its text inside it as a label, the way the cards
+## are built. A Button's own `text` sets a minimum width equal to one unwrapped
+## line, and three of those in a row were wider than a 390 px screen.
+func _build_weapon_pin(definition: WeaponDefinition) -> AegisButton:
+	var pin := AegisButton.new()
+	pin.name = "%sWeapon" % String(definition.weapon_id).to_pascal_case()
+	pin.text = ""
+	pin.set_meta("weapon_id", String(definition.weapon_id))
+	pin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pin.focus_mode = Control.FOCUS_ALL
+	AegisTheme.set_button_variant(pin, "card")
+	var label := make_label("", "label_s", AegisTokens.INK)
+	label.name = &"WeaponName"
+	label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_limit_lines(label, 2)
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	pin.add_child(label)
+	pin.pressed.connect(_on_weapon_pressed.bind(definition.weapon_id))
+	_weapon_pins.append(pin)
+	return pin
+
+
 ## Equipping writes to the service, which is what DEPLOY reads. A locked weapon
 ## is shown, priced, and not saved until it is bought in the armory.
 func _on_weapon_pressed(weapon_id: StringName) -> void:
@@ -154,13 +179,19 @@ func _refresh_weapons(progression: ProgressionService) -> void:
 		var owned: bool = progression == null or progression.is_unlocked(weapon_id)
 		var live: bool = progression != null and progression.selected_weapon_id == weapon_id
 		pin.disabled = not owned
-		pin.text = (
-			definition.display_name.to_upper()
-			if owned
-			else (
-				"%s  ·  %d BP" % [definition.display_name.to_upper(), definition_id_cost(weapon_id)]
+		# The chip's own label says what it is and what it costs. The data test
+		# reads this label and compares it with the WeaponDefinition, so a price
+		# here that the service does not charge fails the suite.
+		var label := pin.get_node_or_null("WeaponName") as Label
+		if label != null:
+			label.text = (
+				definition.display_name.to_upper()
+				if owned
+				else (
+					"%s\n%d BP"
+					% [definition.display_name.to_upper(), definition_id_cost(weapon_id)]
+				)
 			)
-		)
 		pin.edge_active = live
 		pin.queue_redraw()
 	if progression == null:
@@ -449,21 +480,7 @@ func _build_panel() -> void:
 	physical_separation(_weapon_row, 8)
 	column.add_child(_weapon_row)
 	for definition in WeaponDefinition.load_all_definitions():
-		var pin := AegisButton.new()
-		pin.name = "%sWeapon" % String(definition.weapon_id).to_pascal_case()
-		pin.set_meta("weapon_id", String(definition.weapon_id))
-		pin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		pin.focus_mode = Control.FOCUS_ALL
-		# Three guns do not fit across a 390 px phone: "NOVA LAUNCHER · 120 BP"
-		# is ~200 px of text before padding, so a row of three was 600 px and the
-		# page inherited it. The chips wrap their own text and stack when the row
-		# cannot hold them (see `_apply_density`).
-		pin.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		pin.set_meta("aegis_role", "label_s")
-		AegisTheme.set_button_variant(pin, "card")
-		pin.pressed.connect(_on_weapon_pressed.bind(definition.weapon_id))
-		_weapon_row.add_child(pin)
-		_weapon_pins.append(pin)
+		_weapon_row.add_child(_build_weapon_pin(definition))
 	# The numbers are printed straight from the WeaponDefinition: if this line
 	# and the resource ever disagree, the screen is lying about damage.
 	_weapon_stat = make_label("", "label_s", AegisTokens.INK_3)
