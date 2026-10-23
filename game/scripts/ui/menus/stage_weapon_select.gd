@@ -532,7 +532,24 @@ func _apply_density() -> void:
 	# only if one of them gives way. The state is the one that can: the chip the
 	# player selected is already lit, and the label is repeated in the panel.
 	_state_label.visible = is_landscape() or physical_size().x >= 560.0
-	_heading.text = "SELECT WEAPON" if is_landscape() or short_screen else "LOADOUT"
+	# A 360 px phone leaves 288 px beside BACK for the heading and the state
+	# label. "SELECT WEAPON" in `display_m` is 252 of them, and the header's
+	# minimum width then sized every panel on the screen: four labels reported
+	# 378 px wide inside a 360 px viewport (menu_layout_smoke, 360x640). The
+	# narrow screen gets the short word at one role down, and the state label --
+	# empty on a fresh load -- steps out of the row.
+	var narrow := physical_size().x < 420.0
+	_heading.text = (
+		"WEAPON" if narrow else ("SELECT WEAPON" if is_landscape() or short_screen else "LOADOUT")
+	)
+	var heading_role := "heading" if narrow else "display_m"
+	_heading.set_meta("aegis_role", heading_role)
+	AegisTheme.resize_label(
+		_heading,
+		heading_role,
+		maxi(AegisTheme.type_size(heading_role), _minimum_font_size(_stretch))
+	)
+	_state_label.visible = not narrow
 	physical_min_size(_carousel, 0.0, 84.0 if short_screen else 96.0)
 	# Same budget as HERO: on a 390 px tall screen the brief line gives way so
 	# CONTINUE stays on it. The stats above it are the data the screen exists to

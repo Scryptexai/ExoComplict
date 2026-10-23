@@ -471,7 +471,11 @@ func _apply_density() -> void:
 	# 78 px is the desktop DEPLOY. On a 390 px tall screen it is one of three
 	# blocks that have to fit under a 30 px browser bar, and 66 is still above
 	# the 64 px touch floor and twice the height of the old button.
-	physical_min_size(_deploy, 0.0, 60.0 if cramped else (66.0 if compact else 78.0))
+	# 66, not 60: this is a primary action and menu_layout_smoke holds every
+	# button to within a pixel of AegisTokens.MIN_TOUCH_PX ("DEPLOY is only 60 px
+	# tall, under the 63 px touch floor"). The 6 px comes out of the wordmark
+	# instead.
+	physical_min_size(_deploy, 0.0, 66.0 if compact else 78.0)
 	# Already trimmed to one line with an ellipsis on a compact screen, and the
 	# first thing to lose its place when a stacked arrangement runs out of one.
 	_loadout.visible = not cramped
@@ -495,7 +499,7 @@ func _apply_density() -> void:
 			physical_min_size(_mission_plate, 146.0, 124.0)
 	elif compact:
 		if cramped:
-			physical_min_size(_mark, 248.0, 62.0)
+			physical_min_size(_mark, 236.0, 58.0)
 		else:
 			physical_min_size(_mark, 310.0, 78.0)
 		physical_min_size(_hero_plate, 96.0, 128.0)
