@@ -221,11 +221,15 @@ func _card_ancestor(node: Node) -> Control:
 	return null
 
 
-## The dashboard's *order* is the fix, not its contents: DEPLOY used to be the
-## last button on the screen, below the profile numbers and 40 px from the
-## bottom edge, and the first thing a player saw was a wallet balance. On every
-## size this asserts the reading order the audit asked for -- operative, then
-## theatre, then the primary action, and only then the secondary row -- in
+## The dashboard's *order* is the fix, not its contents.
+##
+## The order changed once already: DEPLOY was originally the last button, below
+## the profile numbers and 40 px from the bottom, and the audit's rule became
+## "operative, theatre, primary action, then the secondary row". The lobby
+## rebuild reversed the last two deliberately, to match the reference lobbies:
+## the primary tile is the row nearest the thumb (Apex's READY bar, Free Fire's
+## start tile), and the tabs sit above it. So what this asserts now is that
+## stacking -- record, then tabs, then DEPLOY at the bottom of the dock -- in
 ## physical pixels, because the canvas is letterboxed.
 func _check_dashboard_hierarchy(stage: Control, stretch: float, where: String) -> void:
 	var deploy: Button = _find_button(stage, "DEPLOY")
@@ -237,10 +241,10 @@ func _check_dashboard_hierarchy(stage: Control, stretch: float, where: String) -
 	var deploy_rect := _physical(deploy.get_global_rect(), stretch)
 	var secondary_rect := _physical(secondary.get_global_rect(), stretch)
 	_expect(
-		deploy_rect.end.y <= secondary_rect.position.y + 1.0,
+		deploy_rect.position.y >= secondary_rect.end.y - 1.0,
 		(
-			"%s: DEPLOY (bottom %.0f) sits above ARMORY/SETTINGS (top %.0f)"
-			% [where, deploy_rect.end.y, secondary_rect.position.y]
+			"%s: DEPLOY (top %.0f) sits under ARMORY/SETTINGS (bottom %.0f), nearest the thumb"
+			% [where, deploy_rect.position.y, secondary_rect.end.y]
 		)
 	)
 	_expect(

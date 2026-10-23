@@ -93,8 +93,8 @@ var _secondary: HBoxContainer
 var _deploy: AegisButton
 var _deploy_caption: Label
 ## The caption sits on a chip: bare type over the 3D stage was unreadable
-## against a lit backdrop, and "NEON FRONTIER · READY TO DEPLOY" is the one
-## line that says what the amber tile will do.
+## against a lit backdrop, and the theatre line under the tile is the one thing
+## that says where the amber button will send you.
 var _deploy_chip: AegisPanel
 
 # --- the modals ------------------------------------------------------------- #
@@ -580,6 +580,7 @@ func _apply_density() -> void:
 		panel.set_surface_pad(px(4.0 if cramped else (6.0 if compact else 12.0)))
 
 	physical_separation(_root, 8.0 if cramped else (12.0 if compact else 20.0))
+	physical_separation(_top, 10.0 if compact else 16.0)
 	physical_separation(_cards, 8.0 if compact else 14.0)
 	physical_separation(_dock, 8.0 if cramped else (10.0 if compact else 14.0))
 	physical_separation(_secondary, 8.0 if cramped else (10.0 if compact else 14.0))
@@ -604,8 +605,12 @@ func _apply_density() -> void:
 		for tab in _secondary.get_children():
 			physical_min_size(tab as Control, 0.0, 64.0)
 	elif cramped:
-		physical_min_size(_mark, 168.0, 42.0)
-		physical_min_size(_balance, 132.0, 0.0)
+		# The top bar shares 320 px with the wallet on a 360 px phone: a 168 px
+		# wordmark plus a 132 px chip plus the gap is 316 before either control's
+		# own inset, and the row was 4 px wider than the screen -- which stretched
+		# every card under it and put four labels past the right edge.
+		physical_min_size(_mark, 150.0, 38.0)
+		physical_min_size(_balance, 124.0, 0.0)
 		physical_min_size(_hero_plate, 76.0, 96.0)
 		physical_min_size(_mission_plate, 92.0, 70.0)
 		physical_min_size(_deploy, 0.0, 88.0)
