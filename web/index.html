@@ -310,20 +310,32 @@
 			</div>
 		</div>
 
+		<!--
+			The boot overlay is a dark frame, and nothing else.
+
+			It used to hold a product wordmark, a progress bar and a sentence about
+			the engine build. That is a developer's view of a download, and it was
+			the first thing a player ever saw of this game: a page explaining
+			itself, on the screen where the film should be. The ident runs in the
+			engine a couple of seconds after this frame, so this frame's only job
+			is not to be in the way. It fades the moment the engine reports ready.
+
+			The progress elements stay in the DOM because the engine's loader
+			writes to them; they are hidden, not removed, and an error notice is
+			still shown if the load fails.
+		-->
 		<div id="status">
-			<img id="status-splash" class="show-image--true fullsize--true use-filter--true" src="index.png" alt="">
-			<div class="boot-title">Exocomplict · Booting WebAssembly build</div>
-			<progress id="status-progress"></progress>
-			<div id="status-progress-label">loading engine…</div>
-			<div class="boot-note">
-				First load downloads the WebAssembly engine and the project pack; later loads are cached by the browser.
-			</div>
+			<!-- Kept for the export contract and hidden: the engine's boot splash
+			     is a placeholder image, and this project's opening is the film. -->
+			<img id="status-splash" class="show-image--true fullsize--true use-filter--true" src="index.png" alt="" hidden>
+			<progress id="status-progress" hidden></progress>
+			<div id="status-progress-label" hidden></div>
 			<div id="status-notice"></div>
 		</div>
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":31933212,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":31933148,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
