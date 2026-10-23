@@ -501,6 +501,18 @@ func apply_safe_margins(
 	container.add_theme_constant_override("margin_top", roundi(_top_inset() + px(extra_top)))
 
 
+## The horizontal margin the stage's own layout container reserves, in physical
+## pixels. Shared chrome asks for it instead of guessing a breakpoint: a dock
+## that budgets the window and forgets the margin overflows by exactly that
+## margin, which is how a 360 px page measured 362 px wide.
+func margin_side() -> float:
+	if not is_instance_valid(_margin):
+		return 0.0
+	var left := float(_margin.get_theme_constant(&"margin_left"))
+	var right := float(_margin.get_theme_constant(&"margin_right"))
+	return maxf(left, right) * _stretch
+
+
 ## Grow every font under `root` so it renders at MIN_PHYSICAL_FONT_PX on the
 ## real screen. Type roles are authored in logical units for a 1280x720 canvas;
 ## on a phone the canvas is scaled down and a 15 px title lands at ~7 physical

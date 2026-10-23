@@ -297,18 +297,19 @@ func _on_tab_pressed(tab_id: StringName) -> void:
 ##   1. tab labels go from 104 px to 88 px
 ##   2. the RUNS chip goes (HOME's record ribbon already prints the figure)
 ##   3. tab labels go to 76 px
-##   4. the operative's name and state go -- the portrait stays
-##   5. the tabs lose their words entirely and become glyphs
-##   6. the settings gear goes
-##   7. the wordmark goes
+##   4. the wordmark goes -- the active tab already says where you are, and a
+##      player who is mid-menu does not need the logo
+##   5. the operative's name and state go -- the portrait stays
+##   6. the tabs lose their words entirely and become glyphs
+##   7. the settings gear goes
 ##
 ## Nothing is ever clipped to make it fit, and the order is the one a player
 ## would choose: a word you cannot read is worse than a glyph, and a figure the
 ## page already shows is the first thing that can leave.
 func _apply_density() -> void:
 	var stretch := 1.0 / maxf(_stage.px(1.0), 0.0001)
-	# The bar's own inset and the page's margin are spent before any child is.
-	var budget := _stage.physical_size().x * 0.94
+	# The page's margin and the bar's own inset are spent before any child is.
+	var budget := _stage.physical_size().x - 2.0 * _stage.margin_side() - 12.0
 	var chosen := LEVELS
 	for level in range(LEVELS + 1):
 		_apply_level(level)
@@ -330,8 +331,8 @@ func _apply_level(level: int) -> void:
 		tab_width = 76.0
 
 	_runs_chip.visible = level <= 1
-	_plate_text.visible = level <= 3
-	_mark.visible = level <= 6
+	_plate_text.visible = level <= 4
+	_mark.visible = level <= 3
 	if is_instance_valid(_gear):
 		_gear.visible = _with_settings and level <= 5
 	_avatar.visible = true
