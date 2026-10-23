@@ -123,14 +123,14 @@ func _build_header() -> void:
 	_stack.add_child(_header)
 
 	var back := make_button("BACK", "ghost", "Return to the dashboard")
-	physical_min_size(back, 150.0, AegisTokens.MIN_TOUCH_PX)
+	physical_min_size(back, 110.0, AegisTokens.MIN_TOUCH_PX)
 	back.pressed.connect(func() -> void: completed.emit(&"DASHBOARD", {}))
 	_header.add_child(back)
 
 	_heading = make_label("SELECT OPERATIVE", "display_m", AegisTokens.INK)
 	_heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_heading.clip_text = true
+	_heading.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_header.add_child(_heading)
 
 	_status_label = make_label("", "label", AegisTokens.OK)
@@ -298,13 +298,15 @@ func _build_panel() -> void:
 	# capture showed, with the blurb floating above the card's top edge.
 	_role_label = make_label("", "body_s", AegisTokens.INK_2)
 	_role_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_role_label.clip_text = true
+	_role_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_limit_lines(_role_label, 1)
 	_role_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	column.add_child(_role_label)
 
 	_loadout_label = make_label("", "label_s", AegisTokens.INK_3)
 	_loadout_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_loadout_label.clip_text = true
+	_loadout_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_limit_lines(_loadout_label, 1)
 	_loadout_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	column.add_child(_loadout_label)
 
@@ -530,6 +532,9 @@ func _apply_orientation() -> void:
 ## controls a thumb has to hit on a phone.
 func _apply_density() -> void:
 	var short_screen := physical_size().y < (520.0 if is_landscape() else 760.0)
+	# Same trade as WEAPON: on a portrait phone the header keeps BACK and the
+	# heading, and the field-ready state lives on the card itself.
+	_status_label.visible = is_landscape() or physical_size().x >= 560.0
 	var compact_chip := Vector2(64.0, 64.0) if short_screen else Vector2(84.0, 84.0)
 	for chip in _cards + _locked:
 		var control := chip as Control

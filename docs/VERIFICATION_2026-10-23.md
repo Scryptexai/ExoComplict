@@ -204,12 +204,44 @@ stage list, is the acceptance evidence for §2 and §4.
 
 ---
 
-## 7. What is still not true
+## 7. The first CI run, and what it caught
 
-* CI has not run on this change at the time of writing. `menu_layout_smoke`
-  (physical-pixel fit), `video_asset_smoke` (the new manifest, the deleted
-  robot) and `ui_art_smoke` (the alpha assertions) are the three that can fail,
-  and two of them are new assertions that have never been executed.
+Run `39876344284` on `48b987d`: **static checks pass, web export passes,
+headless smoke 28 passed / 1 failed**. The failure:
+
+```
+fail: WEAPON portrait: @Label@158 is outside the viewport (36,478 409x20 in 390x844)
+fail: WEAPON portrait: @Label@159 is outside the viewport (36,508 409x26 in 390x844)
+...
+28 passed, 1 failed (of 29, import ok)
+```
+
+The cause is the kind of thing only a physical-pixel measurement finds. The
+weapon panel's copy was authored `AUTOWRAP_OFF` + `clip_text = true`, on the
+assumption that clipping a label also lets it shrink. It does not: `clip_text`
+bounds the *drawing*, while the label's minimum size is still its text width.
+The panel's brief is a 60-character sentence, so at `caption` 14 (was 11) it
+demanded **409 physical pixels inside a 318-pixel portrait column**, and pushed
+the entire stack — header included — 55 px past the right edge of a 390 px
+screen. At 11 px the same sentence fit with ~3 px to spare, which is why this
+was invisible until the type scale moved.
+
+Fixed by making every one-line label in that panel *shrinkable* as well as
+bounded: autowrap gives it a zero minimum width, and `max_lines_visible = 1`
+with `OVERRUN_TRIM_ELLIPSIS` keeps it to one ellipsised line (`_single_line`).
+The same treatment went to HERO's two clipped labels, and BACK came down from
+150 px to 110 (a third of a phone's width for a four-letter word), with the
+header's state label hidden below 560 px where the header has no room for three
+things.
+
+**PASS** — the measurement, the cause (`clip_text` does not reduce minimum
+size), and the fix. **NOT TESTED** until the next CI run: that the four
+viewport sizes are clean again.
+
+## 8. What is still not true
+
+* The second CI run had not finished at the time of writing. `menu_layout_smoke`
+  is the one that failed once and is the one to watch.
 * No one has watched the ident play in a browser yet. The stage logs
   `MenuCinematic: playing the encoded opening` and the capture in §6 is a still.
 * The HUD shares `AegisTokens.TYPE`, so the combat HUD is now set at the same

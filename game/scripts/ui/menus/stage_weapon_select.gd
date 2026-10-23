@@ -136,7 +136,7 @@ func _build_header() -> void:
 	_stack.add_child(_header)
 
 	var back := make_button("BACK", "ghost", "Return to operative selection")
-	physical_min_size(back, 150.0, AegisTokens.MIN_TOUCH_PX)
+	physical_min_size(back, 110.0, AegisTokens.MIN_TOUCH_PX)
 	back.pressed.connect(func() -> void: completed.emit(&"HERO", {}))
 	_header.add_child(back)
 
@@ -257,33 +257,41 @@ func _build_panel() -> void:
 	physical_separation(column, 10)
 	_panel.add_child(column)
 
-	_class_label = make_label("", "label", AegisTokens.INK_3)
-	_class_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_class_label.clip_text = true
+	# Every line in this panel is one line, bounded, and *shrinkable*. The
+	# labels used to be `AUTOWRAP_OFF` + `clip_text`, which clips the drawing but
+	# not the minimum size: the panel's brief is a 60-character sentence, so at
+	# the current `caption` size it demanded 409 physical pixels inside a
+	# 318-pixel portrait column and pushed the whole stack -- header included --
+	# 55 px past the right edge of a 390 px screen. `menu_layout_smoke` caught it
+	# at "WEAPON portrait: @Label@159 is outside the viewport (36,508 409x26 in
+	# 390x844)". Autowrap gives the label a zero minimum width; the line limit
+	# plus the ellipsis keep it one line, which is the look the clip was for.
+	_class_label = _single_line(make_label("", "label", AegisTokens.INK_3))
 	column.add_child(_class_label)
 
-	_name_label = make_label("", "title", AegisTokens.INK)
-	_name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_name_label.clip_text = true
+	_name_label = _single_line(make_label("", "title", AegisTokens.INK))
 	column.add_child(_name_label)
 
 	# One Label per stat group, single-line with an ellipsis. Every value here is
 	# read from the same resource the weapon fires from, and the `stat_line`
 	# marker is what `data_source_smoke` matches on -- it reads them all.
 	for index in range(4):
-		var line := make_label("", "mono_s", AegisTokens.INFO if index == 0 else AegisTokens.INK_2)
-		line.autowrap_mode = TextServer.AUTOWRAP_OFF
-		line.clip_text = true
-		line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		var line := _single_line(
+			make_label("", "mono_s", AegisTokens.INFO if index == 0 else AegisTokens.INK_2)
+		)
 		line.set_meta("stat_line", true)
 		column.add_child(line)
 		_stat_lines.append(line)
 
-	_detail_label = make_label("", "caption", AegisTokens.INK_3)
-	_detail_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_detail_label.clip_text = true
-	_detail_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_detail_label = _single_line(make_label("", "caption", AegisTokens.INK_3))
 	column.add_child(_detail_label)
+
+
+## One line, ellipsised, with no minimum width. See `_build_panel` for why the
+## difference between this and `clip_text` matters.
+func _single_line(label: Label) -> Label:
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return _limit_lines(label, 1)
 
 
 func _build_actions() -> void:
@@ -520,6 +528,10 @@ func _showcase_fill() -> float:
 
 func _apply_density() -> void:
 	var short_screen := physical_size().y < (520.0 if is_landscape() else 760.0)
+	# A 390 px portrait header holds BACK, the heading and the equipped state
+	# only if one of them gives way. The state is the one that can: the chip the
+	# player selected is already lit, and the label is repeated in the panel.
+	_state_label.visible = is_landscape() or physical_size().x >= 560.0
 	_heading.text = "SELECT WEAPON" if is_landscape() or short_screen else "LOADOUT"
 	physical_min_size(_carousel, 0.0, 84.0 if short_screen else 96.0)
 	physical_separation(_stack, 8.0 if short_screen else 14.0)
