@@ -117,14 +117,14 @@ func _build_wordmark() -> void:
 	mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_stage.physical_min_size(mark, 168.0, 40.0)
 	row.add_child(mark)
-	row.add_child(_spacer(16.0))
+	row.add_child(_spacer(12.0))
 
 
 func _build_nav() -> void:
 	_nav = HBoxContainer.new()
 	_nav.name = &"DockNav"
 	_nav.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_stage.physical_separation(_nav, 4.0)
+	_stage.physical_separation(_nav, 2.0)
 	for tab_id in [TAB_HOME, TAB_OPERATIVE, TAB_WORLD]:
 		var spec: Array = TABS[tab_id]
 		var button := AegisButton.new()
@@ -141,7 +141,7 @@ func _build_nav() -> void:
 		_nav.add_child(button)
 		_tabs.append(button)
 	row.add_child(_nav)
-	row.add_child(_spacer(16.0))
+	row.add_child(_spacer(12.0))
 
 
 func _build_resources() -> void:
@@ -269,9 +269,12 @@ func _apply_density() -> void:
 	if is_instance_valid(_gear):
 		_gear.visible = _with_settings and width >= 420.0
 
+	# These numbers are a budget, and the budget is 358 px on a 360 px phone:
+	# avatar + three tabs + a chip + the bar's own inset. 3 px over the edge is
+	# how the whole page started scrolling sideways.
 	var compact := width < 560.0
-	var icon_size := 34.0 if compact else 40.0
-	var tab_width := 38.0 if compact else (96.0 if not compact and width < 900.0 else 112.0)
+	var icon_size := 32.0 if compact else 40.0
+	var tab_width := 34.0 if compact else (88.0 if width < 900.0 else 104.0)
 	for tab in _tabs:
 		tab.text = "" if compact else str(TABS[tab.get_meta("tab_id")][0])
 		tab.add_theme_font_override("font", AegisTheme.font(AegisTokens.FAMILY_UI_M))
@@ -281,7 +284,8 @@ func _apply_density() -> void:
 	_stage.physical_min_size(_mark, 96.0 if compact else 168.0, 24.0 if compact else 40.0)
 	_stage.physical_min_size(_avatar, 26.0 if compact else 36.0, 26.0 if compact else 36.0)
 	_stage.physical_min_size(_nav, 0.0, icon_size)
-	bar.set_surface_pad(_stage.px(4.0 if compact else 8.0))
+	bar.set_surface_pad(_stage.px(3.0 if compact else 7.0))
+	_stage.physical_min_size(_balance_chip, 78.0 if compact else 132.0, 0.0)
 
 
 func set_active(tab_id: StringName) -> void:

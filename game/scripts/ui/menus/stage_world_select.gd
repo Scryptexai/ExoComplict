@@ -297,7 +297,7 @@ func reframe() -> void:
 		# 50 % of the height for the map left nothing for the pins and the panel
 		# on an 844 px phone: both pins drew at y=857. A third of it is enough
 		# for the plate to read, and the body still expands into any slack.
-		physical_min_size(_map, 0.0, height * 0.34)
+		physical_min_size(_map, 0.0, height * 0.26)
 		physical_min_size(_launch, 0.0, 72.0)
 	# 64 px is the touch floor (`AegisTokens.MIN_TOUCH_PX`); 56 failed it. Every
 	# child of the row, not just `_pins`: the roadmap slot was built after the
@@ -311,7 +311,11 @@ func reframe() -> void:
 	var cramped := height < 700.0 and not landscape
 	var short_landscape := landscape and height < 520.0
 	_chapter.visible = not (short_landscape or cramped)
-	_brief.visible = not (short_landscape or cramped)
+	# The framed plate on the left already shows the theatre's name, and three
+	# 64 px pins plus the panel plus the map are what has to fit. The paragraph
+	# stays where there is height for it.
+	_brief.visible = landscape
+	_title.visible = landscape
 	# The status line says FIELD READY, which the pin above it already says, and
 	# the three pins plus the panel are what has to fit under the map. Landscape
 	# has the width to say it twice; portrait does not have the height.
