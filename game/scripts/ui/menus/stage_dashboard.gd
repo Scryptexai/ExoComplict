@@ -88,7 +88,8 @@ var _rank_line: Label
 var _best: Label
 var _runs: Label
 var _loadout: Label
-var _tabs: HBoxContainer
+## The secondary row: the tab bar under the primary action.
+var _secondary: HBoxContainer
 var _deploy: AegisButton
 var _deploy_caption: Label
 
@@ -317,22 +318,22 @@ func _build_dock() -> void:
 	_deploy.pressed.connect(_on_deploy_pressed)
 	_dock.add_child(_deploy)
 
-	_tabs = HBoxContainer.new()
-	_tabs.name = &"LobbyTabs"
-	physical_separation(_tabs, 12)
-	_dock.add_child(_tabs)
+	_secondary = HBoxContainer.new()
+	_secondary.name = &"LobbyTabs"
+	physical_separation(_secondary, 12)
+	_dock.add_child(_secondary)
 
 	var armory := make_button("ARMORY", "card", "Unlock and equip weapons with Battle Points")
 	armory.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	physical_min_size(armory, 0.0, 68.0)
 	armory.pressed.connect(_on_armory_pressed)
-	_tabs.add_child(armory)
+	_secondary.add_child(armory)
 
 	var settings := make_button("SETTINGS", "card", "Audio, HUD and control preferences")
 	settings.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	physical_min_size(settings, 0.0, 68.0)
 	settings.pressed.connect(_on_settings_pressed)
-	_tabs.add_child(settings)
+	_secondary.add_child(settings)
 
 	# The record, last and smallest. Three "CAPTION  value" labels in one panel;
 	# the wallet is the only one in amber because it is the only one a player
@@ -567,7 +568,7 @@ func _apply_density() -> void:
 	physical_separation(_root, 8.0 if cramped else (12.0 if compact else 20.0))
 	physical_separation(_cards, 8.0 if compact else 14.0)
 	physical_separation(_dock, 8.0 if cramped else (10.0 if compact else 14.0))
-	physical_separation(_tabs, 8.0 if cramped else (10.0 if compact else 14.0))
+	physical_separation(_secondary, 8.0 if cramped else (10.0 if compact else 14.0))
 	physical_separation(_stat_column, 6.0 if compact else 10.0)
 	physical_separation(_body_landscape, 14.0 if compact else 22.0)
 
@@ -577,28 +578,28 @@ func _apply_density() -> void:
 		physical_min_size(_hero_plate, 120.0, 160.0)
 		physical_min_size(_mission_plate, 132.0, 100.0)
 		physical_min_size(_deploy, 0.0, 100.0)
-		for tab in _tabs.get_children():
+		for tab in _secondary.get_children():
 			physical_min_size(tab as Control, 0.0, 68.0)
 	elif short_landscape:
 		physical_min_size(_mark, 180.0, 46.0)
 		physical_min_size(_hero_plate, 72.0, 96.0)
 		physical_min_size(_mission_plate, 92.0, 70.0)
 		physical_min_size(_deploy, 0.0, 76.0)
-		for tab in _tabs.get_children():
+		for tab in _secondary.get_children():
 			physical_min_size(tab as Control, 0.0, 64.0)
 	elif cramped:
 		physical_min_size(_mark, 168.0, 42.0)
 		physical_min_size(_hero_plate, 76.0, 96.0)
 		physical_min_size(_mission_plate, 92.0, 70.0)
 		physical_min_size(_deploy, 0.0, 88.0)
-		for tab in _tabs.get_children():
+		for tab in _secondary.get_children():
 			physical_min_size(tab as Control, 0.0, 64.0)
 	else:
 		physical_min_size(_mark, 190.0, 48.0)
 		physical_min_size(_hero_plate, 84.0, 112.0)
 		physical_min_size(_mission_plate, 100.0, 76.0)
 		physical_min_size(_deploy, 0.0, 96.0)
-		for tab in _tabs.get_children():
+		for tab in _secondary.get_children():
 			physical_min_size(tab as Control, 0.0, 68.0)
 
 	# The character's box. Landscape gives it a share of the width so the cards
