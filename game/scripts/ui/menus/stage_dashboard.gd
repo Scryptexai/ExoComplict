@@ -319,7 +319,9 @@ func _build_dock() -> void:
 	_deploy_chip.interactive = false
 	_deploy_chip.accent_side = "none"
 	_deploy_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_deploy_chip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	# Full width, centred text: a shrink-centred chip collapsed to the width of
+	# its label's longest word and drew as an empty sliver above the tab row.
+	_deploy_chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_deploy_caption = make_label("", "label_s", AegisTokens.INK_2)
 	_deploy_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_deploy_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
