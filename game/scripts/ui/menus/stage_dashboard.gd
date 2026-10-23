@@ -454,6 +454,11 @@ func _apply_density() -> void:
 		8.0 if cramped else (16.0 if compact else 28.0),
 		8.0 if compact else 28.0
 	)
+	# The card surface costs its inset twice per card in width and height, and a
+	# 360 px phone has neither: at 12 px the DEPLOY row measured 352 px of a 360
+	# px screen and the stack ran 44 px past the bottom (menu_layout_smoke).
+	for panel in [_hero_panel, _mission_panel, _stats]:
+		panel.set_surface_pad(px(4.0 if cramped else (6.0 if compact else 12.0)))
 	physical_separation(_stack, 8.0 if cramped else (12.0 if compact else 22.0))
 	physical_separation(_left, 12.0 if compact else 22.0)
 	physical_separation(_right, 10.0 if compact else 16.0)

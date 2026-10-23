@@ -573,6 +573,9 @@ func _apply_density() -> void:
 	# around a 130 px plate, so the captions were cut off by the scroll
 	# container's own clip and the plates looked cropped at the bottom.
 	physical_min_size(_carousel, 0.0, 96.0 if short_screen else 196.0)
+	# The card inset is width and height the landscape phone does not have:
+	# CONTINUE landed at y=328 with a 64 px height in a 390 px viewport.
+	_panel.set_surface_pad(px(6.0 if short_screen else 12.0))
 	# Same budget as HERO: on a 390 px tall screen the brief line gives way so
 	# CONTINUE stays on it. The stats above it are the data the screen exists to
 	# show and stay.
