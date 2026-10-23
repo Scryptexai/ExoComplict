@@ -315,7 +315,10 @@ func reframe() -> void:
 	_orient_pins(landscape)
 	# 390 px of height is enough for the name and one line about the theatre, not
 	# for the chapter tag as well; the pin under the map already carries the name.
-	_chapter.visible = not (short_landscape or cramped)
+	# The framed plate's caption already says DEPLOYMENT THEATRE on every screen;
+	# the panel repeating it 40 px lower is the kind of duplicate that reads as a
+	# placeholder. Landscape keeps it because the caption there is off-frame.
+	_chapter.visible = landscape
 	# The framed plate on the left already shows the theatre's name, and three
 	# 64 px pins plus the panel plus the map are what has to fit. The paragraph
 	# stays where there is height for it.
