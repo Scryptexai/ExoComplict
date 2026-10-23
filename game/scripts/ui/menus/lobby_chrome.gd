@@ -274,7 +274,12 @@ func _apply_density() -> void:
 	# how the whole page started scrolling sideways.
 	var compact := width < 560.0
 	var icon_size := 32.0 if compact else 40.0
-	var tab_width := 34.0 if compact else (88.0 if width < 900.0 else 104.0)
+	# The measured budget at 360 px was 348 for the dock alone -- 12 px of icon
+	# padding per tab and the chip's own inset add up faster than the arithmetic
+	# suggests. So the compact dock drops to what it can prove: 40 px tabs, a
+	# 64 px chip, an 8 px gutter, and no avatar -- the operative's portrait is on
+	# the OPERATIVE page, and the dock still names them.
+	var tab_width := 40.0 if compact else (88.0 if width < 900.0 else 104.0)
 	for tab in _tabs:
 		tab.text = "" if compact else str(TABS[tab.get_meta("tab_id")][0])
 		tab.add_theme_font_override("font", AegisTheme.font(AegisTokens.FAMILY_UI_M))
@@ -285,7 +290,9 @@ func _apply_density() -> void:
 	_stage.physical_min_size(_avatar, 26.0 if compact else 36.0, 26.0 if compact else 36.0)
 	_stage.physical_min_size(_nav, 0.0, icon_size)
 	bar.set_surface_pad(_stage.px(3.0 if compact else 7.0))
-	_stage.physical_min_size(_balance_chip, 78.0 if compact else 132.0, 0.0)
+	_stage.physical_min_size(_balance_chip, 64.0 if compact else 132.0, 0.0)
+	if is_instance_valid(_avatar):
+		_avatar.visible = not compact
 
 
 func set_active(tab_id: StringName) -> void:
