@@ -118,3 +118,14 @@ only an opinion is not here.
     the duplication is the defect, not the styling. HOME is a numbered manifest
     (01 operative, 02 theatre, 03 arsenal) with a record ribbon and the actions
     in the thumb arc; the 3D model lives on OPERATIVE only.
+30. **The load screen is a poster.** The reference is *Doomsday: Last Survivors'
+    opening: key art edge to edge, a heavy gradient to black across the lower
+    half, a large wordmark in that band, one small credit line and one hairline.
+    Measured off the captured frames, the mark spans ~60 % of the width and its
+    cap-height centre sits ~88 % down. A flat void plate with the mark centred
+    is BOOT's composition, and two stages that look alike are one stage printed
+    twice. Cover, never contain, on the art: a letterbox puts black bars over
+    the only thing the screen exists to show. Reference frames:
+    `interfaceingame.com`-class captures of *Doomsday: Last Survivors*
+    (filehorse.com screenshot 03 and the appgrowing.net opening capture,
+    reviewed 2026-10-24).

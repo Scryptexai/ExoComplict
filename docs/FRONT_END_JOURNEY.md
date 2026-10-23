@@ -50,21 +50,38 @@ beat for the wordmark, not a loading claim, and the caption reads
 | Advances | when the queue drains |
 
 One implementation serves both stages; the payload decides. `LOADING` fetches
-the nine front-end textures and goes to `CHAPTER`. `PRELOAD` fetches
+the eight front-end textures and goes to `CHAPTER`. `PRELOAD` fetches
 `res://scenes/main.tscn` and changes scene.
 
-If the queue is empty the stage does not animate a number: it swaps the bar for
-the sweep and the caption reads `PREPARING`. A resource that fails to load
-raises `push_error` and is recorded, so the failure is visible in the log rather
-than hidden behind a completed bar.
+**The composition is a poster** (docs/DECISIONS.md 30). `loading_keyart.jpg`
+fills the frame edge to edge (`STRETCH_KEEP_ASPECT_COVERED`, no letterbox), two
+`GradientTexture2D` bands take the top 16 % and the bottom 52 % to near-black,
+and the wordmark sits in that bottom band at 330 px on a phone / 620 px on a
+desktop. Under it: one caption row (`LOADING` left, the percentage right), the
+`n / total` count, and a 3 px amber hairline. That is the whole screen — no
+heading block, no panel, no second column of status.
+
+The reference is the opening of *Doomsday: Last Survivors*: full-bleed key art,
+a heavy ramp to black across the lower half, and a large mark read across a
+room with one small credit line under it. It is a title treatment, not a
+progress dialog, and the progress it does show is one hairline.
+
+The bar is driven by `ResourceLoader.load_threaded_get_status`, so the figure
+is the engine's own count of resources fetched, not a timer. If the queue is
+empty the stage does not animate a number: it swaps the bar for the
+`MenuIndeterminateBar` sweep and the caption reads `PREPARING`. A resource that
+fails to load raises `push_error` and is recorded, so the failure is visible in
+the log rather than hidden behind a completed bar.
+
+BOOT is deliberately *not* this composition: BOOT is the wordmark on void with
+a sweep, because there is nothing to look at yet and nothing measurable to
+report. Two stages that look like one screen are one screen printed twice.
 
 The walk cycle is gone. The screen carried a 160 px robot sprite (a four-cell
 sheet, plus a video made from the same frames) until 2026-10-23, when it was cut:
 it competed with the wordmark for the only focal point a load screen has and it
-said nothing about the game. The stage is now the wordmark, the title, the
-status line and the bar, at the sizes a load screen is read from
-(docs/DECISIONS.md 3). `reduce_motion` still governs the
-indeterminate sweep.
+said nothing about the game (docs/DECISIONS.md 3). `reduce_motion` still governs
+the indeterminate sweep.
 
 ## CHAPTER — `stage_chapter.gd`
 
