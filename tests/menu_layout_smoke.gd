@@ -166,6 +166,7 @@ func _probe(stage_name: StringName, size_name: String, physical: Vector2) -> voi
 		_check(control, rect, viewport, "%s %s" % [stage_name, size_name])
 	if stage_name == &"DASHBOARD":
 		_check_dashboard_hierarchy(stage, stretch, "%s %s" % [stage_name, size_name])
+	_check_page_fits(stage, viewport, stretch, "%s %s" % [stage_name, size_name])
 	_check_text_stays_in_its_card(stage, stretch, "%s %s" % [stage_name, size_name])
 	print("Menu layout: " + " | ".join(lines))
 	await _check_row_scroll(stage, "%s %s" % [stage_name, size_name])
@@ -268,6 +269,35 @@ func _check_dashboard_hierarchy(stage: Control, stretch: float, where: String) -
 			_physical(mission.get_global_rect(), stretch).end.y <= deploy_rect.position.y + 1.0,
 			"%s: the theatre card sits above DEPLOY" % where,
 		)
+
+
+## The whole page must fit, not only its controls.
+##
+## Every "a label is outside the viewport" failure this project has had came
+## from one descendant whose *minimum* width was larger than the screen: the page
+## then draws wider than the phone and every sibling is reported as the
+## offender. Measuring the combined minimum size and naming the widest child
+## points at the cause instead of at the symptoms.
+func _check_page_fits(stage: Control, viewport: Rect2, stretch: float, where: String) -> void:
+	var widest := 0.0
+	var widest_name := ""
+	for child in stage.find_children("*", "Control", true, false):
+		var control := child as Control
+		if control == null or not control.is_visible_in_tree():
+			continue
+		if _inside_scroll_container(control):
+			continue
+		var width := control.get_combined_minimum_size().x * stretch
+		if width > widest:
+			widest = width
+			widest_name = str(control.name)
+	_expect(
+		widest <= viewport.size.x + 1.0,
+		(
+			"%s: the widest minimum width on the page (%s, %.0f px) fits the %.0f px viewport"
+			% [where, widest_name, widest, viewport.size.x]
+		)
+	)
 
 
 func _physical(rect: Rect2, stretch: float) -> Rect2:
