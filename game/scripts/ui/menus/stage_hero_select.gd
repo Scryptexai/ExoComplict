@@ -44,6 +44,7 @@ var _locked: Array[AegisButton] = []
 var _showcase: ShowcaseViewport
 var _carousel: ScrollContainer
 var _heading: Label
+var _development_label: Label
 var _name_label: Label
 var _status_label: Label
 var _role_label: Label
@@ -171,6 +172,10 @@ func _build_carousel() -> void:
 	_carousel.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_carousel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	physical_min_size(_carousel, 0.0, 120.0)
+	# A ScrollContainer defaults to EXPAND_FILL vertically. In the right-hand rail
+	# that meant the carousel ate every spare pixel and pushed the name and the
+	# information card 90 px down the screen, leaving a hole above them.
+	_carousel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	_carousel_wrap.add_child(_carousel)
 
 	# MenuStage drives horizontal thumb-drags against `_card_scroll`; the
@@ -188,27 +193,8 @@ func _build_carousel() -> void:
 		row.add_child(_build_chip(definition))
 	for index in range(LOCKED_SLOTS):
 		row.add_child(_build_locked_chip(index))
-	_name_label = make_label("", "display_m", AegisTokens.INK)
-	_name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_carousel_wrap.add_child(_name_label)
-
-	# Says out loud what the empty squares are. The roster is one operative in
-	# this build; the slots are the plan, not content.
-	var development := make_label(
-		"%d OPERATIVE SLOT%s IN DEVELOPMENT" % [LOCKED_SLOTS, "" if LOCKED_SLOTS == 1 else "S"],
-		"label_s",
-		AegisTokens.INK_3
-	)
-	# This caption is the widest single-line text on the screen (334 px at 13 px
-	# with its 10 px tracking), and with autowrap off it set the *minimum width*
-	# of the whole column: on a 360 px phone that put the panel's right edge at
-	# 370 and menu_layout_smoke reported three labels outside the viewport at
-	# once. Word wrapping gives the label a minimum of its longest word, and one
-	# line with an ellipsis keeps it a caption.
-	development.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_limit_lines(development, 1)
-	development.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_carousel_wrap.add_child(development)
+	# The name and the roster caption are not part of the carousel: they belong to
+	# the information card, which `_build_panel()` puts under this row.
 
 
 ## One small portrait per operative. Small on purpose: the model is the subject,
@@ -297,8 +283,30 @@ func _build_panel() -> void:
 	_body_portrait.add_child(_panel)
 
 	var column := VBoxContainer.new()
-	physical_separation(column, 12)
+	physical_separation(column, 10)
 	_panel.add_child(column)
+
+	# The operative's name is the card's heading, so it is inside the card. The
+	# first capture had it floating 70 px above the card, and the card's top edge
+	# cut through the roster line under it.
+	_name_label = make_label("", "display_m", AegisTokens.INK)
+	_name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_limit_lines(_name_label, 1)
+	column.add_child(_name_label)
+
+	# Says out loud what the empty squares are. The roster is one operative in
+	# this build; the slots are the plan, not content. Wrapped, not clipped: this
+	# was the widest single-line text on the screen (334 px at 13 px with 10 px
+	# tracking) and, with autowrap off, its width was the *minimum width* of the
+	# whole column -- 370 px of panel on a 360 px phone.
+	_development_label = make_label(
+		"%d OPERATIVE SLOT%s IN DEVELOPMENT" % [LOCKED_SLOTS, "" if LOCKED_SLOTS == 1 else "S"],
+		"label_s",
+		AegisTokens.INK_3
+	)
+	_development_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_limit_lines(_development_label, 1)
+	column.add_child(_development_label)
 
 	# Single-line with an ellipsis, not wrapping: a wrapped Label reports a
 	# minimum height that ignores its extra lines, so a PanelContainer sized from
@@ -574,6 +582,7 @@ func _apply_density() -> void:
 	# carousel, three panel lines and two 64 px actions. The two descriptive
 	# lines are the part that goes: the name above them already says what the
 	# operative is, and the panel keeps the actions it exists to reach.
+	_development_label.visible = not short_screen
 	_role_label.visible = not short_screen
 	_loadout_label.visible = not short_screen
 	physical_separation(_actions, 8.0 if short_screen else 14.0)
