@@ -112,16 +112,14 @@ func _build_map() -> void:
 	_map.clip_contents = true
 	_body.add_child(_map)
 
-	var anchor := VBoxContainer.new()
-	anchor.set_anchors_preset(Control.PRESET_FULL_RECT)
-	anchor.alignment = BoxContainer.ALIGNMENT_END
-	physical_separation(anchor, 10)
-	_map.add_child(anchor)
-
 	_pin_row = HBoxContainer.new()
 	_pin_row.name = &"TheatrePins"
 	physical_separation(_pin_row, 8)
-	anchor.add_child(_pin_row)
+	# In the stack, under the body, not floating inside the map: a pin laid out
+	# against the bottom of an expanding box inherits that box's geometry, and on
+	# an 844x390 landscape the body was taller than the screen, so both pins drew
+	# at y=465. Normal flow cannot do that.
+	_stack.add_child(_pin_row)
 
 	var group := ButtonGroup.new()
 	for definition in WorldDefinition.load_all_definitions():
@@ -195,6 +193,12 @@ func reframe() -> void:
 		physical_min_size(pin, 0.0, 64.0)
 	if _pin_row != null:
 		_pin_row.vertical = false
+	# 390 px of height is enough for the name and one line about the theatre, not
+	# for the chapter tag as well; the pin under the map already carries the name.
+	var short_landscape := landscape and height < 520.0
+	_chapter.visible = not short_landscape
+	_brief.visible = not short_landscape
+	physical_min_size(_status, 0.0, 20.0 if short_landscape else 24.0)
 
 
 func _on_resized() -> void:

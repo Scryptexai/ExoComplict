@@ -689,6 +689,10 @@ func _apply_density() -> void:
 	var short_landscape := is_landscape() and physical_size().y < 520.0
 	if is_instance_valid(_weapon_row):
 		_weapon_row.visible = not short_landscape
+	if is_instance_valid(_weapon_stat):
+		# The stat line is one more row than the old header had, and on 390 px of
+		# height it was the row that pushed EQUIPPED/CONTINUE past the bottom edge.
+		_weapon_stat.visible = not short_landscape
 	for pin in _weapon_pins:
 		physical_min_size(pin, 0.0, 44.0 if is_landscape() and physical_size().y < 520.0 else 52.0)
 	# A row of three chips is only honest when there is room for three; below
