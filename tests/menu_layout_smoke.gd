@@ -283,23 +283,36 @@ func _check_dashboard_hierarchy(stage: Control, stretch: float, where: String) -
 ## offender. Measuring the combined minimum size and naming the widest child
 ## points at the cause instead of at the symptoms.
 func _check_page_fits(stage: Control, viewport: Rect2, stretch: float, where: String) -> void:
+	# Walk down the widest branch, so the failure names the leaf that actually
+	# claims the width instead of the container that inherits it.
 	var widest := 0.0
-	var widest_name := ""
-	for child in stage.find_children("*", "Control", true, false):
-		var control := child as Control
-		if control == null or not control.is_visible_in_tree():
-			continue
-		if _inside_scroll_container(control):
-			continue
-		var width := control.get_combined_minimum_size().x * stretch
-		if width > widest:
-			widest = width
-			widest_name = str(control.name)
+	var path: Array[String] = []
+	var node: Control = stage
+	while true:
+		var best: Control = null
+		for child in node.get_children():
+			var control := child as Control
+			if control == null or not control.is_visible_in_tree():
+				continue
+			if _inside_scroll_container(control):
+				continue
+			var width := control.get_combined_minimum_size().x * stretch
+			if (
+				width > widest
+				and (best == null or width > best.get_combined_minimum_size().x * stretch)
+			):
+				best = control
+				widest = width
+		if best == null:
+			break
+		path.append("%s(%.0f)" % [best.name, best.get_combined_minimum_size().x * stretch])
+		node = best
+	var root_width := stage.get_combined_minimum_size().x * stretch
 	_expect(
 		widest <= viewport.size.x + 1.0,
 		(
-			"%s: the widest minimum width on the page (%s, %.0f px) fits the %.0f px viewport"
-			% [where, widest_name, widest, viewport.size.x]
+			"%s: the widest minimum width on the page (%s, %.0f px; page %.0f) fits the %.0f px viewport"
+			% [where, "/".join(path), widest, root_width, viewport.size.x]
 		)
 	)
 
