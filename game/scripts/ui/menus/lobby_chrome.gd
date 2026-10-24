@@ -347,7 +347,8 @@ func _width_at(level: int) -> float:
 	if named:
 		tab_width = 104.0 if level == 0 else (88.0 if level <= 2 else 76.0)
 	var width := 0.0
-	width += MARK_COMPACT if compact else MARK_WIDE if level <= 3 else 0.0
+	if level <= 3:
+		width += MARK_COMPACT if compact else MARK_WIDE
 	width += (tab_width * 3.0) + (TAB_SEPARATION * 2.0)
 	width += CHIP_COMPACT if compact else CHIP_WIDE
 	if level <= 1:
@@ -375,13 +376,12 @@ func _apply_level(level: int) -> void:
 	var wordless := _wordless()
 	var named := level <= 4 and not wordless
 	var compact := level >= 5 or wordless
+	# A wordless tab is 40 px wide whatever the level: the width budget in
+	# `_width_at` assumes exactly that, and the two must agree or the loop picks
+	# a level that does not fit.
 	var tab_width := 40.0
-	if level == 0:
-		tab_width = 104.0
-	elif level <= 3:
-		tab_width = 88.0 if level <= 2 else 76.0
-	elif level == 4:
-		tab_width = 76.0
+	if named:
+		tab_width = 104.0 if level == 0 else (88.0 if level <= 2 else 76.0)
 
 	_runs_chip.visible = level <= 1
 	_plate_text.visible = level <= 4

@@ -128,57 +128,6 @@ func _probe(stage_name: StringName, size_name: String, physical: Vector2) -> voi
 	if not _expect(is_instance_valid(stage), "%s %s: stage is mounted" % [stage_name, size_name]):
 		return
 	var stretch: float = UiLayout.compute_stretch(stage, physical)
-	var chrome: Variant = stage.get("_chrome")
-	if stage_name == &"DASHBOARD" and size_name == "landscape":
-		_expect(
-			false,
-			(
-				"DEBUG physical=%s landscape=%s level=%s budget=%s mark=%s nav=%s tabmin=%s tabtext=%s navmin=%s"
-				% [
-					stage.call("physical_size"),
-					stage.call("is_landscape"),
-					str(chrome.get("_level")) if chrome != null else "-",
-					str(chrome.call("_width_at", chrome.get("_level"))) if chrome != null else "-",
-					str(
-						(
-							stage.find_child("DockWordmark", true, false).size
-							if stage.find_child("DockWordmark", true, false) != null
-							else "-"
-						)
-					),
-					str(
-						(
-							stage.find_child("DockNav", true, false).size
-							if stage.find_child("DockNav", true, false) != null
-							else "-"
-						)
-					),
-					(
-						str((chrome.get("_tabs")[0] as Control).custom_minimum_size)
-						if chrome != null
-						else "-"
-					),
-					str((chrome.get("_tabs")[0] as Button).text) if chrome != null else "-",
-					(
-						str((chrome.get("_nav") as Control).get_combined_minimum_size())
-						if chrome != null
-						else "-"
-					),
-				]
-			)
-		)
-	print(
-		(
-			"DEBUG %s %s physical=%s landscape=%s level=%s"
-			% [
-				stage_name,
-				size_name,
-				stage.call("physical_size"),
-				stage.call("is_landscape"),
-				str(chrome.get("_level")) if chrome != null else "-",
-			]
-		)
-	)
 	var viewport := Rect2(Vector2.ZERO, physical)
 	# First, because the first ten failure lines are the ones a CI annotation
 	# keeps: if the page itself is too wide, say so before naming every label it
@@ -204,17 +153,17 @@ func _probe(stage_name: StringName, size_name: String, physical: Vector2) -> voi
 			continue
 		if not (control is Button or control is Label or control is ProgressBar):
 			continue
-		var name := str(control.name)
+		var label := str(control.name)
 		if control is Button and not (control as Button).text.is_empty():
-			name = (control as Button).text
+			label = (control as Button).text
 		elif control is Label and not (control as Label).text.is_empty():
-			name = (control as Label).text.substr(0, mini((control as Label).text.length(), 18))
+			label = (control as Label).text.substr(0, mini((control as Label).text.length(), 18))
 		var global := control.get_global_rect()
 		var rect := Rect2(global.position * stretch, global.size * stretch)
 		lines.append(
 			(
 				"%s=%.0f,%.0f,%.0fx%.0f"
-				% [name, rect.position.x, rect.position.y, rect.size.x, rect.size.y]
+				% [label, rect.position.x, rect.position.y, rect.size.x, rect.size.y]
 			)
 		)
 		_check(control, rect, viewport, "%s %s" % [stage_name, size_name])
