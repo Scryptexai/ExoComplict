@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GAME_DIR="$ROOT_DIR/game"
 PRESET_NAME="${ANDROID_EXPORT_PRESET:-Android}"
-OUTPUT_PATH="${ANDROID_APK_PATH:-$ROOT_DIR/exports/project-overdrive-debug.apk}"
+OUTPUT_PATH="${ANDROID_APK_PATH:-$ROOT_DIR/exports/exocomplict-debug.apk}"
 EXPECTED_VERSION="$(tr -d '[:space:]' < "$ROOT_DIR/.godot-version")"
 
 fail() {
@@ -50,12 +50,12 @@ printf '\nImporting Godot project and GLTF dependencies...\n'
 "$GODOT" --headless --editor --path "$GAME_DIR" --quit
 
 shopt -s nullglob
-SMOKE_TESTS=("$GAME_DIR"/tests/*_smoke.gd)
-(( ${#SMOKE_TESTS[@]} > 0 )) || fail 'No *_smoke.gd tests found under game/tests.'
+SMOKE_TESTS=("$ROOT_DIR"/tests/*_smoke.gd)
+(( ${#SMOKE_TESTS[@]} > 0 )) || fail 'No *_smoke.gd tests found under tests/.'
 for test_path in "${SMOKE_TESTS[@]}"; do
   test_name="${test_path##*/}"
   printf '\nRunning %s...\n' "$test_name"
-  "$GODOT" --headless --path "$GAME_DIR" --script "res://tests/$test_name"
+  "$GODOT" --headless --path "$GAME_DIR" --script "$test_path"
 done
 
 mkdir -p "$(dirname "$OUTPUT_PATH")"
