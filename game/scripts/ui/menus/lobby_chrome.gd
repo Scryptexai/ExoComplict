@@ -55,6 +55,10 @@ const PLATE_AVATAR_COMPACT := 26.0
 const GEAR_W := 42.0
 const TAB_SEPARATION := 2.0
 const GAPS := 42.0
+## Padding a Button and an AegisPanel add around their contents, plus rounding.
+## Measured: a glyph dock predicted at 298 px drew 350 px wide, and the 52 px
+## difference is what put a 390 px page 6 px past its own right edge.
+const SLACK := 56.0
 
 var bar: AegisPanel
 var row: HBoxContainer
@@ -310,8 +314,8 @@ func _on_tab_pressed(tab_id: StringName) -> void:
 ##   3. tab labels go to 76 px
 ##   4. the wordmark goes -- the active tab already says where you are, and a
 ##      player who is mid-menu does not need the logo
-##   5. the operative's name and state go -- the portrait stays
-##   6. the tabs lose their words entirely and become glyphs
+##   5. the tabs lose their words entirely and become glyphs
+##   6. the operative's portrait goes, and the gear stays
 ##   7. the settings gear goes
 ##
 ## Nothing is ever clipped to make it fit, and the order is the one a player
@@ -353,13 +357,13 @@ func _width_at(level: int) -> float:
 	width += CHIP_COMPACT if compact else CHIP_WIDE
 	if level <= 1:
 		width += RUNS_CHIP_W
-	if level <= 4:
-		width += (PLATE_AVATAR_COMPACT if compact else PLATE_AVATAR)
+	if level <= 5:
+		width += PLATE_AVATAR_COMPACT if compact else PLATE_AVATAR
 	if level <= 4:
 		width += PLATE_TEXT_W
-	if level <= 5 and _with_settings:
+	if level <= 6 and _with_settings:
 		width += GEAR_W
-	return width + GAPS
+	return width + GAPS + SLACK
 
 
 ## True on a landscape phone, where the tabs are glyphs whatever the width says.
@@ -387,8 +391,10 @@ func _apply_level(level: int) -> void:
 	_plate_text.visible = level <= 4
 	_mark.visible = level <= 3
 	if is_instance_valid(_gear):
-		_gear.visible = _with_settings and level <= 5
-	_avatar.visible = true
+		_gear.visible = _with_settings and level <= 6
+	# The portrait plate is the last thing the identity chip gives up before the
+	# gear does: a face at 0.9 opacity is worth less than a settings key.
+	_avatar.visible = level <= 5
 
 	# 64 = AegisTokens.MIN_TOUCH_PX. A tab with a word on it is a touch target,
 	# and a 40 px one failed the layout probe at every width that showed words.
