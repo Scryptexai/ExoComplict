@@ -62,6 +62,7 @@ var _done := false
 var _hold := false
 var _scrim_top: TextureRect
 var _scrim_bottom: TextureRect
+var _bottom_gap: Control
 
 
 func _ready() -> void:
@@ -100,10 +101,12 @@ func _build_poster() -> void:
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(art)
 
-	_scrim_top = _make_scrim(false)
+	# `true` ramps near-black at the top down to transparent: the top band.
+	_scrim_top = _make_scrim(true)
 	_scrim_top.name = &"LoadingScrimTop"
 	add_child(_scrim_top)
-	_scrim_bottom = _make_scrim(true)
+	# `false` ramps transparent at the top down to near-black: the bottom band.
+	_scrim_bottom = _make_scrim(false)
 	_scrim_bottom.name = &"LoadingScrimBottom"
 	add_child(_scrim_bottom)
 
@@ -167,7 +170,7 @@ func _build_caption() -> void:
 	_mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_size_both(_mark, Vector2(330.0, 82.0), Vector2(620.0, 155.0))
+	_size_both(_mark, Vector2(340.0, 85.0), Vector2(720.0, 180.0))
 	column.add_child(_mark)
 
 	# One row, the same shape the reference uses: what is happening on the
@@ -177,15 +180,19 @@ func _build_caption() -> void:
 	physical_separation(headline, 16)
 	column.add_child(headline)
 
-	_title = make_label("LOADING", "label_s", AegisTokens.INK_2)
+	# `label`, not `label_s`: at 1280x720 the canvas scale is 1, so `label_s`
+	# drew a 14 px credit line under a 720 px wordmark and the frame read as a
+	# mock-up. The floor for supporting text in this project is 16 px
+	# (docs/DECISIONS.md 20).
+	_title = make_label("LOADING", "label", AegisTokens.INK_2)
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	headline.add_child(_title)
 
-	_percent = make_label("", "label_s", AegisTokens.INK)
+	_percent = make_label("", "mono_m", AegisTokens.INK)
 	_percent.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	headline.add_child(_percent)
 
-	_status = make_label("", "label_s", AegisTokens.INK_3)
+	_status = make_label("", "label", AegisTokens.INK_3)
 	column.add_child(_status)
 
 	# The hairline: 3 physical px of amber across the full text width. It is
@@ -216,6 +223,16 @@ func _build_caption() -> void:
 	physical_min_size(_indeterminate, 0.0, 3.0)
 	_indeterminate.visible = false
 	column.add_child(_indeterminate)
+
+	# Breathing room under the bar. The web shell draws its own control chip in
+	# the bottom-left corner, and the poster's credit line sat on top of it
+	# (measured on the first 1280x720 frame of this design). Five per cent of
+	# the frame keeps the whole band clear of it without moving the band up
+	# into the picture.
+	_bottom_gap = Control.new()
+	_bottom_gap.name = &"LoadingGap"
+	_bottom_gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(_bottom_gap)
 
 
 func enter(stage_payload: Dictionary) -> void:
@@ -335,6 +352,8 @@ func _on_resized() -> void:
 ## notch's worth, so the wordmark band sits on near-black at any aspect.
 func _apply_poster() -> void:
 	var frame := physical_size()
+	if is_instance_valid(_bottom_gap):
+		physical_min_size(_bottom_gap, 0.0, maxf(frame.y * 0.05, 20.0))
 	if is_instance_valid(_scrim_bottom):
 		_scrim_bottom.anchor_left = 0.0
 		_scrim_bottom.anchor_right = 1.0
