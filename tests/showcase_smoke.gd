@@ -19,7 +19,8 @@ extends SceneTree
 ##     rather than assuming one per weapon;
 ##   * every clip a definition names is really in the GLB's AnimationPlayer;
 ##   * the live HERO stage builds a `ShowcaseViewport` that has a model on it, a
-##     camera, and a playing clip;
+##     camera, and a playing clip -- and HOME builds none, because two lobby
+##     pages showing the same model the same way are one page printed twice;
 ##   * the showcase's skeleton is a *different instance* from gameplay's, and
 ##     driving it does not change the avatar's clip -- the "showcase must not
 ##     touch combat state" requirement, measured instead of promised.
@@ -43,6 +44,7 @@ func _run_smoke_test() -> void:
 	await _check_weapon_models_are_the_gameplay_model()
 	_check_declared_clips_exist()
 	await _check_the_live_stage_shows_a_model()
+	await _check_home_does_not_repeat_the_showcase()
 	await _check_the_showcase_cannot_move_the_avatar()
 	_teardown()
 	if _failures.is_empty():
@@ -198,6 +200,51 @@ func _check_the_live_stage_shows_a_model() -> void:
 			"the showcase viewport has been sized (%dx%d)" % [viewport.size.x, viewport.size.y]
 		)
 		_expect(viewport.get_camera_3d() != null, "the viewport renders through its own camera")
+
+
+## The defect this file exists to keep out: HOME and OPERATIVE were one screen
+## printed twice, both a full-height model between a card column and a dock
+## (docs/DECISIONS.md 29). HOME is a manifest now, so it must present **no** 3D
+## at all, and it must still be the page that carries the three numbered rows.
+## Both halves are asserted: dropping the model without gaining the rows would
+## pass a one-sided check and ship an empty page.
+func _check_home_does_not_repeat_the_showcase() -> void:
+	if _front_end == null:
+		return
+	_front_end.go_to(&"DASHBOARD", {})
+	await process_frame
+	await process_frame
+	var home: Control = _front_end.get_node_or_null("StageHost/DASHBOARD")
+	if not _expect(home != null, "the HOME stage is instantiated"):
+		return
+	# A `SubViewportContainer` is how every 3D panel in this project is drawn, so
+	# finding one here would mean HOME had grown a viewport again.
+	var viewports := home.find_children("*", "SubViewportContainer", true, false)
+	var names := PackedStringArray()
+	for node in viewports:
+		names.append(str(node.name))
+	_expect(
+		viewports.is_empty(),
+		(
+			"HOME presents no 3D viewport (found %s); the model belongs to OPERATIVE"
+			% ", ".join(names)
+		),
+	)
+	for row_name in ["_hero_row", "_mission_row", "_arsenal_row"]:
+		_expect(
+			home.get(row_name) != null,
+			"HOME carries the %s row of its manifest" % row_name,
+		)
+	# And the other page must still be the showcase: if both lost their 3D the
+	# assertion above would be satisfied by two identical empty screens.
+	var hero: Control = _front_end.get_node_or_null("StageHost/HERO")
+	_expect(
+		(
+			hero != null
+			and not hero.find_children("*", "SubViewportContainer", true, false).is_empty()
+		),
+		"OPERATIVE is still the page with the 3D showcase",
+	)
 
 
 func _check_the_showcase_cannot_move_the_avatar() -> void:
