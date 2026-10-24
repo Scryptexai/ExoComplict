@@ -74,6 +74,12 @@ only an opinion is not here.
     the landing page at the repository root is a dark frame with one hairline
     and no words at all. Not one engine string is legible at launch — "half
     removed" looks worse than not started.
+
+    That includes the browser's own chrome: the export shell's `<title>` is
+    exactly `$GODOT_PROJECT_NAME`, and its bar carries no "Web Preview" and no
+    "Single-thread WebGL 2 build" chip. `project_doctor` asserts both by value,
+    because a title is the one string the browser paints before any of our
+    pixels exist.
 18. **The primary action is the bottom row** — nearest the thumb — which is the
     order Apex's READY bar and Free Fire's start tile use. Tabs sit above it.
 
